@@ -24,8 +24,12 @@
 
 汇总: BLOCK=0  TARGET=2  BEHAVIOR=5  NOTE=5  INFO=4
 
-  结论：A 类中 BLOCK = 0 项，即**当前结构在 MySQL 8.4 上不存在导入阻断项**；
+  结论：A 类中 BLOCK = 0 项，即**当前 DDL 结构在 MySQL 8.4 上不存在导入阻断项**。
         需处理的是 B 类 2 项架构治理要求与 A 类 5 项行为变更。
+
+  ⚠ 该结论的边界：仅覆盖「建表语句能否在 8.4 成功执行」。
+    不覆盖 47GB dump 的数据内容（零日期、超长字符串、非法枚举、重复主键）、
+    不覆盖应用行为兼容性、也不覆盖迁移流程本身的风险。数据层须另行体检。
 
 ------------------------------------------------------------------------------
 一、风险清单
@@ -87,9 +91,9 @@
      现象: **本次 dump 未发现相应对象定义**。注意：dump 尾部虽有 "-- Dumping events/routines" 段标题但内容为空，说明导出时未启用 --routines / --events，因此**不能据此推断源实例不存在这些对象**。同理，DEFINER / SQL SECURITY 相关风险在本文件中未发现，也不等于源库没有
      处置: 迁移前须在源实例上独立盘点：SELECT * FROM information_schema.ROUTINES / TRIGGERS / EVENTS；并执行 SHOW CREATE VIEW 逐个确认
 
-[15][INFO] 容量  ->  snsii_map(AUTO_INCREMENT=10093674), snsii_product(AUTO_INCREMENT=10093686), snsii_product_cache(AUTO_INCREMENT=10093685), snsii_product_cache_copy1(AUTO_INCREMENT=10093685), snsii_product_search(AUTO_INCREMENT=10093686), snsii_product_time_temp(AUTO_INCREMENT=3636429)
-     现象: AUTO_INCREMENT 已达百万级以上，属大表；8.4 的在线 DDL 与 MyISAM→InnoDB 转换耗时需单独评估
-     处置: 迁移时用 gh-ost / pt-online-schema-change，并预留停机窗口
+[15][INFO] 容量线索（非实际行数）  ->  snsii_map(AUTO_INCREMENT=10093674), snsii_product(AUTO_INCREMENT=10093686), snsii_product_cache(AUTO_INCREMENT=10093685), snsii_product_cache_copy1(AUTO_INCREMENT=10093685), snsii_product_search(AUTO_INCREMENT=10093686), snsii_product_time_temp(AUTO_INCREMENT=3636429)
+     现象: AUTO_INCREMENT 上限已达百万级。**它只是「曾经用过的最大 ID」，不等于当前行数，也不反映行宽**。本节仅用于标记「待实测容量候选」，不能据此认定表规模，更不能据此直接选定迁移工具
+     处置: 待实测行数、数据体积、索引体积后再确定迁移方式；工具选择见第四节「迁移执行策略」，其中已说明 gh-ost 不适用于 MyISAM 源表
 
 [16][INFO] 大小写  ->  全部小写
      现象: 所有表名均为小写，lower_case_table_names 差异不影响表名解析（字段名本身大小写不敏感）
@@ -190,18 +194,30 @@ snsii_track_order              MyISAM    utf8     utf8_general_ci        7      
 
   逐表分组（依据 AUTO_INCREMENT 上限，非真实行数）
   --------------------------------------------------------------------------
-  [空表 · 6 张] 直接按目标结构重建，无需数据迁移
+  分组名称统一为「待实测容量候选」，含义是**排定实测顺序的候选名单**，
+  不是容量结论。任何一张表在实测行数与体积之前，都不得据此选定迁移工具或估算停机窗口。
+
+  [空表 · 6 张] dump 中无 INSERT 记录；可直接按目标结构重建
     snsii_cf_dns, snsii_news_category, snsii_product_cache_copy1, snsii_product_so, snsii_product_stock, snsii_track_order
 
-  [大表 · 5 张] 建议逻辑重建或 pt-osc，需单独排停机窗口
+  [待实测容量候选 · 5 张] 仅表示 AUTO_INCREMENT 已达百万级，**不代表当前行数**；
+   实测行数与体积后再定迁移方式，先按最坏情况预留窗口：
     snsii_product                AUTO_INCREMENT=10093686
     snsii_product_search         AUTO_INCREMENT=10093686
     snsii_product_cache          AUTO_INCREMENT=10093685
     snsii_map                    AUTO_INCREMENT=10093674
     snsii_product_time_temp      AUTO_INCREMENT=3636429
 
-  [小表 · 20 张] 可原地 ALTER TABLE ... ENGINE=InnoDB
+  [其余表 · 20 张] ID 上限较低，通常可原地 ALTER TABLE ... ENGINE=InnoDB
     snsii_ad, snsii_attr_name, snsii_attr_name_lang, snsii_cart, snsii_cf_domain, snsii_cf_logs, snsii_contact, snsii_info, snsii_info_category, snsii_language, snsii_manage, snsii_nav, snsii_news, snsii_news_tags, snsii_news_tags_ids, snsii_product_category, snsii_product_hot, snsii_product_time, snsii_product_time_list, snsii_supplier
+
+  两点必须说明的局限
+  --------------------------------------------------------------------------
+    1. **快照不等于现状**：本报告基于 2024-11-30 的导出快照。实施前必须在线上
+       重新执行 SHOW CREATE TABLE 与行数统计，不能以本报告替代实施前的结构与数据复核。
+    2. **空表不等于可删除**：dump 中无 INSERT 只说明导出时该表没有数据，
+       不代表应用代码没有引用。是否迁移须结合 Yii2 代码检索与业务确认，
+       尤其 snsii_track_order（唯一无主键表）不能因 dump 为空就直接丢弃。
 
   锁表方式
   --------------------------------------------------------------------------
