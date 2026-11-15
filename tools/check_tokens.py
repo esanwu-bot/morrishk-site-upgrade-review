@@ -6,14 +6,11 @@ Design Token 使用检查器（Morris Design System v1.0）
 
     python tools/check_tokens.py --path 07_prototypes/
 
-本地原型源目录：
-
-    python mysql_schema_audit/tools/check_tokens.py --path prototype/redesign/
-
 产出：<path>/TOKEN_AUDIT.md，并在标准输出打印汇总与退出码（0=全部通过，1=有 FAIL）。
 
 检查项：
-  A  CSS 声明中的硬编码色值      —— 必须为 0
+  A  样式区域中的硬编码色值    —— 必须为 0
+  A1 边界探针（A 不覆盖的写法）—— INFO，仅统计
   A2 HTML 展示文字中的色值字面量  —— 允许（INFO，逐条列出）
   A3 注释中的色值 / 颜色函数名    —— 允许（INFO，仅计数）
   B  未定义变量引用              —— 必须为 0
@@ -22,6 +19,14 @@ Design Token 使用检查器（Morris Design System v1.0）
   E  色彩属性 Token 覆盖率        —— 报告
   F  样式表引用链顺序             —— 5/5
   G  Token 分层统计              —— Primitive / Semantic / Component
+
+A 项的判定口径（重要，勿高估结论强度）：
+  - **不解析 CSS 声明语法**，只对样式区域做正则字面量匹配
+    （`#[0-9a-fA-F]{3,8}`、`rgb(a)?(`、`hsl(a)?(`）。
+  - HTML `style` 属性**全文扫描**，双引号 / 单引号 / 跨行三种写法共用一条正则。
+    早期版本按行匹配且只认双引号，`style='...'` 与跨行写法会整段漏检（已修复）。
+  - 不检出：具名颜色（`red`/`white`）、`oklch()` 等现代色彩函数、内联 SVG 的呈现属性。
+    这些由 A1 边界探针单独统计，不参与 PASS/FAIL。
 
 只读源码，不修改被扫描文件。
 """
@@ -57,6 +62,21 @@ COLOR_PROP = re.compile(
 #: 不承载色值的关键字
 KEYWORDS = ("transparent", "inherit", "currentcolor", "none", "initial", "unset")
 
+#: HTML style 属性：单双引号通吃，属性值允许跨行。
+#: 判定（A 项）与统计（html_style_regions）共用此正则，避免两处口径分裂。
+STYLE_ATTR = re.compile(r"style\s*=\s*(?:\"([^\"]*)\"|'([^']*)')", re.I)
+
+#: 边界探针：A 项正则**不覆盖**的写法，仅统计出现次数，不参与 PASS/FAIL 判定
+MODERN_FN = re.compile(r"\b(?:oklch|oklab|lab|lch|hwb|color-mix|device-cmyk)\s*\(", re.I)
+
+#: 常见具名颜色词表（非 CSS 全量 148 色，仅覆盖工程上常见的误用写法）
+NAMED_COLORS = (
+    "red", "blue", "green", "yellow", "orange", "purple", "pink", "brown",
+    "black", "white", "gray", "grey", "silver", "navy", "teal", "olive",
+    "maroon", "lime", "aqua", "fuchsia", "amber", "slate", "zinc", "stone",
+)
+NAMED = re.compile(r"(?<![a-z-])(%s)(?![a-z-])" % "|".join(NAMED_COLORS), re.I)
+
 
 # --------------------------------------------------------------------------
 # 基础工具
@@ -76,15 +96,25 @@ def strip_css_comments(text: str) -> str:
     return re.sub(r"/\*.*?\*/", lambda m: blank_keep_lines(m.group(0)), text, flags=re.S)
 
 
+def iter_style_attrs(text: str):
+    """遍历 HTML 中的 style 属性，产出 (起始行号, 属性值)。
+
+    覆盖双引号、单引号、跨行三种写法。旧实现按行匹配且只认双引号，
+    导致 `style='color:#fff'` 与跨行 style 完全漏检（R2 修复项）。
+    """
+    for m in STYLE_ATTR.finditer(text):
+        line = text.count("\n", 0, m.start()) + 1
+        val = m.group(1) if m.group(1) is not None else m.group(2)
+        yield line, val
+
+
 def html_style_regions(text: str):
-    """返回 HTML 中的样式区域片段列表：<style> 块内容 + style="..." 属性值。"""
+    """返回 HTML 中的样式区域片段列表：<style> 块内容 + style 属性值（单/双引号、跨行）。"""
     pieces = []
     for m in re.finditer(r"<style[^>]*>(.*?)</style>", text, re.S | re.I):
         pieces.append(m.group(1))
-    for m in re.finditer(r'style\s*=\s*"([^"]*)"', text, re.I):
-        pieces.append(m.group(1))
-    for m in re.finditer(r"style\s*=\s*'([^']*)'", text, re.I):
-        pieces.append(m.group(1))
+    for _, val in iter_style_attrs(text):
+        pieces.append(val)
     return pieces
 
 
@@ -113,7 +143,7 @@ def collect_files(root: str):
 # --------------------------------------------------------------------------
 
 def find_css_color_literals(text: str, rel: str):
-    """A：CSS 声明中的字面色值（CSS 去注释后全文扫描；HTML 只扫样式区域）。"""
+    """A：样式区域中的字面色值（正则字面量匹配，不做 CSS 声明语法解析）。"""
     hits = []
     if rel.endswith(".css"):
         probe = strip_css_comments(text)
@@ -130,12 +160,12 @@ def find_css_color_literals(text: str, rel: str):
                     hits.append((i, m.group(0), kind, line.strip()[:160]))
         return hits
 
-    # HTML：style 属性（逐行定位）
-    for i, line in enumerate(text.split("\n"), 1):
-        for m in re.finditer(r'style\s*=\s*"([^"]*)"', line, re.I):
-            for kind, rx in COLOR_ANY:
-                for mm in rx.finditer(m.group(1)):
-                    hits.append((i, mm.group(0), kind, line.strip()[:160]))
+    # HTML：style 属性（全文扫描，单引号 / 双引号 / 跨行统一由 STYLE_ATTR 处理）
+    for line_no, val in iter_style_attrs(text):
+        ctx = " ".join(val.split())[:160]
+        for kind, rx in COLOR_ANY:
+            for mm in rx.finditer(val):
+                hits.append((line_no, mm.group(0), kind, ctx))
     # HTML：<style> 块（按块起始行偏移）
     for sm in re.finditer(r"<style[^>]*>(.*?)</style>", text, re.S | re.I):
         start = text[:sm.start()].count("\n") + 1
@@ -146,18 +176,42 @@ def find_css_color_literals(text: str, rel: str):
     return hits
 
 
+def probe_boundary_literals(text: str, rel: str):
+    """边界探针：统计 A 项正则**不覆盖**的色彩写法，仅作 INFO，不参与判定。
+
+    覆盖两类：现代色彩函数（oklch/lab/lch/hwb/color-mix）与常见具名颜色。
+    目的是量化"A=0"背后的盲区有多大，而不是扩大判定的判定面。
+    """
+    if rel.endswith(".css"):
+        probe = strip_css_comments(text)
+    elif rel.endswith(".html"):
+        probe = "\n".join(html_style_regions(text))
+    elif rel.endswith(".js"):
+        probe = text
+    else:
+        return []
+    # white-space 是排版属性名，不是颜色，先剔除以免误报
+    probe = re.sub(r"white-space\s*:\s*[^;}\n]*", "", probe, flags=re.I)
+    out = []
+    for m in MODERN_FN.finditer(probe):
+        out.append(("现代函数", m.group(0)))
+    for m in NAMED.finditer(probe):
+        out.append(("具名颜色", m.group(0)))
+    return out
+
+
 def find_display_literals(text: str, rel: str):
     """A2：HTML 展示文字中的色值字面量（不是样式声明，仅作 INFO）。"""
     if not rel.endswith(".html"):
         return []
     hits = []
-    for i, line in enumerate(text.split("\n"), 1):
+    # 先把全部 style 属性置空（单/双引号、跨行统一处理，保留换行以维持行号），
+    # 避免样式里的色值被误当成展示文字重复计数。
+    stripped = STYLE_ATTR.sub(lambda m: blank_keep_lines(m.group(0)), text)
+    for i, line in enumerate(stripped.split("\n"), 1):
         if not any(rx.search(line) for _, rx in COLOR_ANY):
             continue
-        # 去掉该行的 style 属性与标签后若仍剩色值，说明出现在展示文字里
-        probe = re.sub(r'style\s*=\s*"[^"]*"', "", line, flags=re.I)
-        probe = re.sub(r"style\s*=\s*'[^']*'", "", probe, flags=re.I)
-        probe = re.sub(r"<[^>]+>", "", probe)
+        probe = re.sub(r"<[^>]+>", "", line)
         for kind, rx in COLOR_ANY:
             for m in rx.finditer(probe):
                 hits.append((i, m.group(0), kind, line.strip()[:160]))
@@ -277,6 +331,7 @@ def main(argv=None):
         (len(files), len(html_files), len(css_files), len(js_files)))
     add("| 排除目录 | %s |" % "、".join("`%s/`" % d for d in sorted(SKIP_DIRS) if d != ".git"))
     add("| Token 定义文件 | `%s` |" % tokens_rel)
+    add("| 扫描口径 | 正则字面量匹配（A）；HTML `style` 属性覆盖单引号 / 双引号 / 跨行。详见 0.1 |")
     add("| 退出码含义 | 0 = 全部 PASS；1 = 存在 FAIL；2 = 路径或文件缺失 |")
     add("")
     add("扫描文件清单：")
@@ -303,11 +358,34 @@ def main(argv=None):
     add("| `tokens.css` 内的 `#hex` | 合规 | Primitive 层的定义处，是全站唯一允许出现字面色值的位置 |")
     add("| `tokens.css` 内的 `rgba()`（遮罩、阴影） | 合规 | 半透明与多层阴影无法用不透明色阶表达 |")
     add("")
+    add("### 0.1 检测方式与覆盖边界")
+    add("")
+    add("A 项**不解析 CSS 声明语法**，而是对样式区域做正则字面量匹配。"
+        "因此它的准确语义是「被下列正则识别出的字面色值数量」，"
+        "**不等于**「CSS 语义上存在的色值数量」。本节写明真实范围，避免把 A=0 读得过强。")
+    add("")
+    add("| 维度 | 实际做法 |")
+    add("|---|---|")
+    add("| CSS 文件 | 去注释后**全文**匹配（含选择器与简写值），正则 `#[0-9a-fA-F]{3,8}`、`rgb(a)?(`、`hsl(a)?(` |")
+    add("| HTML `<style>` 块 | 同上，按块内行偏移回算行号 |")
+    add("| HTML `style` 属性 | 全文扫描，**双引号 / 单引号 / 跨行**三种写法共用同一条正则（`STYLE_ATTR`） |")
+    add("| JS 文件 | 全文匹配同上三条正则 |")
+    add("| 注释 | CSS `/* */` 先置空并保留行号；HTML / JS 注释不参与 A，仅作 A3 计数 |")
+    add("")
+    add("**已知盲区（A 项不检出，用 A1 边界探针另行统计）**：")
+    add("")
+    add("| 写法 | 示例 | A 是否检出 |")
+    add("|---|---|---|")
+    add("| 具名颜色 | `color: red`、`background: white` | 否 |")
+    add("| 现代色彩函数 | `oklch()`、`lab()`、`lch()`、`hwb()`、`color-mix()` | 否 |")
+    add("| 内联 SVG 的呈现属性 | `<rect fill=\"#fff\">`（不在 `style` 属性内） | 否 |")
+    add("")
 
     # ---------------- A ----------------
-    add("## A. CSS 声明中的硬编码色值")
+    add("## A. 样式区域中的硬编码色值（正则口径）")
     add("")
-    add("规则：除 `tokens.css` 外，**样式声明中不得出现任何字面色值**。这是硬性门槛，必须为 0。")
+    add("规则：除 `tokens.css` 外，**样式区域中不得出现任何字面色值**。这是硬性门槛，必须为 0。"
+        "检测方式与盲区见 0.1，盲区的实际触发情况见 A1。")
     add("")
     add("| 文件 | hex | rgb() | hsl() | 判定 |")
     add("|---|---|---|---|---|")
@@ -334,6 +412,36 @@ def main(argv=None):
     add("**结果：%s** —— `tokens.css` 之外的样式声明中共 **%d** 处字面色值。" %
         ("PASS" if total_a == 0 else "**FAIL**", total_a))
     add("")
+    # ---------------- A1：边界探针 ----------------
+    add("### A1. 边界探针（A 不覆盖的写法，INFO）")
+    add("")
+    add("统计 A 项正则**不检出**的色彩写法实际出现了多少次，用来量化 A=0 的盲区大小。"
+        "本项不参与 PASS/FAIL，只回答「把口径放宽后会不会翻盘」。")
+    add("")
+    add("| 文件 | 现代色彩函数 | 具名颜色 |")
+    add("|---|---|---|")
+    probe_total = 0
+    for f in files:
+        pb = probe_boundary_literals(read_text(os.path.join(root, f)), f)
+        if not pb:
+            continue
+        n_fn = sum(1 for k, _ in pb if k == "现代函数")
+        n_named = sum(1 for k, _ in pb if k == "具名颜色")
+        probe_total += len(pb)
+        add("| `%s` | %d | %d |" % (f, n_fn, n_named))
+    if probe_total == 0:
+        add("| _（无）_ | 0 | 0 |")
+    add("")
+    add("**结果：%d 处** —— %s" % (
+        probe_total,
+        "盲区在本轮送审代码中未被触发，A=0 不是靠漏检得到的。" if probe_total == 0
+        else "存在 A 未覆盖的写法，A=0 不能单独作为结论，需人工确认上表。"))
+    add("")
+    add("**探针自身边界**：具名颜色使用一张 %d 词的常见色表（非 CSS 全量 148 色）；"
+        "`white-space` 这类含颜色词的属性名已剔除。探针结果偏保守，"
+        "报告为 0 表示常见误用写法未出现，不表示理论上不存在。" % len(NAMED_COLORS))
+    add("")
+
     for f, hits in detail_a:
         add("### `%s`" % f)
         add("")
@@ -602,7 +710,7 @@ def main(argv=None):
     add("## H. 汇总")
     add("")
     checks = [
-        ("A 样式声明硬编码色值", "PASS" if total_a == 0 else "FAIL", "%d 处" % total_a),
+        ("A 样式区域硬编码色值（正则口径）", "PASS" if total_a == 0 else "FAIL", "%d 处" % total_a),
         ("B 未定义变量", "PASS" if not undefined else "FAIL", "%d 个" % len(undefined)),
         ("C 圆角越界", "PASS" if not radius_hits else "FAIL", "%d 处" % len(radius_hits)),
         ("D z-index 字面值", "PASS" if not z_hits else "FAIL", "%d 处" % len(z_hits)),
@@ -618,8 +726,8 @@ def main(argv=None):
     passed = sum(1 for _, r, _ in gate if r == "PASS")
     add("**%d / %d 项硬性门槛通过。**" % (passed, len(gate)))
     add("")
-    add("另有两项 INFO 不计入门槛：A2 展示文字色值 **%d** 处、A3 注释内色值 **%d** 处。" %
-        (disp_total, cmt_total))
+    add("另有三项 INFO 不计入门槛：A1 边界探针 **%d** 处、A2 展示文字色值 **%d** 处、"
+        "A3 注释内色值 **%d** 处。" % (probe_total, disp_total, cmt_total))
     add("")
 
     # ---------------- I ----------------
@@ -631,7 +739,9 @@ def main(argv=None):
     add("4. **不检查响应式行为**。媒体查询断点数值是否与 `--bp-*` 一致仅人工核对，未脚本化。")
     add("5. **不覆盖 `seo/` 与 `admin/`**。这两个模块为第二轮提交，本轮未纳入。")
     add("6. **不检查 `data-mock` 标注数量**，见 `README.md` 的标注统计。")
-    add("7. **PASS 不等于设计通过**。本报告只证明源码层面没有字面色值、没有未定义变量、"
+    add("7. **不检出具名颜色、`oklch()` 等现代色彩函数、内联 SVG 呈现属性**。这些写法不在 A 项"
+        "正则的覆盖范围内，实际触发次数见 A1 边界探针（本轮为 0），不能据 A=0 推断它们不存在。")
+    add("8. **PASS 不等于设计通过**。本报告只证明源码层面没有字面色值、没有未定义变量、"
         "没有越界圆角、没有 z-index 字面值、引用顺序正确；视觉是否统一仍须人工评审。")
     add("")
 

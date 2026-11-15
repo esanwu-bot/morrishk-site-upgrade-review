@@ -8,11 +8,13 @@ CSS 取值差异比对（v1.4 字面值 → v1.5.1 Token 解析值）
 
 用法：
 
-    python mysql_schema_audit/tools/css_value_diff.py \
+    python tools/css_value_diff.py \
         --old <v1.4>/assets/proto.css \
-        --new <v1.5.1>/assets/proto.css \
-        --tokens <v1.5.1>/assets/tokens.css \
-        --out  _shots/diff/CSS_VALUE_DIFF.md
+        --new 07_prototypes/assets/proto.css \
+        --tokens 07_prototypes/assets/tokens.css \
+        --out 07_prototypes/reference/prototype_shots/CSS_VALUE_DIFF.md
+
+退出码：0 = 报告已生成且分类合计自校验通过；3 = 分类合计与真实变更数不一致。
 """
 from __future__ import annotations
 
@@ -69,9 +71,17 @@ def canon(v):
     return v
 
 
+#: 圆角属性：border-radius 及其长写（border-top-left-radius 等），含浏览器前缀
+RADIUS_PROP = re.compile(r"(?:^|-)border(?:-[a-z]+)*-radius$")
+
+
 #: 分类：颜色 / 间距 / 字号 / 圆角 / 阴影 / 层级 / 动效 / 其他
 def category(prop):
     p = prop.lower()
+    # 圆角必须先于一般 border 判断。border-radius 含 "border" 子串，
+    # 若先走下面的颜色分支会被误归入"颜色"（R1 修复项）。
+    if RADIUS_PROP.search(p):
+        return "圆角"
     if any(k in p for k in ("color", "background", "border", "outline", "box-shadow", "fill", "stroke")):
         if p == "box-shadow":
             return "阴影"
@@ -81,8 +91,6 @@ def category(prop):
         return "间距"
     if p in ("font-size", "line-height", "letter-spacing", "font-weight", "font-feature-settings"):
         return "排版"
-    if p == "border-radius":
-        return "圆角"
     if p == "z-index":
         return "层级"
     if p in ("transition", "animation"):
@@ -128,7 +136,7 @@ def main(argv=None):
     add = L.append
     add("# CSS 取值差异清单（v1.4 → v1.5.1）")
     add("")
-    add("**生成方式** `mysql_schema_audit/tools/css_value_diff.py`，可重跑。")
+    add("**生成方式** `tools/css_value_diff.py`，可重跑（退出码 0 = 生成成功且分类合计自校验通过）。")
     add("")
     add("做法：把两版 `proto.css` 的每条声明解析为**最终取值**（各自用自己的变量作用域，"
         "v1.4 用自身 `:root`，v1.5.1 用 `tokens.css`），再逐条比对。"
@@ -159,7 +167,9 @@ def main(argv=None):
 
     add("## 真实变更明细")
     add("")
-    add("按类别分组。**这些就是像素差分的来源**——不是抗锯齿，而是取值真的变了。")
+    add("分类规则：**先判圆角**（`border-*-radius` 全族长写），再判一般 `border` 等颜色属性；"
+        "否则 `border-radius` 会因含 `border` 子串被误归入颜色。"
+        "**这些就是像素差分的来源**——不是抗锯齿，而是取值真的变了。")
     add("")
     groups = {}
     for r in changed:
@@ -177,10 +187,29 @@ def main(argv=None):
                 (sel, prop, va.replace("|", "\\|"), vb.replace("|", "\\|"), why))
         add("")
 
+    # 分类合计自校验：合计必须等于真实变更总数，否则报告不可用
+    add("### 分类合计校验")
+    add("")
+    add("| 类别 | 条数 |")
+    add("|---|---|")
+    for g in order:
+        if g in groups:
+            add("| %s | %d |" % (g, len(groups[g])))
+    tally = sum(len(v) for v in groups.values())
+    add("| **合计** | **%d** |" % tally)
+    add("")
+    add("**校验结果**：分类合计 %d 条，真实变更 %d 条，%s。" %
+        (tally, len(changed), "一致 PASS" if tally == len(changed) else "**不一致 FAIL**"))
+    add("")
+
     io.open(args.out, "w", encoding="utf-8", newline="\n").write("\n".join(L) + "\n")
+    if tally != len(changed):
+        sys.stderr.write("ERROR: 分类合计 %d != 真实变更 %d，报告不可用\n" % (tally, len(changed)))
+        return 3
     print("written:", args.out)
     print("decls=%d changed=%d only_old=%d only_new=%d" %
           (len(rows), len(changed), len(only_a), len(only_b)))
+    print("分类: " + " / ".join("%s=%d" % (g, len(groups[g])) for g in order if g in groups))
     return 0
 
 

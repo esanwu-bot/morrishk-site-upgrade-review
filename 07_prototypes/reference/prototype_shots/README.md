@@ -21,8 +21,8 @@
 | `v1.4/` | 旧版 5 页截图（index / home / detail / search / inquiry） |
 | `v1.5.1/` | 新版 5 页截图，同视口同高度 |
 | `diff/diff_*.png` | 差异图：灰度打底，红 = 可见差异，浅红 = 严格差异但视觉不可辨 |
-| `PIXEL_DIFF.md` | 逐页差异像素数、占比、差异行段定位（脚本生成） |
-| `CSS_VALUE_DIFF.md` | 两版 `proto.css` 逐条取值比对，652 条等价 / 51 条真实变更（脚本生成） |
+| `PIXEL_DIFF.md` | 页面集合/尺寸/完成度前置校验、逐页差异像素数、差异行段定位、位移补偿口径（脚本生成） |
+| `CSS_VALUE_DIFF.md` | 两版 `proto.css` 逐条取值比对，652 条等价 / 51 条真实变更，含分类合计自校验（脚本生成） |
 
 ## 重跑方式
 
@@ -33,21 +33,25 @@ git archive v1.4-review | tar -x -C /tmp/_v14_snapshot
 # 2) 两版各起一个静态服务（端口自定），按同一视口截图
 #    见 VISUAL_DIFF.md 第二节的完整命令
 
-# 3) 像素差分
-python mysql_schema_audit/tools/pixel_diff.py --a <v1.4 截图> --b <v1.5.1 截图> --out .
+# 3) 像素差分（页面集合不一致会直接失败，不会静默跳过）
+python tools/pixel_diff.py --a <v1.4 截图> --b <v1.5.1 截图> --out .
 
 # 4) CSS 取值比对
-python mysql_schema_audit/tools/css_value_diff.py \
+python tools/css_value_diff.py \
   --old <v1.4>/assets/proto.css --new <v1.5.1>/assets/proto.css \
   --tokens <v1.5.1>/assets/tokens.css --out CSS_VALUE_DIFF.md
 ```
+
+两个脚本都带**非零退出码**语义，可直接接 CI：
+`pixel_diff.py` 缺页/多页退出 3、尺寸不一致或差分失败退出 4；
+`css_value_diff.py` 分类合计与真实变更数不一致退出 3。
 
 ## 文件哈希（SHA-256）
 
 | 文件 | 字节 | SHA-256 |
 |---|---|---|
-| `CSS_VALUE_DIFF.md` | 6,048 | `93159103698ce776c76c2a881459e5b8d262be53f1508e2ae8a9d52768cd36ab` |
-| `PIXEL_DIFF.md` | 3,245 | `06a748ed80f9bbdeb9a46cb0a74a9e8f99bb1113dd69f974a50d73eeb178245b` |
+| `CSS_VALUE_DIFF.md` | 6,624 | `a97f7e20c611693ee9442bd3718b5e4923f1acceed3788adcdb4d6435f2d79dc` |
+| `PIXEL_DIFF.md` | 5,092 | `f447510ebdbc108ccdfc0eb849bf669359d4265d6213e42c066f4733298d6051` |
 | `diff/diff_detail.png` | 143,925 | `4e1973925c037adc6add33253ec6482c1864e00cd069f9fdab6b4b5658516d59` |
 | `diff/diff_home.png` | 152,906 | `d887afe4682def5c290e2acc8ff77f7bd921625afb8aa8def50034fe36c71a61` |
 | `diff/diff_index.png` | 110,563 | `5f911d48a5227090db6e76c8862e470bb76c3848fee15df4c2a7b79c8bdefd72` |
@@ -63,4 +67,3 @@ python mysql_schema_audit/tools/css_value_diff.py \
 | `v1.5.1/index.png` | 216,790 | `e0944896ccd4b4a8bcd1d62c0a312a5c0b09f57bf13a526d5b5260a914222f1c` |
 | `v1.5.1/inquiry.png` | 170,064 | `64bee168b24a18776bb699dcaed7370391f79c80b1010a35dd29facbd6e63a79` |
 | `v1.5.1/search.png` | 185,246 | `0e665086d8bc3b4b1955ba991976655bf3c02296c9d777591578f8c202732757` |
-

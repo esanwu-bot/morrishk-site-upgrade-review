@@ -4,17 +4,29 @@
 
 用法：
 
-    python mysql_schema_audit/tools/pixel_diff.py \
-        --a _shots/diff/v14 --b _shots/diff/v151 --out _shots/diff
+    python tools/pixel_diff.py \
+        --a 07_prototypes/reference/prototype_shots/v1.4 \
+        --b 07_prototypes/reference/prototype_shots/v1.5.1 \
+        --out 07_prototypes/reference/prototype_shots
 
-要求两版截图满足：同一浏览器、同一内核版本、同一视口（--window-size）、同一缩放、同一页面数量。
-差分结果写入 <out>/PIXEL_DIFF.md，差异图写入 <out>/diff_<name>.png。
+要求两版截图满足：同一浏览器、同一内核版本、同一视口（--window-size）、同一缩放、
+**同一页面集合**。
 
 差分口径：
-  1. 尺寸必须完全一致，否则直接报错（不做缩放对齐，避免伪造一致性）。
-  2. 逐像素比较 RGB，三通道任一不同即计为差异像素（严格口径）。
-  3. 另给"可见差异"口径：|ΔR|+|ΔG|+|ΔB| > 24，用于排除亚像素抗锯齿噪声。
-  4. 差异区域按行分带（连续差异行合并为一段），每段给出起止行与像素数。
+  1. **页面集合必须完全相等**：任一方向缺页立即非零退出，不写报告，不允许静默跳过。
+  2. 每页尺寸必须完全一致，否则非零退出（不做缩放对齐，避免伪造一致性）。
+  3. 逐像素比较 RGB，三通道任一不同即计为差异像素（严格口径）。
+  4. 另给"可见差异"口径：|ΔR|+|ΔG|+|ΔB| > 24，用于排除亚像素抗锯齿噪声。
+  5. 差异区域按行分带（连续差异行合并为一段），每段给出起止行与像素数。
+  6. **位移补偿口径**：在 ±N 像素纵向偏移内搜索最小差异率，用来区分
+     "同样的内容整体错位" 与 "内容本身真的变了"。两种口径并列给出，不互相替代。
+
+退出码：
+  0 = 集合一致、尺寸一致、全部页面完成差分
+  2 = 目录缺失或目录内没有 PNG
+  3 = 两版页面集合不一致（缺页 / 多页）
+  4 = 尺寸不一致或单页差分失败（此时不生成报告）
+  5 = 完成页数少于页面集合（此时不生成报告）
 """
 from __future__ import annotations
 
@@ -32,10 +44,56 @@ def load(path):
     return Image.open(path).convert("RGB")
 
 
-def diff_one(a_path, b_path, out_dir, name):
+def png_stems(directory):
+    """目录内 PNG 的文件名集合（不含扩展名）。"""
+    return {os.path.splitext(f)[0] for f in os.listdir(directory) if f.lower().endswith(".png")}
+
+
+def count_strict_diff(img_a, img_b):
+    """同尺寸两图的严格差异像素数（三通道任一不同即计入）。C 级实现，供位移搜索复用。"""
+    d = ImageChops.difference(img_a, img_b)
+    rc, gc, bc = d.split()
+    mx = ImageChops.lighter(ImageChops.lighter(rc, gc), bc)
+    hist = mx.histogram()
+    return sum(hist[1:])
+
+
+def shifted_rate(img_a, img_b, dy):
+    """把新版纵向平移 dy 像素后，在重叠区计算差异率。
+
+    dy > 0 表示新版内容比旧版靠上（旧版 y=dy 与新版 y=0 对齐）。
+    """
+    w, h = img_a.size
+    if dy > 0:
+        sub_a = img_a.crop((0, dy, w, h))
+        sub_b = img_b.crop((0, 0, w, h - dy))
+    elif dy < 0:
+        sub_a = img_a.crop((0, 0, w, h + dy))
+        sub_b = img_b.crop((0, -dy, w, h))
+    else:
+        sub_a, sub_b = img_a, img_b
+    n = count_strict_diff(sub_a, sub_b)
+    area = sub_a.size[0] * sub_a.size[1]
+    return n / area * 100.0, n, area
+
+
+def best_shift(img_a, img_b, search):
+    """在 [-search, +search] 内搜索使差异率最小的纵向偏移。返回 (dy, rate, pixels, area)。"""
+    rate0, n0, area0 = shifted_rate(img_a, img_b, 0)
+    best = (0, rate0, n0, area0)
+    for dy in range(-search, search + 1):
+        if dy == 0:
+            continue
+        rate, n, area = shifted_rate(img_a, img_b, dy)
+        if rate < best[1]:
+            best = (dy, rate, n, area)
+    return best
+
+
+def diff_one(a_path, b_path, out_dir, name, shift_search):
     a, b = load(a_path), load(b_path)
     if a.size != b.size:
-        raise SystemExit("尺寸不一致: %s %s vs %s" % (name, a.size, b.size))
+        raise ValueError("尺寸不一致: %s %s vs %s" % (name, a.size, b.size))
     w, h = a.size
 
     pa, pb = a.load(), b.load()
@@ -79,10 +137,14 @@ def diff_one(a_path, b_path, out_dir, name):
         bands.append((start, prev, cnt))
     bands.sort(key=lambda t: -t[2])
 
-    out_path = os.path.join(out_dir, "diff_%s.png" % name)
+    # 差异图统一落到 <out>/diff/，报告落到 <out>/，与仓库既有布局一致
+    diff_dir = os.path.join(out_dir, "diff")
+    os.makedirs(diff_dir, exist_ok=True)
+
+    out_path = os.path.join(diff_dir, "diff_%s.png" % name)
     out.save(out_path)
 
-    return {
+    r = {
         "name": name,
         "size": (w, h),
         "total": total,
@@ -92,7 +154,13 @@ def diff_one(a_path, b_path, out_dir, name):
         "visible_pct": visible / total * 100,
         "bands": bands,
         "diff_img": out_path,
+        "shift_dy": None,
+        "shift_pct": None,
     }
+    if shift_search > 0:
+        dy, rate, n, area = best_shift(a, b, shift_search)
+        r.update({"shift_dy": dy, "shift_pct": rate, "shift_pixels": n, "shift_area": area})
+    return r
 
 
 def main(argv=None):
@@ -102,31 +170,77 @@ def main(argv=None):
     ap.add_argument("--out", required=True, help="输出目录（差异图与报告）")
     ap.add_argument("--label-a", default="v1.4")
     ap.add_argument("--label-b", default="v1.5.1")
+    ap.add_argument("--shift-search", type=int, default=40,
+                    help="纵向位移补偿搜索半径（像素），0 表示关闭该口径。默认 40")
     args = ap.parse_args(argv)
 
-    names = sorted(os.path.splitext(f)[0] for f in os.listdir(args.a) if f.endswith(".png"))
-    if not names:
-        raise SystemExit("目录内没有 PNG: %s" % args.a)
+    for d in (args.a, args.b):
+        if not os.path.isdir(d):
+            sys.stderr.write("ERROR: 目录不存在: %s\n" % d)
+            return 2
+
+    names_a = png_stems(args.a)
+    names_b = png_stems(args.b)
+    if not names_a and not names_b:
+        sys.stderr.write("ERROR: 两个目录内都没有 PNG\n")
+        return 2
+    if not names_a:
+        sys.stderr.write("ERROR: 旧版目录内没有 PNG: %s\n" % args.a)
+        return 2
+    if not names_b:
+        sys.stderr.write("ERROR: 新版目录内没有 PNG: %s\n" % args.b)
+        return 2
+
+    # 硬性条件：两版页面集合必须完全相等。缺页不跳过、多页不忽略。
+    if names_a != names_b:
+        sys.stderr.write("ERROR: 两版页面集合不一致，拒绝生成差异报告\n")
+        sys.stderr.write("  旧版 %d 页，新版 %d 页\n" % (len(names_a), len(names_b)))
+        for n in sorted(names_a - names_b):
+            sys.stderr.write("  仅旧版存在（新版缺页）: %s.png\n" % n)
+        for n in sorted(names_b - names_a):
+            sys.stderr.write("  仅新版存在（旧版无对应）: %s.png\n" % n)
+        return 3
+
     os.makedirs(args.out, exist_ok=True)
 
     results = []
-    for n in names:
+    failed = []
+    for n in sorted(names_a):
         a = os.path.join(args.a, n + ".png")
         b = os.path.join(args.b, n + ".png")
-        if not os.path.exists(b):
-            print("SKIP (缺对端): %s" % n)
+        try:
+            r = diff_one(a, b, args.out, n, args.shift_search)
+        except Exception as exc:  # 尺寸不一致、文件损坏等
+            failed.append((n, str(exc)))
             continue
-        r = diff_one(a, b, args.out, n)
         results.append(r)
-        print("%-10s %dx%d  strict=%d (%.3f%%)  visible=%d (%.3f%%)  bands=%d" %
+        extra = ""
+        if r["shift_dy"] is not None:
+            extra = "  shift dy=%+d -> %.3f%%" % (r["shift_dy"], r["shift_pct"])
+        print("%-10s %dx%d  strict=%d (%.3f%%)  visible=%d (%.3f%%)  bands=%d%s" %
               (n, r["size"][0], r["size"][1], r["strict"], r["strict_pct"],
-               r["visible"], r["visible_pct"], len(r["bands"])))
+               r["visible"], r["visible_pct"], len(r["bands"]), extra))
+
+    if failed:
+        # 清理本次已写出的差异图，不留下"部分页面已出图"的半成品
+        for r in results:
+            p = os.path.join(args.out, "diff", "diff_%s.png" % r["name"])
+            if os.path.exists(p):
+                os.remove(p)
+        for n, msg in failed:
+            sys.stderr.write("FAILED: %s —— %s\n" % (n, msg))
+        sys.stderr.write("ERROR: %d 页差分失败，未生成报告\n" % len(failed))
+        return 4
+    if len(results) != len(names_a):
+        sys.stderr.write("ERROR: 完成 %d 页 != 页面集合 %d 页，未生成报告\n" %
+                         (len(results), len(names_a)))
+        return 5
 
     L = []
     add = L.append
     add("# 同视口像素差分报告")
     add("")
-    add("**用途** 为 `VISUAL_DIFF.md` 提供可复现的像素级证据。脚本：`mysql_schema_audit/tools/pixel_diff.py`。")
+    add("**用途** 为 `VISUAL_DIFF.md` 提供可复现的像素级证据。脚本：`tools/pixel_diff.py`。")
     add("")
     add("| 项 | 值 |")
     add("|---|---|")
@@ -137,27 +251,70 @@ def main(argv=None):
     add("| 渲染地址 | 本地 `http.server`（`http://127.0.0.1`），非 `file://` |")
     add("| 页面数 | %d |" % len(results))
     add("| 严格口径 | 三通道任一不同即计入 |")
-    add("| 可见口径 | |ΔR|+|ΔG|+|ΔB| > %d |" % VISIBLE_DELTA)
+    add("| 可见口径 | \\|ΔR\\|+\\|ΔG\\|+\\|ΔB\\| > %d |" % VISIBLE_DELTA)
+    add("| 位移补偿搜索半径 | ±%d px（`--shift-search`） |" % args.shift_search)
     add("")
-    add("## 汇总")
+
+    # ---------------- 0. 前置校验 ----------------
+    add("## 0. 前置校验（硬性条件）")
     add("")
-    add("| 页面 | 尺寸 | 总像素 | 严格差异 | 占比 | 可见差异 | 占比 | 差异行段数 |")
-    add("|---|---|---|---|---|---|---|---|")
+    add("脚本在生成任何数字之前先做三项校验，任一不通过即非零退出且**不写报告**，"
+        "不存在「少比一页仍然 PASS」的情况。")
+    add("")
+    add("| 校验项 | 规则 | 结果 |")
+    add("|---|---|---|")
+    add("| 页面集合一致 | 两目录 PNG 文件名集合必须完全相等 | **PASS**（%d = %d） |" %
+        (len(names_a), len(names_b)))
+    sizes = {r["size"] for r in results}
+    size_desc = ("全部 %d×%d" % next(iter(sizes))) if len(sizes) == 1 else "逐页见第 1 节"
+    add("| 尺寸一致 | 每页两图尺寸必须完全相同，不做缩放对齐 | **PASS**（%s） |" % size_desc)
+    add("| 差分完成度 | 完成页数必须等于页面集合页数 | **PASS**（%d / %d） |" %
+        (len(results), len(names_a)))
+    add("")
+    add("页面集合（两版逐一对应）：")
+    add("")
+    add("| 页面 | 旧版 | 新版 |")
+    add("|---|---|---|")
     for r in results:
-        add("| `%s` | %d×%d | %s | %s | %.3f%% | %s | %.3f%% | %d |" %
+        add("| `%s` | `%s/%s.png` | `%s/%s.png` |" %
+            (r["name"], args.label_a, r["name"], args.label_b, r["name"]))
+    add("")
+
+    # ---------------- 1. 汇总 ----------------
+    add("## 1. 汇总")
+    add("")
+    add("| 页面 | 尺寸 | 总像素 | 严格差异 | 占比 | 可见差异 | 占比 | 差异行段数 | 补偿后占比 | 最佳 dy |")
+    add("|---|---|---|---|---|---|---|---|---|---|")
+    for r in results:
+        if r["shift_dy"] is None:
+            sh, dy = "—", "—"
+        else:
+            sh, dy = "%.3f%%" % r["shift_pct"], "%+d px" % r["shift_dy"]
+        add("| `%s` | %d×%d | %s | %s | %.3f%% | %s | %.3f%% | %d | %s | %s |" %
             (r["name"], r["size"][0], r["size"][1], format(r["total"], ","),
              format(r["strict"], ","), r["strict_pct"],
-             format(r["visible"], ","), r["visible_pct"], len(r["bands"])))
+             format(r["visible"], ","), r["visible_pct"], len(r["bands"]), sh, dy))
     add("")
     tot = sum(r["total"] for r in results)
     ts = sum(r["strict"] for r in results)
     tv = sum(r["visible"] for r in results)
-    add("**合计**：严格差异 %s / %s 像素（%.3f%%），可见差异 %s（%.3f%%）。" %
+    add("**合计（严格口径）**：%s / %s 像素（%.3f%%），可见差异 %s（%.3f%%）。" %
         (format(ts, ","), format(tot, ","), ts / tot * 100,
          format(tv, ","), tv / tot * 100))
     add("")
+    if args.shift_search > 0:
+        sc = sum(r.get("shift_pixels", 0) for r in results)
+        sa = sum(r.get("shift_area", 0) for r in results)
+        add("**合计（位移补偿口径）**：按每页各自的最佳 dy 平移后，差异 %s / %s 像素（%.3f%%）。" %
+            (format(sc, ","), format(sa, ","), sc / sa * 100))
+        add("")
+        add("两个口径回答不同问题：**严格口径**含「内容整体错位」造成的差异；"
+            "**补偿口径**扣掉整体错位，只剩「内容本身不同」的部分。"
+            "评审裁定应同时看这两个数字，任一单独使用都会误判。")
+        add("")
 
-    add("## 差异区域定位")
+    # ---------------- 2. 差异区域 ----------------
+    add("## 2. 差异区域定位")
     add("")
     add("按行分带，取每页差异最集中的前 5 段。行号自页面顶部起算。")
     add("")
@@ -173,10 +330,11 @@ def main(argv=None):
         for s, e, c in r["bands"][:5]:
             add("| %d | %d | %d | %s |" % (s, e, e - s + 1, format(c, ",")))
         add("")
-        add("差异图：`%s`" % os.path.basename(r["diff_img"]))
+        add("差异图：`diff/%s`" % os.path.basename(r["diff_img"]))
         add("")
 
-    add("## 口径限制（必须一并阅读）")
+    # ---------------- 3. 限制 ----------------
+    add("## 3. 口径限制（必须一并阅读）")
     add("")
     add("1. **只覆盖一个内核**：Chromium（Edge headless）。Firefox / Safari / 移动端未测。")
     add("2. **只覆盖一个视口**：1440×2600。窄屏、平板、真机均未测。")
@@ -185,12 +343,18 @@ def main(argv=None):
     add("5. **字体渲染依赖本机**：换机器或换字体版本会产生系统性抗锯齿差异，"
         "本报告结论**仅在相同环境下可复现**。")
     add("6. **差异为 0 不等于视觉正确**：只证明两版渲染一致，不证明设计合理。")
+    add("7. **位移补偿只搜纵向、只搜全局单一偏移**：不做横向偏移、不做分段位移。"
+        "页面不同区段位移量不同时（累计位移的典型表现），单一 dy 只能部分抵消，"
+        "补偿后残余仍偏大属于预期。")
+    add("8. **补偿口径不做内容语义判断**：它只回答「扣掉整体错位后还差多少」，"
+        "不判断剩下的差异是否可接受。")
     add("")
 
-    os.makedirs(args.out, exist_ok=True)
     out_md = os.path.join(args.out, "PIXEL_DIFF.md")
     io.open(out_md, "w", encoding="utf-8", newline="\n").write("\n".join(L) + "\n")
     print("written:", out_md)
+    print("pages=%d  strict=%s  set_check=PASS  size_check=PASS" %
+          (len(results), format(ts, ",")))
     return 0
 
 

@@ -118,8 +118,9 @@ assets/proto.css    17 个分区，零字面色值，全部 var(--*)
 | 页面结构 / 信息架构 / 交互路径 | — | **零改动** |
 | `data-mock` 标注 | 109 处 | **109 处（零改动）** |
 
-**像素差分实测**：同视口逐像素差异 3.11% – 25.59%（严格口径），合计 11.64%。
-原因是间距吸附导致的累计纵向位移（详情页底部达 +30px），**不是抗锯齿噪声**。
+**像素差分实测**：同视口逐像素差异 3.11% – 25.59%（严格口径），合计 11.64%；
+按每页最佳纵向偏移补偿后合计 **9.62%**，即"整体错位"只解释约 2 个百分点。
+原因是间距吸附导致的累计纵向位移（详情页底部达 +30px）叠加库存组件替换，**不是抗锯齿噪声**。
 逐页数据见 `VISUAL_DIFF.md` 第三节，逐条取值变更见 `reference/prototype_shots/CSS_VALUE_DIFF.md`。
 
 ---
@@ -133,7 +134,7 @@ assets/proto.css    17 个分区，零字面色值，全部 var(--*)
 | 3 | LCSC 参考截图及页面索引 | `reference/lcsc_screenshots/` | ✅ 4 张 + `INDEX.md`（第 5 页未采集，已声明） |
 | 4 | CSS Token 文件 | `assets/tokens.css` | ✅ **192 条声明 / 188 个唯一 Token**（Primitive 25 / Semantic 129 / Component 34） |
 | 5 | 四个原型迁移结果 | `home/` `product_detail/` `search/` `inquiry/` | ✅ 已迁移 |
-| 6 | Token 使用检查报告 | `TOKEN_AUDIT.md` | ✅ 5/5 硬性门槛通过，0 处硬编码色值；脚本已入库 `tools/check_tokens.py` |
+| 6 | Token 使用检查报告 | `TOKEN_AUDIT.md` | ✅ 5/5 硬性门槛通过，0 处硬编码色值（HTML `style` 属性覆盖单/双引号与跨行）；扫描口径与盲区见报告 0.1 / A1 |
 | 7 | 视觉差异评估 | `VISUAL_DIFF.md` + `reference/prototype_shots/` | ✅ 实测像素差分 + 逐条取值清单，**不主张像素一致** |
 | 8 | 文件哈希清单 | `SHA256SUMS.txt` / `reference/prototype_shots/SHA256SUMS.txt` | ✅ |
 

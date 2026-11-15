@@ -1,6 +1,6 @@
 # CSS 取值差异清单（v1.4 → v1.5.1）
 
-**生成方式** `mysql_schema_audit/tools/css_value_diff.py`，可重跑。
+**生成方式** `tools/css_value_diff.py`，可重跑（退出码 0 = 生成成功且分类合计自校验通过）。
 
 做法：把两版 `proto.css` 的每条声明解析为**最终取值**（各自用自己的变量作用域，v1.4 用自身 `:root`，v1.5.1 用 `tokens.css`），再逐条比对。`@media` 块被整体剔除，避免 `prefers-contrast` 的覆盖值污染基础态。
 
@@ -46,9 +46,9 @@
 
 ## 真实变更明细
 
-按类别分组。**这些就是像素差分的来源**——不是抗锯齿，而是取值真的变了。
+分类规则：**先判圆角**（`border-*-radius` 全族长写），再判一般 `border` 等颜色属性；否则 `border-radius` 会因含 `border` 子串被误归入颜色。**这些就是像素差分的来源**——不是抗锯齿，而是取值真的变了。
 
-### 颜色（10 条）
+### 颜色（9 条）
 
 | 选择器 | 属性 | v1.4 | v1.5.1 | 类型 |
 |---|---|---|---|---|
@@ -56,7 +56,6 @@
 | `.bulkbar .btn-secondary` | color | `#e2e8f0` | `#CBD5E1` | 真实变更 |
 | `.chk input` | border | `1.5px solid #94a3b8` | `1px solid #94A3B8` | 真实变更 |
 | `.errmsg` | color | `#dc2626` | `#991B1B` | 真实变更 |
-| `.headact .badge` | border-radius | `7px` | `2px` | 真实变更 |
 | `.hub .ai` | color | `#dc2626` | `#991B1B` | 真实变更 |
 | `.input.is-error, .textarea.is-error, .select.is-error` | border-color | `#dc2626` | `#991B1B` | 真实变更 |
 | `.pill-note` | color | `#7f1d1d` | `#991B1B` | 真实变更 |
@@ -102,6 +101,12 @@
 | `.mainnav a` | letter-spacing | `.01em` | `0em` | 真实变更 |
 | `.pill-note` | line-height | `17px` | `18px` | 真实变更 |
 
+### 圆角（1 条）
+
+| 选择器 | 属性 | v1.4 | v1.5.1 | 类型 |
+|---|---|---|---|---|
+| `.headact .badge` | border-radius | `7px` | `2px` | 真实变更 |
+
 ### 阴影（4 条）
 
 | 选择器 | 属性 | v1.4 | v1.5.1 | 类型 |
@@ -135,4 +140,20 @@
 |---|---|---|---|---|
 | `.hub` | height | `36px` | `32px` | 真实变更 |
 | `.select` | height | `32px` | `—` | 删除声明 |
+
+### 分类合计校验
+
+| 类别 | 条数 |
+|---|---|
+| 颜色 | 9 |
+| 间距 | 21 |
+| 排版 | 8 |
+| 圆角 | 1 |
+| 阴影 | 4 |
+| 层级 | 4 |
+| 动效 | 2 |
+| 其他 | 2 |
+| **合计** | **51** |
+
+**校验结果**：分类合计 51 条，真实变更 51 条，一致 PASS。
 
