@@ -1,0 +1,212 @@
+==============================================================================
+ MySQL 5.6 -> 8.4 兼容性扫描报告
+ 源文件: morris_2024-11-30_14-01-50_mysql_data_VsRoT.sql
+ 源版本: MySQL 5.6.50-log / mysqldump 10.13
+ 目标  : MySQL 8.4
+ 对象  : 31 张表 / 210 个字段 / 100 个索引
+==============================================================================
+
+严重级别说明
+  HIGH = 会直接阻断导入或造成功能不可用，必须先处理
+  MED  = 可导入但行为/性能/语义发生变化，需回归验证
+  LOW  = 仅产生告警或维护性问题
+  INFO = 事实记录，无风险
+
+汇总: HIGH=2  MED=6  LOW=4  INFO=4
+
+------------------------------------------------------------------------------
+一、风险清单
+------------------------------------------------------------------------------
+
+[01][HIGH] 字符集  ->  31 张表
+     现象: 表默认字符集为 utf8（= utf8mb3），8.4 中仍可用但已标记 deprecated，且无法存储 4 字节字符（emoji、部分生僻字）
+     处置: 迁移时统一改为 utf8mb4 / utf8mb4_0900_ai_ci，并同步改连接字符集
+
+[02][HIGH] 存储引擎  ->  30 张表（snsii_ad, snsii_attr_name, snsii_attr_name_lang, snsii_cart, snsii_cf_dns, snsii_cf_domain, snsii_cf_logs, snsii_contact…）
+     现象: MyISAM 在 8.4 仍受支持，但无事务、无崩溃恢复、不支持外键；8.0 起 AUTO_INCREMENT 计数器行为变化，且 MyISAM 已属维护模式
+     处置: 建议迁移时转 InnoDB，并核对 AUTO_INCREMENT 起始值
+
+[03][MED] 排序规则  ->  utf8_general_ci(隐式)
+     现象: utf8_general_ci / utf8_unicode_ci 在 8.0+ 映射为 utf8mb3_*，比较规则与 utf8mb4_0900_* 不同
+     处置: 迁移后排序/比较结果可能变化，需回归测试 ORDER BY 与唯一约束
+
+[04][MED] 语法废弃  ->  88 个字段
+     现象: int(11)/int(5)/tinyint(1) 等整数显示宽度自 8.0.17 起 deprecated，8.4 仍接受但告警，SHOW CREATE TABLE 将不再显示宽度，导致 schema diff 工具持续报差异
+     处置: 可保留（能导入），但建议在迁移脚本中统一去掉显示宽度；tinyint(1) 需注意部分驱动/ORM 仍按布尔处理
+
+[05][MED] 数据类型  ->  5 个字段
+     现象: 以 int(10) 存储 Unix 时间戳，2038-01-19 后溢出；且与 DATETIME 列比较时存在隐式类型转换
+     处置: 评估改为 bigint 或 DATETIME，注意应用层改造量
+
+[06][MED] SQL_MODE  ->  'NO_AUTO_VALUE_ON_ZERO'
+     现象: dump 头部将 SQL_MODE 置为 'NO_AUTO_VALUE_ON_ZERO'，而 8.4 默认严格模式为 ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION
+     处置: 若 5.6 期间写入过零日期/非法枚举/超长字符串，导入 8.4 会中断；建议导入时 SET SESSION sql_mode='NO_AUTO_VALUE_ON_ZERO' 并逐表校验
+
+[07][MED] 主键  ->  1 张表：snsii_track_order
+     现象: 无主键表：转 InnoDB 后无聚簇索引，行锁退化为表级范围锁，且 8.0 起复制/在线 DDL 对无主键表限制更多
+     处置: 迁移时补 AUTO_INCREMENT 主键，或评估该表是否仍在使用
+
+[08][MED] 严格模式  ->  4 个字段：snsii_contact.Message, snsii_news.Content, snsii_track_order.Content, snsii_track_order.ProList
+     现象: TEXT/BLOB 列声明 NOT NULL 且无默认值。5.6 非严格模式下遗漏赋值会静默写入空串，8.4 严格模式下直接报 1364 错误
+     处置: 改为 DEFAULT NULL 或在应用层保证赋值
+
+[09][LOW] 隐式转换  ->  10 个字段
+     现象: 字符型字段名带数值语义（id/price/qty 等），与数值列 JOIN 或比较时会触发隐式转换，导致索引失效与精度问题
+     处置: 核对应用层绑定参数类型，必要时统一列类型
+
+[10][LOW] 冗余对象  ->  2 张表：snsii_product_cache_copy1, snsii_product_time_temp
+     现象: 表名含 copy/temp/bak/old 等后缀，通常是历史遗留或中间表；迁移时若不清理会一并带到新库，增加维护成本
+     处置: 确认业务是否引用，无用则迁移时排除
+
+[11][LOW] 数据类型  ->  1 个字段
+     现象: IP 字段长度不足以存储 IPv6 地址（最长 39 字符），且以字符串存 IP 无法做网段范围查询
+     处置: 如需支持 IPv6 扩到 varchar(45)，或改用 VARBINARY(16)
+
+[12][LOW] 语义  ->  15 个字段
+     现象: tinyint(1) 常被当作布尔：JDBC 默认 tinyIntIsBit=true 会映射为 Boolean，PHP PDO 则返回字符串 "0"/"1"，跨语言改造时容易出现类型不一致
+     处置: 在应用层显式做类型转换
+
+[13][INFO] 字符集  ->  /*!40101 SET NAMES utf8 */;
+     现象: SET NAMES utf8 在 8.4 等价于 utf8mb3，连接字符集与表字符集需同步调整
+     处置: 迁移时改为 utf8mb4
+
+[14][INFO] 其他对象  ->  视图 0 / 触发器 0 / 存储过程 0 / 函数 0 / 事件 0 / 外键 0
+     现象: 本 dump 未包含任何视图/触发器/存储过程/函数/事件（导出时未加 --routines --events），因此不存在 DEFINER、SQL SECURITY 相关迁移风险
+     处置: 无需处理；但需注意老站 PHP 代码中可能有依赖这些对象的历史逻辑
+
+[15][INFO] 容量  ->  snsii_map(AUTO_INCREMENT=10093674), snsii_product(AUTO_INCREMENT=10093686), snsii_product_cache(AUTO_INCREMENT=10093685), snsii_product_cache_copy1(AUTO_INCREMENT=10093685), snsii_product_search(AUTO_INCREMENT=10093686), snsii_product_time_temp(AUTO_INCREMENT=3636429)
+     现象: AUTO_INCREMENT 已达百万级以上，属大表；8.4 的在线 DDL 与 MyISAM→InnoDB 转换耗时需单独评估
+     处置: 迁移时用 gh-ost / pt-online-schema-change，并预留停机窗口
+
+[16][INFO] 大小写  ->  全部小写
+     现象: 所有表名均为小写，lower_case_table_names 差异不影响表名解析（字段名本身大小写不敏感）
+     处置: 无需处理
+
+------------------------------------------------------------------------------
+二、扫描项覆盖清单（含 0 命中项，用于证明检查覆盖面）
+------------------------------------------------------------------------------
+检查项                                   命中    说明
+DEFINER / SQL SECURITY 属性              0       视图/触发器/过程/函数/事件中的 DEFINER
+旧 SQL_MODE 设置                         1       dump 头部 SET SQL_MODE
+SET NAMES 字符集声明                     1       SET NAMES utf8
+时区设置                                 3       SET TIME_ZONE='+00:00'
+保留字冲突（标识符）                     0       8.0 新增保留字 + 传统保留字
+零日期默认值                             0       '0000-00-00' 系列
+无效默认值（类型不匹配）                 0       数值列/日期列的字符串默认值
+隐式类型转换线索                         10      字符列带数值语义命名
+整数显示宽度                             88      int(11)/tinyint(1) 等
+FLOAT(M,D) 废弃语法                      0       
+ZEROFILL 废弃语法                        0       
+4.x 遗留表选项                           0       TYPE= / DELAY_KEY_WRITE / PACK_KEYS 等
+utf8 / utf8mb3 字符集                    31      表级
+字段级显式 utf8 字符集                   0       
+旧排序规则 utf8_*（表数）                31      utf8_general_ci 在 8.x 映射为 utf8mb3_general_ci
+MyISAM 引擎                              30      
+无主键表                                 1       
+无索引表                                 0       
+索引键超 3072 字节                       0       
+FULLTEXT / SPATIAL 索引                  0       
+ENUM / SET 字段                          0       
+TIMESTAMP 隐式默认值风险                 0       
+TEXT/BLOB NOT NULL 无默认                4       
+int 存 Unix 时间戳                       5       
+分区表                                   0       
+外键约束                                 0       
+视图                                     0       
+触发器                                   0       
+存储过程                                 0       
+函数                                     0       
+事件                                     0       
+表名含大写                               0       lower_case_table_names 相关
+
+  命中数为 0 的项表示已扫描但本库不存在该问题，不是漏检。
+
+------------------------------------------------------------------------------
+三、逐表扫描明细
+------------------------------------------------------------------------------
+表名                           引擎      字符集   排序规则               字段   索引   标记
+snsii_ad                       MyISAM    utf8     utf8_general_ci        8      1      utf8mb3,MyISAM,int-width
+snsii_attr_name                MyISAM    utf8     utf8_general_ci        6      3      utf8mb3,MyISAM,int-width
+snsii_attr_name_lang           MyISAM    utf8     utf8_general_ci        5      5      utf8mb3,MyISAM,int-width
+snsii_cart                     MyISAM    utf8     utf8_general_ci        16     3      utf8mb3,MyISAM,int-width
+snsii_cf_dns                   MyISAM    utf8     utf8_general_ci        8      5      utf8mb3,MyISAM,int-width
+snsii_cf_domain                MyISAM    utf8     utf8_general_ci        7      4      utf8mb3,MyISAM,int-width
+snsii_cf_logs                  MyISAM    utf8     utf8_general_ci        4      1      utf8mb3,MyISAM,int-width
+snsii_contact                  MyISAM    utf8     utf8_general_ci        9      3      utf8mb3,MyISAM,int-width
+snsii_info                     MyISAM    utf8     utf8_general_ci        8      3      utf8mb3,MyISAM,int-width
+snsii_info_category            MyISAM    utf8     utf8_general_ci        4      2      utf8mb3,MyISAM,int-width
+snsii_language                 MyISAM    utf8     utf8_general_ci        11     3      utf8mb3,MyISAM,int-width
+snsii_manage                   MyISAM    utf8     utf8_general_ci        9      5      utf8mb3,MyISAM,int-width
+snsii_map                      MyISAM    utf8     utf8_general_ci        3      2      utf8mb3,MyISAM,int-width
+snsii_nav                      MyISAM    utf8     utf8_general_ci        6      3      utf8mb3,MyISAM,int-width
+snsii_news                     MyISAM    utf8     utf8_general_ci        12     5      utf8mb3,MyISAM,int-width
+snsii_news_category            MyISAM    utf8     utf8_general_ci        4      2      utf8mb3,MyISAM,int-width
+snsii_news_tags                MyISAM    utf8     utf8_general_ci        4      2      utf8mb3,MyISAM,int-width
+snsii_news_tags_ids            MyISAM    utf8     utf8_general_ci        3      3      utf8mb3,MyISAM,int-width
+snsii_product                  MyISAM    utf8     utf8_general_ci        20     10     utf8mb3,MyISAM,int-width
+snsii_product_cache            MyISAM    utf8     utf8_general_ci        2      1      utf8mb3,MyISAM,int-width
+snsii_product_cache_copy1      MyISAM    utf8     utf8_general_ci        2      1      utf8mb3,MyISAM,int-width
+snsii_product_category         MyISAM    utf8     utf8_general_ci        11     4      utf8mb3,MyISAM,int-width
+snsii_product_hot              MyISAM    utf8     utf8_general_ci        7      3      utf8mb3,MyISAM,int-width
+snsii_product_search           MyISAM    utf8     utf8_general_ci        5      5      utf8mb3,MyISAM,int-width
+snsii_product_so               InnoDB    utf8     utf8_general_ci        2      2      utf8mb3,int-width
+snsii_product_stock            MyISAM    utf8     utf8_general_ci        3      1      utf8mb3,MyISAM,int-width
+snsii_product_time             MyISAM    utf8     utf8_general_ci        5      5      utf8mb3,MyISAM,int-width
+snsii_product_time_list        MyISAM    utf8     utf8_general_ci        4      4      utf8mb3,MyISAM,int-width
+snsii_product_time_temp        MyISAM    utf8     utf8_general_ci        6      6      utf8mb3,MyISAM,int-width
+snsii_supplier                 MyISAM    utf8     utf8_general_ci        9      2      utf8mb3,MyISAM,int-width
+snsii_track_order              MyISAM    utf8     utf8_general_ci        7      1      utf8mb3,MyISAM,int-width
+
+------------------------------------------------------------------------------
+四、dump 中出现的版本相关语法
+------------------------------------------------------------------------------
+  * mysqldump 10.13 / Server 5.6.50-log 生成（文件头注释可证）
+  * 使用 /*!NNNNN ... */ 版本条件注释包裹 SET 与对象定义；8.4 会执行版本号 <= 80400 的语句，即本文件中全部 40101/40014/40103/40111/50001/50003 段
+  * SET NAMES utf8（= utf8mb3），全库表/字段字符集均为 utf8
+  * SQL_MODE='NO_AUTO_VALUE_ON_ZERO'（单条，无 STRICT_TRANS_TABLES）
+  * TIME_ZONE='+00:00' —— 数据中的 DATETIME 按 UTC 导出，导入后需按新库时区策略校正
+  * UNIQUE_CHECKS=0 / FOREIGN_KEY_CHECKS=0 / SQL_NOTES=0
+  * 每表 LOCK TABLES ... WRITE + ALTER TABLE ... DISABLE/ENABLE KEYS（MyISAM 批量导入惯用法；8.4 对 MyISAM 仍支持该语法）
+  * CREATE TABLE 中大量使用整数显示宽度 int(11)/int(5)/tinyint(1)，无 TYPE= 等 4.x 老语法
+
+------------------------------------------------------------------------------
+五、8.4 默认值变更（与本库直接相关，需在迁移方案中显式处理）
+------------------------------------------------------------------------------
+  1. sql_mode 默认值
+     5.6 默认: 空（非严格模式）
+     8.4 默认: ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION
+     影响: 旧库容忍的零日期、超长字符串截断、非法枚举值，在 8.4 会直接报错中断导入。
+  2. explicit_defaults_for_timestamp
+     5.6 默认 OFF，8.4 默认 ON。本库无 TIMESTAMP 列，实际不受影响，但新建表需注意。
+  3. lower_case_table_names
+     Linux 上默认 0（区分大小写），Windows 默认 1。本库表名全小写，表名层面安全；
+     若从 Windows 导出的库迁到 Linux 容器，需确认字段名大小写引用一致。
+  4. 认证插件
+     8.4 默认启用 caching_sha2_password，mysql_native_password 需显式加载。
+     老 PHP 站点的 mysqli/PDO 驱动若版本过旧会握手失败，属应用层阻断项（DDL 层不可见）。
+  5. 字符集
+     utf8 在 8.4 仍解析为 utf8mb3，可用但已 deprecated，且 4 字节字符（emoji）写入会报错。
+
+------------------------------------------------------------------------------
+六、字段类型分布
+------------------------------------------------------------------------------
+  varchar        79
+  int            63
+  char           21
+  tinyint        17
+  text           8
+  smallint       8
+  longtext       6
+  date           3
+  decimal        3
+  datetime       2
+
+------------------------------------------------------------------------------
+七、无法判定的项
+------------------------------------------------------------------------------
+  1. 数据层问题不在本扫描范围：零日期实际数据、超长字符串、非法枚举值、
+     重复主键等只有导入时才会暴露，需要单独做数据体检。
+  2. 隐式类型转换只能从 DDL 推断线索，真实风险取决于应用层 SQL 写法，
+     需结合 PHP 代码做联合审查。
+  3. 排序规则变化对业务查询结果的影响需实测，无法静态判定。
+
