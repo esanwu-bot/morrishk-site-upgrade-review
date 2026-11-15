@@ -2,3 +2,6 @@
 *.xlsx binary
 *.png binary
 *.jpg binary
+
+# 08 并行送审包按字节冻结：证据文件与 composer.lock 的行尾不得被规范化，否则 md5 / SHA256SUMS 全部失效
+08_php84_compatibility/** -text

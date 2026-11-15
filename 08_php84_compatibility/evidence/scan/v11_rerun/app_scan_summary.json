@@ -1,0 +1,29 @@
+{
+  "scanned_root": "E:\\workspace\\独立站\\morries\\newPlan\\morrishk.net",
+  "files_scanned": 560,
+  "lines_scanned": 247396,
+  "findings_total": 20,
+  "by_severity": {
+    "INFO": 20
+  },
+  "by_rule": {
+    "YII2 | Yii2 Model::load() 在 PHP 8 下对空数组返回 false，需确认空表单分支": 20
+  },
+  "by_directory": {
+    "modules": 17,
+    "controllers": 3
+  },
+  "top_files": {
+    "modules/ejadmin/controllers/HelpController.php": 4,
+    "modules/ejadmin/controllers/InfoController.php": 4,
+    "modules/ejadmin/controllers/NewsController.php": 4,
+    "modules/ejadmin/controllers/AdController.php": 2,
+    "modules/ejadmin/controllers/ProductController.php": 2,
+    "controllers/CartController.php": 1,
+    "controllers/PageController.php": 1,
+    "controllers/PageController_bak0609.php": 1,
+    "modules/ejadmin/controllers/ManageController.php": 1
+  },
+  "read_errors": [],
+  "generated_by": "tools/php_compat_scan.py"
+}

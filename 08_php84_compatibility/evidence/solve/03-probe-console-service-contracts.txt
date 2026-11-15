@@ -1,0 +1,28 @@
+# 03 · 最小工程探测：`symfony/console` 5.4.3 在 PHP 8.4 下选到的 `service-contracts`
+
+目的：验证 `symfony/console v5.4.3` 的约束 `symfony/service-contracts ^1.1|^2|^3` 是否允许更高主版本。
+若是，则 `service-contracts v1.1.2` 属于**锁文件滞后**，而非结构性阻塞。
+
+最小工程 `composer.json`：
+
+```json
+{
+  "require": { "php": ">=7.4 <8.5", "symfony/console": "5.4.3" },
+  "config": { "platform": { "php": "8.4.0" } },
+  "minimum-stability": "stable"
+}
+```
+
+命令：`composer update --dry-run`
+
+结果（只截相关行）：
+
+```
+  - Locking symfony/console (v5.4.3)
+  - Locking symfony/deprecation-contracts (v3.8.1)
+  - Locking symfony/service-contracts (v3.8.1)
+```
+
+结论：`console 5.4.3` 在 PHP 8.4 平台上实际选中 `service-contracts v3.8.1`，
+证明约束允许 3.x。该项的性质是**锁文件滞后**：只要重新求解，它会自动升级；
+但见 `02`，在其他 3 项未解除前，任何 update 都会因平台不合法而整体失败。

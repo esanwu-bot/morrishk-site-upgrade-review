@@ -18,6 +18,12 @@
 | 数据基线 | 2024-11-30 导出，静态终态（不随线上变化） |
 | 签名状态 | 本仓库的 commit 与 tag **均未做 Git 签名**（unsigned / 非 GPG 验证）。可用于确认版本内容与父子关系，**不可**作为经过签名的发布物 |
 
+### 并行送审包（独立工作流）
+
+除主送审包外，仓库内另有 **`08_php84_compatibility/`**：PHP 8.4 兼容性评估 **v1.2.1**，tag `php84-v1.2.1-review`。
+该包只涉及"老站能否迁到 PHP 8.4"的评估与依赖求解证据，**与主送审的方案/原型/审计工具无内容交叉**，各自冻结、各自递增版本。
+主送审包的 `06_evidence/hashes/SHA256SUMS.txt` 仍只覆盖主包；`08` 目录自带 `SHA256SUMS.txt`。
+
 ---
 
 ## 二、目录结构
@@ -51,11 +57,18 @@
 │   ├── test_reports/             ❗ 未提供
 │   ├── benchmark/                ❗ 未提供
 │   └── screenshots/              ❗ 未提供
+├── 08_php84_compatibility/       ★ 并行送审包：PHP 8.4 兼容性评估 v1.2.1（独立工作流）
+│   ├── README.md                   送审说明 + 证据索引 + 10 分钟复核路径
+│   ├── docs/app_code_compatibility.md   主报告 v1.2.1（应用层 + 依赖层）
+│   ├── evidence/solve/01–06        依赖求解的命令、退出码与 lock 差异
+│   ├── evidence/scan/              扫描结果、召回夹具与基线（20/21）
+│   ├── evidence/prod/              生产环境核验记录（§6 证据）
+│   └── reference/                  composer.json / composer.lock（未改动，含 md5）
 ├── tools/                        ★ 可复核脚本（从仓库根直接执行）
 │   ├── check_tokens.py             Token 合规扫描 → 生成 07_prototypes/TOKEN_AUDIT.md
 │   ├── pixel_diff.py               同视口逐像素差分 → 生成 PIXEL_DIFF.md
 │   └── css_value_diff.py           两版 CSS 逐条取值比对 → 生成 CSS_VALUE_DIFF.md
-└── 07_prototypes/                新版原型 + Design System（本轮 v1.5.1）
+├── 07_prototypes/                新版原型 + Design System（本轮 v1.5.1）
     ├── DESIGN.md                     ★ Morris Design System v1.0（唯一视觉权威）
     ├── README.md                     原型说明、标注系统、已知缺口
     ├── TOKEN_AUDIT.md                ★ Token 使用检查报告（脚本生成，可重跑）

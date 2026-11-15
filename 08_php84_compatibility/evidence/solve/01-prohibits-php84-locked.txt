@@ -1,0 +1,14 @@
+# 01 · PHP 8.4 阻塞复现（lock 原样）
+
+- 环境：Composer 2.5.8 / 本地 CLI 8.0.2
+- 命令：`composer prohibits php 8.4.0 --locked`
+- 工作副本：临时目录，源文件 md5 654cb46e10d31af4b4b4896e1c6fd9a6（与仓库一致）
+
+```
+Package "php" could not be found with constraint "8.4.0", results below will most likely be incomplete.
+codeception/module-yii2   1.1.5   requires php (>=5.6.0 <=8.1 | ~8.1.0) 
+phpspec/prophecy          v1.15.0 requires php (^7.2 || ~8.0, <8.2)     
+symfony/browser-kit       v4.2.4  requires php (^7.1.3)                 
+symfony/service-contracts v1.1.2  requires php (^7.1.3)                 
+Not finding what you were looking for? Try calling `composer update "php:8.4.0" --dry-run` to get another view on the problem.
+```

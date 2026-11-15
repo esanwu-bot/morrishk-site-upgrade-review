@@ -1,0 +1,41 @@
+{
+  "scanned_root": "E:\\workspace\\独立站\\morries\\platform\\docs\\phase1\\php-upgrade\\scan\\recall_fixture",
+  "files_scanned": 2,
+  "lines_scanned": 39,
+  "findings_total": 20,
+  "by_severity": {
+    "BLOCKER": 18,
+    "HIGH": 1,
+    "MEDIUM": 1
+  },
+  "by_rule": {
+    "PHP80-REMOVED | each() 在 PHP 8.0 已移除": 1,
+    "PHP80-REMOVED | create_function() 在 PHP 8.0 已移除": 1,
+    "PHP80-REMOVED | __autoload() 在 PHP 8.0 已移除": 1,
+    "PHP80-REMOVED | mysql_* 扩展在 PHP 7.0 已移除": 1,
+    "PHP80-REMOVED | mcrypt 扩展在 PHP 7.2 已移除": 1,
+    "PHP80-REMOVED | ereg()/eregi() 在 PHP 7.0 已移除": 1,
+    "PHP80-REMOVED | split() 在 PHP 7.0 已移除": 1,
+    "PHP80-REMOVED | money_format() 在 PHP 8.0 已移除": 1,
+    "PHP80-REMOVED | magic quotes 相关函数在 PHP 8.0 已移除": 1,
+    "PHP80-REMOVED | hebrevc() 在 PHP 8.0 已移除": 1,
+    "PHP80-REMOVED | restore_include_path() 在 PHP 8.0 已移除": 1,
+    "PHP80-REMOVED | fgetss() 在 PHP 8.0 已移除": 1,
+    "PHP80-REMOVED | image2wbmp() 在 PHP 8.0 已移除": 1,
+    "PHP80-REMOVED | (real) 强制转换在 PHP 8.0 已移除": 1,
+    "PHP80-REMOVED | 字符串花括号下标（读取形式）$str{0} 在 PHP 8.0 已移除": 1,
+    "PHP80-REMOVED | preg /e 修饰符在 PHP 7.0 已移除": 1,
+    "PHP80-REMOVED | parse_str() 单参数形式在 PHP 8.0 报 ArgumentCountError": 1,
+    "PHP80-REMOVED | 必需参数 '$req' 位于可选参数之后（PHP 8.0 起不推荐且语义变化）": 1,
+    "PHP81-DEPRECATED | strftime()/gmstrftime() 在 PHP 8.1 废弃": 1,
+    "PHP82-DEPRECATED | utf8_encode()/utf8_decode() 在 PHP 8.2 废弃": 1
+  },
+  "by_directory": {
+    "removed_positive.php": 20
+  },
+  "top_files": {
+    "removed_positive.php": 20
+  },
+  "read_errors": [],
+  "generated_by": "tools/php_compat_scan.py"
+}

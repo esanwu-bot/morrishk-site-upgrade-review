@@ -1,0 +1,21 @@
+﻿file,line,severity,rule,category,match,why,fix,snippet
+removed_positive.php,5,BLOCKER,PHP80-REMOVED,removed_function,each(,each() 在 PHP 8.0 已移除,改为 foreach 或 current()/next(),$r1  = each($arr);
+removed_positive.php,6,BLOCKER,PHP80-REMOVED,removed_function,create_function(,create_function() 在 PHP 8.0 已移除,改为匿名函数 fn()/function () use (),"$r2  = create_function('$a', 'return $a;');"
+removed_positive.php,7,BLOCKER,PHP80-REMOVED,removed_function,__autoload(,__autoload() 在 PHP 8.0 已移除,改为 spl_autoload_register,function __autoload($class) { return 1; }
+removed_positive.php,8,BLOCKER,PHP80-REMOVED,removed_extension,mysql_query(,mysql_* 扩展在 PHP 7.0 已移除,改为 PDO / mysqli,$r4  = mysql_query('SELECT 1');
+removed_positive.php,9,BLOCKER,PHP80-REMOVED,removed_extension,mcrypt_encrypt(,mcrypt 扩展在 PHP 7.2 已移除,改为 openssl_encrypt / sodium,"$r5  = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $k, $d, MCRYPT_MODE_ECB);"
+removed_positive.php,10,BLOCKER,PHP80-REMOVED,removed_function,ereg(,ereg()/eregi() 在 PHP 7.0 已移除,改为 preg_match(),"$r6  = ereg('^a', $s);"
+removed_positive.php,11,BLOCKER,PHP80-REMOVED,removed_function,split(,split() 在 PHP 7.0 已移除,改为 explode()/preg_split(),"$r7  = split(',', $s);"
+removed_positive.php,12,BLOCKER,PHP80-REMOVED,removed_function,money_format(,money_format() 在 PHP 8.0 已移除,改为 NumberFormatter::formatCurrency,"$r8  = money_format('%i', 1.5);"
+removed_positive.php,15,BLOCKER,PHP80-REMOVED,removed_function,get_magic_quotes_gpc(,magic quotes 相关函数在 PHP 8.0 已移除,删除该分支（8.x 不存在 magic quotes）,$r11 = get_magic_quotes_gpc();
+removed_positive.php,16,BLOCKER,PHP80-REMOVED,removed_function,hebrevc(,hebrevc() 在 PHP 8.0 已移除,改为 hebrew 相关替代或删除,$r12 = hebrevc($s);
+removed_positive.php,17,BLOCKER,PHP80-REMOVED,removed_function,restore_include_path(,restore_include_path() 在 PHP 8.0 已移除,改为 ini_restore('include_path'),restore_include_path();
+removed_positive.php,18,BLOCKER,PHP80-REMOVED,removed_function,fgetss(,fgetss() 在 PHP 8.0 已移除,改为 fgets() + strip_tags(),$r14 = fgetss($fp);
+removed_positive.php,19,BLOCKER,PHP80-REMOVED,removed_function,image2wbmp(,image2wbmp() 在 PHP 8.0 已移除,改为 imagewbmp(),$r15 = image2wbmp($im);
+removed_positive.php,21,BLOCKER,PHP80-REMOVED,removed_syntax,(real)$,(real) 强制转换在 PHP 8.0 已移除,改为 (float),$r17 = (real)$n;
+removed_positive.php,22,BLOCKER,PHP80-REMOVED,removed_syntax,$str{0},字符串花括号下标（读取形式）$str{0} 在 PHP 8.0 已移除,改为 $str[0],$r18 = $str{0};
+removed_positive.php,23,BLOCKER,PHP80-REMOVED,removed_syntax,preg_replace /e,preg /e 修饰符在 PHP 7.0 已移除,改为 preg_replace_callback(),"$r19 = preg_replace('/a/e', 'strtoupper(""$1"")', $s);"
+removed_positive.php,24,BLOCKER,PHP80-REMOVED,behavior_change,parse_str($qs);,parse_str() 单参数形式在 PHP 8.0 报 ArgumentCountError,"补第二个参数 parse_str($s, $out)",parse_str($qs);
+removed_positive.php,25,BLOCKER,PHP80-REMOVED,removed_syntax,$req,必需参数 '$req' 位于可选参数之后（PHP 8.0 起不推荐且语义变化）,把可选参数移到末尾，或给该参数补默认值,"function bad_sig($opt = 1, $req) { return $req; }"
+removed_positive.php,14,HIGH,PHP81-DEPRECATED,deprecated_function,strftime(,strftime()/gmstrftime() 在 PHP 8.1 废弃,改为 IntlDateFormatter 或 date(),"$r10 = strftime('%Y', time());"
+removed_positive.php,13,MEDIUM,PHP82-DEPRECATED,deprecated_function,utf8_encode(,utf8_encode()/utf8_decode() 在 PHP 8.2 废弃,"改为 mb_convert_encoding($s, 'UTF-8', 'ISO-8859-1')",$r9  = utf8_encode($s);
