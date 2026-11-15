@@ -509,7 +509,7 @@ R3「仅多页」独立用例与失败清理范围、9.62% 的分子分母抽查
 剩余差异含内容变化与未被该模型解释的布局差异，不等同于纯内容差异」。9.62% 的定位改为
 **受限模型下的残余率上界**（前提：允许更灵活对齐时最小像素差异不会更高），不再称「下界」。
 
-**新增交付物**：`tools/selftest.py`，43 项断言，一次运行覆盖 R1/R2/R3 的正向与负向路径，退出码 0/1。
+**新增交付物**：`tools/selftest.py`，本次为 43 项断言（下一轮增至 46 项，见 8.8），一次运行覆盖 R1/R2/R3 的正向与负向路径，退出码 0/1。
 
 **仍未关闭（需 reviewer 独立核验，不由本轮自我认证）**：R1/R2 可标记为已修复、R3 核心逻辑已修复；
 最终签署需 reviewer 实际核验 `e4994b5`…`本次提交` 的 diff、脚本全文与三份清单。
@@ -524,14 +524,14 @@ reviewer 指出两件事：一是仓库页面显示的版本信息与实际提�
 
 | 问题 | 原因 | 修正 |
 |---|---|---|
-| README 「送审版本」仍写 `v1.5.1-review`，`07_prototypes/` 目录树仍标「本轮 v1.5.1」 | 上一轮只更新了正文修订记录，漏改头部送审信息表与目录树 | 头部改为 tag `v1.5.2-review`，目录树改 v1.5.2，文档版本行同步为原型 v1.5.2-prototype |
-| reviewer 页面看到「v1.2-review / 4 commits」 | 与 HEAD 实际内容不符（本仓库提交数远超 4，且无 v1.2 送审信息） | 属页面缓存或访问到旧快照。已在头部加入**版本核对方式**：以 `git ls-remote` 的 SHA 为准，并给出 commit / tag / commits 三个直链 |
+| README 「送审版本」仍写 `v1.5.1-review`，`07_prototypes/` 目录树仍标「本轮 v1.5.1」 | 上一轮只更新了正文修订记录，漏改头部送审信息表与目录树 | 头部版本号随本轮修订推进到 tag `v1.5.3-review`（`v1.5.2-review` 保留为中间态、不覆盖），目录树改 v1.5.3，文档版本行同步为原型 v1.5.3-prototype |
+| reviewer 页面看到「v1.2-review / 4 commits」 | 与 HEAD 实际内容不符（本仓库提交数远超 4，且无 v1.2 送审信息） | 属页面缓存或访问到旧快照。已在头部加入**版本核对方式**：以 `git ls-remote` 的 SHA 为准，并给出 commits / tag 两个直链 |
 
-头部新增的核对命令：
+头部新增的核对命令（不写死 SHA，避免文档自我引用悖论）：
 
 ```bash
 git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git refs/heads/main
-# 应为 88e21c4 之后的提交；以 SHA 为准，不看页面上的版本文字
+# 输出应等于 git rev-parse HEAD；以 SHA 为准，不看页面上的版本文字
 ```
 
 **（二）R3 发布模型重做** —— 原实现有两个真缺陷，reviewer 指得对：
@@ -602,7 +602,7 @@ python tools/css_value_diff.py \
   --tokens 07_prototypes/assets/tokens.css \
   --out /tmp/pd_check/CSS_VALUE_DIFF.md
 
-# 5c) 跑工具回归自测（43 项断言，含 R1 覆盖 / R2 边界 / R3 负向用例）
+# 5c) 跑工具回归自测（46 项断言，含 R1 覆盖 / R2 边界 / R3 负向用例）
 python tools/selftest.py
 
 # 6) 查看本仓库全部提交与送审 tag
