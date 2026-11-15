@@ -12,9 +12,9 @@
 | 项目 | morrishk.net 老站升级（电子元器件 B2B 独立站） |
 | 仓库 | https://github.com/esanwu-bot/morrishk-site-upgrade-review |
 | Branch | `main` |
-| 送审版本 | tag **`v1.4-review`**（对应 commit SHA 见该 tag 与 Releases 页面） |
+| 送审版本 | tag **`v1.5-review`**（对应 commit SHA 见该 tag 与 Releases 页面） |
 | 交付日期 | 2026-11-15 |
-| 文档版本 | 商务方案 客户版 v1.1（rev.3） ／ 技术方案 技术版 v1.2（rev.3） ／ 原型 v1.0-prototype |
+| 文档版本 | 商务方案 客户版 v1.1（rev.3） ／ 技术方案 技术版 v1.2（rev.3） ／ **原型 v1.5-prototype** ／ **Design System v1.0** |
 | 数据基线 | 2024-11-30 导出，静态终态（不随线上变化） |
 
 ---
@@ -50,7 +50,12 @@
 │   ├── test_reports/             ❗ 未提供
 │   ├── benchmark/                ❗ 未提供
 │   └── screenshots/              ❗ 未提供
-└── 07_prototypes/                新版原型（第一轮：设计评审）
+└── 07_prototypes/                新版原型 + Design System（本轮 v1.5）
+    ├── DESIGN.md                     ★ Morris Design System v1.0（唯一视觉权威）
+    ├── README.md                     原型说明、标注系统、已知缺口
+    ├── TOKEN_AUDIT.md                ★ Token 使用检查报告（脚本生成）
+    ├── VISUAL_DIFF.md                ★ 新旧视觉差异清单（v1.4 → v1.5）
+    ├── SHA256SUMS.txt                ★ 本目录 20 个文件的 SHA-256
     ├── index.html                    评审入口（按用户路径串联四个原型）
     ├── home/index.html               首页
     ├── product_detail/index.html     产品详情页
@@ -58,7 +63,13 @@
     ├── inquiry/index.html            询盘流程
     ├── seo/README.md                 第二轮提交说明
     ├── admin/README.md               第二轮提交说明
-    └── assets/                       proto.css / proto.js（零外部依赖）
+    ├── reference/                    ★ 竞品设计研究
+    │   ├── lcsc_research.md              LCSC 五页 × 7 项记录
+    │   └── lcsc_screenshots/             4 张截图 + INDEX.md（证据强度分级）
+    └── assets/
+        ├── tokens.css                ★ Design Token（163 个，11 个分区）
+        ├── proto.css                 组件层（17 分区，零字面色值）
+        └── proto.js                  交互层（标注、筛选、校验、幂等）
 ```
 
 **抽取类文件的说明**：`00_project_baseline/` 与 `05_architecture/` 下的文件是从两份主文档中
@@ -173,20 +184,24 @@ WB 不在本仓库中替代 reviewer 下 PASS/FAIL 结论。
 
 按 reviewer 建议，先审四个核心原型确认设计体系与交互方向，再扩展 SEO 与后台。
 
-### 7.2 设计体系裁定（需要 reviewer 确认）
+### 7.2 设计体系裁定（v1.5 已收口，请 reviewer 复核裁定结果）
 
-存在两份设计文档且**存在冲突**，乙方已做裁定，请 reviewer 确认该裁定是否可接受：
+历史上存在两份设计文档且**存在冲突**。v1.4 由原型页面自行裁定；**v1.5 起统一收口到
+`07_prototypes/DESIGN.md` v1.0**，页面不再自行决定视觉：
 
-| 文档 | 规定 | 采用情况 |
+| 文档 | 效力 | 说明 |
 |---|---|---|
-| `stitch_morris_hk_website_redesignV2/DESIGN.md`（Morris Precision Industrial） | 品牌色 crimson `#dc2626`；禁止 pill；禁止彩虹色徽章；圆角 2–4px；数据面零阴影 | **作为视觉权威** |
-| `prototype/design.md` v1.0 | 品牌色蓝色 `#0052CC`；emerald/amber/violet 语义徽章；`rounded-md` 6px | **作为交互与信息密度权威**，配色不采纳 |
+| **`07_prototypes/DESIGN.md` v1.0** | **唯一视觉权威** | 本轮新增。完整 Token 定义（163 个）、组件规范、栅格、可访问性条款 |
+| `prototype/design.md` v1.0 | 仅保留**交互与信息密度**效力 | 其品牌蓝 `#0052CC` 与彩色语义徽章条款自 v1.5 起**废止** |
+| 旧 `stitch_.../DESIGN.md` | 已并入 `07_prototypes/DESIGN.md` | 不再单独引用 |
 
-裁定理由：`DESIGN.md` 时间更新，且与同目录 `code.html`、`detail.html` 的实现一致；
-`prototype/design.md` 为更早版本，其交互原则（检索优先、高密度、替代料、空状态）仍然有效。
+**需要 reviewer 确认的三个裁定**：
 
-另注：`DESIGN.md` 的 front-matter（Stitch 导出令牌）与正文「Colors」一节对 canvas / surface
-取值不一致（`#f8f9ff` vs `#f8fafc`）。原型以正文书面规范为准。
+1. **视觉以 DESIGN.md 为准、交互以 prototype/design.md 为准**——两者冲突时 DESIGN.md 的视觉条款覆盖。
+2. **`DESIGN.md` 内部曾有取值冲突**（front-matter 的 `#f8f9ff` vs 正文的 `#f8fafc`）。
+   v1.5 取**正文书面规范** `#F8FAFC`，并已写入 `tokens.css` 的 `--color-canvas`。
+3. **绿色不表示"有货"**。有货用中性深灰 + `✓` 图标 + 文字。理由：B2B 站点"有货"是常态而非喜讯，
+   绿色会造成视觉噪声，且在红绿色盲用户下与红色警示难以区分。**这一条与常见电商惯例相反，请重点复核。**
 
 ### 7.3 假数据与占位标注
 
@@ -196,16 +211,21 @@ Reviewer 要求检查「假数据、占位链接、伪提交按钮是否被明�
 - 所有 mock 元素带 `data-mock` 属性，开启后显示琥珀色虚线框与说明；
 - 每页底部有**原型状态条**，分列：对应方案 / 实施阶段 / 已实现 / 模拟 / 待开发 / 本轮修改。
 
-标注数量：首页 28 处、产品详情页 33 处、搜索页 32 处、询盘页 16 处，合计 109 处。
+标注数量：首页 28 处、产品详情页 33 处、搜索页 32 处、询盘页 16 处，合计 **109 处**。
+**v1.5 迁移过程中这 109 处标注零改动**（`grep -c data-mock` 可复核）。
 
 ### 7.4 判定边界建议
 
 | 判定 | 适用 |
 |---|---|
-| `PASS` / `PARTIAL` / `FAIL` | 信息架构、视觉体系、交互路径、表单规则、状态表达 |
-| `NOT VERIFIABLE` | 前端代码质量、接口契约、性能、安全、权限、SEO 实际输出、真实数据下的表现 |
+| `PASS` / `PARTIAL` / `FAIL` | 信息架构、视觉体系、交互路径、表单规则、状态表达、**Design System 一致性** |
+| `NOT VERIFIABLE` | 前端代码质量、接口契约、性能、安全、权限、SEO 实际输出、真实数据下的表现、**多浏览器兼容性、移动端响应式** |
 
 **视觉通过不代表前端代码、接口、性能与安全通过，四者分开判定。**
+
+**关于 `TOKEN_AUDIT.md` 的 5/5 通过**：这是**源码层面的机械检查**，只证明
+"没有字面色值 / 没有未定义变量 / 没有越界圆角 / 引用顺序正确"，
+**不等于**设计体系在视觉上已通过评审。视觉是否统一仍需 reviewer 目视判定。
 
 ### 7.5 已知缺口（主动声明）
 
@@ -218,6 +238,26 @@ Reviewer 要求检查「假数据、占位链接、伪提交按钮是否被明�
 | SEO 仅预览 | 详情页给出 canonical 与 JSON-LD 预览，未接真实输出链路 |
 | 后台未提交 | `admin/` 第二轮提交 |
 | 移动端未真机验证 | 响应式断点已实现，未在真机验证触控热区与参数可读性 |
+| **移动端截图未重截** | v1.4 曾有 390px 截图；v1.5 因无头浏览器视口限制未重截，响应式行为**本轮未验证** |
+| **暗色模式未设计** | `DESIGN.md` 第八节已声明；如需支持须重新映射整套语义 Token，不能简单反转灰阶 |
+| **图标系统未定义** | 当前用文字符号（`✓` `!` `×` `→`），生产实现需引入统一图标集并规定线宽与尺寸 |
+| **对比度未工具化扫描** | `DESIGN.md` 中的对比度数值为人工计算，未做全量工具扫描 |
+| **LCSC 报价状态页未采集** | `/order`、`/quote` 均 302 跳登录，无匿名访问路径。已声明未做任何推测性描述 |
+| **LCSC 搜索页仅骨架屏** | 客户端渲染，离线快照无结果数据；筛选维度与表头字段**未能确认** |
+| **LCSC 详情页视觉不可判读** | 独立 Next.js 应用、组件 CSS 按需加载；信息架构改由 `__NEXT_DATA__` 真实字段还原，**未做视觉结论** |
+
+### 7.6 竞品研究的使用边界（v1.5 新增）
+
+`07_prototypes/reference/` 是 LCSC 的设计研究，用于说明 Morris Design System 的取舍依据。
+
+- **借鉴**：设计模式与业务模式（搜索兼 BOM 入口、高密度结果表、双入口 + 容量上限前置、极轻量页签）。
+- **不借鉴**：品牌配色（深蓝 + 蓝 CTA）、多色徽章、促销/闪购/优惠券、pill 按钮、强制登录查看报价。
+- **不复制**：商标、Logo、图标、插画、文案、源代码、完整页面结构。仓库内**不含** LCSC 的任何 HTML/CSS/JS 源文件。
+- 截图仅作评审期内部比对，**不随 morrishk.net 上线、不对外分发**。删除 `reference/` 不影响任何交付物。
+
+**明确声明**：本轮研究**未导致**任何业务范围或技术方案的变更。
+Morris 的稀缺料/EOL 询盘导向、精确型号优先搜索、千万级游标分页、替代料不利参数差异提示、
+详情页七段式、PDF 参数证据链、BOM 询盘的 LeadNo 与重复提交防护，**全部保持不变**。
 
 ---
 
@@ -271,22 +311,62 @@ Reviewer 要求检查「假数据、占位链接、伪提交按钮是否被明�
 **本轮性质声明**：原型为**静态 HTML**，不含前端工程代码、接口、性能与安全实现。
 视觉与交互通过不代表上述四项通过，需分开判定（见第七节 7.4）。
 
+### 8.4 v1.4-review → v1.5-review（Design System 统一）
+
+本轮**不改动任何已评审的方案文档，也不改动原型的信息架构与交互路径**，
+只把视觉实现统一到一套正式的设计规范上。
+
+| 项 | 内容 |
+|---|---|
+| 新增规范 | `07_prototypes/DESIGN.md` v1.0——Morris Design System，含 Colors / Typography / Spacing / Radius / Border / Shadow / Breakpoints / Z-index / Components / Data visualization 十类 Token 定义 |
+| 新增 Token 层 | `07_prototypes/assets/tokens.css`——163 个 Token，三层架构（Primitive → Semantic → Component） |
+| 组件层重写 | `07_prototypes/assets/proto.css`——17 个分区，**零字面色值**，全部 `var(--*)`；类名与 v1.4 完全一致 |
+| 原型迁移 | 四页共 **51 处**旧变量名改为语义 Token 名（`--primary`→`--color-brand` 等），**10 处**行内圆角 Token 化；新增 5 处 `tokens.css` 引用 |
+| 新增竞品研究 | `07_prototypes/reference/lcsc_research.md`——LCSC 五页 × 7 项记录；4 张截图 + `INDEX.md`（按证据强度分级，第 5 页声明未采集） |
+| 新增检查报告 | `07_prototypes/TOKEN_AUDIT.md`（脚本生成，5/5 项通过）、`07_prototypes/VISUAL_DIFF.md`（新旧差异清单）、`07_prototypes/SHA256SUMS.txt`（20 个文件） |
+| 入口页改写 | 「设计体系与来源」章节由"两份文档冲突、页面自行裁定"改为"冲突已收口到 DESIGN.md"；版本号 v1.0 → v1.5 |
+| **未改动** | 四个原型的 DOM 结构、信息架构、交互路径、**109 处 `data-mock` 标注**；商务方案、技术方案、追踪矩阵、数据库审计、基线报告 |
+
+**本轮性质声明（重要）**：
+
+1. `TOKEN_AUDIT.md` 的 5/5 通过是**源码层面的机械检查**，只证明"没有字面色值、没有未定义变量、
+   没有越界圆角、引用顺序正确"，**不等于设计体系在视觉上已通过评审**。视觉是否统一仍需 reviewer 目视判定。
+2. 本轮**未验证**：前端代码质量、接口契约、性能、安全、多浏览器兼容性、移动端响应式（未重截截图）。
+3. 竞品研究**未导致**任何业务范围或技术方案变更（见第七节 7.6）。
+4. 本轮**未宣布设计正式通过**，只提交 reviewer 审核。
+
 ## 九、版本与校验
 
-**文件数量口径**（三个数字含义不同，勿混用）：
+**文件数量口径**（四个数字含义不同，勿混用）：
 
 | 口径 | 数量 | 说明 |
 |---|---|---|
-| 仓库纳入版本控制的文件总数 | **31** | 含 `.gitattributes` 与 `07_prototypes/` 下 10 个文件 |
-| `SHA256SUMS.txt` 覆盖的文件数 | **30** | 除自身以外的全部文件 |
-| `SHA256SUMS.txt` 自身 | **1** | 不列入自身清单，避免自引用 |
+| 仓库纳入版本控制的文件总数 | **42** | 含 `.gitattributes`、两份 `SHA256SUMS.txt`、`07_prototypes/` 下 21 个文件 |
+| 根清单 `06_evidence/hashes/SHA256SUMS.txt` 覆盖数 | **41** | 除自身以外的全部文件 |
+| `07_prototypes/SHA256SUMS.txt` 覆盖数 | **20** | 该目录内除自身以外的全部文件 |
+| `07_prototypes/` 文件总数 | **21** | 20 个交付文件 + 1 个哈希清单 |
 
 ```bash
-# 在仓库根目录校验（应输出 30 行 OK）
+# 1) 校验全仓库（在仓库根目录，应输出 41 行 OK）
 sha256sum -c 06_evidence/hashes/SHA256SUMS.txt
 
-# 查看本仓库全部提交
+# 2) 单独校验原型目录（在 07_prototypes/ 下，应输出 20 行 OK）
+cd 07_prototypes && sha256sum -c SHA256SUMS.txt
+
+# 3) 查看本仓库全部提交与送审 tag
 git log --oneline --decorate
+git tag -n
 ```
 
-每轮修订以独立 commit 提交，并用 tag 标记送审版本；历史版本不覆盖。
+**哈希计算口径**：文本文件先统一为 LF 换行再计算，路径使用 POSIX 风格（`/`），
+两份清单均不包含自身，避免自引用。
+
+**版本标记**：每轮修订以独立 commit 提交，并用 tag 标记送审版本；历史版本不覆盖。
+
+| Tag | 内容 |
+|---|---|
+| `v1.2-review` | 首轮送审 |
+| `v1.3-review` | 第一轮初审意见处理 |
+| `v1.3.1-review` | 复审残留项处理 |
+| `v1.4-review` | 新增原型送审（`07_prototypes/` 10 个文件） |
+| **`v1.5-review`** | **Design System 统一（`07_prototypes/` 21 个文件）** |

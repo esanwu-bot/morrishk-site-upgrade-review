@@ -1,0 +1,282 @@
+/* ============================================================================
+   Morris Design System — Design Tokens
+   版本：1.0.0  ·  2026-11-15
+   规范正文：07_prototypes/DESIGN.md
+
+   使用规则（强制）：
+   1. 任何页面、组件、内联样式都不得出现字面色值（#xxx / rgb() / hsl()）。
+      一律引用本文件的语义 Token。
+   2. 只允许引用「语义层」与「组件层」Token。原始色阶（--red-600 等）仅供本文件
+      内部组合使用，业务代码不得直接引用。
+   3. 媒体查询条件无法使用 var()，断点数值以 --bp-* 形式登记在此处作为
+      唯一事实来源，样式表中直接写数值时必须与此处一致。
+   ========================================================================= */
+
+:root {
+
+  /* ==========================================================================
+     一、原始色阶（Primitive）——仅供语义层引用，业务代码禁止直接使用
+     ========================================================================== */
+
+  /* 品牌红：v1.4 已评审色相，不引入新色相 */
+  --red-50:  #FEF2F2;
+  --red-100: #FEE2E2;
+  --red-200: #FECACA;
+  --red-300: #FCA5A5;
+  --red-500: #EF4444;
+  --red-600: #DC2626;   /* 品牌主色 */
+  --red-700: #B91C1C;
+  --red-800: #991B1B;
+  --red-900: #7F1D1D;
+
+  /* 中性灰：界面主体 */
+  --gray-0:   #FFFFFF;
+  --gray-25:  #FCFCFD;
+  --gray-50:  #F8FAFC;
+  --gray-100: #F1F5F9;
+  --gray-200: #E2E8F0;
+  --gray-300: #CBD5E1;
+  --gray-400: #94A3B8;
+  --gray-500: #64748B;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1E293B;
+  --gray-900: #0F172A;
+
+  /* 功能黄：仅用于「库存紧张 / 待确认」一类需要区别于红色的提示 */
+  --amber-50:  #FFFBEB;
+  --amber-200: #FDE68A;
+  --amber-700: #B45309;
+  --amber-900: #78350F;
+
+  /* ==========================================================================
+     二、语义层 Token —— 业务代码只用这一层
+     ========================================================================== */
+
+  /* --- 品牌与交互 --- */
+  --color-brand:            var(--red-600);
+  --color-brand-hover:      var(--red-700);
+  --color-brand-active:     var(--red-800);
+  --color-brand-subtle:     var(--red-50);    /* 选中行 / 浅底 */
+  --color-brand-border:     var(--red-200);   /* 浅底配套描边 */
+  --color-brand-text:       var(--red-800);   /* 浅底上的文字，保证对比度 */
+
+  /* --- 表面 --- */
+  --color-canvas:           var(--gray-50);   /* 页面底色 */
+  --color-surface:          var(--gray-0);    /* 卡片、表格、输入框 */
+  --color-surface-sunken:   var(--gray-100);  /* 表头、次级区块、只读区 */
+  --color-surface-inverse:  var(--gray-900);  /* 深色条、批量操作栏 */
+
+  /* --- 描边 --- */
+  --color-border:           var(--gray-200);  /* 常规分割线 */
+  --color-border-subtle:    var(--gray-100);  /* 表格行内细线 */
+  --color-border-input:     var(--gray-300);  /* 输入控件 */
+  --color-border-strong:    var(--gray-400);  /* 浮层、聚焦前的强描边 */
+
+  /* --- 文字 --- */
+  --color-text:             var(--gray-900);  /* 型号、数值、标题 */
+  --color-text-muted:       var(--gray-500);  /* 说明、标签 */
+  --color-text-disabled:    var(--gray-400);  /* 占位、禁用 */
+  --color-text-inverse:     var(--gray-0);    /* 深色底上的文字 */
+  --color-text-inverse-dim: var(--gray-300);
+
+  /* --- 状态：颜色永远与文字/图标同时出现，不得单靠颜色传达 --- */
+  --color-success:          var(--gray-900);  /* 有货：中性色 + ✓ 图标 */
+  --color-success-subtle:   var(--gray-100);
+  --color-warning:          var(--amber-700); /* 库存紧张 / 需确认 */
+  --color-warning-subtle:   var(--amber-50);
+  --color-warning-border:   var(--amber-200);
+  --color-danger:           var(--red-800);   /* 错误 / 缺货 / EOL */
+  --color-danger-subtle:    var(--red-50);
+  --color-danger-border:    var(--red-200);
+  --color-neutral-status:   var(--gray-600);  /* 无状态 / 停产信息 */
+
+  /* --- 交互反馈 --- */
+  --color-focus-ring:       var(--red-600);
+  --color-hover-row:        var(--gray-50);
+  --color-selected-row:     var(--red-50);
+  --color-selected-bar:     var(--red-600);   /* 选中行左侧 2px 标记 */
+  --color-overlay-scrim:    rgba(15, 23, 42, .45);
+
+  /* ==========================================================================
+     三、排版
+     ========================================================================== */
+
+  --font-sans: "Inter", "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "SFMono-Regular", "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+
+  /* OpenType：等宽数字 + 单层 a + 斜杠零，保证型号与价格纵向对齐 */
+  --font-feature: "tnum" 1, "cv05" 1, "zero" 1;
+
+  --fs-caption:  10px;  --lh-caption:  14px;
+  --fs-label-sm: 11px;  --lh-label-sm: 14px;
+  --fs-label:    12px;  --lh-label:    16px;
+  --fs-body-sm:  12px;  --lh-body-sm:  16px;
+  --fs-body:     13px;  --lh-body:     18px;
+  --fs-body-lg:  14px;  --lh-body-lg:  20px;
+  --fs-title-sm: 15px;  --lh-title-sm: 20px;
+  --fs-title:    18px;  --lh-title:    24px;
+  --fs-title-lg: 20px;  --lh-title-lg: 26px;
+  --fs-headline: 24px;  --lh-headline: 30px;
+  --fs-display:  32px;  --lh-display:  38px;
+
+  --fw-regular:  400;
+  --fw-medium:   500;
+  --fw-semibold: 600;
+  --fw-bold:     700;
+
+  --ls-tight:   -.02em;
+  --ls-snug:    -.01em;
+  --ls-normal:  0em;
+  --ls-wide:    .02em;
+  --ls-wider:   .03em;
+  --ls-widest:  .04em;
+
+  /* ==========================================================================
+     四、间距（4pt 基准，2pt 用于行内微调）
+     ========================================================================== */
+
+  --sp-0:  0px;
+  --sp-1:  2px;
+  --sp-2:  4px;
+  --sp-3:  6px;
+  --sp-4:  8px;
+  --sp-5:  12px;
+  --sp-6:  16px;
+  --sp-7:  20px;
+  --sp-8:  24px;
+  --sp-9:  32px;
+  --sp-10: 40px;
+  --sp-11: 48px;
+  --sp-12: 64px;
+
+  /* 布局 */
+  --layout-max:            1600px;
+  --layout-max-narrow:     1180px;
+  --layout-gutter:         24px;
+  --layout-gutter-tablet:  20px;
+  --layout-gutter-mobile:  16px;
+  --layout-sidebar:        248px;   /* 搜索页筛选栏 */
+  --layout-aside:          300px;   /* 详情页右栏 */
+  --layout-media:          200px;   /* 详情页主图列 */
+
+  /* ==========================================================================
+     五、圆角（上限 6px；禁止 pill 形状）
+     ========================================================================== */
+
+  --radius-xs:   2px;   /* chip / badge */
+  --radius-sm:   4px;   /* 按钮 / 输入 / 卡片 / 表格容器 */
+  --radius-md:   6px;   /* 大面板 */
+  --radius-none: 0px;   /* 表格内部单元格，保持直角拼接 */
+
+  /* ==========================================================================
+     六、描边
+     ========================================================================== */
+
+  --bw-1: 1px;
+  --bw-2: 2px;   /* 聚焦环、选中行标记 */
+
+  --border-default: var(--bw-1) solid var(--color-border);
+  --border-subtle:  var(--bw-1) solid var(--color-border-subtle);
+  --border-input:   var(--bw-1) solid var(--color-border-input);
+  --border-strong:  var(--bw-1) solid var(--color-border-strong);
+  --border-brand:   var(--bw-1) solid var(--color-brand);
+
+  /* 聚焦环：始终 1px 描边 + 1px 外扩，不依赖颜色单独传达 */
+  --ring-focus: 0 0 0 1px var(--color-focus-ring);
+
+  /* ==========================================================================
+     七、阴影（仅浮层；数据面零阴影）
+     ========================================================================== */
+
+  --shadow-none:  none;
+  --shadow-pop:   0 4px 6px -1px rgba(15, 23, 42, .07), 0 2px 4px -2px rgba(15, 23, 42, .05);
+  --shadow-modal: 0 10px 15px -3px rgba(15, 23, 42, .10), 0 4px 6px -4px rgba(15, 23, 42, .06);
+  --shadow-bar:   0 -2px 8px -2px rgba(15, 23, 42, .12);
+
+  /* ==========================================================================
+     八、断点（媒体查询无法读 var()，此处为唯一事实来源，样式表数值必须一致）
+     ========================================================================== */
+
+  --bp-sm:  480px;   /* 小屏手机 */
+  --bp-md:  768px;   /* 大屏手机 / 平板竖屏 */
+  --bp-lg:  1024px;  /* 平板横屏 / 小笔记本 */
+  --bp-xl:  1200px;  /* 标准桌面 */
+  --bp-2xl: 1600px;  /* 宽屏工作站 */
+
+  /* ==========================================================================
+     九、层级（z-index）
+     ========================================================================== */
+
+  --z-base:       0;
+  --z-sticky:     10;    /* 表头吸附 */
+  --z-dropdown:   40;    /* 下拉、阶梯价浮层 */
+  --z-sticky-bar: 60;    /* 批量操作栏 */
+  --z-drawer:     80;    /* 筛选抽屉 */
+  --z-scrim:      90;    /* 遮罩 */
+  --z-modal:      100;   /* 对话框 */
+  --z-annotation: 120;   /* 原型标注层 */
+  --z-toast:      200;   /* 轻提示 */
+
+  /* ==========================================================================
+     十、组件级 Token
+     ========================================================================== */
+
+  /* 按钮 */
+  --btn-h-sm: 32px;
+  --btn-h-md: 38px;
+  --btn-h-xs: 26px;
+  --btn-px-sm: 12px;
+  --btn-px-md: 16px;
+  --btn-px-xs: 8px;
+
+  /* 输入 */
+  --input-h: 32px;
+  --input-px: 10px;
+  --input-py: 6px;
+
+  /* 表格 */
+  --table-head-h: 32px;
+  --table-row-h: 36px;      /* 高密度 */
+  --table-row-h-roomy: 44px;/* 宽松 */
+  --table-cell-px: 10px;
+
+  /* 徽章 / Chip */
+  --badge-py: 2px;
+  --badge-px: 6px;
+
+  /* 页头 */
+  --header-util-h: 30px;
+  --header-main-h: 56px;
+  --header-nav-h: 38px;
+
+  /* 焦点与动效 */
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --ease-standard: cubic-bezier(.2, 0, .2, 1);
+
+  /* ==========================================================================
+     十一、数据可视化（原型暂无图表，Token 先定义，供后续复用）
+     ========================================================================== */
+
+  /* 单色序列：以中性灰阶承载，红色仅用于强调单一重点序列 */
+  --viz-series-1: var(--gray-900);
+  --viz-series-2: var(--gray-600);
+  --viz-series-3: var(--gray-400);
+  --viz-series-4: var(--gray-300);
+  --viz-series-accent: var(--red-600);
+  --viz-grid:     var(--gray-200);
+  --viz-axis:     var(--gray-500);
+  --viz-label:    var(--gray-600);
+  --viz-bg:       var(--color-surface);
+}
+
+/* 高对比模式：加强描边与文字对比，不改变色相 */
+@media (prefers-contrast: more) {
+  :root {
+    --color-text-muted: var(--gray-600);
+    --color-border: var(--gray-300);
+    --color-border-subtle: var(--gray-200);
+    --color-border-input: var(--gray-400);
+  }
+}

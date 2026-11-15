@@ -4,21 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>原型入口 · morrishk.net 升级 — 按用户路径评审</title>
+<link rel="stylesheet" href="assets/tokens.css">
 <link rel="stylesheet" href="assets/proto.css">
 <style>
   .path { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
   .step { position:relative; }
   .step .n {
-    width:22px;height:22px;border-radius:4px;background:var(--text);color:#fff;
+    width:22px;height:22px;border-radius:var(--radius-sm);background:var(--color-text);color:var(--color-text-inverse);
     display:grid;place-items:center;font-size:11px;font-weight:700;
   }
   .step + .step::before {
-    content:"→"; position:absolute; left:-10px; top:26px; color:var(--text-disabled); font-size:13px;
+    content:"→"; position:absolute; left:-10px; top:26px; color:var(--color-text-disabled); font-size:13px;
   }
   @media (max-width:1023px){ .path{grid-template-columns:repeat(2,minmax(0,1fr));} .step + .step::before{display:none;} }
   @media (max-width:767px){ .path{grid-template-columns:1fr;} }
   .kv { display:grid; grid-template-columns:110px minmax(0,1fr); gap:6px 12px; font-size:12px; line-height:18px; }
-  .kv dt { color:var(--text-muted); font-weight:600; }
+  .kv dt { color:var(--color-text-muted); font-weight:600; }
   .kv dd { margin:0; }
   .two { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; }
   @media (max-width:1023px){ .two{grid-template-columns:1fr;} }
@@ -30,7 +31,7 @@
   <div class="wrap">
     <div class="row" style="gap:0"><span>morrishk.net 升级 · 原型评审入口</span></div>
     <div class="row" style="gap:0">
-      <span>v1.0-prototype</span><span class="sep">|</span><span>2026-11-15</span>
+      <span>v1.5-prototype</span><span class="sep">|</span><span>2026-11-15</span>
     </div>
   </div>
 </div>
@@ -117,15 +118,19 @@
     <div class="card-bd">
       <dl class="kv">
         <dt>视觉规范</dt>
-        <dd><span class="mono">stitch_morris_hk_website_redesignV2/DESIGN.md</span>（Morris Precision Industrial）</dd>
+        <dd><span class="mono">07_prototypes/DESIGN.md</span> v1.0（Morris Precision Industrial）——本原型唯一视觉权威</dd>
+        <dt>实现层</dt>
+        <dd><span class="mono">assets/tokens.css</span>（Design Token）＋ <span class="mono">assets/proto.css</span>（组件层），页面零字面色值</dd>
         <dt>交互规范</dt>
         <dd><span class="mono">prototype/design.md</span> v1.0（B2B 参数化检索、高密度列表、替代料、空状态）</dd>
+        <dt>竞品参考</dt>
+        <dd><span class="mono">07_prototypes/reference/lcsc_research.md</span>（LCSC 五页设计研究，仅借鉴模式，不复制品牌与素材）</dd>
         <dt>品牌主色</dt>
-        <dd><span class="mono">#dc2626</span>（crimson），仅用于关键 CTA、缺货警示、聚焦态</dd>
+        <dd><span class="mono">var(--color-brand)</span> = <span class="mono">#DC2626</span>，仅用于关键 CTA、缺货警示、聚焦态</dd>
         <dt>圆角</dt>
-        <dd>2px（chip / badge）与 4px（按钮 / 输入 / 卡片），禁止 pill 形状</dd>
+        <dd><span class="mono">--radius-xs</span> 2px（chip / badge）、<span class="mono">--radius-sm</span> 4px（按钮 / 输入 / 卡片）、<span class="mono">--radius-md</span> 6px（大面板），禁止 pill 形状</dd>
         <dt>字体</dt>
-        <dd>Inter，全局 <span class="mono">font-feature-settings: 'tnum'</span>，数字列强制等宽</dd>
+        <dd>Inter，全局 <span class="mono">font-feature-settings: var(--font-feature)</span>，数字列强制等宽</dd>
         <dt>依赖</dt>
         <dd>零外部依赖，纯本地 CSS / JS，可离线打开</dd>
       </dl>
@@ -133,18 +138,18 @@
       <div class="pill-note mt-3">
         <span class="ico">!</span>
         <div>
-          <strong>两份设计文档存在冲突，已做裁定。</strong>
-          <span class="mono">prototype/design.md</span> 规定品牌色为蓝色 <span class="mono">#0052CC</span>
-          并使用彩色语义徽章；<span class="mono">DESIGN.md</span> 规定为 crimson 且明确「禁止彩虹色徽章」。
-          本原型以 <span class="mono">DESIGN.md</span> 为视觉权威（时间更新、与 code.html / detail.html 一致），
-          以 <span class="mono">prototype/design.md</span> 为交互与信息密度权威。
+          <strong>历史冲突已收口，不再由页面自行裁定。</strong>
+          旧 <span class="mono">prototype/design.md</span>（品牌蓝 <span class="mono">#0052CC</span>、彩色语义徽章）与旧
+          <span class="mono">DESIGN.md</span>（crimson、禁彩虹徽章）之间的分歧，已由
+          <span class="mono">07_prototypes/DESIGN.md</span> v1.0 统一裁定：<strong>视觉以 DESIGN.md 为准，交互与信息密度以
+          <span class="mono">prototype/design.md</span> 为准</strong>；两者冲突时以 DESIGN.md 的视觉条款覆盖。
         </div>
       </div>
 
       <div class="info-note mt-2">
-        另注：<span class="mono">DESIGN.md</span> 的 front-matter（Stitch 导出令牌）与正文「Colors」一节对
-        canvas / surface 取值不一致（<span class="mono">#f8f9ff</span> vs <span class="mono">#f8fafc</span>）。
-        本原型以正文书面规范为准。
+        v1.5 变更：四个核心页面由「各自写死色值」改为「全部引用 Token」。页面结构、信息架构、交互路径与
+        mock 标注<strong>均未改动</strong>，仅替换取值来源。旧蓝色体系 6 页已归档到
+        <span class="mono">_legacy_v0/</span>，仅作对照，不参与评审。
       </div>
     </div>
   </div>
@@ -215,10 +220,11 @@
   <div class="wrap">
     <div class="label mb-2">Prototype index</div>
     <table>
-      <tr><td>目录</td><td><span class="mono">07_prototypes/</span> — index.html / home/ / product_detail/ / search/ / inquiry/ / seo/ / admin/ / assets/</td></tr>
+      <tr><td>目录</td><td><span class="mono">07_prototypes/</span> — index.html / home/ / product_detail/ / search/ / inquiry/ / seo/ / admin/ / assets/ / reference/</td></tr>
       <tr><td>本轮范围</td><td>四个核心原型（首页、产品详情、搜索、询盘）；SEO 与后台第二轮提交</td></tr>
       <tr><td>旧版归档</td><td>蓝色体系旧原型已移至 <span class="mono">_legacy_v0/</span>，未删除，不参与评审</td></tr>
-      <tr><td>本轮修改</td><td>v1.0（2026-11-15）首次提交，按 DESIGN.md 重建，替换旧蓝色体系</td></tr>
+      <tr><td>本轮修改</td><td>v1.5（2026-11-15）Design System 统一：新增 tokens.css，四页全部改为引用 Token；结构 / 信息架构 / 交互 / mock 标注不变</td></tr>
+      <tr><td>上一版</td><td>v1.0（2026-11-15）首次提交，按 DESIGN.md 重建，替换旧蓝色体系</td></tr>
     </table>
   </div>
 </div>
