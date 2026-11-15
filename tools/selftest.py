@@ -149,19 +149,32 @@ def _img(path, size, color="white"):
     Image.new("RGB", size, color).save(path)
 
 
-def _run_pd(a, b, out, shift=0):
+def _run_pd(a, b, out, shift=0, replace=False):
     cmd = [sys.executable, os.path.join(HERE, "pixel_diff.py"),
            "--a", a, "--b", b, "--out", out, "--shift-search", str(shift)]
+    if replace:
+        cmd.append("--replace-dir")
     p = subprocess.run(cmd, capture_output=True, text=True,
                        encoding="utf-8", errors="replace")
     return p.returncode, (p.stdout or "") + (p.stderr or "")
+
+
+def _snapshot(directory):
+    """目录内所有文件的 {相对路径: 字节}，用于比对整组证据是否被改动。"""
+    out = {}
+    if not os.path.isdir(directory):
+        return out
+    for dp, _, fns in os.walk(directory):
+        for fn in fns:
+            full = os.path.join(dp, fn)
+            out[os.path.relpath(full, directory)] = open(full, "rb").read()
+    return out
 
 
 def test_r3():
     base = tempfile.mkdtemp(prefix="selftest_r3_")
     try:
         sq = (100, 100)
-        # 场景目录
         full = os.path.join(base, "full")      # detail + home
         only_detail = os.path.join(base, "d")  # 只有 detail
         short = os.path.join(base, "short")    # detail + home(尺寸不同)
@@ -185,35 +198,51 @@ def test_r3():
 
         rc, log = _run_pd(only_detail, full, out)
         check("R3", "仅多页 -> 退出 3", rc == 3, "rc=%d" % rc)
-        check("R3", "仅多页时报出页面名", "home.png" in log and "仅新版存在" in log,
-              "日志含 home.png")
+        check("R3", "仅多页时报出页面名", "home.png" in log and "仅新版存在" in log, "日志含 home.png")
 
         rc, log = _run_pd(full, extra, out)
         check("R3", "缺页+多页 -> 退出 3", rc == 3, "rc=%d" % rc)
 
-        # 预置「运行前已存在」的证据文件，验证失败时不被动过
+        # 预置一整套「运行前已存在」的证据（多文件），验证失败时整组不被改动
         diff_dir = os.path.join(out, "diff")
         os.makedirs(diff_dir, exist_ok=True)
-        sentinel = os.path.join(diff_dir, "diff_detail.png")
-        _img(sentinel, (10, 10), "red")
-        before = open(sentinel, "rb").read()
+        _img(os.path.join(diff_dir, "diff_detail.png"), (10, 10), "red")
+        _img(os.path.join(diff_dir, "diff_home.png"), (10, 10), "blue")
+        _img(os.path.join(diff_dir, "diff_old.png"), (10, 10), "green")
+        before = _snapshot(diff_dir)
 
         rc, log = _run_pd(full, short, out)
-        after = open(sentinel, "rb").read() if os.path.exists(sentinel) else b""
+        after = _snapshot(diff_dir)
         check("R3", "尺寸不符 -> 退出 4", rc == 4, "rc=%d" % rc)
-        check("R3", "失败时已有证据未被删除", os.path.exists(sentinel))
-        check("R3", "失败时已有证据字节未变", before == after)
+        check("R3", "失败时整组旧证据未变（含文件数）",
+              set(before) == set(after) and all(before[k] == after[k] for k in before),
+              "%d 个文件" % len(before))
         check("R3", "失败时未写报告", not os.path.exists(os.path.join(out, "PIXEL_DIFF.md")))
-        check("R3", "失败时无暂存残留",
-              not any(n.startswith(".pixel_diff_staging_") for n in os.listdir(out)),
+        check("R3", "失败时无运行目录残留",
+              not os.path.exists(os.path.join(out, ".runs")) or
+              not os.listdir(os.path.join(out, ".runs")),
               str(os.listdir(out)))
 
-        # 正常路径：成功时才替换同名图
+        # 目标已存在时默认拒绝发布（不覆盖历史证据）
         rc, log = _run_pd(full, full, out)
-        check("R3", "正常 -> 退出 0", rc == 0, "rc=%d" % rc)
-        check("R3", "正常时写出报告", os.path.exists(os.path.join(out, "PIXEL_DIFF.md")))
-        after_ok = open(sentinel, "rb").read()
-        check("R3", "正常时才替换同名差异图", after_ok != before)
+        keeps = _snapshot(diff_dir)
+        check("R3", "目标已存在 -> 默认退出 6", rc == 6, "rc=%d" % rc)
+        check("R3", "默认拒绝时旧证据仍未被改动",
+              all(keeps[k] == before[k] for k in before), "%d 个文件" % len(before))
+
+        # 显式 --replace-dir 才替换，且旧目录在成功后才消失
+        rc, log = _run_pd(full, full, out, replace=True)
+        check("R3", "显式 --replace-dir -> 退出 0", rc == 0, "rc=%d" % rc)
+        check("R3", "成功时才写出报告", os.path.exists(os.path.join(out, "PIXEL_DIFF.md")))
+        after_ok = _snapshot(diff_dir)
+        check("R3", "成功时替换为本次结果", after_ok != before,
+              "%d 个文件" % len(after_ok))
+        check("R3", "成功后无 .runs 残留",
+              not os.path.exists(os.path.join(out, ".runs")),
+              str(os.listdir(out)))
+        check("R3", "成功后无 .prev 残留",
+              not any(n.startswith("diff.prev") for n in os.listdir(out)),
+              str(os.listdir(out)))
     finally:
         shutil.rmtree(base, ignore_errors=True)
 

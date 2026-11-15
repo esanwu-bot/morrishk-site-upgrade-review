@@ -12,9 +12,10 @@
 | 项目 | morrishk.net 老站升级（电子元器件 B2B 独立站） |
 | 仓库 | https://github.com/esanwu-bot/morrishk-site-upgrade-review |
 | Branch | `main` |
-| 送审版本 | tag **`v1.5.1-review`**（对应 commit SHA 见该 tag 与 Releases 页面；`v1.4-review` / `v1.5-review` 保留未覆盖） |
+| 送审版本 | tag **`v1.5.3-review`**（`v1.4-review` / `v1.5-review` / `v1.5.1-review` / `v1.5.2-review` 保留未覆盖） |
+| 并行送审包 | **`08_php84_compatibility/`**（PHP 8.4 兼容性评估 v1.2.1，tag `php84-v1.2.1-review`），独立工作流、各自冻结 |
 | 交付日期 | 2026-11-16 |
-| 文档版本 | 商务方案 客户版 v1.1（rev.3） ／ 技术方案 技术版 v1.2（rev.3） ／ **原型 v1.5.1-prototype** ／ **Design System v1.0** |
+| 文档版本 | 商务方案 客户版 v1.1（rev.3） ／ 技术方案 技术版 v1.2（rev.3） ／ **原型 v1.5.3-prototype** ／ **Design System v1.0** |
 | 数据基线 | 2024-11-30 导出，静态终态（不随线上变化） |
 | 签名状态 | 本仓库的 commit 与 tag **均未做 Git 签名**（unsigned / 非 GPG 验证）。可用于确认版本内容与父子关系，**不可**作为经过签名的发布物 |
 
@@ -23,6 +24,20 @@
 除主送审包外，仓库内另有 **`08_php84_compatibility/`**：PHP 8.4 兼容性评估 **v1.2.1**，tag `php84-v1.2.1-review`。
 该包只涉及"老站能否迁到 PHP 8.4"的评估与依赖求解证据，**与主送审的方案/原型/审计工具无内容交叉**，各自冻结、各自递增版本。
 主送审包的 `06_evidence/hashes/SHA256SUMS.txt` 仍只覆盖主包；`08` 目录自带 `SHA256SUMS.txt`。
+
+**版本核对方式（网页有缓存时以此为准）**：以 SHA 为唯一依据，不看页面上的版本文字。
+
+```bash
+git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git refs/heads/main
+# 输出应等于 git rev-parse HEAD
+```
+
+也可直接打开下列直链绕过仓库首页缓存：
+
+- 提交历史：https://github.com/esanwu-bot/morrishk-site-upgrade-review/commits/main
+- 标签 `v1.5.3-review`：https://github.com/esanwu-bot/morrishk-site-upgrade-review/releases/tag/v1.5.3-review
+
+若仓库首页显示的提交数或 README 版本文字与上述 SHA 不符，属于页面缓存，请以 `git ls-remote` 的结果为准。
 
 ---
 
@@ -54,9 +69,9 @@
 │   └── system_architecture.md    总体架构（逐字抽取自技术方案第 2 章）
 ├── 06_evidence/
 │   ├── hashes/SHA256SUMS.txt     本仓库全部文件的 SHA-256
-│   ├── test_reports/             ❗ 未提供
-│   ├── benchmark/                ❗ 未提供
-│   └── screenshots/              ❗ 未提供
+│   ├── test_reports/             ❗ 未提供（指技术实现侧的单测/集成测试报告，属方案阶段，不在本轮范围）
+│   ├── benchmark/                ❗ 未提供（同上：检索性能基准属方案阶段，不在本轮范围）
+│   └── screenshots/              ❗ 未提供（原型截图不在此目录，实际位于 07_prototypes/reference/prototype_shots/）
 ├── 08_php84_compatibility/       ★ 并行送审包：PHP 8.4 兼容性评估 v1.2.1（独立工作流）
 │   ├── README.md                   送审说明 + 证据索引 + 10 分钟复核路径
 │   ├── docs/app_code_compatibility.md   主报告 v1.2.1（应用层 + 依赖层）
@@ -67,8 +82,9 @@
 ├── tools/                        ★ 可复核脚本（从仓库根直接执行）
 │   ├── check_tokens.py             Token 合规扫描 → 生成 07_prototypes/TOKEN_AUDIT.md
 │   ├── pixel_diff.py               同视口逐像素差分 → 生成 PIXEL_DIFF.md
-│   └── css_value_diff.py           两版 CSS 逐条取值比对 → 生成 CSS_VALUE_DIFF.md
-├── 07_prototypes/                新版原型 + Design System（本轮 v1.5.1）
+│   ├── css_value_diff.py           两版 CSS 逐条取值比对 → 生成 CSS_VALUE_DIFF.md
+│   └── selftest.py                 三个工具的回归自测（46 项断言，退出码 0/1）
+└── 07_prototypes/                新版原型 + Design System（本轮 v1.5.3）
     ├── DESIGN.md                     ★ Morris Design System v1.0（唯一视觉权威）
     ├── README.md                     原型说明、标注系统、已知缺口
     ├── TOKEN_AUDIT.md                ★ Token 使用检查报告（脚本生成，可重跑）
@@ -499,6 +515,54 @@ R3「仅多页」独立用例与失败清理范围、9.62% 的分子分母抽查
 最终签署需 reviewer 实际核验 `e4994b5`…`本次提交` 的 diff、脚本全文与三份清单。
 另：本轮工具修复**不代表页面视觉差异已获业务验收**，21 条间距吸附仍是独立的设计裁定事项。
 
+### 8.8 版本一致性与发布原子性修正
+
+reviewer 指出两件事：一是仓库页面显示的版本信息与实际提交对不上；二是 R3 的「整组发布」仍有缺陷。
+两件都成立，逐条处理。
+
+**（一）版本标识修正** —— 这是本方的疏漏，不是缓存问题。
+
+| 问题 | 原因 | 修正 |
+|---|---|---|
+| README 「送审版本」仍写 `v1.5.1-review`，`07_prototypes/` 目录树仍标「本轮 v1.5.1」 | 上一轮只更新了正文修订记录，漏改头部送审信息表与目录树 | 头部改为 tag `v1.5.2-review`，目录树改 v1.5.2，文档版本行同步为原型 v1.5.2-prototype |
+| reviewer 页面看到「v1.2-review / 4 commits」 | 与 HEAD 实际内容不符（本仓库提交数远超 4，且无 v1.2 送审信息） | 属页面缓存或访问到旧快照。已在头部加入**版本核对方式**：以 `git ls-remote` 的 SHA 为准，并给出 commit / tag / commits 三个直链 |
+
+头部新增的核对命令：
+
+```bash
+git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git refs/heads/main
+# 应为 88e21c4 之后的提交；以 SHA 为准，不看页面上的版本文字
+```
+
+**（二）R3 发布模型重做** —— 原实现有两个真缺陷，reviewer 指得对：
+
+1. `os.replace()` 逐张替换，不是事务：5 张图前 3 张成功、第 4 张失败时，目标目录已部分更新。
+2. 成功路径下 `os.replace()` 仍会覆盖运行前已存在的同名图，与「绝不触碰已有证据」的说法不符。
+
+改为评审建议的四段式：
+
+| 要求 | 实现 |
+|---|---|
+| 每次运行独立唯一结果目录 | `<out>/.runs/<时间戳>-<pid>/`，内含 `diff/` 与 `PIXEL_DIFF.md` |
+| 全部生成/校验后再发布 | 差分全部完成 → 写报告 → `verify_run()` 逐张校验存在/非空/可解码且报告非空 → 才发布 |
+| 目标必须预先不存在 + 目录级原子 rename | `diff/` 已存在时**默认拒绝并退出 6**；加 `--replace-dir` 才替换，旧目录先 rename 到 `diff.prev.<pid>`，新目录发布成功后才删除旧目录 |
+| 发布失败只删本次暂存，不清理历史 | 报告替换是提交点；它失败则新 `diff/` 删除、旧目录 rename 回原位。`finally` 只删本次 `.runs/<id>` |
+
+**回归断言（46 项，原 43 项 + 新增 3 项）**：
+
+| 断言 | 结果 |
+|---|---|
+| 目标已存在、未加 `--replace-dir` → 退出 6，且旧证据 3 个文件字节全未变 | PASS |
+| 显式 `--replace-dir` → 退出 0，报告与图同时更新 | PASS |
+| 成功后无 `.runs` / `.prev` 残留 | PASS |
+| 尺寸不符失败 → 旧证据整组（3 文件）字节未变、不写报告、无残留 | PASS |
+
+真实数据重跑：严格 2,179,447（11.642%）、补偿 1,797,945（9.623%）、
+5 张差异图 SHA-256 与改造前**完全一致**——说明发布模型重写没有改变任何产出内容。
+
+**本轮仍未做的事**：未替 reviewer 裁定视觉差异；未做分段位移补偿；未做对比度工具化扫描。
+R3 的「工具层可靠性」按本轮实现可以关闭，但**关闭与否由 reviewer 判定**，本方不自我认证。
+
 ## 九、版本与校验
 
 **文件数量口径**（四个数字含义不同，勿混用）：
@@ -525,6 +589,7 @@ sha256sum -c SHA256SUMS.txt
 python tools/check_tokens.py --path 07_prototypes/
 
 # 5) 重跑像素差分（在仓库根目录，数字应与 PIXEL_DIFF.md 完全一致）
+#    --out 指向新目录即可直接跑；若要写回仓库内已有 diff/ 的目录，需显式加 --replace-dir
 python tools/pixel_diff.py \
   --a 07_prototypes/reference/prototype_shots/v1.4 \
   --b 07_prototypes/reference/prototype_shots/v1.5.1 \
@@ -546,7 +611,8 @@ git tag -n
 ```
 
 **三个脚本都有非零退出码，可直接接 CI**：`check_tokens.py` 有 FAIL 退出 1；
-`pixel_diff.py` 页面集合不一致退出 3、尺寸不一致或差分失败退出 4；
+`pixel_diff.py` —— 集合不一致 3、尺寸不符或差分失败 4、完成页数不足 5、
+**发布目标已存在且未加 `--replace-dir` 6**、**产物校验或发布失败（已回滚）7**；
 `css_value_diff.py` 分类合计与真实变更数不一致退出 3。「脚本跑完没报错」不等于「通过」，
 必须同时看退出码与报告里的判定行。
 
