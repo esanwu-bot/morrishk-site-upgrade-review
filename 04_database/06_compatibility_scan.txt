@@ -6,63 +6,76 @@
  对象  : 31 张表 / 210 个字段 / 100 个索引
 ==============================================================================
 
-严重级别说明
-  HIGH = 会直接阻断导入或造成功能不可用，必须先处理
-  MED  = 可导入但行为/性能/语义发生变化，需回归验证
-  LOW  = 仅产生告警或维护性问题
-  INFO = 事实记录，无风险
+严重级别说明（两级模型：先分类别，再定级别）
 
-汇总: HIGH=2  MED=6  LOW=4  INFO=4
+  【A 类 · 兼容性风险】当前 DDL 在 8.4 上能否成立
+    BLOCK    = 会直接导致 CREATE TABLE / 导入失败，必须处理
+    BEHAVIOR = 能导入，但行为、语义或性能与 5.6 不同，需回归验证
+    NOTE     = 仅产生 deprecation 告警或维护性问题
+
+  【B 类 · 迁移目标要求】能导入，但不满足目标架构，属于主动改造项
+    TARGET   = 架构治理目标（如 utf8mb3→utf8mb4、MyISAM→InnoDB）
+
+  【C 类 · 事实记录】
+    INFO     = 客观记录，无风险
+
+  ⚠ A 类与 B 类不可混用：把「能导入但不理想」写成 HIGH/阻断级，
+    会导致迁移优先级判断失真，也会掩盖真正的导入阻断项。
+
+汇总: BLOCK=0  TARGET=2  BEHAVIOR=5  NOTE=5  INFO=4
+
+  结论：A 类中 BLOCK = 0 项，即**当前结构在 MySQL 8.4 上不存在导入阻断项**；
+        需处理的是 B 类 2 项架构治理要求与 A 类 5 项行为变更。
 
 ------------------------------------------------------------------------------
 一、风险清单
 ------------------------------------------------------------------------------
 
-[01][HIGH] 字符集  ->  31 张表
-     现象: 表默认字符集为 utf8（= utf8mb3），8.4 中仍可用但已标记 deprecated，且无法存储 4 字节字符（emoji、部分生僻字）
-     处置: 迁移时统一改为 utf8mb4 / utf8mb4_0900_ai_ci，并同步改连接字符集
+[01][TARGET] 字符集  ->  31 张表
+     现象: 表默认字符集为 utf8（= utf8mb3）。**8.4 仍可正常导入与使用**，不构成导入阻断；但 utf8mb3 已 deprecated，且无法存储 4 字节字符（emoji、部分生僻字）
+     处置: 这是迁移目标要求，不是兼容性阻断：统一改为 utf8mb4 / utf8mb4_0900_ai_ci，并同步改连接字符集
 
-[02][HIGH] 存储引擎  ->  30 张表（snsii_ad, snsii_attr_name, snsii_attr_name_lang, snsii_cart, snsii_cf_dns, snsii_cf_domain, snsii_cf_logs, snsii_contact…）
-     现象: MyISAM 在 8.4 仍受支持，但无事务、无崩溃恢复、不支持外键；8.0 起 AUTO_INCREMENT 计数器行为变化，且 MyISAM 已属维护模式
-     处置: 建议迁移时转 InnoDB，并核对 AUTO_INCREMENT 起始值
+[02][TARGET] 存储引擎  ->  30 张表（snsii_ad, snsii_attr_name, snsii_attr_name_lang, snsii_cart, snsii_cf_dns, snsii_cf_domain, snsii_cf_logs, snsii_contact…）
+     现象: MyISAM **在 8.4 仍受支持，可直接导入**，不构成导入阻断；但无事务、无崩溃恢复、不支持外键，且 8.0 起 AUTO_INCREMENT 计数器持久化行为与 MyISAM 不一致
+     处置: 这是迁移目标要求，不是兼容性阻断：建议转 InnoDB，并核对 AUTO_INCREMENT 起始值
 
-[03][MED] 排序规则  ->  utf8_general_ci(隐式)
+[03][BEHAVIOR] 排序规则  ->  utf8_general_ci(隐式)
      现象: utf8_general_ci / utf8_unicode_ci 在 8.0+ 映射为 utf8mb3_*，比较规则与 utf8mb4_0900_* 不同
      处置: 迁移后排序/比较结果可能变化，需回归测试 ORDER BY 与唯一约束
 
-[04][MED] 语法废弃  ->  88 个字段
-     现象: int(11)/int(5)/tinyint(1) 等整数显示宽度自 8.0.17 起 deprecated，8.4 仍接受但告警，SHOW CREATE TABLE 将不再显示宽度，导致 schema diff 工具持续报差异
-     处置: 可保留（能导入），但建议在迁移脚本中统一去掉显示宽度；tinyint(1) 需注意部分驱动/ORM 仍按布尔处理
-
-[05][MED] 数据类型  ->  5 个字段
+[04][BEHAVIOR] 数据类型  ->  5 个字段
      现象: 以 int(10) 存储 Unix 时间戳，2038-01-19 后溢出；且与 DATETIME 列比较时存在隐式类型转换
      处置: 评估改为 bigint 或 DATETIME，注意应用层改造量
 
-[06][MED] SQL_MODE  ->  'NO_AUTO_VALUE_ON_ZERO'
+[05][BEHAVIOR] SQL_MODE  ->  'NO_AUTO_VALUE_ON_ZERO'
      现象: dump 头部将 SQL_MODE 置为 'NO_AUTO_VALUE_ON_ZERO'，而 8.4 默认严格模式为 ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION
      处置: 若 5.6 期间写入过零日期/非法枚举/超长字符串，导入 8.4 会中断；建议导入时 SET SESSION sql_mode='NO_AUTO_VALUE_ON_ZERO' 并逐表校验
 
-[07][MED] 主键  ->  1 张表：snsii_track_order
-     现象: 无主键表：转 InnoDB 后无聚簇索引，行锁退化为表级范围锁，且 8.0 起复制/在线 DDL 对无主键表限制更多
-     处置: 迁移时补 AUTO_INCREMENT 主键，或评估该表是否仍在使用
+[06][BEHAVIOR] 主键  ->  1 张表：snsii_track_order
+     现象: 无显式主键。**需要更正一个常见误解**：InnoDB 对没有主键、也没有合适的非空唯一索引的表，会自建 6 字节隐藏聚簇索引 GEN_CLUST_INDEX，因此转 InnoDB 后仍然有聚簇索引，行锁也不会因此退化为表级锁。真实影响是：(1) 隐藏聚簇索引的键由 InnoDB 内部生成，无法被优化器使用，二级索引需回表两次；(2) 复制与在线 DDL 在无主键表上的行为受限，pt-online-schema-change 等工具通常直接拒绝处理；(3) 行级锁虽仍生效，但基于隐藏键定位，并发更新同一逻辑行时仍可能产生更多间隙锁竞争
+     处置: 迁移时补 AUTO_INCREMENT 主键；若业务上确实无自然主键，也应补一个代理主键，而不是依赖 GEN_CLUST_INDEX
 
-[08][MED] 严格模式  ->  4 个字段：snsii_contact.Message, snsii_news.Content, snsii_track_order.Content, snsii_track_order.ProList
+[07][BEHAVIOR] 严格模式  ->  4 个字段：snsii_contact.Message, snsii_news.Content, snsii_track_order.Content, snsii_track_order.ProList
      现象: TEXT/BLOB 列声明 NOT NULL 且无默认值。5.6 非严格模式下遗漏赋值会静默写入空串，8.4 严格模式下直接报 1364 错误
      处置: 改为 DEFAULT NULL 或在应用层保证赋值
 
-[09][LOW] 隐式转换  ->  10 个字段
+[08][NOTE] 语法废弃  ->  88 个字段
+     现象: int(11)/int(5)/tinyint(1) 等整数显示宽度自 8.0.17 起 deprecated，8.4 仍接受但告警，SHOW CREATE TABLE 将不再显示宽度，导致 schema diff 工具持续报差异
+     处置: 可保留（能导入），但建议在迁移脚本中统一去掉显示宽度；tinyint(1) 需注意部分驱动/ORM 仍按布尔处理
+
+[09][NOTE] 隐式转换  ->  10 个字段
      现象: 字符型字段名带数值语义（id/price/qty 等），与数值列 JOIN 或比较时会触发隐式转换，导致索引失效与精度问题
      处置: 核对应用层绑定参数类型，必要时统一列类型
 
-[10][LOW] 冗余对象  ->  2 张表：snsii_product_cache_copy1, snsii_product_time_temp
+[10][NOTE] 冗余对象  ->  2 张表：snsii_product_cache_copy1, snsii_product_time_temp
      现象: 表名含 copy/temp/bak/old 等后缀，通常是历史遗留或中间表；迁移时若不清理会一并带到新库，增加维护成本
      处置: 确认业务是否引用，无用则迁移时排除
 
-[11][LOW] 数据类型  ->  1 个字段
+[11][NOTE] 数据类型  ->  1 个字段
      现象: IP 字段长度不足以存储 IPv6 地址（最长 39 字符），且以字符串存 IP 无法做网段范围查询
      处置: 如需支持 IPv6 扩到 varchar(45)，或改用 VARBINARY(16)
 
-[12][LOW] 语义  ->  15 个字段
+[12][NOTE] 语义  ->  15 个字段
      现象: tinyint(1) 常被当作布尔：JDBC 默认 tinyIntIsBit=true 会映射为 Boolean，PHP PDO 则返回字符串 "0"/"1"，跨语言改造时容易出现类型不一致
      处置: 在应用层显式做类型转换
 
@@ -71,8 +84,8 @@
      处置: 迁移时改为 utf8mb4
 
 [14][INFO] 其他对象  ->  视图 0 / 触发器 0 / 存储过程 0 / 函数 0 / 事件 0 / 外键 0
-     现象: 本 dump 未包含任何视图/触发器/存储过程/函数/事件（导出时未加 --routines --events），因此不存在 DEFINER、SQL SECURITY 相关迁移风险
-     处置: 无需处理；但需注意老站 PHP 代码中可能有依赖这些对象的历史逻辑
+     现象: **本次 dump 未发现相应对象定义**。注意：dump 尾部虽有 "-- Dumping events/routines" 段标题但内容为空，说明导出时未启用 --routines / --events，因此**不能据此推断源实例不存在这些对象**。同理，DEFINER / SQL SECURITY 相关风险在本文件中未发现，也不等于源库没有
+     处置: 迁移前须在源实例上独立盘点：SELECT * FROM information_schema.ROUTINES / TRIGGERS / EVENTS；并执行 SHOW CREATE VIEW 逐个确认
 
 [15][INFO] 容量  ->  snsii_map(AUTO_INCREMENT=10093674), snsii_product(AUTO_INCREMENT=10093686), snsii_product_cache(AUTO_INCREMENT=10093685), snsii_product_cache_copy1(AUTO_INCREMENT=10093685), snsii_product_search(AUTO_INCREMENT=10093686), snsii_product_time_temp(AUTO_INCREMENT=3636429)
      现象: AUTO_INCREMENT 已达百万级以上，属大表；8.4 的在线 DDL 与 MyISAM→InnoDB 转换耗时需单独评估
@@ -158,7 +171,61 @@ snsii_supplier                 MyISAM    utf8     utf8_general_ci        9      
 snsii_track_order              MyISAM    utf8     utf8_general_ci        7      1      utf8mb3,MyISAM,int-width
 
 ------------------------------------------------------------------------------
-四、dump 中出现的版本相关语法
+四、迁移执行策略：工具适用性、锁表方式与停机窗口
+------------------------------------------------------------------------------
+
+  【重要更正】本报告早期版本曾建议用 gh-ost 处理 MyISAM 转 InnoDB，该建议是错的：
+  gh-ost 通过读取 InnoDB binlog、在影子表上重放增量来工作，要求源表为 InnoDB 且具备
+  事务语义。MyISAM 没有事务日志，无法作为 gh-ost 的源表。以下为修正后的判断。
+
+  工具适用性矩阵
+  --------------------------------------------------------------------------
+  场景                       工具                       适用性   原因与代价
+  MyISAM→InnoDB 大表        gh-ost                     不适用   依赖 InnoDB binlog 与事务，MyISAM 无事务日志
+  MyISAM→InnoDB 大表        pt-online-schema-change    有条件   靠触发器同步，源表可为 MyISAM；但 MyISAM 表级锁会让写入串行化，高并发下接近锁表
+  MyISAM→InnoDB 大表        逻辑重建                   推荐     mysqldump 导出 → 改 ENGINE 重建 → 导入；停机窗口=导出+导入，切换前不锁线上
+  MyISAM→InnoDB 小表        ALTER TABLE ... ENGINE=InnoDB 可用     COPY 算法全程锁写，小表可接受
+  空表                       DROP + CREATE 新结构       推荐     零成本，直接按目标结构重建
+  InnoDB 结构变更            gh-ost / pt-osc            适用     须先完成引擎转换，再做索引与字段变更
+
+  逐表分组（依据 AUTO_INCREMENT 上限，非真实行数）
+  --------------------------------------------------------------------------
+  [空表 · 6 张] 直接按目标结构重建，无需数据迁移
+    snsii_cf_dns, snsii_news_category, snsii_product_cache_copy1, snsii_product_so, snsii_product_stock, snsii_track_order
+
+  [大表 · 5 张] 建议逻辑重建或 pt-osc，需单独排停机窗口
+    snsii_product                AUTO_INCREMENT=10093686
+    snsii_product_search         AUTO_INCREMENT=10093686
+    snsii_product_cache          AUTO_INCREMENT=10093685
+    snsii_map                    AUTO_INCREMENT=10093674
+    snsii_product_time_temp      AUTO_INCREMENT=3636429
+
+  [小表 · 20 张] 可原地 ALTER TABLE ... ENGINE=InnoDB
+    snsii_ad, snsii_attr_name, snsii_attr_name_lang, snsii_cart, snsii_cf_domain, snsii_cf_logs, snsii_contact, snsii_info, snsii_info_category, snsii_language, snsii_manage, snsii_nav, snsii_news, snsii_news_tags, snsii_news_tags_ids, snsii_product_category, snsii_product_hot, snsii_product_time, snsii_product_time_list, snsii_supplier
+
+  锁表方式
+  --------------------------------------------------------------------------
+    MyISAM 源表  : LOCK TABLES ... WRITE（表级锁，期间该表完全不可写）
+    InnoDB 目标表: ALTER 默认 COPY 算法会全程锁写；INPLACE 仅对部分操作可用
+    在线工具     : pt-osc 用触发器 + 影子表，切换瞬间需短暂元数据锁
+
+  停机窗口估算的局限
+  --------------------------------------------------------------------------
+    本报告只有 AUTO_INCREMENT 上限，它只是「曾经用过的最大 ID」，不等于行数，
+    也不反映行宽。真实窗口必须在 staging 用实际数据量实测：
+      单表窗口 ≈ (数据量 ÷ 实测吞吐) × 安全系数 1.5
+    **在实测前，任何停机时长承诺都不成立。**
+
+  恢复策略
+  --------------------------------------------------------------------------
+    1. 每表转换前做一次逻辑备份（mysqldump 单表），保留至验收通过后 7 天
+    2. 转换后校验：行数一致 + CHECKSUM TABLE 比对 + 抽样 1000 行字段级比对
+    3. 引擎转换不可逆（MyISAM 无事务日志，回退只能靠备份重灌）
+    4. 切换前必须完成一次完整的恢复演练，记录实际 RTO
+
+
+------------------------------------------------------------------------------
+五、dump 中出现的版本相关语法
 ------------------------------------------------------------------------------
   * mysqldump 10.13 / Server 5.6.50-log 生成（文件头注释可证）
   * 使用 /*!NNNNN ... */ 版本条件注释包裹 SET 与对象定义；8.4 会执行版本号 <= 80400 的语句，即本文件中全部 40101/40014/40103/40111/50001/50003 段
@@ -170,7 +237,7 @@ snsii_track_order              MyISAM    utf8     utf8_general_ci        7      
   * CREATE TABLE 中大量使用整数显示宽度 int(11)/int(5)/tinyint(1)，无 TYPE= 等 4.x 老语法
 
 ------------------------------------------------------------------------------
-五、8.4 默认值变更（与本库直接相关，需在迁移方案中显式处理）
+六、8.4 默认值变更（与本库直接相关，需在迁移方案中显式处理）
 ------------------------------------------------------------------------------
   1. sql_mode 默认值
      5.6 默认: 空（非严格模式）
@@ -188,7 +255,7 @@ snsii_track_order              MyISAM    utf8     utf8_general_ci        7      
      utf8 在 8.4 仍解析为 utf8mb3，可用但已 deprecated，且 4 字节字符（emoji）写入会报错。
 
 ------------------------------------------------------------------------------
-六、字段类型分布
+七、字段类型分布
 ------------------------------------------------------------------------------
   varchar        79
   int            63
@@ -202,7 +269,7 @@ snsii_track_order              MyISAM    utf8     utf8_general_ci        7      
   datetime       2
 
 ------------------------------------------------------------------------------
-七、无法判定的项
+八、无法判定的项
 ------------------------------------------------------------------------------
   1. 数据层问题不在本扫描范围：零日期实际数据、超长字符串、非法枚举值、
      重复主键等只有导入时才会暴露，需要单独做数据体检。
