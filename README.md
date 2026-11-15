@@ -12,10 +12,11 @@
 | 项目 | morrishk.net 老站升级（电子元器件 B2B 独立站） |
 | 仓库 | https://github.com/esanwu-bot/morrishk-site-upgrade-review |
 | Branch | `main` |
-| 送审版本 | tag **`v1.5-review`**（对应 commit SHA 见该 tag 与 Releases 页面） |
-| 交付日期 | 2026-11-15 |
-| 文档版本 | 商务方案 客户版 v1.1（rev.3） ／ 技术方案 技术版 v1.2（rev.3） ／ **原型 v1.5-prototype** ／ **Design System v1.0** |
+| 送审版本 | tag **`v1.5.1-review`**（对应 commit SHA 见该 tag 与 Releases 页面；`v1.4-review` / `v1.5-review` 保留未覆盖） |
+| 交付日期 | 2026-11-16 |
+| 文档版本 | 商务方案 客户版 v1.1（rev.3） ／ 技术方案 技术版 v1.2（rev.3） ／ **原型 v1.5.1-prototype** ／ **Design System v1.0** |
 | 数据基线 | 2024-11-30 导出，静态终态（不随线上变化） |
+| 签名状态 | 本仓库的 commit 与 tag **均未做 Git 签名**（unsigned / 非 GPG 验证）。可用于确认版本内容与父子关系，**不可**作为经过签名的发布物 |
 
 ---
 
@@ -50,12 +51,16 @@
 │   ├── test_reports/             ❗ 未提供
 │   ├── benchmark/                ❗ 未提供
 │   └── screenshots/              ❗ 未提供
-└── 07_prototypes/                新版原型 + Design System（本轮 v1.5）
+├── tools/                        ★ 可复核脚本（从仓库根直接执行）
+│   ├── check_tokens.py             Token 合规扫描 → 生成 07_prototypes/TOKEN_AUDIT.md
+│   ├── pixel_diff.py               同视口逐像素差分 → 生成 PIXEL_DIFF.md
+│   └── css_value_diff.py           两版 CSS 逐条取值比对 → 生成 CSS_VALUE_DIFF.md
+└── 07_prototypes/                新版原型 + Design System（本轮 v1.5.1）
     ├── DESIGN.md                     ★ Morris Design System v1.0（唯一视觉权威）
     ├── README.md                     原型说明、标注系统、已知缺口
-    ├── TOKEN_AUDIT.md                ★ Token 使用检查报告（脚本生成）
-    ├── VISUAL_DIFF.md                ★ 新旧视觉差异清单（v1.4 → v1.5）
-    ├── SHA256SUMS.txt                ★ 本目录 20 个文件的 SHA-256
+    ├── TOKEN_AUDIT.md                ★ Token 使用检查报告（脚本生成，可重跑）
+    ├── VISUAL_DIFF.md                ★ 视觉差异评估（v1.4 → v1.5.1，实测差分，不主张像素一致）
+    ├── SHA256SUMS.txt                ★ 本目录 39 个文件的 SHA-256
     ├── index.html                    评审入口（按用户路径串联四个原型）
     ├── home/index.html               首页
     ├── product_detail/index.html     产品详情页
@@ -63,12 +68,18 @@
     ├── inquiry/index.html            询盘流程
     ├── seo/README.md                 第二轮提交说明
     ├── admin/README.md               第二轮提交说明
-    ├── reference/                    ★ 竞品设计研究
-    │   ├── lcsc_research.md              LCSC 五页 × 7 项记录
-    │   └── lcsc_screenshots/             4 张截图 + INDEX.md（证据强度分级）
+    ├── reference/                    ★ 竞品设计研究 + 视觉证据
+    │   ├── lcsc_research.md              LCSC 五页 × 7 项 + §7 替代料字段边界
+    │   ├── lcsc_screenshots/             4 张截图 + INDEX.md（证据强度分级）
+    │   └── prototype_shots/           ★ 两版同视口截图 + 差异图 + 独立哈希
+    │       ├── v1.4/ · v1.5.1/           各 5 张 1440×2600 截图
+    │       ├── diff/                     5 张差异图
+    │       ├── PIXEL_DIFF.md             逐页差异像素数与行段定位
+    │       ├── CSS_VALUE_DIFF.md         652 条等价 / 51 条真实变更
+    │       └── SHA256SUMS.txt            17 个证据文件的哈希
     └── assets/
-        ├── tokens.css                ★ Design Token（163 个，11 个分区）
-        ├── proto.css                 组件层（17 分区，零字面色值）
+        ├── tokens.css                ★ Design Token（192 声明 / 188 唯一，11 分区）
+        ├── proto.css                 组件层（17 分区，零字面色值，含 .stock 组件）
         └── proto.js                  交互层（标注、筛选、校验、幂等）
 ```
 
@@ -191,7 +202,7 @@ WB 不在本仓库中替代 reviewer 下 PASS/FAIL 结论。
 
 | 文档 | 效力 | 说明 |
 |---|---|---|
-| **`07_prototypes/DESIGN.md` v1.0** | **唯一视觉权威** | 本轮新增。完整 Token 定义（163 个）、组件规范、栅格、可访问性条款 |
+| **`07_prototypes/DESIGN.md` v1.0** | **唯一视觉权威** | 完整 Token 定义（192 条声明 / 188 个唯一 Token）、组件规范（含 §4.5 库存状态组件）、栅格、可访问性条款 |
 | `prototype/design.md` v1.0 | 仅保留**交互与信息密度**效力 | 其品牌蓝 `#0052CC` 与彩色语义徽章条款自 v1.5 起**废止** |
 | 旧 `stitch_.../DESIGN.md` | 已并入 `07_prototypes/DESIGN.md` | 不再单独引用 |
 
@@ -245,6 +256,9 @@ Reviewer 要求检查「假数据、占位链接、伪提交按钮是否被明�
 | **LCSC 报价状态页未采集** | `/order`、`/quote` 均 302 跳登录，无匿名访问路径。已声明未做任何推测性描述 |
 | **LCSC 搜索页仅骨架屏** | 客户端渲染，离线快照无结果数据；筛选维度与表头字段**未能确认** |
 | **LCSC 详情页视觉不可判读** | 独立 Next.js 应用、组件 CSS 按需加载；信息架构改由 `__NEXT_DATA__` 真实字段还原，**未做视觉结论** |
+| **视觉非像素一致** | 同视口像素差分实测 3.11%–25.59%（合计 11.64%，严格口径），来源为间距吸附 4pt 刻度导致的累计纵向位移。**不主张"像素一致"**，数据见 `07_prototypes/VISUAL_DIFF.md` |
+| **单内核单视口** | 像素差分只在 Edge(Chromium) headless / 1440×2600 下完成；Firefox、Safari、移动端**均未测** |
+| **审计脚本不进生产** | `tools/*.py` 为评审期复核工具，需在 CI 中重新落地，不能视为已接入工程流水线 |
 
 ### 7.6 竞品研究的使用边界（v1.5 新增）
 
@@ -258,6 +272,29 @@ Reviewer 要求检查「假数据、占位链接、伪提交按钮是否被明�
 **明确声明**：本轮研究**未导致**任何业务范围或技术方案的变更。
 Morris 的稀缺料/EOL 询盘导向、精确型号优先搜索、千万级游标分页、替代料不利参数差异提示、
 详情页七段式、PDF 参数证据链、BOM 询盘的 LeadNo 与重复提交防护，**全部保持不变**。
+
+---
+
+### 7.7 v1.5.1 整改回应（逐条对应 reviewer 意见）
+
+reviewer 对 v1.5 给出 PARTIAL PASS，列出四项。本轮**只改这四项，不推倒重来**。
+
+| # | reviewer 意见 | 本轮处理 | 复核位置 |
+|---|---|---|---|
+| 1 | 库存状态实现与规范不符：低库存用红色、有货只有灰点、详情页与搜索页不一致 | 新增 `.stock-ok / .stock-low / .stock-out / .stock-eol` 组件（**颜色 + 图标 + 文字**三通道）。`Low stock` → `badge-warn`（琥珀）；只有 `Out of stock` / `EOL` 用红；有货显示 `✓ IN STOCK 12,480`。详情页 / 搜索页 / 首页使用**同一套映射**。顺带修正搜索页 `Exact` 徽章误用红色 | `DESIGN.md` §4.5、`assets/proto.css` 第 6 节、三个页面的 Stock 列 |
+| 2 | Token Audit 不可复现：脚本未入库、路径写的是 `prototype/redesign/`、Token 数 163 口径含糊 | 脚本入库 `tools/check_tokens.py`，路径统一 `07_prototypes/`；报告新增「0. 扫描规则与判定口径」明确 HTML 展示文字 / 注释不属违规；新增「G. Token 分层统计」：**192 条声明 / 188 个唯一 Token = Primitive 25 + Semantic 129 + Component 34**，并附全量名称清单。**163 是错误计数**（按行首统计漏掉 11 行双声明），已更正 | `TOKEN_AUDIT.md`；`python tools/check_tokens.py --path 07_prototypes/` |
+| 3 | VISUAL_DIFF 不能证明"像素完全一致" | 标题与结论全部改写，**删除"像素完全一致"**。改为实测：同视口逐像素差分 3.11%–25.59%（合计 11.64%），并给出**累计纵向位移**（详情页底部 +30px）与**51 条取值变更逐条清单**。截图、差异图、脚本全部入库 | `VISUAL_DIFF.md`；`reference/prototype_shots/`（17 个文件 + 哈希） |
+| 4 | `alternatePartList` 不能当成 Morris 数据模型 | `lcsc_research.md` 新增第七节：已确认字段按证据强度分级（`[实测]` / `[推断]` / `[未知]`）、明确列出 6 项未知（`matchType` 枚举、单位归一、缺失/停产处理、排序与置信度…）、三条不可照搬的硬理由、Morris 自己的建模方向 | `reference/lcsc_research.md` §7.1–7.6 |
+
+**顺带修正的两处自身错误（reviewer 未指出，但同属"文档与实现不一致"）**：
+
+1. `DESIGN.md` §4.4 徽章表写的是 `.badge-danger` / `.badge-success`——**这两个类在代码里从未存在过**。
+   已改为与 `proto.css` 逐条对应的 `.badge` / `.badge-outline` / `.badge-solid` / `.badge-warn` / `.badge-crit`。
+2. `DESIGN.md` §2.1 交叉引用写"见 6.2 徽章规范"——第六节是可访问性，**引用失效**。已改为 4.4 / 4.5。
+
+**关于"红色"的表述边界**（reviewer 建议）：已统一为
+「红色只用于高优先级行动和风险信号，包括主 CTA、缺货/EOL、必要的聚焦与选中反馈；不得用于装饰性着色」，
+并补充**风险信号分级**（硬性不兼容 = 红，需确认/降额 = 琥珀，信息 = 中性）。
 
 ---
 
@@ -335,25 +372,63 @@ Morris 的稀缺料/EOL 询盘导向、精确型号优先搜索、千万级游�
 3. 竞品研究**未导致**任何业务范围或技术方案变更（见第七节 7.6）。
 4. 本轮**未宣布设计正式通过**，只提交 reviewer 审核。
 
+### 8.5 v1.5-review → v1.5.1-review（复审四项整改）
+
+reviewer 对 v1.5 给出 **PARTIAL PASS**，要求先做一个范围很小的补丁，处理四项。
+本轮**不推倒重来**：Design System 主体、四个页面的信息架构与交互路径全部沿用 v1.5。
+
+| # | 整改项 | 具体改动 |
+|---|---|---|
+| 1 | 库存状态实现 | 新增 `.stock-ok / .stock-low / .stock-out / .stock-eol` 组件与 `--stock-*` Token；16 处状态点全部替换；`Low stock` 改 `badge-warn`；`Exact` 徽章由 `badge-crit` 改 `badge-solid`；详情页可用量表加 `.spec.avail` 避免仓库名换行。**三个页面共用同一套映射** |
+| 2 | Token Audit | 脚本入库 `tools/check_tokens.py`（+ `pixel_diff.py` / `css_value_diff.py`）；路径统一 `07_prototypes/`；新增口径章节与三层统计（**192 声明 / 188 唯一 = 25 + 129 + 34**，附全量名称）；更正 v1.5 的"163 个 Token"为错误计数 |
+| 3 | VISUAL_DIFF | 删除"像素完全一致"；改为实测差分（严格 11.64% 合计，单页 3.11%–25.59%）+ 累计纵向位移（详情页 +30px）+ 51 条取值变更清单；截图 / 差异图 / 脚本入库 `reference/prototype_shots/`（17 个文件 + 独立哈希） |
+| 4 | alternatePartList | `lcsc_research.md` 新增第七节（§7.1–7.6）：字段按 `[实测]/[推断]/[未知]` 分级、6 项未知清单、三条不可照搬的硬理由、Morris 自建模型方向 |
+
+**顺带修正的自身错误**（同属"文档与实现不一致"）：
+
+- `DESIGN.md` §4.4 徽章表原写 `.badge-danger` / `.badge-success`，这两个类**代码中从未存在**，已改为实际类名。
+- `DESIGN.md` §2.1 交叉引用"见 6.2 徽章规范"指向错误章节，已改为 4.4 / 4.5。
+- `DESIGN.md` 红色表述统一为"只用于高优先级行动与风险信号…不得用于装饰性着色"，并新增风险信号分级。
+
+**本轮性质声明**：
+
+1. 本轮**未**宣布设计通过。`TOKEN_AUDIT` 的 5/5 是源码层机械检查，不等于视觉通过。
+2. 视觉**不主张像素一致**，实测差异见 `07_prototypes/VISUAL_DIFF.md`。
+3. 未验证项不变：前端工程、接口、性能、安全、多浏览器、移动端响应式。
+4. 竞品研究仍未导致任何业务或技术方案变更。
+
 ## 九、版本与校验
 
 **文件数量口径**（四个数字含义不同，勿混用）：
 
 | 口径 | 数量 | 说明 |
 |---|---|---|
-| 仓库纳入版本控制的文件总数 | **42** | 含 `.gitattributes`、两份 `SHA256SUMS.txt`、`07_prototypes/` 下 21 个文件 |
-| 根清单 `06_evidence/hashes/SHA256SUMS.txt` 覆盖数 | **41** | 除自身以外的全部文件 |
-| `07_prototypes/SHA256SUMS.txt` 覆盖数 | **20** | 该目录内除自身以外的全部文件 |
-| `07_prototypes/` 文件总数 | **21** | 20 个交付文件 + 1 个哈希清单 |
+| 仓库纳入版本控制的文件总数 | **64** | 含 `.gitattributes`、三份 `SHA256SUMS.txt`、`07_prototypes/` 下 40 个文件、`tools/` 下 3 个脚本 |
+| 根清单 `06_evidence/hashes/SHA256SUMS.txt` 覆盖数 | **63** | 除自身以外的全部文件 |
+| `07_prototypes/SHA256SUMS.txt` 覆盖数 | **39** | 该目录内除自身以外的全部文件（含 `reference/prototype_shots/`） |
+| `07_prototypes/` 文件总数 | **40** | 39 个交付文件 + 1 个哈希清单 |
+| `reference/prototype_shots/SHA256SUMS.txt` 覆盖数 | **17** | 截图与差分证据，独立成清单 |
 
 ```bash
-# 1) 校验全仓库（在仓库根目录，应输出 41 行 OK）
+# 1) 校验全仓库（在仓库根目录，应输出 63 行 OK）
 sha256sum -c 06_evidence/hashes/SHA256SUMS.txt
 
-# 2) 单独校验原型目录（在 07_prototypes/ 下，应输出 20 行 OK）
+# 2) 单独校验原型目录（在 07_prototypes/ 下，应输出 39 行 OK）
 cd 07_prototypes && sha256sum -c SHA256SUMS.txt
 
-# 3) 查看本仓库全部提交与送审 tag
+# 3) 单独校验截图证据（在 07_prototypes/reference/prototype_shots/ 下，应输出 17 行 OK）
+sha256sum -c SHA256SUMS.txt
+
+# 4) 重跑 Token 审计（在仓库根目录，应输出 RESULT: PASS，退出码 0）
+python tools/check_tokens.py --path 07_prototypes/
+
+# 5) 重跑像素差分（在仓库根目录，数字应与 PIXEL_DIFF.md 完全一致）
+python tools/pixel_diff.py \
+  --a 07_prototypes/reference/prototype_shots/v1.4 \
+  --b 07_prototypes/reference/prototype_shots/v1.5.1 \
+  --out /tmp/pd_check
+
+# 6) 查看本仓库全部提交与送审 tag
 git log --oneline --decorate
 git tag -n
 ```
@@ -369,4 +444,5 @@ git tag -n
 | `v1.3-review` | 第一轮初审意见处理 |
 | `v1.3.1-review` | 复审残留项处理 |
 | `v1.4-review` | 新增原型送审（`07_prototypes/` 10 个文件） |
-| **`v1.5-review`** | **Design System 统一（`07_prototypes/` 21 个文件）** |
+| `v1.5-review` | Design System 统一（`07_prototypes/` 21 个文件）——**已被 v1.5.1 取代，保留不覆盖** |
+| **`v1.5.1-review`** | **复审四项整改：库存状态 / Token Audit / VISUAL_DIFF / 替代料边界（`07_prototypes/` 40 个文件 + `tools/` 3 个脚本）** |

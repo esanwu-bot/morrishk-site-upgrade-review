@@ -210,7 +210,7 @@ a:hover { color: var(--color-brand); }
 }
 .btn-secondary:hover { background: var(--color-canvas); border-color: var(--color-border-input); color: var(--color-text); }
 
-.btn-ghost { background: transparent; color: var(--color-text-muted); border-color: transparent; }
+.btn-ghost { background: transparent; color: var(--color-text-body); border-color: transparent; }
 .btn-ghost:hover { background: var(--color-surface-sunken); color: var(--color-text); }
 
 .btn[disabled], .btn.is-disabled {
@@ -267,7 +267,7 @@ a:hover { color: var(--color-brand); }
 
 .badge {
   display: inline-flex; align-items: center; gap: var(--sp-2);
-  background: var(--color-surface-sunken); color: var(--color-text-muted);
+  background: var(--color-surface-sunken); color: var(--color-text-body);
   border: var(--border-default); border-radius: var(--radius-xs);
   padding: var(--badge-py) var(--badge-px);
   font-size: var(--fs-caption); font-weight: var(--fw-semibold);
@@ -296,11 +296,36 @@ a:hover { color: var(--color-brand); }
 .chip .x { color: var(--color-text-disabled); font-weight: var(--fw-bold); }
 .chip.on .x { color: var(--color-brand); }
 
-/* 状态点：必须与文字同时出现 */
-.dot { width: 6px; height: 6px; border-radius: var(--radius-xs); display: inline-block; flex: 0 0 6px; }
-.dot-ok   { background: var(--color-success); }
-.dot-warn { background: var(--color-warning); }
-.dot-off  { background: var(--color-text-disabled); }
+/* 库存状态组件 —— 颜色 + 图标 + 文字三通道，映射唯一来源 DESIGN.md §6.2
+   使用：<span class="stock stock-ok"><i class="stock-ico">✓</i><span class="stock-txt">In stock</span><span class="stock-qty num">12,480</span></span>
+   状态类：.stock-ok（有货）/ .stock-low（库存紧张）/ .stock-out（缺货）/ .stock-eol（停产）
+   禁止：单用色块或色点表达状态；禁止把 Low stock 映射到 .stock-out 或 .badge-crit。 */
+.stock {
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  font-size: var(--fs-body); white-space: nowrap;
+  --stock-fg: var(--stock-ok-fg);
+  --stock-bg: var(--stock-ok-bg);
+  --stock-bd: var(--stock-ok-bd);
+}
+.stock-ok  { --stock-fg: var(--stock-ok-fg);  --stock-bg: var(--stock-ok-bg);  --stock-bd: var(--stock-ok-bd); }
+.stock-low { --stock-fg: var(--stock-low-fg); --stock-bg: var(--stock-low-bg); --stock-bd: var(--stock-low-bd); }
+.stock-out { --stock-fg: var(--stock-out-fg); --stock-bg: var(--stock-out-bg); --stock-bd: var(--stock-out-bd); }
+.stock-eol { --stock-fg: var(--stock-eol-fg); --stock-bg: var(--stock-eol-bg); --stock-bd: var(--stock-eol-bd); }
+
+.stock-ico {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: var(--stock-ico-size); height: var(--stock-ico-size);
+  flex: 0 0 var(--stock-ico-size);
+  border: var(--bw-1) solid var(--stock-bd); background: var(--stock-bg);
+  border-radius: var(--radius-xs);
+  color: var(--stock-fg); font-size: 9px; font-weight: var(--fw-bold);
+  font-style: normal; line-height: 1; font-feature-settings: normal;
+}
+.stock-txt {
+  color: var(--stock-fg); font-size: var(--fs-label-sm); font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+}
+.stock-qty { font-feature-settings: var(--font-feature); }
 
 /* ============================ 7. 卡片 / 面板 ============================ */
 
@@ -348,6 +373,11 @@ table.spec th {
 table.spec td { padding: var(--sp-4) var(--table-cell-px); border-bottom: var(--border-subtle); vertical-align: top; }
 table.spec td.k { color: var(--color-text-muted); width: 30%; }
 table.spec td.v { font-weight: var(--fw-medium); font-feature-settings: var(--font-feature); }
+
+/* 可用量表（详情页右栏）：仓库名不换行，状态与数量右对齐并压缩字号 */
+table.spec.avail td.k { width: auto; white-space: nowrap; }
+table.spec.avail td.v { text-align: right; white-space: nowrap; }
+table.spec.avail .stock-txt { font-size: var(--fs-caption); letter-spacing: var(--ls-wide); }
 
 /* ============================ 9. 浮层 ============================ */
 

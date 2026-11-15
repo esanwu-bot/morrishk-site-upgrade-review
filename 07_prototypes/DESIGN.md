@@ -57,10 +57,25 @@ PDF 参数的证据链与型号适用性边界、BOM 询盘的 LeadNo 与重复�
    且在红绿色盲用户下与红色警示难以区分。
 4. **允许的色相只有三类**：
    - 中性灰阶（界面 95%）
-   - 品牌红（CTA、缺货、EOL、聚焦、选中）
+   - 品牌红（见下条的使用边界）
    - 功能琥珀（库存紧张、待确认、mock 标注）
-5. **禁止彩虹徽章**。同一行内的徽章最多出现两种颜色（中性 + 一种强调），
-   其余状态靠文字与图标区分。见 6.2 徽章规范。
+5. **红色的使用边界（唯一表述，取代此前"缺货警示"的笼统说法）**：
+   红色**只用于高优先级行动和风险信号**，包括：
+   - 主 CTA（加入询盘 / 提交 BOM）
+   - 缺货、EOL 等风险状态
+   - 必要的聚焦与选中反馈（`--color-focus-ring`、选中行左标记）
+
+   红色**不得用于装饰性着色**：分区底色、标题栏、图标底、图表序列、hover 高亮、
+   纯装饰线条。红色按钮不是"都该取消"，而是"只在终结动作上出现"——每屏主 CTA 不超过 2 个。
+6. **禁止彩虹徽章**。同一行内的徽章最多出现两种颜色（中性 + 一种强调），
+   其余状态靠文字与图标区分。见 4.4 徽章、4.5 库存状态组件。
+7. **风险信号分级**。同一屏内不得让"硬性不兼容"与"待确认"共用同一种颜色：
+
+   | 级别 | 语义 | 颜色 | 示例 |
+   |---|---|---|---|
+   | 硬性风险 | 已确定不可用 / 已断供 | `--color-danger`（红） | `Not suitable < −20 °C`、`3-PWM mode unavailable`、EOL、Out of stock |
+   | 待确认 | 需工程确认或降额后才可用 | `--color-warning`（琥珀） | `Confirm derating`、`Low stock` |
+   | 信息 | 中性说明 | `--color-text-muted` | `RoHS`、`Active`、`Genuine` |
 
 ### 2.2 渐变与阴影
 
@@ -145,7 +160,7 @@ PDF 参数的证据链与型号适用性边界、BOM 询盘的 LeadNo 与重复�
 
 | Token | 映射 | 语义 |
 |---|---|---|
-| `--color-brand` | `--red-600` | 主 CTA、缺货警示、聚焦、选中标记 |
+| `--color-brand` | `--red-600` | 高优先级行动与风险信号：主 CTA、缺货/EOL、必要的聚焦与选中反馈（边界见 2.1 第 5 条） |
 | `--color-brand-hover` | `--red-700` | 主按钮 hover |
 | `--color-brand-active` | `--red-800` | 主按钮 active |
 | `--color-brand-subtle` | `--red-50` | 选中行底色、品牌浅底块 |
@@ -383,23 +398,62 @@ PDF 参数的证据链与型号适用性边界、BOM 询盘的 LeadNo 与重复�
 
 ### 4.4 徽章
 
-| 类名 | 底色 | 文字 | 用途 |
+下表与 `assets/proto.css` 的实际类名**逐条对应**（此前文档写的是 `.badge-danger` / `.badge-success`，
+代码里从未存在过这两个类，属文档与实现不一致，已更正）：
+
+| 类名 | 底色 | 文字 / 描边 | 用途 |
 |---|---|---|---|
-| `.badge` | `--color-surface-sunken` | `--color-text-muted` | 中性标签 |
+| `.badge` | `--color-surface-sunken` | `--color-text-muted` | 中性标签（RoHS / Active / Genuine） |
 | `.badge-outline` | 透明 | `--color-text-muted` + `--border-default` | 次要标签 |
-| `.badge-danger` | `--color-danger-subtle` | `--color-brand-text` + `--color-danger-border` | 缺货 / EOL |
-| `.badge-warn` | `--color-warning-subtle` | `--color-warning` + `--color-warning-border` | 紧张 / 待确认 |
-| `.badge-success` | `--color-success-subtle` | `--color-text` + `--border-default` | 有货（中性 + ✓） |
+| `.badge-solid` | `--color-text` | `--color-text-inverse` | 强中性强调（如 `Exact` 匹配） |
+| `.badge-warn` | `--color-warning-subtle` | `--color-warning` + `--color-warning-border` | 紧张 / 待确认（`Low stock`、`Confirm derating`） |
+| `.badge-crit` | `--color-danger-subtle` | `--color-danger` + `--color-danger-border` | 硬性风险（`EOL`、`Not suitable`、`Out of stock`） |
 
 规则：高度 18–20px，圆角 `--radius-xs`（2px），字号 11px，内边距 `--badge-py --badge-px`。
-**同一行最多两种颜色**。
+**同一行最多两种颜色**。徽章只表达**属性与生命周期**，不表达库存数量——库存数量归 4.5。
 
-### 4.5 卡片
+### 4.5 库存状态组件（Stock）
+
+**这是全站库存状态的唯一映射表。** 详情页、搜索页、首页、替代料表必须使用同一套实现，
+不得各自定义颜色或图标。
+
+| 状态 | 类名 | 图标 | 文字 | 前景 Token | 底色 / 描边 |
+|---|---|---|---|---|---|
+| 有货 | `.stock-ok` | `✓` | `In stock` | `--stock-ok-fg`（中性深灰） | 透明 |
+| 库存紧张 | `.stock-low` | `!` | `Low stock` | `--stock-low-fg`（琥珀） | `--stock-low-bg` / `--stock-low-bd` |
+| 缺货 | `.stock-out` | `×` | `Out of stock` | `--stock-out-fg`（红） | `--stock-out-bg` / `--stock-out-bd` |
+| 停产 | `.stock-eol` | `×` | `EOL` | `--stock-eol-fg`（红） | `--stock-eol-bg` / `--stock-eol-bd` |
+
+实现：
+
+```html
+<span class="stock stock-ok">
+  <i class="stock-ico" aria-hidden="true">✓</i>
+  <span class="stock-txt">In stock</span>
+  <span class="stock-qty num">12,480</span>
+</span>
+```
+
+**三条强制规则**：
+
+1. **三通道**：颜色 + 图标 + 文字必须同时出现。只有色点、只有色块、只有数字都视为实现缺陷。
+   `✓` 图标本身 `aria-hidden`，语义由 `In stock` 文字承担。
+2. **不得错配**：`Low stock` 只能用琥珀（`.stock-low` / `.badge-warn`）；
+   只有 `Out of stock` 与 `EOL` 允许用红（`.stock-out` / `.stock-eol` / `.badge-crit`）。
+   把 `Low stock` 绑到危险色是**语义错误**，不是审美偏好。
+3. **一处表达**：库存状态只在 Stock 列 / 可用量区表达一次；型号行的徽章只放生命周期
+   （`Active` / `EOL` / `Last time buy`）。同一行不得出现"红色徽章 + 琥珀色点"这类双重表达。
+
+> 与常见电商惯例的差异：**有货不绿**。理由见 2.1 第 3 条——B2B 场景"有货"是常态，
+> 绿色会成为噪声，且在红绿色盲下与红色警示难以区分。这是一个**有意为之**的反直觉决定，
+> 已在 `README.md` 第 7.2 节列出，供 reviewer 复核。
+
+### 4.6 卡片
 
 `--color-surface` 底 + `--border-default` + `--radius-sm` + `--shadow-none`。
 头部 `.card-hd` 与主体 `.card-bd` 之间 1px 分割线。卡片内边距 `--sp-6`（标准）/ `--sp-5`（紧凑）。
 
-### 4.6 页头
+### 4.7 页头
 
 三段式，总高 124px：
 
@@ -411,7 +465,7 @@ PDF 参数的证据链与型号适用性边界、BOM 询盘的 LeadNo 与重复�
 
 搜索框在主站头内占主要宽度，右侧固定放"BOM 询盘"红色按钮——这是全站最高优先级的转化入口。
 
-### 4.7 提示条
+### 4.8 提示条
 
 | 类名 | 底色 | 左描边 | 用途 |
 |---|---|---|---|
@@ -421,7 +475,7 @@ PDF 参数的证据链与型号适用性边界、BOM 询盘的 LeadNo 与重复�
 
 均带 `!` 或 `i` 图标 + 文字标题，**颜色不是唯一载体**。
 
-### 4.8 标注层（原型专用）
+### 4.9 标注层（原型专用）
 
 `data-mock` 属性标记 mock 数据、占位链接、模拟交互。开启后 `body.annot` 给对应元素加
 琥珀色虚线框 + 角标。`--z-annotation` 层级。**此层不进入生产实现**。

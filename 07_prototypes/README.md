@@ -4,9 +4,9 @@
 方案文档通过不等于原型实现符合方案，因此原型单独送审，判定口径与文档评审分开。
 
 - 入口：**`index.html`**（按真实用户路径串联四个原型，建议从这里开始）
-- 版本：`v1.5-prototype` · 2026-11-15
+- 版本：`v1.5.1-prototype` · 2026-11-16（v1.5 的小修订，不推翻设计系统）
 - 依赖：零外部依赖，纯本地 CSS / JS，可离线打开
-- 本轮主题：**Design System 统一**（新增 Token 层，四页全部改为引用 Token）
+- 本轮主题：**库存状态语义统一 + 审计证据补齐**（Design System 主体沿用 v1.5）
 
 ---
 
@@ -48,7 +48,7 @@
 │       ├── 03_product_detail_2026-11-15_render_incomplete.png
 │       └── 04_bom_2026-11-15.png
 └── assets/
-    ├── tokens.css               ★ 本轮新增：Design Token（163 个，11 个分区）
+    ├── tokens.css               ★ 本轮新增：Design Token（192 声明 / 188 唯一，11 个分区）
     ├── proto.css                组件层（本轮重写为 17 个分区，零字面色值）
     └── proto.js                 交互层（标注系统、筛选、校验、幂等演示）
 ```
@@ -79,7 +79,7 @@
 ### 3.2 实现层（本轮新增）
 
 ```
-assets/tokens.css   163 个 Token，三层架构：
+assets/tokens.css   192 条声明 / 188 个唯一 Token，三层架构：
                       Primitive（--red-600 / --gray-200 …）仅内部组合
                     → Semantic（--color-brand / --color-border …）业务代码只用这一层
                     → Component（--btn-h-md / --table-row-h …）组件样式引用
@@ -106,17 +106,21 @@ assets/proto.css    17 个分区，零字面色值，全部 var(--*)
 
 ### 3.4 本轮迁移口径
 
-**只改取值来源，不改结构与交互**：
+**结构与交互零改动，视觉取值有 51 条变更**（v1.5 曾声称"只改取值来源"，实测不成立，v1.5.1 已更正）：
 
-| 项目 | v1.4 | v1.5 |
+| 项目 | v1.4 | v1.5.1 |
 |---|---|---|
 | 色值来源 | 各页面 / `proto.css` 内字面写死 | 全部走 `assets/tokens.css` |
 | 变量命名 | `--primary` / `--surface` / `--text` | `--color-brand` / `--color-surface` / `--color-text` |
 | 行内圆角 | `border-radius:4px`（10 处） | `var(--radius-sm)` |
+| 间距 / 字号 / 阴影 / 层级 | 手工零值（9px、10px、14px、7px…） | 吸附 4pt 与 Token 刻度（8px、12px、16px、6px…），**51 条取值变更** |
+| 库存状态 | 色点 + 数量；低库存用红色徽章 | 颜色 + 图标 + 文字三通道；低库存用琥珀，缺货/EOL 用红 |
 | 页面结构 / 信息架构 / 交互路径 | — | **零改动** |
 | `data-mock` 标注 | 109 处 | **109 处（零改动）** |
 
-逐项差异与截图比对结果见 `VISUAL_DIFF.md`；Token 合规扫描结果见 `TOKEN_AUDIT.md`。
+**像素差分实测**：同视口逐像素差异 3.11% – 25.59%（严格口径），合计 11.64%。
+原因是间距吸附导致的累计纵向位移（详情页底部达 +30px），**不是抗锯齿噪声**。
+逐页数据见 `VISUAL_DIFF.md` 第三节，逐条取值变更见 `reference/prototype_shots/CSS_VALUE_DIFF.md`。
 
 ---
 
@@ -127,11 +131,11 @@ assets/proto.css    17 个分区，零字面色值，全部 var(--*)
 | 1 | Design System 规范 | `DESIGN.md` | ✅ |
 | 2 | LCSC 设计研究 | `reference/lcsc_research.md` | ✅ 五页 × 7 项 |
 | 3 | LCSC 参考截图及页面索引 | `reference/lcsc_screenshots/` | ✅ 4 张 + `INDEX.md`（第 5 页未采集，已声明） |
-| 4 | CSS Token 文件 | `assets/tokens.css` | ✅ 163 个 Token |
+| 4 | CSS Token 文件 | `assets/tokens.css` | ✅ **192 条声明 / 188 个唯一 Token**（Primitive 25 / Semantic 129 / Component 34） |
 | 5 | 四个原型迁移结果 | `home/` `product_detail/` `search/` `inquiry/` | ✅ 已迁移 |
-| 6 | Token 使用检查报告 | `TOKEN_AUDIT.md` | ✅ 5/5 项通过，0 处硬编码色值 |
-| 7 | 新旧视觉差异清单 | `VISUAL_DIFF.md` | ✅ |
-| 8 | 文件哈希清单 | `SHA256SUMS.txt` | ✅ |
+| 6 | Token 使用检查报告 | `TOKEN_AUDIT.md` | ✅ 5/5 硬性门槛通过，0 处硬编码色值；脚本已入库 `tools/check_tokens.py` |
+| 7 | 视觉差异评估 | `VISUAL_DIFF.md` + `reference/prototype_shots/` | ✅ 实测像素差分 + 逐条取值清单，**不主张像素一致** |
+| 8 | 文件哈希清单 | `SHA256SUMS.txt` / `reference/prototype_shots/SHA256SUMS.txt` | ✅ |
 
 ---
 
@@ -246,6 +250,9 @@ Reviewer 要求检查「HTML 中的假数据、占位链接、伪提交按钮是
 | **LCSC 竞品第 5 页未采集** | 报价状态页强制登录（302），无匿名访问路径；已声明未做推测 |
 | **LCSC 搜索页仅骨架** | 客户端渲染，离线快照无数据；筛选维度与表头字段未能确认 |
 | **LCSC 详情页视觉不可判读** | 独立 Next.js 应用，组件 CSS 按需加载；信息架构改由 `__NEXT_DATA__` 字段还原 |
+| **视觉非像素一致** | 同视口像素差分实测 3.11%–25.59%（合计 11.64%），原因与逐条清单见 `VISUAL_DIFF.md`；不主张"像素一致" |
+| **单内核单视口** | 像素差分只在 Edge headless / 1440×2600 下完成，Firefox / Safari / 移动端未测 |
+| **审计脚本为独立工具** | `tools/check_tokens.py` 等为评审期脚本，不进生产代码库；生产需接入 CI |
 
 ---
 
@@ -269,7 +276,8 @@ Reviewer 要求检查「HTML 中的假数据、占位链接、伪提交按钮是
 | 版本 | 日期 | 内容 |
 |---|---|---|
 | v1.0-prototype | 2026-11-15 | 首次提交。按 `DESIGN.md` 重建四个核心原型，替换旧蓝色体系（旧版归档于 `_legacy_v0/`，未删除）；新增可切换标注系统与页面状态条；搜索页补空状态与深分页约束；详情页补 SEO 预览与替代料工程确认警示 |
-| **v1.5-prototype** | 2026-11-15 | **Design System 统一**。① 新增 `assets/tokens.css`（163 个 Token，三层架构）；② `proto.css` 重写为 17 分区、零字面色值；③ 四页 51 处旧变量名改为语义 Token 名、10 处行内圆角 Token 化；④ 新增 `DESIGN.md` / `TOKEN_AUDIT.md` / `VISUAL_DIFF.md` / `reference/`；⑤ 入口页设计体系章节改写为"冲突已收口"。**结构、信息架构、交互路径、109 处 mock 标注全部零改动** |
+| **v1.5-prototype** | 2026-11-15 | **Design System 统一**。① 新增 `assets/tokens.css`（当时记为 163 个 Token，**该计数有误**，正确为 192 声明 / 188 唯一，见 v1.5.1）；② `proto.css` 重写为 17 分区、零字面色值；③ 四页 51 处旧变量名改为语义 Token 名、10 处行内圆角 Token 化；④ 新增 `DESIGN.md` / `TOKEN_AUDIT.md` / `VISUAL_DIFF.md` / `reference/`；⑤ 入口页设计体系章节改写为"冲突已收口"。**结构、信息架构、交互路径、109 处 mock 标注全部零改动** |
+| **v1.5.1-prototype** | 2026-11-16 | **按复审意见整改四项**。① 库存状态统一为 `.stock-ok/-low/-out/-eol` 组件（颜色 + 图标 + 文字），`Low stock` 由 `badge-crit` 改为 `badge-warn`，只有 `Out of stock` / `EOL` 用红，`Exact` 徽章由红色改中性深色；② 审计脚本入库 `tools/`、路径改为 `07_prototypes/`、补三层 Token 统计（192 声明 / 188 唯一）与展示文字例外口径；③ `VISUAL_DIFF.md` 删除"像素完全一致"，改为实测差分（3.11%–25.59%）+ 51 条取值变更清单；④ `lcsc_research.md` 新增第七节 `alternatePartList` 字段语义与边界，明确不可照搬。**结构、信息架构、交互路径、109 处 mock 标注仍零改动** |
 
 ### 与旧原型的关系
 

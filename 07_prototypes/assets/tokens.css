@@ -75,6 +75,7 @@
 
   /* --- 文字 --- */
   --color-text:             var(--gray-900);  /* 型号、数值、标题 */
+  --color-text-body:        var(--gray-700);  /* 小字号标签、幽灵按钮——10px 下 gray-500 对比度不足 */
   --color-text-muted:       var(--gray-500);  /* 说明、标签 */
   --color-text-disabled:    var(--gray-400);  /* 占位、禁用 */
   --color-text-inverse:     var(--gray-0);    /* 深色底上的文字 */
@@ -244,6 +245,24 @@
   /* 徽章 / Chip */
   --badge-py: 2px;
   --badge-px: 6px;
+
+  /* 库存状态：唯一映射来源，见 DESIGN.md §6.2
+     颜色 + 图标 + 文字三通道同时表达，任何一处缺失都视为实现缺陷。
+     有货刻意使用中性深灰而非绿色——B2B 场景「有货」是常态而非喜讯，
+     绿色会成为噪声，且红绿色盲下与红色警示难以区分。 */
+  --stock-ok-fg:    var(--color-success);         /* 中性深灰 */
+  --stock-ok-bg:    transparent;
+  --stock-ok-bd:    transparent;
+  --stock-low-fg:   var(--color-warning);         /* 琥珀 */
+  --stock-low-bg:   var(--color-warning-subtle);
+  --stock-low-bd:   var(--color-warning-border);
+  --stock-out-fg:   var(--color-danger);          /* 红 */
+  --stock-out-bg:   var(--color-danger-subtle);
+  --stock-out-bd:   var(--color-danger-border);
+  --stock-eol-fg:   var(--color-danger);          /* 红，与缺货同色，靠文字区分 */
+  --stock-eol-bg:   var(--color-danger-subtle);
+  --stock-eol-bd:   var(--color-danger-border);
+  --stock-ico-size: 12px;
 
   /* 页头 */
   --header-util-h: 30px;

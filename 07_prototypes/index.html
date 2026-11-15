@@ -126,7 +126,7 @@
         <dt>竞品参考</dt>
         <dd><span class="mono">07_prototypes/reference/lcsc_research.md</span>（LCSC 五页设计研究，仅借鉴模式，不复制品牌与素材）</dd>
         <dt>品牌主色</dt>
-        <dd><span class="mono">var(--color-brand)</span> = <span class="mono">#DC2626</span>，仅用于关键 CTA、缺货警示、聚焦态</dd>
+        <dd><span class="mono">var(--color-brand)</span> = <span class="mono">#DC2626</span>，只用于高优先级行动与风险信号（主 CTA、缺货/EOL、必要的聚焦与选中反馈），不得用于装饰性着色</dd>
         <dt>圆角</dt>
         <dd><span class="mono">--radius-xs</span> 2px（chip / badge）、<span class="mono">--radius-sm</span> 4px（按钮 / 输入 / 卡片）、<span class="mono">--radius-md</span> 6px（大面板），禁止 pill 形状</dd>
         <dt>字体</dt>
@@ -147,7 +147,7 @@
       </div>
 
       <div class="info-note mt-2">
-        v1.5 变更：四个核心页面由「各自写死色值」改为「全部引用 Token」。页面结构、信息架构、交互路径与
+        v1.5.1 变更：库存状态统一为「颜色 + 图标 + 文字」三通道（有货 = 中性深灰 + ✓ + In stock，库存紧张 = 琥珀，缺货/EOL = 红）；v1.5 已完成四个核心页面由「各自写死色值」改为「全部引用 Token」。页面结构、信息架构、交互路径与
         mock 标注<strong>均未改动</strong>，仅替换取值来源。旧蓝色体系 6 页已归档到
         <span class="mono">_legacy_v0/</span>，仅作对照，不参与评审。
       </div>

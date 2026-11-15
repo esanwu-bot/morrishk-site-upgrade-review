@@ -139,9 +139,9 @@
       <div>
 
         <div class="label mb-2">Availability</div>
-        <table class="spec" style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-sm)">
-          <tr><td class="k">Hong Kong</td><td class="v r num"><span class="dot dot-ok"></span> 12,480</td></tr>
-          <tr><td class="k">Shenzhen</td><td class="v r num"><span class="dot dot-ok"></span> 3,200</td></tr>
+        <table class="spec avail" style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-sm)">
+          <tr><td class="k">Hong Kong</td><td class="v r num"><span class="stock stock-ok"><i class="stock-ico" aria-hidden="true">✓</i><span class="stock-txt">In stock</span><span class="stock-qty num">12,480</span></span></td></tr>
+          <tr><td class="k">Shenzhen</td><td class="v r num"><span class="stock stock-ok"><i class="stock-ico" aria-hidden="true">✓</i><span class="stock-txt">In stock</span><span class="stock-qty num">3,200</span></span></td></tr>
           <tr><td class="k">Lead time</td><td class="v r">Ships today</td></tr>
         </table>
         <div class="body-sm dim mt-1" data-mock="库存为静态演示值；真实需接库存服务并标注更新时点">Stock shown is mock. Real page must show last-sync timestamp.</div>
@@ -334,7 +334,7 @@
                 <td data-th="Parameter">Supply Voltage (max)</td>
                 <td class="num" data-th="Original">35.0 V</td>
                 <td class="num" data-th="Alternative" style="color:var(--color-brand);font-weight:600">30.0 V</td>
-                <td data-th="Analysis"><span class="badge badge-crit">Confirm derating</span></td>
+                <td data-th="Analysis"><span class="badge badge-warn">Confirm derating</span></td>
                 <td data-th=""><a class="btn btn-secondary btn-xs" href="../search/index.html?q=TMI8720">View part</a></td>
               </tr>
               <tr>
@@ -467,11 +467,11 @@
           <table class="grid">
             <tbody>
               <tr><td><a class="pn" href="#" data-mock="占位：非完整原型">MCF8316</a><div class="body-sm muted">VQFN-24 · 8A</div></td>
-                  <td class="r num"><span class="dot dot-ok"></span> 5,120</td></tr>
+                  <td class="r num"><span class="stock stock-ok"><i class="stock-ico" aria-hidden="true">✓</i><span class="stock-txt">In stock</span><span class="stock-qty num">5,120</span></span></td></tr>
               <tr><td><a class="pn" href="#" data-mock="占位">MCF8329</a><div class="body-sm muted">VQFN-40 · 12A</div></td>
-                  <td class="r num"><span class="dot dot-warn"></span> 310</td></tr>
+                  <td class="r num"><span class="stock stock-low"><i class="stock-ico" aria-hidden="true">!</i><span class="stock-txt">Low stock</span><span class="stock-qty num">310</span></span></td></tr>
               <tr><td><a class="pn" href="#" data-mock="占位">MCF8315-Q1</a><div class="body-sm muted">AEC-Q100 · 8A</div></td>
-                  <td class="r num"><span class="dot dot-off"></span> 0</td></tr>
+                  <td class="r num"><span class="stock stock-out"><i class="stock-ico" aria-hidden="true">×</i><span class="stock-txt">Out of stock</span><span class="stock-qty num">0</span></span></td></tr>
             </tbody>
           </table>
         </div>
