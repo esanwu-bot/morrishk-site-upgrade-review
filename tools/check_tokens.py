@@ -66,6 +66,11 @@ KEYWORDS = ("transparent", "inherit", "currentcolor", "none", "initial", "unset"
 #: 判定（A 项）与统计（html_style_regions）共用此正则，避免两处口径分裂。
 STYLE_ATTR = re.compile(r"style\s*=\s*(?:\"([^\"]*)\"|'([^']*)')", re.I)
 
+#: 不承载 style 属性的区域：HTML 注释、<style> 块。其中的 `style="..."` 必然是文本而非属性。
+#: <script> 不在此列——内联脚本里的模板字符串可能生成真实样式，排除会变成漏检，
+#: 因此保留扫描，并把这一误报面带进 0.1 的边界披露。
+NON_ATTR_REGION = re.compile(r"<!--.*?-->|<style\b[^>]*>.*?</style>", re.S | re.I)
+
 #: 边界探针：A 项正则**不覆盖**的写法，仅统计出现次数，不参与 PASS/FAIL 判定
 MODERN_FN = re.compile(r"\b(?:oklch|oklab|lab|lch|hwb|color-mix|device-cmyk)\s*\(", re.I)
 
@@ -96,16 +101,32 @@ def strip_css_comments(text: str) -> str:
     return re.sub(r"/\*.*?\*/", lambda m: blank_keep_lines(m.group(0)), text, flags=re.S)
 
 
+def mask_non_attr_regions(text: str) -> str:
+    """把 HTML 注释与 <style> 块替换为等长空白（保留换行），使行号不变。
+
+    这两处出现的 `style="..."` 是文本内容而非元素属性，若不遮蔽会产生误报。
+    """
+    return NON_ATTR_REGION.sub(lambda m: blank_keep_lines(m.group(0)), text)
+
+
 def iter_style_attrs(text: str):
     """遍历 HTML 中的 style 属性，产出 (起始行号, 属性值)。
 
     覆盖双引号、单引号、跨行三种写法。旧实现按行匹配且只认双引号，
     导致 `style='color:#fff'` 与跨行 style 完全漏检（R2 修复项）。
+    注释与 <style> 块先被遮蔽，避免把其中的同名文本当成属性。
     """
-    for m in STYLE_ATTR.finditer(text):
-        line = text.count("\n", 0, m.start()) + 1
+    masked = mask_non_attr_regions(text)
+    for m in STYLE_ATTR.finditer(masked):
+        line = masked.count("\n", 0, m.start()) + 1
         val = m.group(1) if m.group(1) is not None else m.group(2)
         yield line, val
+
+
+def strip_style_attrs(text: str) -> str:
+    """把全部 style 属性置空（含注释/<style> 块遮蔽），用于 A2 展示文字识别。"""
+    masked = mask_non_attr_regions(text)
+    return STYLE_ATTR.sub(lambda m: blank_keep_lines(m.group(0)), masked)
 
 
 def html_style_regions(text: str):
@@ -176,6 +197,20 @@ def find_css_color_literals(text: str, rel: str):
     return hits
 
 
+def count_script_style_attrs(text: str, rel: str) -> int:
+    """统计 <script> 块内出现的 style 属性个数。
+
+    A 项不排除 <script>：内联脚本的模板字符串可能生成真实样式，排除会变成漏检。
+    代价是脚本里纯文本的 `style="..."` 也会被计入，这里是把这个已知误报面量化。
+    """
+    if not rel.endswith(".html"):
+        return 0
+    n = 0
+    for m in re.finditer(r"<script\b[^>]*>(.*?)</script>", text, re.S | re.I):
+        n += len(STYLE_ATTR.findall(m.group(1)))
+    return n
+
+
 def probe_boundary_literals(text: str, rel: str):
     """边界探针：统计 A 项正则**不覆盖**的色彩写法，仅作 INFO，不参与判定。
 
@@ -205,9 +240,9 @@ def find_display_literals(text: str, rel: str):
     if not rel.endswith(".html"):
         return []
     hits = []
-    # 先把全部 style 属性置空（单/双引号、跨行统一处理，保留换行以维持行号），
-    # 避免样式里的色值被误当成展示文字重复计数。
-    stripped = STYLE_ATTR.sub(lambda m: blank_keep_lines(m.group(0)), text)
+    # 先把注释/<style> 块遮蔽、再把全部 style 属性置空（单/双引号、跨行统一处理，
+    # 保留换行以维持行号），避免样式里的色值被误当成展示文字重复计数。
+    stripped = strip_style_attrs(text)
     for i, line in enumerate(stripped.split("\n"), 1):
         if not any(rx.search(line) for _, rx in COLOR_ANY):
             continue
@@ -371,6 +406,8 @@ def main(argv=None):
     add("| HTML `style` 属性 | 全文扫描，**双引号 / 单引号 / 跨行**三种写法共用同一条正则（`STYLE_ATTR`） |")
     add("| JS 文件 | 全文匹配同上三条正则 |")
     add("| 注释 | CSS `/* */` 先置空并保留行号；HTML / JS 注释不参与 A，仅作 A3 计数 |")
+    add("| HTML 注释 / `<style>` 块 | 先遮蔽为等长空白再找 `style` 属性，其中的同名文本不计入 A |")
+    add("| `<script>` 块 | **不遮蔽**，其中的 `style=\"...\"` 仍计入 A。理由：内联模板可能生成真实样式，排除会变漏检；代价是把脚本里的纯文本也计进来，该数量见 A1 |")
     add("")
     add("**已知盲区（A 项不检出，用 A1 边界探针另行统计）**：")
     add("")
@@ -379,6 +416,7 @@ def main(argv=None):
     add("| 具名颜色 | `color: red`、`background: white` | 否 |")
     add("| 现代色彩函数 | `oklch()`、`lab()`、`lch()`、`hwb()`、`color-mix()` | 否 |")
     add("| 内联 SVG 的呈现属性 | `<rect fill=\"#fff\">`（不在 `style` 属性内） | 否 |")
+    add("| 转义引号截断 | `style=\"content:\\\"#fff\\\"\"`，`[^\"]*` 在转义引号处提前结束 | 否（边界） |")
     add("")
 
     # ---------------- A ----------------
@@ -418,24 +456,30 @@ def main(argv=None):
     add("统计 A 项正则**不检出**的色彩写法实际出现了多少次，用来量化 A=0 的盲区大小。"
         "本项不参与 PASS/FAIL，只回答「把口径放宽后会不会翻盘」。")
     add("")
-    add("| 文件 | 现代色彩函数 | 具名颜色 |")
-    add("|---|---|---|")
+    add("| 文件 | 现代色彩函数 | 具名颜色 | `<script>` 内 style 属性 |")
+    add("|---|---|---|---|")
     probe_total = 0
+    script_total = 0
     for f in files:
-        pb = probe_boundary_literals(read_text(os.path.join(root, f)), f)
-        if not pb:
-            continue
+        text_f = read_text(os.path.join(root, f))
+        pb = probe_boundary_literals(text_f, f)
         n_fn = sum(1 for k, _ in pb if k == "现代函数")
         n_named = sum(1 for k, _ in pb if k == "具名颜色")
-        probe_total += len(pb)
-        add("| `%s` | %d | %d |" % (f, n_fn, n_named))
-    if probe_total == 0:
-        add("| _（无）_ | 0 | 0 |")
+        n_script = count_script_style_attrs(text_f, f)
+        probe_total += n_fn + n_named
+        script_total += n_script
+        if n_fn or n_named or n_script:
+            add("| `%s` | %d | %d | %d |" % (f, n_fn, n_named, n_script))
+    if probe_total == 0 and script_total == 0:
+        add("| _（无）_ | 0 | 0 | 0 |")
     add("")
     add("**结果：%d 处** —— %s" % (
         probe_total,
         "盲区在本轮送审代码中未被触发，A=0 不是靠漏检得到的。" if probe_total == 0
         else "存在 A 未覆盖的写法，A=0 不能单独作为结论，需人工确认上表。"))
+    add("")
+    add("**`<script>` 内 style 属性：%d 处** —— 这些会计入 A（不遮蔽），"
+        "若出现在模板字符串里可能是真实样式、也可能只是文本，属 A 项的已知误报面。" % script_total)
     add("")
     add("**探针自身边界**：具名颜色使用一张 %d 词的常见色表（非 CSS 全量 148 色）；"
         "`white-space` 这类含颜色词的属性名已剔除。探针结果偏保守，"

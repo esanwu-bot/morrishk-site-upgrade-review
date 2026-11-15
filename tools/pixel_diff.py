@@ -33,7 +33,9 @@ from __future__ import annotations
 import argparse
 import io
 import os
+import shutil
 import sys
+import tempfile
 
 from PIL import Image, ImageChops
 
@@ -90,7 +92,7 @@ def best_shift(img_a, img_b, search):
     return best
 
 
-def diff_one(a_path, b_path, out_dir, name, shift_search):
+def diff_one(a_path, b_path, save_dir, name, shift_search):
     a, b = load(a_path), load(b_path)
     if a.size != b.size:
         raise ValueError("尺寸不一致: %s %s vs %s" % (name, a.size, b.size))
@@ -137,11 +139,8 @@ def diff_one(a_path, b_path, out_dir, name, shift_search):
         bands.append((start, prev, cnt))
     bands.sort(key=lambda t: -t[2])
 
-    # 差异图统一落到 <out>/diff/，报告落到 <out>/，与仓库既有布局一致
-    diff_dir = os.path.join(out_dir, "diff")
-    os.makedirs(diff_dir, exist_ok=True)
-
-    out_path = os.path.join(diff_dir, "diff_%s.png" % name)
+    # 差异图先落到调用方给的暂存目录，全部页面成功后才搬进 <out>/diff/
+    out_path = os.path.join(save_dir, "diff_%s.png" % name)
     out.save(out_path)
 
     r = {
@@ -202,39 +201,50 @@ def main(argv=None):
         return 3
 
     os.makedirs(args.out, exist_ok=True)
+    diff_dir = os.path.join(args.out, "diff")
+
+    # 差异图先写进本次运行的独立暂存目录：失败时整个目录删掉，
+    # 既不产生半成品，也绝不触碰 --out 下运行前已存在的证据文件。
+    staging = tempfile.mkdtemp(prefix=".pixel_diff_staging_", dir=args.out)
 
     results = []
     failed = []
-    for n in sorted(names_a):
-        a = os.path.join(args.a, n + ".png")
-        b = os.path.join(args.b, n + ".png")
-        try:
-            r = diff_one(a, b, args.out, n, args.shift_search)
-        except Exception as exc:  # 尺寸不一致、文件损坏等
-            failed.append((n, str(exc)))
-            continue
-        results.append(r)
-        extra = ""
-        if r["shift_dy"] is not None:
-            extra = "  shift dy=%+d -> %.3f%%" % (r["shift_dy"], r["shift_pct"])
-        print("%-10s %dx%d  strict=%d (%.3f%%)  visible=%d (%.3f%%)  bands=%d%s" %
-              (n, r["size"][0], r["size"][1], r["strict"], r["strict_pct"],
-               r["visible"], r["visible_pct"], len(r["bands"]), extra))
+    try:
+        for n in sorted(names_a):
+            a = os.path.join(args.a, n + ".png")
+            b = os.path.join(args.b, n + ".png")
+            try:
+                r = diff_one(a, b, staging, n, args.shift_search)
+            except Exception as exc:  # 尺寸不一致、文件损坏等
+                failed.append((n, str(exc)))
+                continue
+            results.append(r)
+            extra = ""
+            if r["shift_dy"] is not None:
+                extra = "  shift dy=%+d -> %.3f%%" % (r["shift_dy"], r["shift_pct"])
+            print("%-10s %dx%d  strict=%d (%.3f%%)  visible=%d (%.3f%%)  bands=%d%s" %
+                  (n, r["size"][0], r["size"][1], r["strict"], r["strict_pct"],
+                   r["visible"], r["visible_pct"], len(r["bands"]), extra))
 
-    if failed:
-        # 清理本次已写出的差异图，不留下"部分页面已出图"的半成品
+        if failed:
+            for n, msg in failed:
+                sys.stderr.write("FAILED: %s —— %s\n" % (n, msg))
+            sys.stderr.write("ERROR: %d 页差分失败，未生成报告（--out 下已有文件未改动）\n"
+                             % len(failed))
+            return 4
+        if len(results) != len(names_a):
+            sys.stderr.write("ERROR: 完成 %d 页 != 页面集合 %d 页，未生成报告\n" %
+                             (len(results), len(names_a)))
+            return 5
+
+        # 全部页面成功：原子搬进 <out>/diff/，同名旧图在此刻才被替换
+        os.makedirs(diff_dir, exist_ok=True)
         for r in results:
-            p = os.path.join(args.out, "diff", "diff_%s.png" % r["name"])
-            if os.path.exists(p):
-                os.remove(p)
-        for n, msg in failed:
-            sys.stderr.write("FAILED: %s —— %s\n" % (n, msg))
-        sys.stderr.write("ERROR: %d 页差分失败，未生成报告\n" % len(failed))
-        return 4
-    if len(results) != len(names_a):
-        sys.stderr.write("ERROR: 完成 %d 页 != 页面集合 %d 页，未生成报告\n" %
-                         (len(results), len(names_a)))
-        return 5
+            dst = os.path.join(diff_dir, "diff_%s.png" % r["name"])
+            os.replace(r["diff_img"], dst)
+            r["diff_img"] = dst
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
 
     L = []
     add = L.append
@@ -270,6 +280,10 @@ def main(argv=None):
     add("| 尺寸一致 | 每页两图尺寸必须完全相同，不做缩放对齐 | **PASS**（%s） |" % size_desc)
     add("| 差分完成度 | 完成页数必须等于页面集合页数 | **PASS**（%d / %d） |" %
         (len(results), len(names_a)))
+    add("")
+    add("**失败时的行为**：不写报告，且**不改动 `--out` 下运行前已存在的任何文件**。"
+        "差异图先写入本次运行独立的暂存目录，全部页面成功后才原子搬进 `diff/`；"
+        "任一页失败则整个暂存目录删除，运行前的证据原样保留。")
     add("")
     add("页面集合（两版逐一对应）：")
     add("")
@@ -308,9 +322,30 @@ def main(argv=None):
         add("**合计（位移补偿口径）**：按每页各自的最佳 dy 平移后，差异 %s / %s 像素（%.3f%%）。" %
             (format(sc, ","), format(sa, ","), sc / sa * 100))
         add("")
-        add("两个口径回答不同问题：**严格口径**含「内容整体错位」造成的差异；"
-            "**补偿口径**扣掉整体错位，只剩「内容本身不同」的部分。"
-            "评审裁定应同时看这两个数字，任一单独使用都会误判。")
+        add("### 1.1 位移补偿明细（可逐页核对分子分母）")
+        add("")
+        add("| 页面 | 最佳 dy | 平移后差异像素 | 重叠面积 | 残余差异率 |")
+        add("|---|---|---|---|---|")
+        for r in results:
+            add("| `%s` | %+d px | %s | %s | %.3f%% |" %
+                (r["name"], r["shift_dy"], format(r["shift_pixels"], ","),
+                 format(r["shift_area"], ","), r["shift_pct"]))
+        add("| **合计** | — | **%s** | **%s** | **%.3f%%** |" %
+            (format(sc, ","), format(sa, ","), sc / sa * 100))
+        add("")
+        add("**校验式**：%s / %s = %.5f = %.3f%%，与上表合计一致。" %
+            (format(sc, ","), format(sa, ","), sc / sa, sc / sa * 100))
+        add("")
+        add("**分母为何与严格口径不同**：严格口径分母是原图总面积（%s），"
+            "补偿口径分母是各页**平移后的重叠面积**之和（%s）。"
+            "dy≠0 的页面上下各裁掉 |dy| 行，重叠面积随之减少，两个分母不可混用、也不互相替代。"
+            % (format(tot, ","), format(sa, ",")))
+        add("")
+        add("**这个数字能说明什么、不能说明什么**：在当前测试的**整页单一纵向位移模型**下，"
+            "差异率由 %.3f%% 降至约 %.3f%%——说明全局纵向平移不足以解释大部分像素差异。"
+            "但剩余差异同时包含「内容变化」与「未被本模型解释的布局差异」"
+            "（分段位移、横向位移、局部重排都未建模），**不能直接等同于纯内容差异**。"
+            % (ts / tot * 100, sc / sa * 100))
         add("")
 
     # ---------------- 2. 差异区域 ----------------
@@ -346,8 +381,8 @@ def main(argv=None):
     add("7. **位移补偿只搜纵向、只搜全局单一偏移**：不做横向偏移、不做分段位移。"
         "页面不同区段位移量不同时（累计位移的典型表现），单一 dy 只能部分抵消，"
         "补偿后残余仍偏大属于预期。")
-    add("8. **补偿口径不做内容语义判断**：它只回答「扣掉整体错位后还差多少」，"
-        "不判断剩下的差异是否可接受。")
+    add("8. **补偿口径不做内容语义判断**：它只回答「在这个受限的对齐模型下残余多少」，"
+        "不判断剩下的差异是否可接受，也不能把残余率直接当作纯内容差异。")
     add("")
 
     out_md = os.path.join(args.out, "PIXEL_DIFF.md")
