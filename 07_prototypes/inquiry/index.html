@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Request a Quote · BOM Tool | Morris Electronic</title>
+<meta name="description" content="Send a BOM or a single part number. Up to 50 lines, datasheet and CoC on request. Average response under 30 minutes on business days.">
+<meta name="robots" content="noindex,follow" data-mock="询盘页 noindex，避免表单页被索引">
+<link rel="stylesheet" href="../assets/proto.css">
+</head>
+<body>
+
+<div class="utilbar">
+  <div class="wrap">
+    <div class="row" style="gap:0">
+      <a href="mailto:sales@morrishk.net">sales@morrishk.net</a>
+      <span class="sep">|</span>
+      <span class="hide-sm">Hong Kong Warehouse · Mon–Fri 9:00–18:00 HKT</span>
+    </div>
+    <div class="row" style="gap:0">
+      <a href="../inquiry/index.html">BOM Quote Tool</a>
+      <span class="sep">|</span>
+      <a href="#" data-mock="占位链接">Help Center</a>
+      <span class="sep">|</span>
+      <a href="#" data-mock="占位链接">USD ($) / EN</a>
+    </div>
+  </div>
+</div>
+
+<header class="sitehead">
+  <div class="wrap">
+    <a class="logo" href="../home/index.html">
+      <span class="mark">M</span>
+      <span class="word">Morris<span class="sub">Precision Industrial</span></span>
+    </a>
+    <div class="hub" data-search-url="../search/index.html">
+      <select aria-label="Category" data-mock="分类下拉：静态"><option>All Categories</option></select>
+      <input type="search" placeholder="Part number or keyword…" aria-label="Search">
+      <span class="kbd">Ctrl K</span>
+      <span class="ai">✨ AI 替代料</span>
+      <button class="go" type="button">Search</button>
+    </div>
+    <nav class="headact">
+      <a href="#" data-mock="占位"><span class="ico">☆</span>Favorites</a>
+      <a href="../inquiry/index.html"><span class="ico">▤</span>RFQ<span class="badge">3</span></a>
+      <a href="#" data-mock="占位"><span class="ico">▣</span>Cart</a>
+    </nav>
+  </div>
+</header>
+
+<nav class="mainnav">
+  <div class="wrap">
+    <a href="#" data-mock="占位">Categories ▾</a>
+    <a href="#" data-mock="占位">Manufacturers</a>
+    <a href="../search/index.html?stock=1">In-Stock</a>
+    <a href="#" data-mock="占位">Pin-to-Pin Alternatives</a>
+    <a href="../inquiry/index.html" class="on">BOM Solutions</a>
+    <a href="#" data-mock="占位">Shortage &amp; EOL</a>
+  </div>
+</nav>
+
+<main class="wrap-narrow" style="padding-top:20px">
+
+  <div class="mb-4">
+    <nav class="body-sm muted mb-2">
+      <a href="../home/index.html">Home</a> <span class="dim">/</span> <span style="color:var(--text)">Request a Quote</span>
+    </nav>
+    <h1 class="h-lg" style="margin:0 0 6px">Request a quote</h1>
+    <p class="body-md muted" style="margin:0;max-width:52em">
+      Send one part number or a full BOM. We match exact part numbers first and report any line we
+      cannot source — we do not silently drop unmatched lines.
+    </p>
+  </div>
+
+  <!-- 成功回执 -->
+  <div class="card mb-4" id="submitOk" style="display:none;border-color:var(--text)">
+    <div class="card-bd" style="padding:20px 22px">
+      <div class="row" style="gap:8px;margin-bottom:8px">
+        <span class="badge badge-solid">Submitted</span>
+        <span class="body-sm muted">Reply within 30 minutes on business days</span>
+      </div>
+      <div class="h-md" style="margin:0 0 10px">Your request has been received</div>
+      <table class="spec" style="max-width:520px">
+        <tr><td class="k">Lead number</td><td class="v mono" id="leadNo">—</td></tr>
+        <tr><td class="k">Request ID</td><td class="v mono body-sm" id="reqId">—</td></tr>
+        <tr><td class="k">Next step</td><td class="v">A sales engineer reviews the lines and replies by email.</td></tr>
+      </table>
+      <div class="info-note mt-3" data-mock="GA4 回传可失败，不影响入库（技术方案 5.2 / 5.9.1）">
+        埋点回传与入库解耦：即使 GA4 回传失败，询盘依然入库，不回滚。
+      </div>
+      <div class="row mt-3" style="gap:8px">
+        <a class="btn btn-secondary btn-sm" href="../search/index.html">Continue browsing</a>
+        <button class="btn btn-primary btn-sm" type="button" id="simulateFail" data-mock="演示开关：查看「提交失败」状态，表单内容保留">Demo: show failure state</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 失败提示 -->
+  <div class="pill-note mb-4" id="submitFail" style="display:none" data-mock="失败状态：保留全部已填内容，不清空表单">
+    <span class="ico">!</span>
+    <div>
+      <strong>Submission failed.</strong> Your entries are kept. This is usually a network issue —
+      retry with the same Request ID so the server does not create a duplicate lead.
+      <button class="btn btn-secondary btn-xs" type="button" style="margin-left:6px" onclick="document.getElementById('submitFail').style.display='none'">Dismiss</button>
+    </div>
+  </div>
+
+  <div class="g-form">
+
+    <!-- ==================== 表单 ==================== -->
+    <form class="card" id="rfqForm" novalidate>
+      <div class="card-hd">
+        <h2 class="h-sm">BOM / part list</h2>
+        <span class="body-sm muted">Up to 50 lines</span>
+      </div>
+
+      <div class="card-bd">
+
+        <!-- 蜜罐：机器人可见，正常人不可见 -->
+        <div style="position:absolute;left:-9999px" aria-hidden="true">
+          <label>Leave this field empty<input type="text" id="hp_field" tabindex="-1" autocomplete="off"></label>
+        </div>
+
+        <!-- 快速粘贴 -->
+        <div class="field mb-3">
+          <label>Paste part list <span class="dim" style="text-transform:none;letter-spacing:0">（按行 / 逗号 / 制表符自动拆分）</span></label>
+          <textarea class="textarea" id="pasteBox" style="min-height:60px"
+            placeholder="MCF8315, 100&#10;STM32F103C8T6, 500&#10;DS9034PCX+	200"></textarea>
+          <span class="hint">Paste then click elsewhere to split into rows. Max 50 lines.</span>
+        </div>
+
+        <div class="row-between mb-2">
+          <span class="label">Lines <span class="dim" style="text-transform:none;letter-spacing:0">（<span id="bomRowCount">3</span> / 50）</span></span>
+          <button class="btn btn-secondary btn-xs" type="button" id="addRow">+ Add line</button>
+        </div>
+
+        <div id="bomRows">
+          <div class="bom-row row" style="gap:6px;margin-bottom:6px">
+            <span class="idx label" style="width:18px;flex:0 0 18px;text-align:right">1</span>
+            <input class="input grow" value="MCF8315" placeholder="Part number">
+            <input class="input num" style="width:88px;flex:0 0 88px" value="100" placeholder="Qty">
+            <button type="button" class="btn btn-ghost btn-xs rm" title="Remove">×</button>
+          </div>
+          <div class="bom-row row" style="gap:6px;margin-bottom:6px">
+            <span class="idx label" style="width:18px;flex:0 0 18px;text-align:right">2</span>
+            <input class="input grow" value="STM32F103C8T6" placeholder="Part number">
+            <input class="input num" style="width:88px;flex:0 0 88px" value="500" placeholder="Qty">
+            <button type="button" class="btn btn-ghost btn-xs rm" title="Remove">×</button>
+          </div>
+          <div class="bom-row row" style="gap:6px;margin-bottom:6px">
+            <span class="idx label" style="width:18px;flex:0 0 18px;text-align:right">3</span>
+            <input class="input grow" value="DS9034PCX+" placeholder="Part number">
+            <input class="input num" style="width:88px;flex:0 0 88px" value="200" placeholder="Qty">
+            <button type="button" class="btn btn-ghost btn-xs rm" title="Remove">×</button>
+          </div>
+        </div>
+        <div class="errmsg" id="err-bom" style="display:none"></div>
+
+        <hr class="hr">
+
+        <!-- 联系方式 -->
+        <div class="label mb-2">Contact</div>
+        <div class="g-2col">
+          <div class="field">
+            <label>Email<span class="req">*</span></label>
+            <input class="input" type="email" id="email" placeholder="you@company.com" autocomplete="email">
+            <div class="errmsg" id="err-email" style="display:none"></div>
+            <span class="hint">Disposable domains are rejected.</span>
+          </div>
+          <div class="field">
+            <label>Company<span class="req">*</span></label>
+            <input class="input" type="text" id="company" placeholder="Company name" autocomplete="organization">
+            <div class="errmsg" id="err-company" style="display:none"></div>
+          </div>
+          <div class="field">
+            <label>Contact name</label>
+            <input class="input" type="text" id="name" placeholder="Optional" autocomplete="name">
+          </div>
+          <div class="field">
+            <label>Phone / WhatsApp</label>
+            <input class="input" type="tel" id="phone" placeholder="Optional" autocomplete="tel">
+          </div>
+        </div>
+
+        <hr class="hr">
+
+        <!-- 需求 -->
+        <div class="field">
+          <label>Requirement</label>
+          <textarea class="textarea" id="req" maxlength="2000"
+            placeholder="Target price, acceptable substitutes, CoC required, packaging, delivery window…"></textarea>
+          <div class="row-between">
+            <span class="hint">2,000 characters max. HTML is stripped server-side.</span>
+            <span class="hint num" id="charCount">0 / 2000</span>
+          </div>
+        </div>
+
+        <!-- 附件 -->
+        <div class="field mt-3">
+          <label>Attachments</label>
+          <input class="input" type="file" id="attachments" multiple accept=".pdf,.xls,.xlsx,.csv,.doc,.docx" style="padding:5px 8px">
+          <span class="hint">pdf / xls / xlsx / csv / doc / docx · ≤10 MB each · ≤3 files total · virus-scanned</span>
+          <div class="row wrapf mt-1" id="fileList" style="gap:4px"></div>
+        </div>
+
+        <!-- 同意 -->
+        <label class="chk mt-4">
+          <input type="checkbox" id="consent">
+          <span class="body-sm muted">I agree to be contacted about this request. See privacy notice.</span>
+        </label>
+
+        <div class="row-between mt-4 wrapf">
+          <span class="body-sm dim" data-mock="RequestId 在前端生成 UUID，作为服务端幂等键（技术方案 5.2 / 5.5）">
+            A Request ID is generated before submit to make retries idempotent.
+          </span>
+          <div class="row" style="gap:8px">
+            <button class="btn btn-ghost btn-sm" type="button" id="previewOk" data-mock="演示开关：不填表直接查看提交成功态">预览成功态</button>
+            <button class="btn btn-primary" type="submit" id="submitBtn">提交询盘</button>
+          </div>
+        </div>
+
+        <div class="errmsg mt-2" id="err-consent" style="display:none"></div>
+      </div>
+    </form>
+
+    <!-- ==================== 右栏 ==================== -->
+    <aside>
+
+      <div class="card mb-4">
+        <div class="card-hd"><h2 class="h-sm">What happens next</h2></div>
+        <div class="card-bd">
+          <ol class="body-sm muted" style="margin:0;padding-left:16px;line-height:20px">
+            <li>Request ID generated in your browser.</li>
+            <li>Server validates, deduplicates, scores for spam.</li>
+            <li>Lead stored; a lead number is issued.</li>
+            <li>Sales engineer notified, reviews each line.</li>
+            <li>You receive a quote by email.</li>
+          </ol>
+          <div class="info-note mt-3" data-mock="状态流转：新建 → 跟进中 → 已报价 → 成交/无效（技术方案 5.2）">
+            内部状态：新建 → 跟进中 → 已报价 → 成交 / 无效。此流转在后台可见，不在本页展示。
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-hd"><h2 class="h-sm">Limits &amp; rules</h2></div>
+        <div class="card-bd">
+          <table class="spec">
+            <tr><td class="k">Max lines</td><td class="v">50</td></tr>
+            <tr><td class="k">Qty range</td><td class="v">&gt; 0, ≤ 1e9</td></tr>
+            <tr><td class="k">Attachments</td><td class="v">≤3 files, ≤10 MB each</td></tr>
+            <tr><td class="k">Rate limit</td><td class="v">3 / 10 min per IP</td></tr>
+            <tr><td class="k">Duplicate window</td><td class="v">30 min merged</td></tr>
+          </table>
+          <div class="body-sm dim mt-2">Limits mirror 技术方案 5.4 / 5.5.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd"><h2 class="h-sm">Prefer email?</h2></div>
+        <div class="card-bd">
+          <div class="body-md">sales@morrishk.net</div>
+          <div class="body-sm muted mt-1">Mon–Fri 9:00–18:00 HKT. Include part numbers and quantities.</div>
+        </div>
+      </div>
+
+    </aside>
+
+  </div>
+
+  <!-- 移动端吸底 CTA 占位（移动端由 .sticky-cta 承载，此处不渲染） -->
+
+</main>
+
+<div class="protostatus">
+  <div class="wrap">
+    <div class="label mb-2">Prototype status · inquiry</div>
+    <table>
+      <tr><td>对应方案</td><td>技术方案 §5.2 转化流程、§5.4 表单规则、§5.5 反垃圾与幂等；商务方案 §9.x 询盘闭环</td></tr>
+      <tr><td>实施阶段</td><td>Phase 1（核心）</td></tr>
+      <tr><td>已实现</td><td>BOM 行增删与序号重排、批量粘贴拆分（行/逗号/制表符）、50 行上限、邮箱与公司必填校验、附件类型与大小提示、字数计数、蜜罐字段、RequestId 生成、提交中禁用按钮、成功回执（LeadNo + RequestId）、失败状态保留内容、重复提交提示幂等</td></tr>
+      <tr><td>模拟</td><td>提交为前端模拟，不写库；LeadNo 为随机生成；无服务端反垃圾评分、无真实邮件通知、无 GA4 回传</td></tr>
+      <tr><td>待开发</td><td>服务端校验与幂等键落库、频率限制、一次性邮箱黑名单、病毒扫描、验证码风控升级、通知销售、GA4 服务端回传、附件隔离存储</td></tr>
+      <tr><td>本轮修改</td><td>v1.0（2026-11-15）新建；补齐 5.4 全部字段规则与 5.5 幂等演示；成功/失败双状态可切换</td></tr>
+    </table>
+  </div>
+</div>
+
+<button class="proto-fab" type="button" aria-pressed="false"><span>原型标注 </span><span class="n">0</span></button>
+<div class="annot-legend">
+  <h4>标注图例（按 ? 或点按钮切换）</h4>
+  <dl>
+    <dt class="k-done">已实现</dt><dd>交互可点、状态可切</dd>
+    <dt class="k-mock">模拟</dt><dd>假数据 / 占位链接 / 伪提交</dd>
+    <dt class="k-todo">待开发</dt><dd>本期不做或需后端配合</dd>
+  </dl>
+</div>
+
+<script src="../assets/proto.js"></script>
+<script>
+// 字数计数 + 成功态预览
+(function () {
+  var t = document.getElementById('req'), c = document.getElementById('charCount');
+  if (t && c) t.addEventListener('input', function () { c.textContent = t.value.length + ' / 2000'; });
+
+  var pv = document.getElementById('previewOk');
+  if (pv) pv.addEventListener('click', function () {
+    var p = document.getElementById('submitOk');
+    p.style.display = 'block';
+    document.getElementById('leadNo').textContent = 'MR20261115-4821';
+    document.getElementById('reqId').textContent = '8f3c1d2e-4a5b-4c6d-9e0f-1a2b3c4d5e6f';
+    p.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+})();
+</script>
+</body>
+</html>

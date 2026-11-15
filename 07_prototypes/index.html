@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>原型入口 · morrishk.net 升级 — 按用户路径评审</title>
+<link rel="stylesheet" href="assets/proto.css">
+<style>
+  .path { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+  .step { position:relative; }
+  .step .n {
+    width:22px;height:22px;border-radius:4px;background:var(--text);color:#fff;
+    display:grid;place-items:center;font-size:11px;font-weight:700;
+  }
+  .step + .step::before {
+    content:"→"; position:absolute; left:-10px; top:26px; color:var(--text-disabled); font-size:13px;
+  }
+  @media (max-width:1023px){ .path{grid-template-columns:repeat(2,minmax(0,1fr));} .step + .step::before{display:none;} }
+  @media (max-width:767px){ .path{grid-template-columns:1fr;} }
+  .kv { display:grid; grid-template-columns:110px minmax(0,1fr); gap:6px 12px; font-size:12px; line-height:18px; }
+  .kv dt { color:var(--text-muted); font-weight:600; }
+  .kv dd { margin:0; }
+  .two { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; }
+  @media (max-width:1023px){ .two{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+
+<div class="utilbar">
+  <div class="wrap">
+    <div class="row" style="gap:0"><span>morrishk.net 升级 · 原型评审入口</span></div>
+    <div class="row" style="gap:0">
+      <span>v1.0-prototype</span><span class="sep">|</span><span>2026-11-15</span>
+    </div>
+  </div>
+</div>
+
+<header class="sitehead">
+  <div class="wrap">
+    <a class="logo" href="index.html">
+      <span class="mark">M</span>
+      <span class="word">Morris<span class="sub">Precision Industrial</span></span>
+    </a>
+    <div class="grow"></div>
+    <nav class="headact">
+      <a href="home/index.html"><span class="ico">⌂</span>首页</a>
+      <a href="search/index.html"><span class="ico">⌕</span>搜索</a>
+      <a href="product_detail/index.html"><span class="ico">▤</span>详情</a>
+      <a href="inquiry/index.html"><span class="ico">✎</span>询盘</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap" style="padding-top:24px;max-width:1180px">
+
+  <h1 class="h-lg" style="margin:0 0 6px">原型评审入口</h1>
+  <p class="body-md muted" style="margin:0 0 20px;max-width:56em">
+    本入口把四个核心原型串成一条真实用户路径，便于按顺序检查设计体系与交互方向，而不是孤立地看截图。
+    每个页面右下角有「原型标注」按钮（或按 <span class="mono">?</span> 键），可高亮全部假数据、
+    占位链接与伪提交按钮。
+  </p>
+
+  <!-- ==================== 用户路径 ==================== -->
+  <div class="card mb-4">
+    <div class="card-hd">
+      <h2 class="h-sm">用户路径：从落地到询盘</h2>
+      <span class="body-sm muted">点击任一步进入原型</span>
+    </div>
+    <div class="card-bd">
+      <div class="path">
+
+        <a class="step card" href="home/index.html" style="padding:12px;display:block">
+          <div class="row mb-2" style="gap:8px"><span class="n">1</span><span class="label">Landing</span></div>
+          <div class="h-sm">首页</div>
+          <div class="body-sm muted mt-1">B2B 定位、产品入口、询盘入口、内容层级</div>
+          <div class="row mt-2" style="gap:4px"><span class="badge">Phase 1</span><span class="badge">home/</span></div>
+        </a>
+
+        <a class="step card" href="search/index.html?q=MCF8315" style="padding:12px;display:block">
+          <div class="row mb-2" style="gap:8px"><span class="n">2</span><span class="label">Find</span></div>
+          <div class="h-sm">搜索页</div>
+          <div class="body-sm muted mt-1">精确型号、模糊匹配、筛选、无结果处理</div>
+          <div class="row mt-2" style="gap:4px"><span class="badge">Phase 2</span><span class="badge">search/</span></div>
+        </a>
+
+        <a class="step card" href="product_detail/index.html" style="padding:12px;display:block">
+          <div class="row mb-2" style="gap:8px"><span class="n">3</span><span class="label">Verify</span></div>
+          <div class="h-sm">产品详情页</div>
+          <div class="body-sm muted mt-1">型号、参数、PDF 来源、库存价格、Request a Quote</div>
+          <div class="row mt-2" style="gap:4px"><span class="badge">Phase 1</span><span class="badge">product_detail/</span></div>
+        </a>
+
+        <a class="step card" href="inquiry/index.html?part=MCF8315" style="padding:12px;display:block">
+          <div class="row mb-2" style="gap:8px"><span class="n">4</span><span class="label">Convert</span></div>
+          <div class="h-sm">询盘流程</div>
+          <div class="body-sm muted mt-1">表单字段、附件、校验、提交反馈、重复提交</div>
+          <div class="row mt-2" style="gap:4px"><span class="badge">Phase 1</span><span class="badge">inquiry/</span></div>
+        </a>
+
+      </div>
+
+      <div class="row wrapf mt-4" style="gap:8px">
+        <a class="btn btn-primary btn-sm" href="home/index.html">从头开始走</a>
+        <a class="btn btn-secondary btn-sm" href="search/index.html?q=MCF8315">看搜索页</a>
+        <a class="btn btn-secondary btn-sm" href="product_detail/index.html">看替代料警示</a>
+        <a class="btn btn-secondary btn-sm" href="inquiry/index.html">看询盘表单</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 设计体系 ==================== -->
+  <div class="card mb-4">
+    <div class="card-hd">
+      <h2 class="h-sm">设计体系与来源</h2>
+      <span class="badge badge-outline">Precision Industrial</span>
+    </div>
+    <div class="card-bd">
+      <dl class="kv">
+        <dt>视觉规范</dt>
+        <dd><span class="mono">stitch_morris_hk_website_redesignV2/DESIGN.md</span>（Morris Precision Industrial）</dd>
+        <dt>交互规范</dt>
+        <dd><span class="mono">prototype/design.md</span> v1.0（B2B 参数化检索、高密度列表、替代料、空状态）</dd>
+        <dt>品牌主色</dt>
+        <dd><span class="mono">#dc2626</span>（crimson），仅用于关键 CTA、缺货警示、聚焦态</dd>
+        <dt>圆角</dt>
+        <dd>2px（chip / badge）与 4px（按钮 / 输入 / 卡片），禁止 pill 形状</dd>
+        <dt>字体</dt>
+        <dd>Inter，全局 <span class="mono">font-feature-settings: 'tnum'</span>，数字列强制等宽</dd>
+        <dt>依赖</dt>
+        <dd>零外部依赖，纯本地 CSS / JS，可离线打开</dd>
+      </dl>
+
+      <div class="pill-note mt-3">
+        <span class="ico">!</span>
+        <div>
+          <strong>两份设计文档存在冲突，已做裁定。</strong>
+          <span class="mono">prototype/design.md</span> 规定品牌色为蓝色 <span class="mono">#0052CC</span>
+          并使用彩色语义徽章；<span class="mono">DESIGN.md</span> 规定为 crimson 且明确「禁止彩虹色徽章」。
+          本原型以 <span class="mono">DESIGN.md</span> 为视觉权威（时间更新、与 code.html / detail.html 一致），
+          以 <span class="mono">prototype/design.md</span> 为交互与信息密度权威。
+        </div>
+      </div>
+
+      <div class="info-note mt-2">
+        另注：<span class="mono">DESIGN.md</span> 的 front-matter（Stitch 导出令牌）与正文「Colors」一节对
+        canvas / surface 取值不一致（<span class="mono">#f8f9ff</span> vs <span class="mono">#f8fafc</span>）。
+        本原型以正文书面规范为准。
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 范围与判定 ==================== -->
+  <div class="two">
+
+    <div class="card">
+      <div class="card-hd"><h2 class="h-sm">本轮提交范围</h2></div>
+      <div class="card-bd tight">
+        <table class="grid">
+          <thead><tr><th>模块</th><th style="width:92px">状态</th></tr></thead>
+          <tbody>
+            <tr><td>首页 <span class="mono body-sm muted">home/</span></td><td><span class="badge badge-solid">本轮提交</span></td></tr>
+            <tr><td>产品详情页 <span class="mono body-sm muted">product_detail/</span></td><td><span class="badge badge-solid">本轮提交</span></td></tr>
+            <tr><td>搜索页 <span class="mono body-sm muted">search/</span></td><td><span class="badge badge-solid">本轮提交</span></td></tr>
+            <tr><td>询盘流程 <span class="mono body-sm muted">inquiry/</span></td><td><span class="badge badge-solid">本轮提交</span></td></tr>
+            <tr><td>SEO 页面 <span class="mono body-sm muted">seo/</span></td><td><span class="badge">第二轮</span></td></tr>
+            <tr><td>后台原型 <span class="mono body-sm muted">admin/</span></td><td><span class="badge">第二轮</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><h2 class="h-sm">判定口径</h2></div>
+      <div class="card-bd">
+        <dl class="kv" style="grid-template-columns:104px minmax(0,1fr)">
+          <dt>PASS</dt><dd>设计完整且与方案一致</dd>
+          <dt>PARTIAL</dt><dd>方向正确，但有交互或业务缺口</dd>
+          <dt>FAIL</dt><dd>存在明确错误或与方案冲突</dd>
+          <dt>NOT VERIFIABLE</dt><dd>仅凭静态 HTML 无法验证</dd>
+        </dl>
+        <div class="info-note mt-3">
+          视觉通过不代表前端代码、接口、性能与安全通过，四者分开判定。
+          本仓库无测试报告、无基准数据、无 staging 环境，相关项应判
+          <span class="mono">NOT VERIFIABLE</span>。
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==================== 已知缺口 ==================== -->
+  <div class="card mt-4">
+    <div class="card-hd">
+      <h2 class="h-sm">已知缺口（主动声明，不等 Reviewer 发现）</h2>
+    </div>
+    <div class="card-bd tight">
+      <table class="grid">
+        <thead><tr><th style="width:30%">缺口</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>无真实数据</td><td>商品、库存、价格、聚合计数全部为静态 mock；无接口、无数据库。</td></tr>
+          <tr><td>无后端</td><td>询盘提交仅前端模拟，不写库、不发邮件、不回传 GA4。</td></tr>
+          <tr><td>无图片资产</td><td>主图为占位块。老站 <span class="mono">ImgId</span> 资源不可用（T10），需先做资产盘点。</td></tr>
+          <tr><td>无性能数据</td><td>TTFB / LCP / CLS 为目标值，静态 HTML 无法验证。</td></tr>
+          <tr><td>SEO 仅预览</td><td>详情页给出 canonical 与 JSON-LD 预览，未接真实输出链路；<span class="mono">seo/</span> 第二轮提交。</td></tr>
+          <tr><td>后台未提交</td><td><span class="mono">admin/</span> 第二轮提交，本轮不评审。</td></tr>
+          <tr><td>移动端未真机验证</td><td>响应式断点已实现，但未在真机验证触控热区与参数可读性。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<div class="protostatus">
+  <div class="wrap">
+    <div class="label mb-2">Prototype index</div>
+    <table>
+      <tr><td>目录</td><td><span class="mono">07_prototypes/</span> — index.html / home/ / product_detail/ / search/ / inquiry/ / seo/ / admin/ / assets/</td></tr>
+      <tr><td>本轮范围</td><td>四个核心原型（首页、产品详情、搜索、询盘）；SEO 与后台第二轮提交</td></tr>
+      <tr><td>旧版归档</td><td>蓝色体系旧原型已移至 <span class="mono">_legacy_v0/</span>，未删除，不参与评审</td></tr>
+      <tr><td>本轮修改</td><td>v1.0（2026-11-15）首次提交，按 DESIGN.md 重建，替换旧蓝色体系</td></tr>
+    </table>
+  </div>
+</div>
+
+<script src="assets/proto.js"></script>
+</body>
+</html>

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Morris Electronic — Global Component Logistics | morrishk.net</title>
+<meta name="description" content="Hard-to-find, scarce and EOL electronic components. 2.8M+ verified in-stock parts, 100% genuine, COC traceable, dispatched from certified warehouses.">
+<!-- 原型标注：以下 SEO 标签为 Phase 1 目标形态，实际输出规则见技术方案 8.2 / 8.3 -->
+<link rel="canonical" href="https://www.morrishk.net/" data-mock="canonical：Phase 1 由 layouts 统一输出（技术方案 4.8）">
+<link rel="stylesheet" href="../assets/proto.css">
+</head>
+<body>
+
+<!-- ============================ 顶部工具条 ============================ -->
+<div class="utilbar">
+  <div class="wrap">
+    <div class="row" style="gap:0">
+      <a href="mailto:sales@morrishk.net">sales@morrishk.net</a>
+      <span class="sep">|</span>
+      <span class="hide-sm">Hong Kong Warehouse · Mon–Fri 9:00–18:00 HKT</span>
+    </div>
+    <div class="row" style="gap:0">
+      <a href="../inquiry/index.html">BOM Quote Tool</a>
+      <span class="sep">|</span>
+      <a href="#" data-mock="占位链接：Help Center 不在本期范围">Help Center</a>
+      <span class="sep">|</span>
+      <a href="#" data-mock="占位链接：币种/语种切换在 Phase 2 多语种（技术方案 8.6）">USD ($) / EN</a>
+      <span class="sep">|</span>
+      <a href="#" data-mock="占位链接：登录/注册沿用老站，本期不改">Sign In / Register</a>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ 页头 + 搜索中枢 ============================ -->
+<header class="sitehead">
+  <div class="wrap">
+    <a class="logo" href="../home/index.html">
+      <span class="mark">M</span>
+      <span class="word">Morris<span class="sub">Precision Industrial</span></span>
+    </a>
+
+    <div class="hub" data-search-url="../search/index.html">
+      <select aria-label="Category" data-mock="分类下拉：Phase 1 静态分类，Phase 2 接聚合">
+        <option>All Categories</option>
+        <option>Integrated Circuits</option>
+        <option>Discrete Semiconductors</option>
+        <option>Passive Components</option>
+        <option>Connectors</option>
+        <option>Power Management</option>
+      </select>
+      <input type="search" placeholder="Part number, keyword, or paste BOM lines…" aria-label="Search">
+      <span class="kbd">Ctrl K</span>
+      <span class="ai" title="AI 找替代料（Phase 4）">✨ AI 替代料</span>
+      <button class="go" type="button">Search</button>
+    </div>
+
+    <nav class="headact">
+      <a href="#" data-mock="占位：收藏夹沿用老站会话，本期不重构"><span class="ico">☆</span>Favorites</a>
+      <a href="../inquiry/index.html"><span class="ico">▤</span>RFQ<span class="badge">3</span></a>
+      <a href="#" data-mock="占位：购物车/询价篮合并方案待 Phase 2 确认"><span class="ico">▣</span>Cart</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ============================ 主导航 ============================ -->
+<nav class="mainnav">
+  <div class="wrap">
+    <a href="#" class="crit" data-mock="占位：分类 Mega-Menu 为 Phase 2 导航重构">Categories ▾</a>
+    <a href="../search/index.html" data-mock="占位：品牌页沿用老站 /manufacturer/{Links}.html">Manufacturers</a>
+    <a href="../search/index.html?stock=1">In-Stock</a>
+    <a href="#" data-mock="占位：Pin-to-Pin 智能匹配属 Phase 4，本期仅规则版">Pin-to-Pin Alternatives</a>
+    <a href="../inquiry/index.html">BOM Solutions</a>
+    <a href="#" data-mock="占位：Shortage &amp; EOL 专题页未在本期范围">Shortage &amp; EOL</a>
+    <a href="#" data-mock="占位：Clearance 页未在本期范围">Clearance</a>
+  </div>
+</nav>
+
+<main>
+
+<!-- ============================ Hero ============================ -->
+<section class="wrap" style="padding-top:24px">
+  <div class="card" style="border-radius:4px;overflow:hidden">
+    <div class="g-hero">
+
+      <div>
+        <div class="row" style="gap:6px;margin-bottom:12px">
+          <span class="badge badge-solid">AS9120B</span>
+          <span class="badge">ISO 9001:2015</span>
+          <span class="badge">COC Traceable</span>
+        </div>
+        <h1 class="display" style="max-width:16em">
+          Reliable IC solutions for navigating chip shortages &amp; EOL parts
+        </h1>
+        <p class="body-lg muted" style="max-width:34em;margin:12px 0 20px">
+          Focused on hard-to-find, scarce and end-of-life components. Millions of in-stock parts,
+          100% genuine, COC traceable, shipped directly from certified warehouse facilities.
+        </p>
+        <div class="row wrapf" style="gap:8px">
+          <a class="btn btn-primary" href="../inquiry/index.html">Upload BOM &amp; Get Quoted</a>
+          <a class="btn btn-secondary" href="../search/index.html?stock=1">Check Real-Time Stock</a>
+        </div>
+        <div class="row wrapf mt-4" style="gap:16px">
+          <span class="body-sm muted">✓ Avg. response under 30 mins</span>
+          <span class="body-sm muted">✓ Same-day dispatch before 16:00 HKT</span>
+          <span class="body-sm muted">✓ No minimum order</span>
+        </div>
+      </div>
+
+      <!-- 首屏右侧：主 CTA 与快捷入口（技术方案 4.5 首屏右侧最高权重） -->
+      <div>
+        <div class="label mb-2">Fast entry</div>
+        <div class="col" style="gap:8px">
+          <a class="card" href="../inquiry/index.html" style="padding:12px;display:block">
+            <div class="h-sm">Upload BOM</div>
+            <div class="body-sm muted mt-1">Paste or upload up to 50 lines · CSV / XLSX</div>
+          </a>
+          <a class="card" href="../product_detail/index.html" style="padding:12px;display:block">
+            <div class="h-sm">Spotlight part · MCF8315</div>
+            <div class="body-sm muted mt-1">TI three-phase sensorless-FOC BLDC driver</div>
+          </a>
+          <a class="card" href="../search/index.html?q=MCF8315" style="padding:12px;display:block">
+            <div class="h-sm">Search by part number</div>
+            <div class="body-sm muted mt-1">Exact match · prefix · typo tolerant</div>
+          </a>
+        </div>
+        <div class="info-note mt-4" data-mock="真实数据约束：本区块为静态入口，不含个性化推荐">
+          本期不做个性化推荐。Phase 1 只保证「确认型号 → 看关键参数 → 发起询盘」三步在首屏可达。
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 数据条 ============================ -->
+<section class="wrap" style="margin-top:12px">
+  <div class="card g-stat4">
+    <div>
+      <div class="h-md num" data-mock="静态演示值：真实口径见技术方案 1.4（1,009 万商品 / 568,830 去重 PDF）">2.8M+</div>
+      <div class="body-sm muted mt-1">Verified in-stock parts</div>
+    </div>
+    <div>
+      <div class="h-md num" data-mock="静态演示值：老站实际品牌数 1,427（客户版 §1）">300+</div>
+      <div class="body-sm muted mt-1">Authorized brands</div>
+    </div>
+    <div>
+      <div class="h-md num">3–4 <span class="body-md muted">days</span></div>
+      <div class="body-sm muted mt-1">Intl. express dispatch</div>
+    </div>
+    <div>
+      <div class="h-md num">&lt;30 <span class="body-md muted">mins</span></div>
+      <div class="body-sm muted mt-1">Avg. quote response</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 分类入口 ============================ -->
+<section class="wrap" style="margin-top:24px">
+  <div class="row-between mb-3">
+    <h2 class="h-md">Browse by category</h2>
+    <a class="body-sm" href="#" data-mock="占位：全部分类页 /products.html 沿用老站">All categories →</a>
+  </div>
+  <div class="g-cat4">
+    <a class="card" href="../search/index.html?cat=ic" style="padding:12px 14px">
+      <div class="h-sm">Integrated Circuits</div>
+      <div class="body-sm muted mt-1 num" data-mock="分类计数为演示值，非实时聚合">412,860 SKUs</div>
+    </a>
+    <a class="card" href="../search/index.html?cat=discrete" style="padding:12px 14px">
+      <div class="h-sm">Discrete Semiconductors</div>
+      <div class="body-sm muted mt-1 num" data-mock="分类计数为演示值，非实时聚合">286,104 SKUs</div>
+    </a>
+    <a class="card" href="../search/index.html?cat=passive" style="padding:12px 14px">
+      <div class="h-sm">Passive Components</div>
+      <div class="body-sm muted mt-1 num" data-mock="分类计数为演示值，非实时聚合">531,772 SKUs</div>
+    </a>
+    <a class="card" href="../search/index.html?cat=connector" style="padding:12px 14px">
+      <div class="h-sm">Connectors</div>
+      <div class="body-sm muted mt-1 num" data-mock="分类计数为演示值，非实时聚合">198,340 SKUs</div>
+    </a>
+    <a class="card" href="../search/index.html?cat=power" style="padding:12px 14px">
+      <div class="h-sm">Power Management</div>
+      <div class="body-sm muted mt-1 num" data-mock="分类计数为演示值，非实时聚合">176,905 SKUs</div>
+    </a>
+    <a class="card" href="../search/index.html?cat=memory" style="padding:12px 14px">
+      <div class="h-sm">Memory &amp; Storage</div>
+      <div class="body-sm muted mt-1 num" data-mock="分类计数为演示值，非实时聚合">94,218 SKUs</div>
+    </a>
+    <a class="card" href="../search/index.html?cat=rf" style="padding:12px 14px">
+      <div class="h-sm">RF &amp; Wireless</div>
+      <div class="body-sm muted mt-1 num" data-mock="分类计数为演示值，非实时聚合">67,431 SKUs</div>
+    </a>
+    <a class="card" href="../search/index.html?cat=opt" style="padding:12px 14px">
+      <div class="h-sm">Optoelectronics</div>
+      <div class="body-sm muted mt-1 num" data-mock="分类计数为演示值，非实时聚合">52,077 SKUs</div>
+    </a>
+  </div>
+</section>
+
+<!-- ============================ 现货预览表 ============================ -->
+<section class="wrap" style="margin-top:24px">
+  <div class="card">
+    <div class="card-hd">
+      <div>
+        <h2 class="h-sm">In stock now</h2>
+        <div class="body-sm muted mt-1">Dense list view — one screen shows as many rows as possible</div>
+      </div>
+      <div class="row" style="gap:8px">
+        <a class="btn btn-secondary btn-sm" href="../search/index.html?stock=1">View all in-stock</a>
+      </div>
+    </div>
+    <div class="card-bd tight">
+      <div class="table-wrap">
+        <table class="grid responsive">
+          <thead>
+            <tr>
+              <th style="width:32%">Part number / Description</th>
+              <th class="hide-md" style="width:15%">Brand / Package</th>
+              <th style="width:15%">Stock</th>
+              <th class="num" style="width:20%">Price (USD)</th>
+              <th style="width:18%"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-th="Part">
+                <a class="pn" href="../product_detail/index.html">MCF8315</a>
+                <div class="body-sm muted" style="max-width:34em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                  Three-phase sensorless-FOC BLDC motor driver
+                </div>
+                <div class="row mt-1" style="gap:4px"><span class="badge">RoHS</span><span class="badge">Genuine</span></div>
+              </td>
+              <td class="hide-md" data-th="Brand">Texas Instruments<div class="body-sm muted">VQFN-24</div></td>
+              <td data-th="Stock"><span class="dot dot-ok"></span> 12,480 <span class="body-sm muted">HK</span></td>
+              <td class="num" data-th="Price">1+ $2.84<div class="body-sm muted">100+ $2.31</div></td>
+              <td data-th="Action"><a class="btn btn-primary btn-xs" href="../inquiry/index.html">Request quote</a></td>
+            </tr>
+            <tr>
+              <td data-th="Part">
+                <a class="pn" href="#" data-mock="占位：仅 MCF8315 有完整详情原型，其余行为占位">STM32F103C8T6</a>
+                <div class="body-sm muted">ARM Cortex-M3 MCU, 64KB flash</div>
+                <div class="row mt-1" style="gap:4px"><span class="badge">RoHS</span></div>
+              </td>
+              <td class="hide-md" data-th="Brand">STMicroelectronics<div class="body-sm muted">LQFP-48</div></td>
+              <td data-th="Stock"><span class="dot dot-ok"></span> 38,900 <span class="body-sm muted">HK</span></td>
+              <td class="num" data-th="Price">1+ $1.92<div class="body-sm muted">100+ $1.55</div></td>
+              <td data-th="Action"><a class="btn btn-primary btn-xs" href="../inquiry/index.html">Request quote</a></td>
+            </tr>
+            <tr>
+              <td data-th="Part">
+                <a class="pn" href="#" data-mock="占位：非完整原型">DS9034PCX+</a>
+                <div class="body-sm muted">PowerCap battery cap for NV SRAM</div>
+                <div class="row mt-1" style="gap:4px"><span class="badge">RoHS</span><span class="badge badge-crit">EOL</span></div>
+              </td>
+              <td class="hide-md" data-th="Brand">Analog Devices<div class="body-sm muted">Module</div></td>
+              <td data-th="Stock"><span class="dot dot-warn"></span> 240 <span class="body-sm muted">HK</span></td>
+              <td class="num" data-th="Price">1+ $18.60<div class="body-sm muted">10+ $17.20</div></td>
+              <td data-th="Action"><a class="btn btn-primary btn-xs" href="../inquiry/index.html">Request quote</a></td>
+            </tr>
+            <tr>
+              <td data-th="Part">
+                <a class="pn" href="#" data-mock="占位：非完整原型">M4T32-BR12SH1</a>
+                <div class="body-sm muted">Serial RTC with embedded crystal</div>
+                <div class="row mt-1" style="gap:4px"><span class="badge">RoHS</span></div>
+              </td>
+              <td class="hide-md" data-th="Brand">STMicroelectronics<div class="body-sm muted">SNAPHAT</div></td>
+              <td data-th="Stock"><span class="dot dot-off"></span> 0 <span class="body-sm muted">backorder</span></td>
+              <td class="num" data-th="Price">—</td>
+              <td data-th="Action"><a class="btn btn-secondary btn-xs" href="../inquiry/index.html">Ask lead time</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="body-sm dim mt-2" data-mock="真实数据约束：全站 1,009 万商品，首页只展示极小子集">
+    全站 1,009 万商品详情页。首页表格为静态子集，真实列表需分页 + 服务端排序（见搜索页说明）。
+  </div>
+</section>
+
+<!-- ============================ 缺货与 EOL ============================ -->
+<section class="wrap" style="margin-top:24px">
+  <div class="card g-2">
+    <div>
+      <h2 class="h-sm mb-2">Shortage &amp; EOL sourcing</h2>
+      <p class="body-md muted" style="margin:0 0 12px">
+        We focus on the parts nobody else stocks. Send us the EOL list and we will return
+        cross-references with availability, or a pin-to-pin alternative flagged for engineering review.
+      </p>
+      <a class="btn btn-secondary btn-sm" href="../inquiry/index.html">Send EOL list</a>
+    </div>
+    <div>
+      <h2 class="h-sm mb-2">BOM in one pass</h2>
+      <p class="body-md muted" style="margin:0 0 12px">
+        Paste up to 50 lines. We match exact part numbers first, then report unmatched lines
+        instead of silently dropping them.
+      </p>
+      <a class="btn btn-secondary btn-sm" href="../inquiry/index.html">Open BOM tool</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ============================ 原型状态条 ============================ -->
+<div class="protostatus">
+  <div class="wrap">
+    <div class="label mb-2">Prototype status · home</div>
+    <table>
+      <tr><td>对应方案</td><td>技术方案 §4.2 页面信息架构（首屏三段式）、§4.5 询盘 CTA 布局；商务方案 §9.1 信息架构</td></tr>
+      <tr><td>实施阶段</td><td>Phase 1</td></tr>
+      <tr><td>已实现</td><td>顶部工具条、搜索中枢（Ctrl+K / 回车跳转）、主导航、首屏三段式与双 CTA、分类入口、现货密度表、缺货/EOL 入口、响应式断点</td></tr>
+      <tr><td>模拟</td><td>全部商品数据、库存数字、价格、分类 SKU 计数、品牌数、响应时效；搜索跳转仅传 q 参数，不做真实检索</td></tr>
+      <tr><td>待开发</td><td>Mega-Menu、收藏夹、购物车/询价篮合并、Help Center、币种与语种切换、个性化推荐（明确不做）</td></tr>
+      <tr><td>本轮修改</td><td>v1.0（2026-11-15）按 DESIGN.md「Precision Industrial」重建；替换旧蓝色体系；新增标注系统与状态条</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ============================ 原型标注浮层 ============================ -->
+<button class="proto-fab" type="button" aria-pressed="false"><span>原型标注 </span><span class="n">0</span></button>
+<div class="annot-legend">
+  <h4>标注图例（按 ? 或点按钮切换）</h4>
+  <dl>
+    <dt class="k-done">已实现</dt><dd>交互可点、状态可切，接近真实行为</dd>
+    <dt class="k-mock">模拟</dt><dd>虚线框元素为假数据 / 占位链接 / 伪提交，不可当真</dd>
+    <dt class="k-todo">待开发</dt><dd>本期不做或需后端配合，见页面底部状态条</dd>
+  </dl>
+  <div class="body-sm muted mt-3" style="border-top:1px solid var(--border);padding-top:8px">
+    视觉通过不代表前端代码、接口、性能与安全通过，四者分开判定。
+  </div>
+</div>
+
+<script src="../assets/proto.js"></script>
+</body>
+</html>
