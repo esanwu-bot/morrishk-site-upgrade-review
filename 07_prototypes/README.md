@@ -19,7 +19,7 @@
 | 搜索页 | `search/` | Phase 2 | 已提交（v1.5 已迁移到 Token） |
 | 询盘流程 | `inquiry/` | Phase 1 | 已提交（v1.5 已迁移到 Token） |
 | SEO 页面 | `seo/` | — | 第二轮提交（当前仅 README） |
-| 后台原型 | `admin/` | — | 第二轮提交（当前仅 README） |
+| 后台原型 | `admin/` | — | 已提交（29 菜单 + 43 动作覆盖矩阵） |
 
 ---
 
@@ -38,7 +38,11 @@
 ├── search/index.html            搜索页
 ├── inquiry/index.html           询盘流程
 ├── seo/README.md                第二轮提交说明
-├── admin/README.md              第二轮提交说明
+├── admin/README.md              后台原型入口（已交付）
+├── admin/index.html             ★ 本轮新增：统一管理运营中心 SPA（29 菜单）
+├── admin/prototype-readme.md    ★ 本轮新增：导航、交互、Mock 规则与设计决策
+├── admin/prototype-scope.md     ★ 本轮新增：旧后台 43 动作覆盖矩阵
+├── admin/screenshots/           ★ 本轮新增：22 张桌面 + 1 张平板截图
 ├── reference/                   ★ 本轮新增：竞品设计研究
 │   ├── lcsc_research.md         LCSC 五页设计研究（每页 7 项记录）
 │   └── lcsc_screenshots/
@@ -243,7 +247,7 @@ Reviewer 要求检查「HTML 中的假数据、占位链接、伪提交按钮是
 | 无图片资产 | 主图为占位块；老站 `ImgId` 资源不可用（T10） |
 | 无性能数据 | TTFB / LCP / CLS 为目标值，静态 HTML 无法验证 |
 | SEO 仅预览 | 详情页给出 canonical 与 JSON-LD 预览，未接真实输出链路 |
-| 后台未提交 | `admin/` 第二轮提交 |
+| 后台仅原型 | `admin/` 为 HTML 原型；权限、审计、发布、解析均未接后端 |
 | 移动端未真机验证 | 响应式断点已实现，未在真机验证触控热区与参数可读性 |
 | **移动端截图未重截** | v1.4 曾有 390px 截图，本轮因无头浏览器视口限制未重截，响应式行为**未验证** |
 | **暗色模式未设计** | `DESIGN.md` 第八节已声明；如需支持须重新映射整套语义 Token |

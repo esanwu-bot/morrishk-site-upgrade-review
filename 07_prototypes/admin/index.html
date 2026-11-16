@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Morrishk Intelligence · 统一管理运营中心</title>
+<meta name="description" content="Morrishk Intelligence 统一管理运营中心 — 商城运营、营销运营、Ds Bit 产品知识与数据分析后台原型（Demo）。">
+<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/proto.css">
+<link rel="stylesheet" href="assets/admin.css">
+</head>
+<body>
+<div class="skip"><a href="#view">跳到主内容</a></div>
+
+<div class="app">
+  <!-- ============================ 侧边栏 ============================ -->
+  <aside class="sidebar" id="sidebar" aria-label="主导航">
+    <a class="brand" href="#/dashboard" aria-label="Morrishk Intelligence 首页">
+      <span class="brand-mark">M</span>
+      <span class="brand-text">
+        <strong>Morrishk</strong>
+        <span>Intelligence</span>
+      </span>
+      <span class="brand-env" data-mock="Demo 环境标识">DEMO</span>
+    </a>
+
+    <div class="side-scroll">
+      <nav id="nav">
+        <div class="nav-group">
+          <div class="nav-title">工作台</div>
+          <a class="nav-item" href="#/dashboard" data-route="dashboard"><span class="ni" data-icon="grid"></span><span>经营概览</span></a>
+          <a class="nav-item" href="#/tasks" data-route="tasks"><span class="ni" data-icon="check-square"></span><span>待办任务</span><span class="nav-count" data-count="tasks">23</span></a>
+          <a class="nav-item" href="#/notices" data-route="notices"><span class="ni" data-icon="bell"></span><span>系统通知</span><span class="nav-count" data-count="notices">5</span></a>
+          <a class="nav-item" href="#/kpis" data-route="kpis"><span class="ni" data-icon="trend"></span><span>关键业务指标</span></a>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-title">商城运营</div>
+          <a class="nav-item" href="#/products" data-route="products"><span class="ni" data-icon="box"></span><span>商品管理</span></a>
+          <a class="nav-item" href="#/brands" data-route="brands"><span class="ni" data-icon="tag"></span><span>品牌管理</span></a>
+          <a class="nav-item" href="#/categories" data-route="categories"><span class="ni" data-icon="layers"></span><span>分类管理</span></a>
+          <a class="nav-item" href="#/inventory" data-route="inventory"><span class="ni" data-icon="warehouse"></span><span>库存与价格</span></a>
+          <a class="nav-item" href="#/product-detail" data-route="product-detail"><span class="ni" data-icon="file-text"></span><span>商品详情页管理</span></a>
+          <a class="nav-item" href="#/search-mgmt" data-route="search-mgmt"><span class="ni" data-icon="search"></span><span>搜索管理</span></a>
+          <a class="nav-item" href="#/inquiries" data-route="inquiries"><span class="ni" data-icon="inbox"></span><span>询盘管理</span><span class="nav-count" data-count="inquiries">8</span></a>
+          <a class="nav-item" href="#/site-basics" data-route="site-basics"><span class="ni" data-icon="settings"></span><span>网站基础管理</span></a>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-title">营销运营</div>
+          <a class="nav-item" href="#/marketing" data-route="marketing"><span class="ni" data-icon="megaphone"></span><span>营销总览</span></a>
+          <a class="nav-item" href="#/seo" data-route="seo"><span class="ni" data-icon="search"></span><span>SEO 管理</span></a>
+          <a class="nav-item" href="#/geo" data-route="geo"><span class="ni" data-icon="globe"></span><span>GEO 内容管理</span></a>
+          <a class="nav-item" href="#/content" data-route="content"><span class="ni" data-icon="folder"></span><span>内容资产库</span></a>
+          <a class="nav-item" href="#/social" data-route="social"><span class="ni" data-icon="share"></span><span>社媒账号管理</span></a>
+          <a class="nav-item" href="#/calendar" data-route="calendar"><span class="ni" data-icon="calendar"></span><span>社媒发布日历</span></a>
+          <a class="nav-item" href="#/video" data-route="video"><span class="ni" data-icon="video"></span><span>视频营销</span></a>
+          <a class="nav-item" href="#/campaigns" data-route="campaigns"><span class="ni" data-icon="target"></span><span>营销活动</span></a>
+          <a class="nav-item" href="#/analytics" data-route="analytics"><span class="ni" data-icon="chart"></span><span>数据分析</span></a>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-title">产品知识</div>
+          <a class="nav-item" href="#/dsbit" data-route="dsbit"><span class="ni" data-icon="chip"></span><span>Ds Bit 数据资产</span></a>
+          <a class="nav-item" href="#/datasheets" data-route="datasheets"><span class="ni" data-icon="file"></span><span>Datasheet 文档管理</span></a>
+          <a class="nav-item" href="#/param-review" data-route="param-review"><span class="ni" data-icon="shield-check"></span><span>产品参数审核</span><span class="nav-count warn" data-count="params">1,268</span></a>
+          <a class="nav-item" href="#/knowledge" data-route="knowledge"><span class="ni" data-icon="database"></span><span>产品知识库</span></a>
+          <a class="nav-item" href="#/knowledge-versions" data-route="knowledge-versions"><span class="ni" data-icon="history"></span><span>知识版本管理</span></a>
+          <a class="nav-item" href="#/tech-content" data-route="tech-content"><span class="ni" data-icon="sparkles"></span><span>技术内容生成</span></a>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-title">系统管理</div>
+          <a class="nav-item" href="#/users" data-route="users"><span class="ni" data-icon="users"></span><span>用户管理</span></a>
+          <a class="nav-item" href="#/roles" data-route="roles"><span class="ni" data-icon="key"></span><span>角色与权限</span></a>
+          <a class="nav-item" href="#/approvals" data-route="approvals"><span class="ni" data-icon="clipboard"></span><span>审批流程</span><span class="nav-count warn" data-count="approvals">6</span></a>
+          <a class="nav-item" href="#/audit" data-route="audit"><span class="ni" data-icon="list"></span><span>操作审计</span></a>
+          <a class="nav-item" href="#/settings" data-route="settings"><span class="ni" data-icon="sliders"></span><span>系统设置</span></a>
+        </div>
+      </nav>
+    </div>
+
+    <div class="side-foot">
+      <div class="sys-row"><span class="dot ok"></span><span>Ds Bit 引擎</span><b>运行中</b></div>
+      <div class="sys-row"><span class="dot ok"></span><span>内容发布队列</span><b>正常</b></div>
+      <div class="sys-row"><span class="dot warn"></span><span>GA4 连接</span><b>未连接</b></div>
+      <div class="side-note">Demo 环境 · 不写库 · 不调用真实接口</div>
+    </div>
+  </aside>
+
+  <!-- ============================ 主区域 ============================ -->
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn only-narrow" id="menuBtn" type="button" aria-label="打开导航" data-icon="menu"></button>
+      <div class="crumb" id="crumb">
+        <span class="crumb-root">Morrishk Intelligence</span>
+        <span class="crumb-sep">/</span>
+        <span id="crumbText">经营概览</span>
+      </div>
+
+      <div class="top-search" data-mock="全局搜索为 Demo，不发起真实查询">
+        <span data-icon="search" class="ts-ico"></span>
+        <input id="globalSearch" type="search" placeholder="搜索 MPN、内容、询盘单号… (Demo)" aria-label="全局搜索">
+        <span class="kbd">/</span>
+      </div>
+
+      <div class="top-actions">
+        <span class="env-chip"><span class="dot ok"></span>Demo 数据</span>
+        <button class="icon-btn" type="button" id="helpBtn" aria-label="原型说明" data-icon="help"></button>
+        <a class="icon-btn bell" href="#/notices" aria-label="系统通知" data-icon="bell"><span class="bell-dot">5</span></a>
+        <div class="user-wrap">
+          <button class="user-chip" type="button" id="userBtn" aria-haspopup="menu" aria-expanded="false">
+            <span class="avatar">陈</span>
+            <span class="user-meta"><b>陈立</b><small>管理员</small></span>
+            <span data-icon="chevron-down" class="chev"></span>
+          </button>
+          <div class="user-menu" id="userMenu" role="menu">
+            <a href="#/account" role="menuitem"><span data-icon="user"></span>个人账号</a>
+            <a href="#/roles" role="menuitem"><span data-icon="key"></span>角色与权限</a>
+            <button type="button" role="menuitem" data-toast="Demo：未连接真实登录系统"><span data-icon="logout"></span>退出登录</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main id="view" class="view" tabindex="-1"></main>
+  </div>
+</div>
+
+<!-- ============================ 抽屉 / 模态 / Toast ============================ -->
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true" aria-label="详情面板">
+  <div class="drawer-hd">
+    <div class="grow">
+      <div class="label" id="drawerKicker">详情</div>
+      <h2 class="h-md" id="drawerTitle">—</h2>
+      <div class="body-sm muted" id="drawerSub"></div>
+    </div>
+    <button class="icon-btn" type="button" id="drawerClose" aria-label="关闭" data-icon="x"></button>
+  </div>
+  <div class="drawer-bd" id="drawerBody"></div>
+  <div class="drawer-ft" id="drawerFoot"></div>
+</aside>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal-hd">
+    <h2 class="h-md" id="modalTitle">—</h2>
+    <button class="icon-btn" type="button" id="modalClose" aria-label="关闭" data-icon="x"></button>
+  </div>
+  <div class="modal-bd" id="modalBody"></div>
+  <div class="modal-ft" id="modalFoot"></div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<!-- 原型标注层（由 ../assets/proto.js 接管） -->
+<button class="proto-fab" type="button" aria-pressed="false"><span>原型标注 </span><span class="n">0</span></button>
+<div class="annot-legend">
+  <h4>标注图例（按 ? 或点按钮切换）</h4>
+  <dl>
+    <dt class="k-done">已实现</dt><dd>交互可点、状态可切</dd>
+    <dt class="k-mock">模拟</dt><dd>假数据 / 占位链接 / 伪提交</dd>
+    <dt class="k-todo">待开发</dt><dd>本期不做或需后端配合</dd>
+  </dl>
+</div>
+
+<script src="../assets/proto.js"></script>
+<script src="assets/ui.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/views-main.js"></script>
+<script src="assets/views-ops.js"></script>
+<script src="assets/views-knowledge.js"></script>
+<script src="assets/views-system.js"></script>
+<script src="assets/admin.js"></script>
+</body>
+</html>
