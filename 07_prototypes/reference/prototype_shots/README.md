@@ -59,7 +59,7 @@ python tools/pixel_diff.py \
   --a v1.4 --b v1.5.1 --out . --replace-dir
 ```
 
-回归用例见 `python tools/selftest.py`（46 项断言，含「目标已存在拒绝发布」「失败时整组证据字节不变」）。
+回归用例见 `python tools/selftest.py`（47 项断言，含「目标已存在拒绝发布」「失败时整组证据字节不变」「两次独立运行报告字节一致」）。
 
 ## 文件哈希（SHA-256）
 

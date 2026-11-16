@@ -13,7 +13,7 @@
   R2  check_tokens 的 style 属性扫描：双引号 / 单引号 / 跨行是否检出；
       HTML 注释与 <style> 块内的同名文本是否被遮蔽；<script> 内是否仍计入
   R3  pixel_diff 的集合校验：缺页、仅多页、缺页+多页、尺寸不符、正常；
-      以及失败时是否改动 --out 下运行前已存在的文件
+      失败时是否改动 --out 下运行前已存在的文件；报告是否字节级可复现
 
 退出码：0 = 全部通过；1 = 有失败项。
 """
@@ -243,6 +243,19 @@ def test_r3():
         check("R3", "成功后无 .prev 残留",
               not any(n.startswith("diff.prev") for n in os.listdir(out)),
               str(os.listdir(out)))
+
+        # 报告必须字节级可复现：两次独立运行（进程不同 -> 运行 ID 不同）产出应完全相同。
+        # 这条用来防「报告里写入运行 ID / 时间戳，导致每次重跑都留下工作区脏改动」。
+        out2 = os.path.join(base, "out2")
+        os.makedirs(out2)
+        rc2, _ = _run_pd(full, full, out2)
+        p1 = os.path.join(out, "PIXEL_DIFF.md")
+        p2 = os.path.join(out2, "PIXEL_DIFF.md")
+        same = False
+        if os.path.exists(p1) and os.path.exists(p2):
+            with io.open(p1, "rb") as f1, io.open(p2, "rb") as f2:
+                same = f1.read() == f2.read()
+        check("R3", "两次独立运行报告字节一致", rc2 == 0 and same, "rc=%d same=%s" % (rc2, same))
     finally:
         shutil.rmtree(base, ignore_errors=True)
 

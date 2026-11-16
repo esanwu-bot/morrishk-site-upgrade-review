@@ -83,7 +83,7 @@ git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git ref
 │   ├── check_tokens.py             Token 合规扫描 → 生成 07_prototypes/TOKEN_AUDIT.md
 │   ├── pixel_diff.py               同视口逐像素差分 → 生成 PIXEL_DIFF.md
 │   ├── css_value_diff.py           两版 CSS 逐条取值比对 → 生成 CSS_VALUE_DIFF.md
-│   └── selftest.py                 三个工具的回归自测（46 项断言，退出码 0/1）
+│   └── selftest.py                 三个工具的回归自测（47 项断言，退出码 0/1）
 └── 07_prototypes/                新版原型 + Design System（本轮 v1.5.3）
     ├── DESIGN.md                     ★ Morris Design System v1.0（唯一视觉权威）
     ├── README.md                     原型说明、标注系统、已知缺口
@@ -509,7 +509,7 @@ R3「仅多页」独立用例与失败清理范围、9.62% 的分子分母抽查
 剩余差异含内容变化与未被该模型解释的布局差异，不等同于纯内容差异」。9.62% 的定位改为
 **受限模型下的残余率上界**（前提：允许更灵活对齐时最小像素差异不会更高），不再称「下界」。
 
-**新增交付物**：`tools/selftest.py`，本次为 43 项断言（下一轮增至 46 项，见 8.8），一次运行覆盖 R1/R2/R3 的正向与负向路径，退出码 0/1。
+**新增交付物**：`tools/selftest.py`，本次为 43 项断言（下一轮增至 47 项，见 8.8），一次运行覆盖 R1/R2/R3 的正向与负向路径，退出码 0/1。
 
 **仍未关闭（需 reviewer 独立核验，不由本轮自我认证）**：R1/R2 可标记为已修复、R3 核心逻辑已修复；
 最终签署需 reviewer 实际核验 `e4994b5`…`本次提交` 的 diff、脚本全文与三份清单。
@@ -548,7 +548,7 @@ git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git ref
 | 目标必须预先不存在 + 目录级原子 rename | `diff/` 已存在时**默认拒绝并退出 6**；加 `--replace-dir` 才替换，旧目录先 rename 到 `diff.prev.<pid>`，新目录发布成功后才删除旧目录 |
 | 发布失败只删本次暂存，不清理历史 | 报告替换是提交点；它失败则新 `diff/` 删除、旧目录 rename 回原位。`finally` 只删本次 `.runs/<id>` |
 
-**回归断言（46 项，原 43 项 + 新增 3 项）**：
+**回归断言（47 项，原 43 项 + R3 新增 4 项）**：
 
 | 断言 | 结果 |
 |---|---|
@@ -556,12 +556,32 @@ git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git ref
 | 显式 `--replace-dir` → 退出 0，报告与图同时更新 | PASS |
 | 成功后无 `.runs` / `.prev` 残留 | PASS |
 | 尺寸不符失败 → 旧证据整组（3 文件）字节未变、不写报告、无残留 | PASS |
+| 两次独立运行（运行目录不同）→ `PIXEL_DIFF.md` 字节完全相同 | PASS |
 
 真实数据重跑：严格 2,179,447（11.642%）、补偿 1,797,945（9.623%）、
 5 张差异图 SHA-256 与改造前**完全一致**——说明发布模型重写没有改变任何产出内容。
 
 **本轮仍未做的事**：未替 reviewer 裁定视觉差异；未做分段位移补偿；未做对比度工具化扫描。
 R3 的「工具层可靠性」按本轮实现可以关闭，但**关闭与否由 reviewer 判定**，本方不自我认证。
+
+### 8.9 自查发现的两处「报告不可复现」缺陷（本轮一并修正）
+
+在为本轮出证做重跑时，发现两个原报告里没写、但 reviewer 按文档命令重跑就会撞上的问题。
+两处都属于**「报告声称可重跑，实际重跑会改工作区」**，方向与 R1–R3 同类，一并修。
+
+| 缺陷 | 现象 | 修正 |
+|---|---|---|
+| `check_tokens.py` 的 `--label` 默认值带结尾斜杠 | README 与脚本头部的重现命令是 `--path 07_prototypes/`，而 `--label` 默认 `07_prototypes/`（带斜杠）、仓库内报告写的是 `07_prototypes`（不带斜杠）。照文档命令重跑，`TOKEN_AUDIT.md` 必有 2 行 diff（重现命令 + 扫描根目录），工作区变脏 | 默认值改为不带斜杠的 `07_prototypes`，`--path` 带不带斜杠都产出同一份报告；已在仓库根按文档命令重跑验证 **0 行 diff** |
+| `pixel_diff.py` 把运行 ID 写进报告 | 报告「发布方式」一行原为 ``独立结果目录 `20261116-075304-63952` → …``。运行 ID 含时间戳与 pid，导致**每次重跑报告必然不同**，与「字节级可复现」冲突 | 运行 ID 只打印到 stdout，「发布方式」改为不含运行 ID 的描述；新增断言「两次独立运行报告字节一致」 |
+| `06_evidence/hashes/SHA256SUMS.txt` 生成顺序 | 根清单同时覆盖两份子清单，若先算根清单再算子清单，根清单里这两条的哈希是过期的（自校验会报 1 条 FAILED） | 改为**自底向上**生成：先 `prototype_shots` → 再 `07_prototypes` → 最后根清单；自校验 64 / 39 / 17 全部 OK |
+
+修正后自测从 46 项增至 **47 项**，`python tools/selftest.py` 输出「合计 47 项，通过 47，失败 0」。
+
+**关于版本一致性（回应「页面显示 4 commits / v1.2-review」）**：仓库同时被另一条独立工作流推送了
+`08_php84_compatibility/`（PHP 8.4 评估 v1.2.1，tag `php84-v1.2.1-review`）。两个送审包共用同一个
+`main`，因此本轮提交在该提交之上做了 rebase。结果是**本轮 SHA 与上一轮通报的 SHA 不同**，
+`v1.5.3-review` 指向 rebase 后的新提交。判断同一版本请以 `git ls-remote` 的 SHA 为准，
+不要依赖页面上的版本文字或提交计数。
 
 ## 九、版本与校验
 
@@ -602,7 +622,7 @@ python tools/css_value_diff.py \
   --tokens 07_prototypes/assets/tokens.css \
   --out /tmp/pd_check/CSS_VALUE_DIFF.md
 
-# 5c) 跑工具回归自测（46 项断言，含 R1 覆盖 / R2 边界 / R3 负向用例）
+# 5c) 跑工具回归自测（47 项断言，含 R1 覆盖 / R2 边界 / R3 负向用例与报告可复现性）
 python tools/selftest.py
 
 # 6) 查看本仓库全部提交与送审 tag

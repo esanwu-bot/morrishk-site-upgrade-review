@@ -325,8 +325,9 @@ def main(argv=None):
                     help="原型目录，默认 07_prototypes（相对当前工作目录）")
     ap.add_argument("--out", default=None,
                     help="报告输出路径，默认 <path>/TOKEN_AUDIT.md")
-    ap.add_argument("--label", default="07_prototypes/",
-                    help="报告中显示的送审路径（与 --path 解耦，保证本地与仓库产出一致）")
+    ap.add_argument("--label", default="07_prototypes",
+                    help="报告中显示的送审路径（与 --path 解耦，保证本地与仓库产出一致；"
+                         "默认值刻意不带结尾斜杠，使 --path 带不带斜杠都产出同一份报告）")
     args = ap.parse_args(argv)
 
     root = os.path.abspath(args.path)
