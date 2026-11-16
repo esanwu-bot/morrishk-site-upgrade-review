@@ -288,6 +288,8 @@ Reviewer 要求检查「HTML 中的假数据、占位链接、伪提交按钮是
 
 | **v1.5.6-prototype** | 2026-11-16 | **R3 收口：放弃验证后自动删除**。① `pixel_diff.py` 不再删除旧包——成功后旧包原样保留在 `<out>.prev`（稳定名，不再带 pid），`publish_bundle()` 返回该路径并打印 NOTICE；`<out>.prev` 已存在则拒绝并给出人工处理方式；② `bundle_problem()` / `verify_bundle()` 增加 `Image.format == "PNG"` 检查，JPEG 改名不再通过；③ R3-8 断言改为逐字节快照（原旧包与被放回的冒名目录都全等）；④ 自测 88 → **101 项**；⑤ 仓库新增 `.gitignore`（`*.prev/`），避免旧包留存污染 `git status`。**发布产物字节不变，设计取值与页面 HTML 零改动** |
 
+| **v1.5.7-prototype** | 2026-11-16 | **R3 最终收口：`os.mkdir` 独占占位**。① `pixel_diff.py` 的 `<out>.prev` 不再靠「先 `lexists` 再 `rename`」占位（POSIX 下 `rename(dir, 已存在的空目录)` 会成功，等于覆盖对方刚建的空目录），改为 **`os.mkdir(<out>.prev)`**：POSIX 与 Windows 上都是原子的「不存在才创建」，失败即拒绝；② 旧包落点随之细化为 **`<out>.prev/bundle`**（容器 → 包多一层，因为 `os.mkdir` 只能占住一层名字），`publish_bundle()` 返回值与 NOTICE 都指向包本体；③ 回滚路径用 `os.rmdir` 只删「自己刚建且已空」的容器，非空则失败，删不掉证据；④ 自测 101 → **113 项**，新增「空 `.prev` 被并发抢占」（对方目录仍在、仍为空、未发生 rename、源码不含 `lexists(prev)` 的源码级锁定）与「容器内 `bundle` 被抢占」（非空目录，两平台一致失败）。**发布产物字节不变，设计取值与页面 HTML 零改动** |
+
 ### 与旧原型的关系
 
 旧原型（`prototype/redesign/` 原 6 个页面，蓝色 `#0052CC` 体系）已归档到

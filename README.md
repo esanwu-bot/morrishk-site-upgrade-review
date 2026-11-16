@@ -12,10 +12,10 @@
 | 项目 | morrishk.net 老站升级（电子元器件 B2B 独立站） |
 | 仓库 | https://github.com/esanwu-bot/morrishk-site-upgrade-review |
 | Branch | `main` |
-| 送审版本 | tag **`v1.5.6-review`**（`v1.4-review` / `v1.5-review` / `v1.5.1-review` / `v1.5.2-review` / `v1.5.3-review` / `v1.5.4-review` / `v1.5.5-review` 保留未覆盖） |
+| 送审版本 | tag **`v1.5.7-review`**（`v1.4-review` / `v1.5-review` / `v1.5.1-review` / `v1.5.2-review` / `v1.5.3-review` / `v1.5.4-review` / `v1.5.5-review` / `v1.5.6-review` 保留未覆盖） |
 | 并行送审包 | **`08_php84_compatibility/`**（PHP 8.4 兼容性评估），独立工作流、各自冻结。**本文件不转述其版本号**——版本以该包 `README.md` 头部与远程 tag 系列 `php84-v1.2.x-review` 为准 |
 | 交付日期 | 2026-11-16 |
-| 文档版本 | 商务方案 客户版 v1.1（rev.3） ／ 技术方案 技术版 v1.2（rev.3） ／ **原型 v1.5.6-prototype** ／ **Design System v1.0** |
+| 文档版本 | 商务方案 客户版 v1.1（rev.3） ／ 技术方案 技术版 v1.2（rev.3） ／ **原型 v1.5.7-prototype** ／ **Design System v1.0** |
 | 数据基线 | 2024-11-30 导出，静态终态（不随线上变化） |
 | 签名状态 | 本仓库的 commit 与 tag **均未做 Git 签名**（unsigned / 非 GPG 验证）。可用于确认版本内容与父子关系，**不可**作为经过签名的发布物 |
 
@@ -37,7 +37,7 @@ git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git ref
 也可直接打开下列直链绕过仓库首页缓存：
 
 - 提交历史：https://github.com/esanwu-bot/morrishk-site-upgrade-review/commits/main
-- 标签 `v1.5.6-review`：https://github.com/esanwu-bot/morrishk-site-upgrade-review/releases/tag/v1.5.6-review
+- 标签 `v1.5.7-review`：https://github.com/esanwu-bot/morrishk-site-upgrade-review/releases/tag/v1.5.7-review
 
 若仓库首页显示的提交数或 README 版本文字与上述 SHA 不符，属于页面缓存，请以 `git ls-remote` 的结果为准。
 
@@ -86,7 +86,7 @@ git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git ref
 │   ├── check_tokens.py             Token 合规扫描 → 生成 07_prototypes/TOKEN_AUDIT.md
 │   ├── pixel_diff.py               同视口逐像素差分 → 生成 pixel_diff/ 结果目录（报告 + 差异图）
 │   ├── css_value_diff.py           两版 CSS 逐条取值比对 → 生成 CSS_VALUE_DIFF.md
-│   └── selftest.py                 三个工具的回归自测（101 项断言，退出码 0/1）
+│   └── selftest.py                 三个工具的回归自测（113 项断言，退出码 0/1）
 └── 07_prototypes/                新版原型 + Design System（本轮 v1.5.6）
     ├── DESIGN.md                     ★ Morris Design System v1.0（唯一视觉权威）
     ├── README.md                     原型说明、标注系统、已知缺口
@@ -567,7 +567,7 @@ v1.5.5 起改为「遇到即拒绝、提示人工处理」，见 8.11。本节�
 |---|---|
 | 目标已存在、未加 `--replace-dir` → 退出 6，且旧证据 3 个文件字节全未变 | PASS |
 | 显式 `--replace-dir` → 退出 0，报告与图同时更新 | PASS |
-| 成功后无 `.runs` / `.prev` 残留 | PASS |
+| 成功后无 `.runs` / `.prev` 残留（v1.5.7 起：容器 `<out>.prev` 保留，内含旧包 `bundle/`） | PASS |
 | 尺寸不符失败 → 旧证据整组（3 文件）字节未变、不写报告、无残留 | PASS |
 | 两次独立运行（运行目录不同）→ `PIXEL_DIFF.md` 字节完全相同 | PASS |
 
@@ -722,6 +722,63 @@ tag 不随 `main` 移动。核验请比对 tag 解引用目标，而不是「tag
 `rename` 覆盖（无内容可丢）；`--replace-dir` 是两次 `rename`，中间目标短暂缺失，崩溃留下
 `<out>.prev` 而目标缺失，属人工可恢复状态。
 
+> **本节路径表述已在 8.13 细化**：本节写的「旧包保留在 `<out>.prev`」在 v1.5.7 改为
+> 「容器 `<out>.prev` + 旧包本体 `<out>.prev/bundle`」，原因是 `lexists → rename` 不原子，
+> 需要一个独占占位的中间层。8.12 的结论（放弃删除权）不变。
+
+### 8.13 R3 最终收口：用 `os.mkdir` 独占占位，关闭 out → prev 的竞态（v1.5.7）
+
+第四轮复核（针对 v1.5.6）确认「放弃自动删除」方向正确，同时指出**残留一处竞态**，成立：
+
+```python
+if os.path.lexists(prev):        # ← 检查
+    raise PublishError(...)
+os.rename(out_dir, prev)         # ← 执行，两步之间不原子
+```
+
+POSIX 下 `rename(dir, 已存在的空目录)` 会**成功**（用 `dir` 覆盖那个空目录）。因此「`.prev` 存在即拒绝、
+绝不覆盖」这条承诺在这两步之间并不成立：对方恰好在窗口内建了一个空 `.prev`，它会被静默替换掉。
+评审明确**不接受**「rename 前再 `lexists` 一次」——那只是把窗口缩小，不是消除。
+
+**处置**（不重做发布架构）：
+
+| 项 | v1.5.6 | v1.5.7 |
+|---|---|---|
+| `.prev` 的占位方式 | `lexists` 预检查 + `rename(out, prev)` | **`os.mkdir(prev)`**——POSIX 与 Windows 上都是原子的「不存在才创建」，失败即被占用 |
+| 拒绝的依据 | 预检查的返回值（可过期） | mkdir 的 `FileExistsError`（内核保证） |
+| 旧包落点 | `<out>.prev`（容器即包） | `<out>.prev/bundle`（容器 → 包，多一层） |
+| 空目录会不会被覆盖 | **会**（POSIX） | **不会**（mkdir 先占住，对方再建必失败） |
+| `publish_bundle()` 返回值 | `<out>.prev` | `<out>.prev/bundle`（人工清理时路径直达） |
+
+之所以多一层 `bundle`：`os.mkdir` 只能占住**一层**名字。占住 `<out>.prev` 之后，旧包必须落到它的**子路径**
+`<out>.prev/bundle`——该子路径随容器一起被本进程独占，不存在可被覆盖的对象。
+
+**新增测试（113 项，原 101 项）**：
+
+| 场景 | 断言 |
+|---|---|
+| R3-13：调用前 `<out>.prev` 已在（模拟并发抢占，且是**空目录**） | 退出 6；对方空目录**仍在且仍为空**；`os.rename` 调用记录里**没有** `.prev`（占位不靠 rename 完成）；旧包逐字节未变；staging 未丢 |
+| R3-13（源码级锁定） | `publish_bundle` 体内存在 `os.mkdir(prev)`，**不存在** `lexists(prev)`——防止日后退回预检查写法 |
+| R3-14：mkdir 占位成功后、旧包 rename 前，容器内被塞入**非空** `bundle` | 退出 6；第三方 `bundle` 内容逐字节未变；旧包仍在 `out`；非空容器**未被 `rmdir` 误删** |
+| 所有 v1.5.6 断言 | 路径从 `<out>.prev` 改为 `<out>.prev/bundle`，其余判据不变 |
+
+> R3-14 特意用**非空** `bundle`：空目录在 POSIX 上会被 `rename` 覆盖，用它做断言会在 Linux 上翻转；
+> 非空目录在 POSIX（`ENOTEMPTY`）与 Windows（`ERROR_ALREADY_EXISTS`）上都失败，断言跨平台稳定。
+
+**两条 rename 路径的并发边界不同，不要混用**（已写入 `pixel_diff.py` docstring 第 8 条）：
+
+| 动作 | 边界 |
+|---|---|
+| 发布到 `<out>` | 靠「目标不存在时 rename 本身即检查」。目标被并发建成**空目录**时 POSIX 允许覆盖（无内容可丢），Windows 失败。要连空目录也拒绝需 `renameat2(RENAME_NOREPLACE)`，仅 Linux 可用，本项目不引入平台分支 |
+| 停放到 `<out>.prev` | 靠 `os.mkdir` 独占占位，**空目录也不会被覆盖** |
+
+**本工具仍会删除两类目录**（评审要求准确区分，勿表述为「脚本完全没有删除操作」）：
+
+1. 本次运行的 staging 目录（名字唯一、本次自建）；
+2. 失败回滚后**自己刚建且已空**的 `<out>.prev` 容器（`os.rmdir`，非空则失败，因此删不掉证据）。
+
+成功路径**不删除任何目录**——旧包原样停在 `<out>.prev/bundle`。
+
 ## 九、版本与校验
 
 **文件数量口径**（四个数字含义不同，勿混用）：
@@ -732,7 +789,7 @@ tag 不随 `main` 移动。核验请比对 tag 解引用目标，而不是「tag
 | 根清单 `06_evidence/hashes/SHA256SUMS.txt` 覆盖数 | **65** | 除自身以外的全部文件 |
 | `07_prototypes/SHA256SUMS.txt` 覆盖数 | **39** | 该目录内除自身以外的全部文件（含 `reference/prototype_shots/`） |
 | `07_prototypes/` 文件总数 | **40** | 39 个交付文件 + 1 个哈希清单 |
-| `reference/prototype_shots/SHA256SUMS.txt` 覆盖数 | **17** | 截图、差分证据与 `pixel_diff/` 内的报告和差异图，独立成清单 |
+| `reference/prototype_shots/SHA256SUMS.txt` 覆盖数 | **17** | 截图、差分证据与 `pixel_diff/` 内的报告和差异图，独立成清单。该层**只覆盖证据文件**，不含同目录的 `README.md`——说明文档随叙述更新，其完整性由上层 `07_prototypes/SHA256SUMS.txt` 覆盖 |
 
 ```bash
 # 1) 校验全仓库（在仓库根目录，应输出 65 行 OK）
@@ -762,7 +819,7 @@ python tools/css_value_diff.py \
   --tokens 07_prototypes/assets/tokens.css \
   --out /tmp/pd_check/CSS_VALUE_DIFF.md
 
-# 5c) 跑工具回归自测（101 项断言，含 R1 覆盖 / R2 边界 / R3 负向用例、并发与回滚故障注入、报告可复现性）
+# 5c) 跑工具回归自测（113 项断言，含 R1 覆盖 / R2 边界 / R3 负向用例、并发与回滚故障注入、报告可复现性）
 python tools/selftest.py
 
 # 6) 查看本仓库全部提交与送审 tag
@@ -772,8 +829,8 @@ git tag -n
 
 **三个脚本都有非零退出码，可直接接 CI**：`check_tokens.py` 有 FAIL 退出 1；
 `pixel_diff.py` —— 集合不一致 3、尺寸不符或差分失败 4、完成页数不足 5、
-**发布目标已存在 / 目标不是完整有效结果包 / 既有 `<out>.prev` 未人工处理 / 发布瞬间被抢占 /
-替换中被调换 6**、**产物校验失败、发布失败已回滚、回滚本身失败 7**；
+**发布目标已存在 / 目标不是完整有效结果包 / 既有 `<out>.prev` 未人工处理（含并发抢占，
+`os.mkdir` 占位失败）/ 发布瞬间被抢占 / 替换中被调换 6**、**产物校验失败、发布失败已回滚、回滚本身失败 7**；
 `css_value_diff.py` 分类合计与真实变更数不一致退出 3。「脚本跑完没报错」不等于「通过」，
 必须同时看退出码与报告里的判定行。
 

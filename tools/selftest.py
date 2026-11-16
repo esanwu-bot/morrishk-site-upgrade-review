@@ -305,7 +305,7 @@ def test_r3():
         check("R3", "额外内容未被搬走", set(fbefore) == set(fafter) and fbefore == fafter,
               "%d 个文件" % len(fafter))
 
-        # 显式 --replace-dir 才替换；成功后旧包**保留**在 .prev（本工具不删证据）
+        # 显式 --replace-dir 才替换；成功后旧包**保留**在 .prev/bundle（本工具不删证据）
         rc, log = _run_pd(full, full, out, replace=True)
         check("R3", "显式 --replace-dir -> 退出 0", rc == 0, "rc=%d" % rc)
         after_ok = _snapshot(out)
@@ -313,10 +313,14 @@ def test_r3():
               "PIXEL_DIFF.md" in after_ok and
               all(k.startswith("diff") for k in after_ok if k != "PIXEL_DIFF.md"),
               "%d 个文件" % len(after_ok))
-        out_prev = out + ".prev"
-        check("R3", "成功后旧包保留在 .prev", os.path.isdir(out_prev), str(os.listdir(base)))
-        check("R3", "保留的 .prev 即原旧包（字节一致）", _snapshot(out_prev) == before,
+        out_box = out + ".prev"           # 容器（本工具用 os.mkdir 独占创建）
+        out_prev = os.path.join(out_box, "bundle")  # 旧包本体
+        check("R3", "成功后旧包保留在 .prev/bundle", os.path.isdir(out_prev),
+              str(os.listdir(base)))
+        check("R3", "保留的旧包即原旧包（字节一致）", _snapshot(out_prev) == before,
               "%d 个文件" % len(_snapshot(out_prev)))
+        check("R3", "NOTICE 把旧包路径指到 .prev/bundle（不是容器）",
+              out_prev in log, (log.strip().splitlines()[-1][:70] if log.strip() else "无输出"))
         check("R3", "成功后无 .staging 残留", _staging_leftovers(base) == [],
               str(_staging_leftovers(base)))
 
@@ -408,16 +412,17 @@ def test_r3():
                 pd.publish_bundle(ok_out, st3, True)
             except pd.RollbackError as exc:
                 err4[0] = exc
-        prev = ok_out + ".prev"
+        prev = os.path.join(ok_out + ".prev", "bundle")
         check("R3", "R3-4 回滚失败 -> RollbackError", isinstance(err4[0], pd.RollbackError),
               "%r" % err4[0])
-        check("R3", "R3-4 旧整组完好保留在 prev",
+        check("R3", "R3-4 旧整组完好保留在 prev/bundle",
               _snapshot(prev) == obefore, "%d 个文件" % len(_snapshot(prev)))
         check("R3", "R3-4 错误消息给出 prev 路径",
               bool(err4[0]) and prev in str(err4[0]),
-              (str(err4[0])[:50] if err4[0] else "无"))
+              (str(err4[0])[:60] if err4[0] else "无"))
         check("R3", "R3-4 回滚失败时目标未被误建", not os.path.exists(ok_out))
         os.rename(prev, ok_out)  # 手工恢复，避免影响后续用例
+        os.rmdir(ok_out + ".prev")  # 容器已空
 
         # R3-5：整组一次 rename —— 目标只被 rename 一次，且不存在单文件提交点
         solo = os.path.join(base, "solo")
@@ -493,7 +498,7 @@ def test_r3():
         hijacked = os.path.join(base, "hijacked_away")
 
         def swap_target(src, dst):
-            if dst.endswith(".prev"):
+            if os.path.basename(dst) == "bundle":
                 # 「检查之后、rename 之前」把 out_dir 换成另一个目录
                 os.rename(swap_out, hijacked)
                 _mk(swap_out, {"IMPOSTOR.txt": b"not ours\n"})
@@ -535,10 +540,10 @@ def test_r3():
                 pd.publish_bundle(rb_out, st_rb, True)
             except pd.RollbackError as exc:
                 err9[0] = exc
-        rb_prev = rb_out + ".prev"
+        rb_prev = os.path.join(rb_out + ".prev", "bundle")
         check("R3", "R3-9 回滚时目标被抢占 -> RollbackError",
               isinstance(err9[0], pd.RollbackError), "%r" % err9[0])
-        check("R3", "R3-9 旧包完好保留在 prev", _snapshot(rb_prev) == rb_before,
+        check("R3", "R3-9 旧包完好保留在 prev/bundle", _snapshot(rb_prev) == rb_before,
               "%d 个文件" % len(_snapshot(rb_prev)))
         check("R3", "R3-9 抢占者内容未被删除",
               os.path.exists(os.path.join(rb_out, "OTHER.txt")), str(os.listdir(rb_out)))
@@ -560,12 +565,14 @@ def test_r3():
             ret = pd.publish_bundle(keep_out, st_keep, True)
         finally:
             shutil.rmtree = real_rmtree
-        keep_prev = keep_out + ".prev"
-        check("R3", "R3-10 返回保留的旧包路径",
+        keep_box = keep_out + ".prev"
+        keep_prev = os.path.join(keep_box, "bundle")
+        check("R3", "R3-10 返回值指向旧包本体 .prev/bundle",
               isinstance(ret, tuple) and ret[1] == keep_prev, "%r" % (ret,))
-        check("R3", "R3-10 成功后旧包原样保留在 .prev",
+        check("R3", "R3-10 成功后旧包原样保留在 .prev/bundle",
               _snapshot(keep_prev) == keep_before, "%d 个文件" % len(_snapshot(keep_prev)))
-        check("R3", "R3-10 本进程从未 rmtree(.prev)",
+        check("R3", "R3-10 本进程从未 rmtree(容器/.prev/bundle)",
+              os.path.abspath(keep_box) not in removed and
               os.path.abspath(keep_prev) not in removed, str(removed))
         check("R3", "R3-10 新包已就位且通过完整校验",
               pd.bundle_problem(keep_out) is None, str(pd.bundle_problem(keep_out)))
@@ -603,10 +610,91 @@ def test_r3():
               _snapshot(swamp_prev) == {"IMPOSTOR2.txt": b"impostor\n"},
               "%d 个文件" % len(_snapshot(swamp_prev)))
         check("R3", "R3-12 原旧包仍在第三方改名处且字节未变",
-              _snapshot(swamp_prev + ".hijacked") == swamp_seed_before,
-              "%d 个文件" % len(_snapshot(swamp_prev + ".hijacked")))
+              _snapshot(os.path.join(swamp_prev + ".hijacked", "bundle")) == swamp_seed_before,
+              "%d 个文件" % len(_snapshot(os.path.join(swamp_prev + ".hijacked", "bundle"))))
         check("R3", "R3-12 新包已就位",
               pd.bundle_problem(swamp) is None, str(pd.bundle_problem(swamp)))
+
+        # ---------------- 第五轮定向故障注入：out -> prev 的独占占位 ----------------
+
+        # R3-13：`<out>.prev` 被并发抢占成**空目录**。
+        # 旧实现是「lexists(prev) 预检查 → rename(out, prev)」，两步之间不原子；
+        # POSIX 下 rename(dir, 已存在的空目录) 会成功，等于覆盖对方刚建的空目录。
+        # 现在的实现靠 os.mkdir(prev) 独占占位，对方先建成空目录同样被拒绝。
+        occ_out = os.path.join(base, "occ_out")
+        os.rename(_make_staging(base, "occ_seed"), occ_out)
+        occ_before = _snapshot(occ_out)
+        occ_box = occ_out + ".prev"
+        os.makedirs(occ_box)  # 第三方抢先建成**空**目录
+        st_occ = _make_staging(base, "occ_new")
+        renamed_to = []
+
+        def watch_rename(src, dst):
+            renamed_to.append(os.path.abspath(dst))
+            return real_rename(src, dst)
+
+        err13 = [None]
+        with patched_rename(watch_rename) as real_rename:
+            try:
+                pd.publish_bundle(occ_out, st_occ, True)
+            except pd.PublishError as exc:
+                err13[0] = exc
+        check("R3", "R3-13 空 .prev 被并发抢占 -> PublishError（退出 6）",
+              isinstance(err13[0], pd.PublishError), "%r" % err13[0])
+        check("R3", "R3-13 对方空 .prev 仍在且仍为空（未被覆盖、未被删除）",
+              os.path.isdir(occ_box) and os.listdir(occ_box) == [],
+              str(os.listdir(occ_box)) if os.path.isdir(occ_box) else "目录已消失")
+        check("R3", "R3-13 未对 .prev 发起任何 rename（占位不靠 rename 完成）",
+              os.path.abspath(occ_box) not in renamed_to, str(renamed_to))
+        check("R3", "R3-13 旧包未被改动", _snapshot(occ_out) == occ_before,
+              "%d 个文件" % len(_snapshot(occ_out)))
+        check("R3", "R3-13 本次 staging 未丢（仍可由调用方清理）",
+              os.path.exists(os.path.join(st_occ, "PIXEL_DIFF.md")))
+
+        # 源码级锁定：占位必须是 os.mkdir，不得退回「先 lexists 再 rename」
+        src_pub = io.open(os.path.join(HERE, "pixel_diff.py"), encoding="utf-8").read()
+        pub_start = src_pub.index("def publish_bundle(")
+        pub_end = src_pub.index("\ndef main(", pub_start)
+        pub_body = src_pub[pub_start:pub_end]
+        check("R3", "R3-13 源码用 os.mkdir(prev) 独占占位",
+              "os.mkdir(prev)" in pub_body,
+              "出现 %d 次" % pub_body.count("os.mkdir(prev)"))
+        check("R3", "R3-13 源码已无 lexists(prev) 预检查",
+              "lexists(prev)" not in pub_body,
+              "出现 %d 次" % pub_body.count("lexists(prev)"))
+
+        # R3-14：mkdir 独占占位之后、旧包 rename 之前，容器内被塞入**非空** bundle。
+        # 目标已存在且非空 -> POSIX ENOTEMPTY / Windows OSError，两平台一致失败，
+        # 因此不会被「rename 到空目录也成功」这条边界掩盖。
+        sat_out = os.path.join(base, "sat_out")
+        os.rename(_make_staging(base, "sat_seed"), sat_out)
+        sat_before = _snapshot(sat_out)
+        sat_box = sat_out + ".prev"
+        sat_intruder = os.path.join(sat_box, "bundle")
+        st_sat = _make_staging(base, "sat_new")
+        injected = {"done": False}
+
+        def inject_intruder(src, dst):
+            if not injected["done"] and os.path.basename(dst) == "bundle":
+                injected["done"] = True
+                _mk(sat_intruder, {"INTRUDER.txt": b"someone else\n"})
+            return real_rename(src, dst)
+
+        err14 = [None]
+        with patched_rename(inject_intruder) as real_rename:
+            try:
+                pd.publish_bundle(sat_out, st_sat, True)
+            except pd.PublishError as exc:
+                err14[0] = exc
+        check("R3", "R3-14 容器内 bundle 被抢占 -> PublishError（退出 6）",
+              isinstance(err14[0], pd.PublishError), "%r" % err14[0])
+        check("R3", "R3-14 第三方 bundle 内容未被覆盖",
+              _snapshot(sat_intruder) == {"INTRUDER.txt": b"someone else\n"},
+              "%d 个文件" % len(_snapshot(sat_intruder)))
+        check("R3", "R3-14 旧包未被改动（仍在 out）", _snapshot(sat_out) == sat_before,
+              "%d 个文件" % len(_snapshot(sat_out)))
+        check("R3", "R3-14 非空容器未被 rmdir 误删",
+              os.path.isdir(sat_box), "容器已消失" if not os.path.isdir(sat_box) else "仍在")
     finally:
         shutil.rmtree(base, ignore_errors=True)
 

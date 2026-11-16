@@ -41,21 +41,32 @@
      只有图、`diff` 是普通文件、报告为空、JPEG 冒充 .png、diff 里有杂项，
      一律拒绝（退出 6）——校验不通过就不该被任何后续动作「处理」。
   5. 校验通过后默认仍拒绝并退出 6；加 `--replace-dir` 才替换。替换路径：
-       a. 旧包被整组 rename 到 **`<out>.prev`（稳定名字，不带 pid）**；
-       b. 移走后**复核身份**：设备号 + inode 必须与校验时一致，且 prev 要再过一次
+       a. **用 `os.mkdir(<out>.prev)` 独占占位**（POSIX 与 Windows 上都是原子的
+          「不存在才创建」），失败即说明该路径已被占用 → 拒绝，不覆盖、不删除。
+          这一步刻意不用「先 `lexists` 再 `rename`」：那种写法在 POSIX 下
+          `rename(dir, 已存在的空目录)` 会成功，等于覆盖对方刚建的空目录；
+       b. 旧包整组 rename 到容器内的 `<out>.prev/bundle`（该子路径刚随容器一起
+          被本进程占用，因此不存在覆盖对象）；
+       c. 移走后**复核身份**：设备号 + inode 必须与校验时一致，且要再过一次
           `bundle_problem()`。若在「校验」与「rename」之间被其他进程调换，
-          就把移走的目录改名回原位并拒绝；
-       c. 新目录 rename 就位。
-       d. **本工具不删除旧包**：成功发布后 `<out>.prev` 原样保留，由人确认后自行清理。
-          理由见下（为什么不做「验证后再删」）。
-  6. **为什么旧包不做自动删除**：`bundle_problem()` 与 `_rmtree()` 之间，`prev` 路径
-     对应的对象可以被其他进程改名、替换，甚至目录内文件被改写；`st_dev + st_ino`
-     只能证明目录身份，证明不了内容在验证后未变，也防不住「检查之后、删除之前」的
-     调换。在删除前再加一次 lstat / 校验，仍然是同一个 TOCTOU 结构。
-     因此本工具**放弃删除权**：它只把旧包停在 `<out>.prev`，是否丢弃由人决定。
-     若 `<out>.prev` 已存在，则拒绝发布并给出处理方式（不自动清理，也不覆盖它）。
-     这样「删除只作用于被验证过的目录」不再是承诺，而是**没有删除动作**。
-  7. 任何失败只删除本次 staging 目录（名字唯一、属本次运行自建，不承载历史证据）。
+          就把它改名回原位并拒绝；
+       d. 新目录 rename 就位；
+       e. **本工具不删除旧包**：成功后 `<out>.prev/bundle` 原样保留，
+          由人确认后自行清理。理由见下。
+  6. **为什么旧包不做自动删除**：`bundle_problem()` 与删除之间，`prev` 路径对应的
+     对象可以被其他进程改名、替换，甚至目录内文件被改写；`st_dev + st_ino` 只能
+     证明目录身份，证明不了内容在验证后未变，也防不住「检查之后、删除之前」的调换。
+     在删除前再加一次 lstat / 校验，仍然是同一个 TOCTOU 结构。
+     因此本工具**放弃删除权**：它只把旧包停在 `<out>.prev/bundle`，是否丢弃由人决定。
+     这样「删除只作用于被验证过的目录」不再是承诺，而是**没有删除旧包的动作**。
+  7. 本工具仍会删除两类目录，均不承载历史证据：
+       (a) 本次运行的 staging 目录（名字唯一、本次自建）；
+       (b) 失败回滚后**自己刚建、且已空**的 `<out>.prev` 容器（用 `os.rmdir`，
+           非空则失败，不会误删）。成功路径不删除任何目录。
+  8. 两条 rename 路径的并发边界不同，不要混用：
+       - 发布到 `<out>`：靠「目标不存在时 rename 即检查」，目标被并发建成**空目录**
+         时 POSIX 允许覆盖（无内容可丢），Windows 上失败；
+       - 停放到 `<out>.prev`：靠 `os.mkdir` 独占占位，**空目录也不会被覆盖**。
 
 退出码：
   0 = 集合一致、尺寸一致、全部页面完成差分、发布成功
@@ -64,7 +75,7 @@
   4 = 尺寸不一致或单页差分失败（此时不发布）
   5 = 完成页数少于页面集合（此时不发布）
   6 = 发布前置条件不满足：目标已存在且未加 --replace-dir / 目标不是完整有效的本工具结果包 /
-      既有 `<out>.prev` 未被人工处理 / 发布瞬间被其他进程抢占 / 替换过程中目标被调换
+      `<out>.prev` 已被占用（含并发抢占）/ 发布瞬间被其他进程抢占 / 替换过程中目标被调换
   7 = 产物校验失败、发布失败已回滚、或回滚本身失败（消息会给出 prev 目录路径）
 """
 from __future__ import annotations
@@ -328,6 +339,15 @@ def _rmtree(path):
     shutil.rmtree(path, ignore_errors=True)
 
 
+def _rmdir_quiet(path):
+    """只删「空目录」。非空时 OSError 被吞掉——用于清理本进程刚建、尚未放入内容的容器，
+    因此不存在误删证据的可能（非空则删不掉）。"""
+    try:
+        os.rmdir(path)
+    except OSError:
+        pass
+
+
 def _restore(prev, out_dir):
     """把移开的旧目录改回原位；自身失败时抛 RollbackError 并保留 prev。"""
     try:
@@ -361,9 +381,11 @@ def publish_bundle(out_dir, staging_dir, replace_dir):
          仍是同一个 TOCTOU 结构。放弃删除权后，「删除只作用于被验证过的目录」
          不再是承诺问题——本函数没有删除旧包的动作。
 
-    返回 `(out_dir, prev_or_None)`；`prev_or_None` 是保留下来的旧包路径（如有）。
+    返回 `(out_dir, kept_prev_or_None)`；`kept_prev_or_None` 是保留下来的**旧包本体**
+    路径（形如 `<out>.prev/bundle`，而不是容器 `<out>.prev`），供调用方提示人工清理。
     """
     prev = None
+    prev_bundle = None
     if os.path.lexists(out_dir):
         problem = bundle_problem(out_dir)
         if problem:
@@ -377,26 +399,43 @@ def publish_bundle(out_dir, staging_dir, replace_dir):
                 "发布目标已存在且是完整结果包：%s\n"
                 "  整组发布不覆盖已有证据，默认拒绝。确认要替换请加 --replace-dir。" % out_dir)
 
-        prev = out_dir + ".prev"  # 稳定名字：不用 pid，便于人发现与清理
-        if os.path.lexists(prev):
+        # 独占占位：os.mkdir 在 POSIX 与 Windows 上都是原子的「不存在才创建」，
+        # 因此「.prev 已存在」由 mkdir 失败来判定，不再依赖 lexists 预检查
+        # （lexists → rename 之间存在窗口，POSIX 下 rename 会覆盖空目录）。
+        prev = out_dir + ".prev"
+        try:
+            os.mkdir(prev)
+        except FileExistsError:
             raise PublishError(
-                "上一次替换保留的旧包仍在，拒绝覆盖或删除：%s\n"
+                "上一次替换保留的旧包仍占着这个路径，拒绝覆盖或删除：%s\n"
                 "  本工具不删除旧证据，也不覆盖它。请先确认该目录内容，再自行处理：\n"
                 "    mv \"%s\" \"%s.discard.$(date +%%Y%%m%%d%%H%%M%%S)\"\n"
                 "  或确认可丢弃后删除它，然后重新运行。" % (prev, prev, prev))
+        except OSError as exc:
+            raise PublishError(
+                "无法创建旧包保留目录：%s\n  原因：%s" % (prev, exc))
 
+        prev_bundle = os.path.join(prev, "bundle")
         ident_before = _ident(out_dir)
-        os.rename(out_dir, prev)  # 旧整组移开（改名本身即「prev 必须不存在」的检查）
-        swapped = _ident(prev) != ident_before or bundle_problem(prev) is not None
+        try:
+            os.rename(out_dir, prev_bundle)  # 移进刚独占创建的容器
+        except OSError as exc:
+            _rmdir_quiet(prev)  # 只删本进程刚建的空容器，非空时失败
+            raise PublishError(
+                "旧结果包移动到 %s 失败：%s\n  发布未进行，%s 未被改动。"
+                % (prev_bundle, exc, out_dir))
+
+        swapped = _ident(prev_bundle) != ident_before or bundle_problem(prev_bundle) is not None
         if swapped:
             # 移走的不是刚验证过的那个目录：把它放回去，拒绝发布，不删除任何内容
             try:
-                os.rename(prev, out_dir)
+                os.rename(prev_bundle, out_dir)
             except OSError as exc:
                 raise RollbackError(
                     "替换过程中目标目录被其他进程调换，且把当前内容放回原位也失败。\n"
                     "  内容仍完整保留在：%s\n"
-                    "  恢复命令：mv \"%s\" \"%s\"" % (prev, prev, out_dir)) from exc
+                    "  恢复命令：mv \"%s\" \"%s\"" % (prev_bundle, prev_bundle, out_dir)) from exc
+            _rmdir_quiet(prev)
             raise PublishError(
                 "替换过程中目标目录被其他进程调换：%s\n"
                 "  已将当时移走的目录放回原位并拒绝发布，未删除任何内容。\n"
@@ -406,7 +445,8 @@ def publish_bundle(out_dir, staging_dir, replace_dir):
         os.rename(staging_dir, out_dir)  # 对目标的唯一一次 rename
     except OSError:
         if prev:
-            _restore(prev, out_dir)  # 回滚：旧包改回原位
+            _restore(prev_bundle, out_dir)  # 回滚：旧包改回原位
+            _rmdir_quiet(prev)              # 容器此时应为空，删掉不留残骸
             raise
         if os.path.lexists(out_dir):
             raise PublishError(
@@ -415,7 +455,8 @@ def publish_bundle(out_dir, staging_dir, replace_dir):
         raise
 
     # 注意：此处**不做** _rmtree(prev)。旧包原样保留，由人决定何时清理。
-    return out_dir, prev
+    # 返回旧包本体（<out>.prev/bundle）而不是容器，便于人工 mv/删除时路径直达。
+    return out_dir, prev_bundle
 
 
 
@@ -661,9 +702,12 @@ def main(argv=None):
         print("pages=%d  strict=%s  set_check=PASS  size_check=PASS  publish=PASS" %
               (len(results), format(ts, ",")))
         if kept_prev:
+            keep_box = os.path.dirname(kept_prev)
             print("NOTICE: 旧结果包已原样保留在 %s" % kept_prev)
             print("        本工具不删除旧证据（验证与删除之间无法排除第三方替换）。")
             print("        确认后可自行处理：mv \"%s\" \"%s.discard\"" % (kept_prev, kept_prev))
+            print("        移走后容器 %s 变空，可 rmdir 删除；"
+                  "容器非空时下一次替换会被拒绝（不会覆盖）。" % keep_box)
         return 0
     except RollbackError as exc:
         sys.stderr.write("ERROR: %s\n" % exc)
