@@ -308,27 +308,51 @@
     });
   }
 
+  /* 发布资格统一判断：fail closed。残缺、未知模式、来源或版本不匹配一律拒绝。
+     同时挂到 window 供原型自检与 Reviewer 复算（纯函数，不读写页面状态）。 */
   function contentRelease(c) {
-    var rel = c.release || null;
+    function filled(v) { return typeof v === 'string' && v.trim() !== ''; }
+    function deny(basis) { return { ok: false, qual: '未获发布授权', basis: basis }; }
+    if (!c || typeof c !== 'object') return deny('内容不存在，默认拒绝发布。');
+    var rel = c.release;
+    if (c.origin !== 'manual' && c.origin !== 'dsbit') {
+      return deny('未知内容来源（' + String(c.origin || '空') + '），默认拒绝发布。');
+    }
+    if (!rel || typeof rel !== 'object') {
+      return deny('没有发布授权记录，不能发布。');
+    }
+    if (c.review !== 'Approved') {
+      return deny('当前内容版本尚未审核通过，不能发布。');
+    }
     if (c.origin === 'manual') {
-      var manualOk = !!rel && rel.mode === 'manual';
+      if (rel.mode !== 'manual') return deny('授权模式（' + String(rel.mode || '空') + '）与人工内容来源不匹配。');
+      if (!filled(rel.ref)) return deny('人工内容缺少非空独立审批号（release.ref）。');
+      if (!filled(rel.approver) || !filled(rel.approvedAt)) return deny('人工内容缺少审批记录依据（审批人与时间）。');
       return {
-        ok: manualOk,
-        qual: manualOk ? '人工内容独立审批通过' : '未到发布环节',
-        basis: manualOk
-          ? '人工撰写内容不引用 Ds Bit 参数，走独立内容审批：' + rel.ref + '（' + rel.batch + '）'
-          : '人工撰写内容需先通过独立内容审核；不套用商品详情三层闸门。'
+        ok: true,
+        qual: '人工内容独立审批通过',
+        basis: '独立审批号 ' + rel.ref + '；审批人 ' + rel.approver + '；' + rel.approvedAt + '。'
       };
     }
-    var dsbitOk = !!rel && rel.mode === 'dsbit';
+    if (rel.mode !== 'dsbit') return deny('授权模式（' + String(rel.mode || '空') + '）与 Ds Bit 内容来源不匹配。');
+    if (!filled(rel.ref)) return deny('缺少非空授权号（release.ref）。');
+    if (!filled(rel.batch)) return deny('缺少非空发布批次（release.batch）。');
+    if (!filled(rel.version)) return deny('授权记录缺少内容版本（release.version）。');
+    if (!filled(c.version)) return deny('内容缺少当前版本号，无法核对授权版本。');
+    if (!filled(rel.contentId) || rel.contentId !== c.id) {
+      return deny('授权记录的内容 ID 与当前内容不匹配。');
+    }
+    if (rel.version !== c.version) {
+      return deny('授权版本 ' + rel.version + ' 与当前内容版本 ' + c.version + ' 不一致。');
+    }
     return {
-      ok: dsbitOk,
-      qual: dsbitOk ? '已获发布授权 · 批次 ' + rel.batch : '未获发布授权',
-      basis: dsbitOk
-        ? '内容版本 ' + rel.version + ' 已通过内容审核，发布批次 ' + rel.batch + '（' + rel.ref + '）；授权仅限该批次。'
-        : '内容引用 Ds Bit 参数，必须有内容版本审核记录与发布批次授权；Demo 中无授权记录，因此不能发布。'
+      ok: true,
+      qual: '已获发布授权 · 批次 ' + rel.batch,
+      basis: '授权号 ' + rel.ref + '；内容版本 ' + rel.version + ' 已审核通过；发布批次 ' + rel.batch
+        + (filled(rel.approvedAt) ? '（' + rel.approvedAt + '）' : '') + '；授权仅限该批次。'
     };
   }
+  window.contentRelease = contentRelease;
 
   function contentDrawer(id) {
     var c = find(STATE.contents, 'id', id);
@@ -339,13 +363,13 @@
       { k: '类型', v: esc(c.type) },
       { k: '关联商品', v: esc(c.mpn) },
       { k: '渠道', v: esc(c.channel) },
-      { k: '内容来源', v: c.origin === 'manual' ? 'manual · 人工撰写（独立审批）' : 'dsbit-derived · 引用 Ds Bit 参数' },
+      { k: '内容来源', v: c.origin === 'manual' ? 'manual · 人工撰写（独立审批）' : c.origin === 'dsbit' ? 'dsbit-derived · 引用 Ds Bit 参数' : esc('未知来源（' + (c.origin || '空') + '）') },
       { k: '事实来源', v: esc(c.source) },
       { k: '生成方式', v: c.ai === 'AI Generated' ? 'AI 生成（Demo）' : '人工撰写' },
       { k: '审核状态', v: UI.pill(c.review, { Approved: '已通过', 'Pending Review': '待审核', 'Needs Revision': '待修改' }[c.review] || c.review) },
       { k: '发布状态', v: UI.pill(c.publish, c.publish === 'Published' ? '已发布' : '草稿') },
-      { k: '发布资格', v: rel.qual },
-      { k: '发布依据', v: rel.basis }
+      { k: '发布资格', v: esc(rel.qual) },
+      { k: '发布依据', v: esc(rel.basis) }
     ]) +
       '<div class="evidence"><h4>引用边界</h4><blockquote>' + esc(c.source) + '</blockquote>' +
       '<div class="meta-row"><span>仅引用 Ds Bit Verified 参数</span><span>AI 内容必须人工审核</span></div></div>' +
@@ -1173,7 +1197,7 @@
       var id = 'CNT-' + (202 + STATE.contents.length);
       STATE.contents.unshift({
         id: id, title: p.mpn + ' 关键参数与选型边界（GEO 草稿）', type: '应用方案', mpn: mpn,
-        origin: 'dsbit', source: 'Ds Bit 已审核参数', ai: 'AI Generated', review: 'Pending Review', publish: 'Draft', release: null,
+        origin: 'dsbit', version: 'v1', source: 'Ds Bit 已审核参数', ai: 'AI Generated', review: 'Pending Review', publish: 'Draft', release: null,
         updated: nowStr(), channel: 'SEO / GEO'
       });
       UI.closeAll(); rerender();
@@ -1187,7 +1211,7 @@
       if (!title) { UI.toast('请填写标题', 'err'); return; }
       var id = 'CNT-' + (202 + STATE.contents.length);
       STATE.contents.unshift({
-        id: id, title: title, type: val('ncType'), mpn: val('ncMpn'), origin: 'manual', source: '人工撰写',
+        id: id, title: title, type: val('ncType'), mpn: val('ncMpn'), origin: 'manual', version: 'v1', source: '人工撰写',
         ai: 'Human', review: 'Pending Review', publish: 'Draft', release: null, updated: nowStr(), channel: val('ncChannel')
       });
       UI.closeModal(); rerender();
@@ -1198,7 +1222,11 @@
       c.review = 'Approved';
       audit('审核内容', c.id + ' / ' + c.title, 'Approved');
       if (c.origin === 'manual') {
-        c.release = { mode: 'manual', ref: 'MA-' + c.id, batch: '人工内容审批', version: 'v1' };
+        if (!c.version) c.version = 'v1';
+        c.release = {
+          mode: 'manual', contentId: c.id, ref: 'MA-' + c.id, batch: '人工内容审批',
+          version: c.version, approver: 'Demo 审核人', approvedAt: nowStr()
+        };
         UI.closeAll(); rerender();
         UI.toast('人工内容审核通过（独立审批）：' + c.release.ref + '，可发布');
       } else {
@@ -1218,12 +1246,7 @@
       if (!c) return;
       if (c.review !== 'Approved') { UI.toast('未通过审核，不能发布', 'err'); return; }
       var rel = contentRelease(c);
-      if (!rel.ok) {
-        UI.toast(c.origin === 'dsbit'
-          ? '该内容引用 Ds Bit 参数，未获发布批次授权，不能发布'
-          : '人工内容缺少独立审批记录，不能发布', 'err');
-        return;
-      }
+      if (!rel.ok) { UI.toast('不能发布：' + rel.basis, 'err'); return; }
       c.publish = 'Published';
       c.updated = nowStr();
       audit('发布内容', c.id + ' / ' + c.title, 'Success');

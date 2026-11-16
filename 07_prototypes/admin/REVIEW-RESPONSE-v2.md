@@ -4,7 +4,7 @@
 - 第二轮提交：`045e3d9`
 - 日期：2026-11-16
 - 范围：仅 `07_prototypes/admin/` 内的 HTML / CSS / JS / 原型说明 / 截图，另按自检要求更新 `07_prototypes/SHA256SUMS.txt`。
-- 状态：第二轮 P1/P2 已落实；第三轮闸门依赖与 Ds Bit 已复核通过；第四轮仅处理内容资产库的发布权限边界，等待最后一次定向复核。
+- 状态：第二轮 P1/P2 已落实；第三轮闸门依赖与 Ds Bit、第四轮内容发布边界均已复核通过；第五轮仅补齐授权记录完整性校验，等待最终复核。
 - 边界：未创建 React 工程、未实现 API、未接真实服务、未修改生产环境，也不代表后台重构获批。
 
 ---
@@ -16,8 +16,8 @@
 | 文件 | 修改类型 |
 |---|---|
 | `index.html` | 侧栏运行状态、原型状态说明 |
-| `assets/admin.js` | 深链接状态、证据抽屉、询盘 / 视频抽屉、筛选豁免、内容审核动作、内容发布资格判断 |
-| `assets/data.js` | 15 字段参数模型、历史验证快照、内容来源 / 发布授权、适用性、归因分层、SEO 治理、Commands |
+| `assets/admin.js` | 深链接状态、证据抽屉、询盘 / 视频抽屉、筛选豁免、内容审核动作、内容发布资格完整性校验 |
+| `assets/data.js` | 15 字段参数模型、历史验证快照、内容来源 / 版本 / 完整发布授权、适用性、归因分层、SEO 治理、Commands |
 | `assets/ui.js` | 证据链渲染器、Confidence、SHA-256 前缀标注、三层闸门提示 |
 | `assets/views-main.js` | 商品详情三层闸门依赖、内容发布资格列、SEO 技术治理、GEO 效果监测 |
 | `assets/views-ops.js` | 数据分析 90 天、来源分层、LeadNo 桥接、询盘 / 视频归因 |
@@ -31,7 +31,7 @@
 
 ### 1.2 截图（27 张，均在 `07_prototypes/admin/screenshots/`）
 
-- 更新 23 张：`01`–`23`（第二轮）；第三轮再次更新 `03-product-detail.png`、`11-dsbit.png`、`13-param-review.png`；第四轮更新 `07-content.png`。
+- 更新 23 张：`01`–`23`（第二轮）；第三轮再次更新 `03-product-detail.png`、`11-dsbit.png`、`13-param-review.png`；第四轮更新 `07-content.png`；第五轮因发布依据文案变化重拍 `27-content-publish-guard.png`。
 - 新增 4 张：`24-seo-governance.png`、`25-analytics-90d.png`、`26-coverage.png`、`27-content-publish-guard.png`。
 
 ### 1.3 清单文件（1 个，自检要求）
@@ -99,20 +99,55 @@
 
 **修正**：
 
-- `assets/data.js:175-187`：内容增加 `origin`（`manual` / `dsbit`）与 `release`（发布授权记录）。`release.mode` 为 `dsbit` 时记录内容版本、批次号与授权号；`manual` 时记录独立审批号。CNT-200 设为“已通过但无发布授权”的样例，用于展示拦截状态。
-- `assets/admin.js:311-355`：新增 `contentRelease(c)` 统一判断发布资格：
+- `assets/data.js:176-188`：内容增加 `origin`（`manual` / `dsbit`）与 `release`（发布授权记录）。`release.mode` 为 `dsbit` 时记录内容版本、批次号与授权号；`manual` 时记录独立审批号。CNT-200 设为“已通过但无发布授权”的样例，用于展示拦截状态。
+- `assets/admin.js:313-355`（第五轮扩展）：新增 `contentRelease(c)` 统一判断发布资格：
   - `manual`：需独立审批记录，显示“人工内容独立审批通过 / 未到发布环节”。
   - `dsbit`：需内容版本审核记录 + 发布批次授权，显示“已获发布授权 · 批次 B-…”或“未获发布授权”。
   - 抽屉新增“内容来源”“发布资格”“发布依据”三行；无授权时发布按钮替换为禁用的“未获发布授权”，并用提示说明缺哪一项。
-- `assets/admin.js:1165-1195`：
+- `assets/admin.js:1220-1262`：
   - `content-approve`：人工内容审核通过时写入独立审批记录 `MA-…`；dsbit 内容只记录内容审核，不生成发布授权，并提示“未获发布批次授权时仍不可发布”。
-  - `content-publish`：审核通过后仍校验 `contentRelease`；dsbit 内容无批次授权、人工内容无独立审批记录时直接拒绝并提示。
-- `assets/admin.js:1143-1147, 1158-1161`：新建 GEO 草稿标记为 `dsbit` 且无授权；新建内容标记为 `manual`。
+  - `content-publish`：执行时重新调用 `contentRelease()`，任何不满足完整性的记录直接拒绝并提示具体原因。
+- `assets/admin.js:1196-1202, 1212-1217`：新建 GEO 草稿标记为 `dsbit` 且无授权；新建内容标记为 `manual`。
 - `assets/views-main.js:572-600`：列表“来源”列显示 `Ds Bit 参数` / `人工内容` 与生成方式；发布链接仅在“审核通过 + 具备对应授权”时出现，否则显示“未获发布授权”“待独立审批”或“待审核”。
 - `assets/views-main.js:586-605`：页头与底部说明改为按来源区分发布资格，明确审核通过不等于发布授权。
 - `screenshots/07-content.png` 重拍；新增 `screenshots/27-content-publish-guard.png` 展示 CNT-200 的“未获发布授权”抽屉。
 
 **边界说明**：`release` 为 Demo 记录，仅用于演示授权规则，不代表真实审批数据；正式系统必须读取不可变的审核与发布记录，不能由当前状态反推授权。
+
+### 2.5 授权记录完整性校验（第五轮）
+
+**问题**：上一版只判断 `release.mode`，残缺记录（只有 mode、缺 ref / batch / version）或版本不匹配的记录仍会获得发布资格。
+
+**修正**：
+
+- `assets/data.js:176-188`：内容增加 `version`（当前内容版本）；`release` 增加 `contentId`、`approvedAt`，manual 记录增加 `approver`。Demo 中已发布的 5 条内容均为完整且匹配的授权记录。
+- `assets/admin.js:313-355`：`contentRelease()` 重写为 fail closed 的完整性校验：
+  - 未知 `origin`、未知 `release.mode`、缺失 `release` 一律拒绝。
+  - manual：`mode === 'manual'`、非空 `ref`、非空 `approver` 与 `approvedAt`（审批记录依据）、当前内容已审核通过；缺一即拒绝。
+  - dsbit：`mode === 'dsbit'`、非空 `ref` / `batch` / `version`、`contentId === c.id`、`version === c.version`、当前内容已审核通过；缺一即拒绝。
+  - 返回 `{ ok, qual, basis }`，拒绝时 `basis` 说明具体缺项或冲突。
+- `assets/admin.js` 末尾：`window.contentRelease = contentRelease`，作为纯函数自检 / Reviewer 复算入口（不读写页面状态）。
+- `assets/admin.js` 抽屉：发布资格与依据转义输出；未知来源显示“未知来源（…）”。
+- `assets/admin.js` `content-publish`：执行时重新调用 `contentRelease()`，不依赖按钮是否显示；拒绝时提示具体原因。
+- `assets/admin.js` `content-approve`：人工内容审批后生成的记录补齐 `contentId`、`version`、`approver`、`approvedAt`。
+
+**定向测试结果**（输入 → 预期 → 实际）：
+
+| # | 输入 | 预期 | 实际 |
+|---|---|---|---|
+| 1 | CNT-200（dsbit，`release: null`）强制发布 | 拒绝 | 拒绝：“没有发布授权记录”；状态保持草稿 |
+| 2 | dsbit 仅 `{mode:'dsbit'}` | 拒绝 | 拒绝：“缺少非空授权号（release.ref）” |
+| 2b | dsbit 有 ref，缺 batch | 拒绝 | 拒绝：“缺少非空发布批次（release.batch）” |
+| 2c | dsbit 有 ref/batch，缺 version | 拒绝 | 拒绝：“授权记录缺少内容版本（release.version）” |
+| 3 | dsbit 完整但 `version v1` ≠ 当前 `v2` | 拒绝 | 拒绝：“授权版本 v1 与当前内容版本 v2 不一致” |
+| 3b | dsbit 完整但 `contentId` 不匹配 | 拒绝 | 拒绝：“授权记录的内容 ID 与当前内容不匹配” |
+| 4 | dsbit 完整且匹配（v2） | 允许 | 允许 |
+| 5 | manual 缺 `ref` | 拒绝 | 拒绝：“缺少非空独立审批号” |
+| 5b | manual 有 ref，缺审批人 / 时间 | 拒绝 | 拒绝：“缺少审批记录依据（审批人与时间）” |
+| 6 | manual 完整（ref + approver + approvedAt） | 允许 | 允许（CNT-195 审核后发布成功） |
+| 7 | 未知 origin `vendor` | 拒绝 | 拒绝：“未知内容来源（vendor）” |
+| 7b | 未知 mode `auto` | 拒绝 | 拒绝：“授权模式（auto）与 Ds Bit 内容来源不匹配” |
+| 8 | 对 CNT-200 / CNT-199 强制触发 `content-publish` | 均拒绝 | CNT-200 拒绝（无授权）；CNT-199 拒绝（未通过审核） |
 
 ---
 
@@ -174,6 +209,8 @@
 
 第四轮（`1305b4f` 之后）仅处理内容发布权限边界：修改 4 个文本文件（`data.js`、`admin.js`、`views-main.js`、本回应）、重拍 `07-content.png`、新增 `27-content-publish-guard.png`、更新 1 次清单；未改动其他文件。
 
+第五轮（`6958cbb` 之后）仅补齐授权完整性校验：修改 `admin.js`、`data.js`、本回应，重拍 `27-content-publish-guard.png`（依据文案变化），更新清单；未修改 `views-main.js`、截图数量仍为 27。
+
 ---
 
 ## 6. 自检结果
@@ -210,7 +247,7 @@
 
 ### 6.5 截图
 
-`07-content.png` 已按第四轮修改重拍；新增 `27-content-publish-guard.png`（CNT-200 抽屉）。`03`、`11`、`13` 为第三轮重拍结果，`24`、`25`、`26` 保持第二轮内容。
+`27-content-publish-guard.png`（CNT-200 抽屉）已按第五轮依据文案重拍；`07-content.png` 为第四轮结果，`03`、`11`、`13` 为第三轮结果，`24`、`25`、`26` 保持第二轮内容。
 
 ### 6.6 并发修改
 
