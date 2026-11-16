@@ -13,7 +13,7 @@
 | 仓库 | https://github.com/esanwu-bot/morrishk-site-upgrade-review |
 | Branch | `main` |
 | 送审版本 | tag **`v1.5.4-review`**（`v1.4-review` / `v1.5-review` / `v1.5.1-review` / `v1.5.2-review` / `v1.5.3-review` 保留未覆盖） |
-| 并行送审包 | **`08_php84_compatibility/`**（PHP 8.4 兼容性评估 v1.2.2，tag `php84-v1.2.2-review`），独立工作流、各自冻结；该包自行递增，最新版本以远程 tag 为准 |
+| 并行送审包 | **`08_php84_compatibility/`**（PHP 8.4 兼容性评估），独立工作流、各自冻结。**本文件不转述其版本号**——版本以该包 `README.md` 头部与远程 tag 系列 `php84-v1.2.x-review` 为准 |
 | 交付日期 | 2026-11-16 |
 | 文档版本 | 商务方案 客户版 v1.1（rev.3） ／ 技术方案 技术版 v1.2（rev.3） ／ **原型 v1.5.4-prototype** ／ **Design System v1.0** |
 | 数据基线 | 2024-11-30 导出，静态终态（不随线上变化） |
@@ -21,8 +21,9 @@
 
 ### 并行送审包（独立工作流）
 
-除主送审包外，仓库内另有 **`08_php84_compatibility/`**：PHP 8.4 兼容性评估，当前 tag 为 `php84-v1.2.2-review`
-（`php84-v1.2.1-review` 保留）。该包由独立工作流维护，版本会先于本文件更新，**以远程 tag 为准**。
+除主送审包外，仓库内另有 **`08_php84_compatibility/`**：PHP 8.4 兼容性评估。该包由独立工作流维护、
+自行递增版本，**推进速度快于本文件**。因此本文件不写死它的版本号，核对请用
+`git ls-remote --tags` 看 `php84-v1.2.x-review` 系列，或直接读 `08_php84_compatibility/README.md` 头部。
 该包只涉及"老站能否迁到 PHP 8.4"的评估与依赖求解证据，**与主送审的方案/原型/审计工具无内容交叉**，各自冻结、各自递增版本。
 主送审包的 `06_evidence/hashes/SHA256SUMS.txt` 仍只覆盖主包；`08` 目录自带 `SHA256SUMS.txt`。
 
@@ -75,7 +76,7 @@ git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git ref
 │   └── screenshots/              ❗ 未提供（原型截图不在此目录，实际位于 07_prototypes/reference/prototype_shots/）
 ├── 08_php84_compatibility/       ★ 并行送审包：PHP 8.4 兼容性评估（独立工作流，版本见其 README）
 │   ├── README.md                   送审说明 + 证据索引 + 10 分钟复核路径
-│   ├── docs/app_code_compatibility.md   主报告 v1.2.2（应用层 + 依赖层）
+│   ├── docs/app_code_compatibility.md   主报告（版本见其文件头，本文件不转述）
 │   ├── evidence/solve/01–06        依赖求解的命令、退出码与 lock 差异
 │   ├── evidence/scan/              扫描结果、召回夹具与基线（20/21）
 │   ├── evidence/prod/              生产环境核验记录（§6 证据）
@@ -637,8 +638,9 @@ R3 的「工具层可靠性」按本轮实现可以关闭，但**关闭与否由
 严格 2,179,447（11.642%）、补偿 1,797,945（18,684,000 → 9.623%）。
 
 **版本文字修正**：根 README 目录树中 `08_php84_compatibility/docs/app_code_compatibility.md` 原标
-「主报告 v1.2.1」，实际文件头部与 08 包 README 均为 **v1.2.2**，已改为 v1.2.2（属旧文字未同步，
-不是 tag 指向错误）。
+「主报告 v1.2.1」，实际文件头部与 08 包 README 均为 v1.2.2（属旧文字未同步，不是 tag 指向错误）。
+修正时该包已推进到 v1.2.3 —— 说明「在根 README 里转述并行包的版本号」本身是会反复过期的做法，
+因此本轮不再把它的版本号写进本文件，改为指向该包 README 与 tag 系列，从源头消除这类不一致。
 
 ## 九、版本与校验
 
