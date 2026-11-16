@@ -66,37 +66,94 @@
 
   /* ------------------------------------------------------------------ Datasheet / 参数 */
   D.documents = [
-    { id: 'DS-1042', file: 'MCF8315A_datasheet_v2.1.pdf', mpn: 'MCF8315A', pages: 42, size: '3.8 MB', hash: '9f2c7a1b4e8d6c03a5f1', version: 'v2.1', status: 'Parsed', params: 186, issues: 3, uploaded: '2026-11-15 10:22' },
-    { id: 'DS-1041', file: 'STM32F103x8_datasheet_v9.0.pdf', mpn: 'STM32F103C8T6', pages: 118, size: '9.4 MB', hash: '3a1d9c6f2b7e8a04c1d2', version: 'v9.0', status: 'Parsed', params: 412, issues: 11, uploaded: '2026-11-14 16:08' },
-    { id: 'DS-1040', file: 'LM317_datasheet_v6.0.pdf', mpn: 'LM317T', pages: 28, size: '1.9 MB', hash: 'c7e4b2a9d1f6e8035b9c', version: 'v6.0', status: 'Parsed', params: 94, issues: 0, uploaded: '2026-11-14 09:41' },
-    { id: 'DS-1039', file: 'IRF540N_datasheet_v3.0.pdf', mpn: 'IRF540NPBF', pages: 12, size: '0.8 MB', hash: '5b8f0d3c6a2e7f914d08', version: 'v3.0', status: 'Parsed', params: 61, issues: 2, uploaded: '2026-11-13 14:17' },
-    { id: 'DS-1038', file: 'ESP32-WROOM-32E_v1.8.pdf', mpn: 'ESP32-WROOM-32E', pages: 64, size: '5.1 MB', hash: 'e2a6c8b1f4d0973a5e6c', version: 'v1.8', status: 'Parsing', params: 0, issues: 0, uploaded: '2026-11-16 08:55' },
-    { id: 'DS-1037', file: 'TLP185_datasheet_v1.2.pdf', mpn: 'TLP185(GB)', pages: 16, size: '1.1 MB', hash: '7d3b9f5a2c8e4d01b6f7', version: 'v1.2', status: 'Parsed', params: 58, issues: 7, uploaded: '2026-11-12 11:03' },
-    { id: 'DS-1036', file: 'ACS712_datasheet_v1.5.pdf', mpn: 'ACS712ELCTR-05B-T', pages: 22, size: '1.5 MB', hash: 'a4c1e7b9d3f5028c6b1e', version: 'v1.5', status: 'Parsed', params: 73, issues: 1, uploaded: '2026-11-11 15:48' },
-    { id: 'DS-1035', file: 'MAX232_datasheet_v5.0.pdf', mpn: 'MAX232ECP', pages: 18, size: '1.2 MB', hash: 'f8d2b6a4c9e1370f5a2d', version: 'v5.0', status: 'Failed', params: 0, issues: 0, uploaded: '2026-11-10 09:12' },
-    { id: 'DS-1034', file: 'GRM188R71H104KA93D_v1.4.pdf', mpn: 'GRM188R71H104KA93D', pages: 9, size: '0.6 MB', hash: 'b1e9d4a7f3c268059e4b', version: 'v1.4', status: 'Parsed', params: 44, issues: 0, uploaded: '2026-11-09 13:30' }
+    { id: 'DS-1042', file: 'MCF8315A_datasheet_v2.1.pdf', mpn: 'MCF8315A', run: 'PR-20261115-1042-01', type: 'Datasheet', subject: 'MCF8315A three-phase sensorless-FOC BLDC motor driver', pages: 42, size: '3.8 MB', hash: '9f2c7a1b4e8d6c03a5f1', version: 'v2.1', status: 'Parsed', params: 186, issues: 3, applicability: 'Direct', uploaded: '2026-11-15 10:22' },
+    { id: 'DS-1041', file: 'STM32F103x8_datasheet_v9.0.pdf', mpn: 'STM32F103C8T6', run: 'PR-20261114-1041-01', type: 'Datasheet', subject: 'STM32F103x8/xB medium-density MCU', pages: 118, size: '9.4 MB', hash: '3a1d9c6f2b7e8a04c1d2', version: 'v9.0', status: 'Parsed', params: 412, issues: 11, applicability: 'Direct', uploaded: '2026-11-14 16:08' },
+    { id: 'DS-1040', file: 'LM317_datasheet_v6.0.pdf', mpn: 'LM317T', run: 'PR-20261114-1040-01', type: 'Datasheet', subject: 'LM317 adjustable three-terminal regulator', pages: 28, size: '1.9 MB', hash: 'c7e4b2a9d1f6e8035b9c', version: 'v6.0', status: 'Parsed', params: 94, issues: 0, applicability: 'Direct', uploaded: '2026-11-14 09:41' },
+    { id: 'DS-1039', file: 'IRF540N_datasheet_v3.0.pdf', mpn: 'IRF540NPBF', run: 'PR-20261113-1039-01', type: 'Datasheet', subject: 'IRF540N N-channel power MOSFET', pages: 12, size: '0.8 MB', hash: '5b8f0d3c6a2e7f914d08', version: 'v3.0', status: 'Parsed', params: 61, issues: 2, applicability: 'Direct', uploaded: '2026-11-13 14:17' },
+    { id: 'DS-1038', file: 'ESP32-WROOM-32E_v1.8.pdf', mpn: 'ESP32-WROOM-32E', run: 'PR-20261116-1038-01', type: 'Datasheet', subject: 'ESP32-WROOM-32E Wi-Fi + Bluetooth module', pages: 64, size: '5.1 MB', hash: 'e2a6c8b1f4d0973a5e6c', version: 'v1.8', status: 'Parsing', params: 0, issues: 0, applicability: 'Pending', uploaded: '2026-11-16 08:55' },
+    { id: 'DS-1037', file: 'TLP185_datasheet_v1.2.pdf', mpn: 'TLP185(GB)', run: 'PR-20261112-1037-01', type: 'Datasheet', subject: 'TLP185 photocoupler', pages: 16, size: '1.1 MB', hash: '7d3b9f5a2c8e4d01b6f7', version: 'v1.2', status: 'Parsed', params: 58, issues: 7, applicability: 'Direct', uploaded: '2026-11-12 11:03' },
+    { id: 'DS-1036', file: 'ACS712_datasheet_v1.5.pdf', mpn: 'ACS712ELCTR-05B-T', run: 'PR-20261111-1036-01', type: 'Datasheet', subject: 'ACS712 Hall-effect linear current sensor', pages: 22, size: '1.5 MB', hash: 'a4c1e7b9d3f5028c6b1e', version: 'v1.5', status: 'Parsed', params: 73, issues: 1, applicability: 'Direct', uploaded: '2026-11-11 15:48' },
+    { id: 'DS-1035', file: 'MAX232_datasheet_v5.0.pdf', mpn: 'MAX232ECP', run: 'PR-20261110-1035-01', type: 'Datasheet', subject: 'MAX232 dual RS-232 transceiver', pages: 18, size: '1.2 MB', hash: 'f8d2b6a4c9e1370f5a2d', version: 'v5.0', status: 'Failed', params: 0, issues: 0, applicability: 'Pending', uploaded: '2026-11-10 09:12' },
+    { id: 'DS-1034', file: 'GRM188R71H104KA93D_v1.4.pdf', mpn: 'GRM188R71H104KA93D', run: 'PR-20261109-1034-01', type: 'Datasheet', subject: 'GRM188R71H104KA93D 0.1µF 50V X7R MLCC', pages: 9, size: '0.6 MB', hash: 'b1e9d4a7f3c268059e4b', version: 'v1.4', status: 'Parsed', params: 44, issues: 0, applicability: 'Direct', uploaded: '2026-11-09 13:30' },
+    { id: 'DS-1033', file: 'MCF831x_family_selection_guide_v1.0.pdf', mpn: 'MCF8315A', run: 'PR-20261108-1033-01', type: 'Selection Guide', subject: 'MCF831x family (MCF8315A / MCF8316A)', pages: 24, size: '2.2 MB', hash: 'c0d5e8a2b7f4913d6e2a', version: 'v1.0', status: 'Parsed', params: 12, issues: 1, applicability: 'Family match', applicabilityNote: '系列文档，仅作选型背景；不绑定参数证据', uploaded: '2026-11-08 16:40' }
   ];
 
+  /* 参数记录字段对齐 Ds Bit 数据模型（DocumentId / ParseRunId / Raw* / Normalized* / ValueKind / Conditions / 位置 / ReviewStatus） */
   D.params = [
-    { mpn: 'MCF8315A', name: 'Supply Voltage', value: '4.5–35', unit: 'V', page: 8, confidence: 0.99, status: 'Verified', snippet: 'VVM 4.5 V to 35 V (operating range)', hash: '9f2c7a1b4e8d6c03a5f1', updated: '2026-11-15 10:40' },
-    { mpn: 'MCF8315A', name: 'Peak Output Current', value: '8', unit: 'A', page: 9, confidence: 0.97, status: 'Verified', snippet: 'Peak output current, 1 ms pulse: 8 A', hash: '9f2c7a1b4e8d6c03a5f1', updated: '2026-11-15 10:41' },
-    { mpn: 'MCF8315A', name: 'RDS(on) (HS + LS)', value: '95', unit: 'mΩ', page: 12, confidence: 0.82, status: 'Needs Review', snippet: 'Total RDS(on) at TA = 25°C, typical 95 mΩ', hash: '9f2c7a1b4e8d6c03a5f1', updated: '2026-11-15 10:43' },
-    { mpn: 'MCF8315A', name: 'Operating Temperature', value: '−40–125', unit: '°C', page: 6, confidence: 0.99, status: 'Verified', snippet: 'Operating junction temperature −40°C to 125°C', hash: '9f2c7a1b4e8d6c03a5f1', updated: '2026-11-15 10:39' },
-    { mpn: 'MCF8315A', name: 'Package', value: 'VQFN-24', unit: '—', page: 1, confidence: 0.99, status: 'Verified', snippet: 'VQFN (24) 4 mm × 4 mm', hash: '9f2c7a1b4e8d6c03a5f1', updated: '2026-11-15 10:38' },
-    { mpn: 'MCF8315A', name: 'PWM Frequency', value: '200', unit: 'kHz', page: 14, confidence: 0.71, status: 'Needs Review', snippet: 'PWM frequency configurable up to 200 kHz (typ.)', hash: '9f2c7a1b4e8d6c03a5f1', updated: '2026-11-15 10:44' },
-    { mpn: 'STM32F103C8T6', name: 'Core', value: 'ARM Cortex-M3', unit: '—', page: 1, confidence: 0.99, status: 'Verified', snippet: 'ARM 32-bit Cortex-M3 CPU', hash: '3a1d9c6f2b7e8a04c1d2', updated: '2026-11-14 16:22' },
-    { mpn: 'STM32F103C8T6', name: 'Flash Memory', value: '64', unit: 'KB', page: 1, confidence: 0.98, status: 'Verified', snippet: '64 Kbytes of Flash memory', hash: '3a1d9c6f2b7e8a04c1d2', updated: '2026-11-14 16:23' },
-    { mpn: 'STM32F103C8T6', name: 'Max Clock', value: '72', unit: 'MHz', page: 2, confidence: 0.96, status: 'Verified', snippet: 'Up to 72 MHz operating frequency', hash: '3a1d9c6f2b7e8a04c1d2', updated: '2026-11-14 16:24' },
-    { mpn: 'STM32F103C8T6', name: 'ADC Resolution', value: '12', unit: 'bit', page: 18, confidence: 0.74, status: 'Needs Review', snippet: '12-bit ADC with up to 16 channels', hash: '3a1d9c6f2b7e8a04c1d2', updated: '2026-11-14 16:26' },
-    { mpn: 'LM317T', name: 'Output Voltage', value: '1.25–37', unit: 'V', page: 2, confidence: 0.99, status: 'Verified', snippet: 'Adjustable output from 1.25 V to 37 V', hash: 'c7e4b2a9d1f6e8035b9c', updated: '2026-11-14 09:50' },
-    { mpn: 'LM317T', name: 'Output Current', value: '1.5', unit: 'A', page: 2, confidence: 0.99, status: 'Verified', snippet: 'Guaranteed 1.5 A output current', hash: 'c7e4b2a9d1f6e8035b9c', updated: '2026-11-14 09:51' },
-    { mpn: 'LM317T', name: 'Dropout Voltage', value: '2.5', unit: 'V', page: 4, confidence: 0.68, status: 'Needs Review', snippet: 'Dropout voltage, IOUT = 1.5 A (typ.)', hash: 'c7e4b2a9d1f6e8035b9c', updated: '2026-11-14 09:53' },
-    { mpn: 'IRF540NPBF', name: 'Drain-Source Voltage', value: '100', unit: 'V', page: 1, confidence: 0.99, status: 'Verified', snippet: 'VDS = 100 V', hash: '5b8f0d3c6a2e7f914d08', updated: '2026-11-13 14:30' },
-    { mpn: 'IRF540NPBF', name: 'Continuous Drain Current', value: '33', unit: 'A', page: 1, confidence: 0.97, status: 'Verified', snippet: 'ID = 33 A at TC = 25°C', hash: '5b8f0d3c6a2e7f914d08', updated: '2026-11-13 14:31' },
-    { mpn: 'IRF540NPBF', name: 'RDS(on)', value: '44', unit: 'mΩ', page: 2, confidence: 0.73, status: 'Needs Review', snippet: 'RDS(on) max 44 mΩ at VGS = 10 V', hash: '5b8f0d3c6a2e7f914d08', updated: '2026-11-13 14:33' },
-    { mpn: 'TLP185(GB)', name: 'Current Transfer Ratio', value: '50–600', unit: '%', page: 3, confidence: 0.95, status: 'Verified', snippet: 'CTR 50% to 600% at IF = 5 mA', hash: '7d3b9f5a2c8e4d01b6f7', updated: '2026-11-12 11:20' },
-    { mpn: 'TLP185(GB)', name: 'Isolation Voltage', value: '3750', unit: 'Vrms', page: 1, confidence: 0.98, status: 'Verified', snippet: 'Isolation voltage 3750 Vrms', hash: '7d3b9f5a2c8e4d01b6f7', updated: '2026-11-12 11:18' }
+    { mpn: 'MCF8315A', doc: 'DS-1042', run: 'PR-20261115-1042-01', docType: 'Datasheet', docSubject: 'MCF8315A three-phase sensorless-FOC BLDC motor driver',
+      name: 'Supply Voltage', rawLabel: 'VVM', rawValue: '4.5 V to 35 V', value: '4.5–35', unit: 'V', kind: 'range', conditions: 'TA = 25°C, operating range',
+      page: 8, table: 'T-08-02', row: 'R-04', bbox: '[312, 486, 528, 502]', confidence: 0.99, status: 'Verified', applicability: 'Direct · MPN 匹配',
+      snippet: 'VVM 4.5 V to 35 V (operating range)', hash: '9f2c7a1b4e8d6c03a5f1', updated: '2026-11-15 10:40' },
+    { mpn: 'MCF8315A', doc: 'DS-1042', run: 'PR-20261115-1042-01', docType: 'Datasheet', docSubject: 'MCF8315A three-phase sensorless-FOC BLDC motor driver',
+      name: 'Peak Output Current', rawLabel: 'IPEAK', rawValue: '8 A (1 ms pulse)', value: '8', unit: 'A', kind: 'max', conditions: '1 ms pulse, VVM = 24 V',
+      page: 9, table: 'T-09-01', row: 'R-02', bbox: '[298, 512, 501, 528]', confidence: 0.97, status: 'Verified', applicability: 'Direct · MPN 匹配',
+      snippet: 'Peak output current, 1 ms pulse: 8 A', hash: '9f2c7a1b4e8d6c03a5f1', updated: '2026-11-15 10:41' },
+    { mpn: 'MCF8315A', doc: 'DS-1042', run: 'PR-20261115-1042-01', docType: 'Datasheet', docSubject: 'MCF8315A three-phase sensorless-FOC BLDC motor driver',
+      name: 'RDS(on) (HS + LS)', rawLabel: 'RDS(on)', rawValue: '95 mΩ typ. (HS + LS)', value: '95', unit: 'mΩ', kind: 'typ', conditions: 'TA = 25°C, VVM = 24 V',
+      page: 12, table: 'T-12-03', row: 'R-06', bbox: '[344, 604, 566, 620]', confidence: 0.82, status: 'Needs Review', applicability: 'Direct · MPN 匹配',
+      snippet: 'Total RDS(on) at TA = 25°C, typical 95 mΩ', hash: '9f2c7a1b4e8d6c03a5f1', updated: '2026-11-15 10:43' },
+    { mpn: 'MCF8315A', doc: 'DS-1042', run: 'PR-20261115-1042-01', docType: 'Datasheet', docSubject: 'MCF8315A three-phase sensorless-FOC BLDC motor driver',
+      name: 'Operating Temperature', rawLabel: 'TJ', rawValue: '−40°C to 125°C', value: '−40–125', unit: '°C', kind: 'range', conditions: 'Operating junction temperature',
+      page: 6, table: 'T-06-01', row: 'R-03', bbox: '[286, 392, 540, 408]', confidence: 0.99, status: 'Verified', applicability: 'Direct · MPN 匹配',
+      snippet: 'Operating junction temperature −40°C to 125°C', hash: '9f2c7a1b4e8d6c03a5f1', updated: '2026-11-15 10:39' },
+    { mpn: 'MCF8315A', doc: 'DS-1042', run: 'PR-20261115-1042-01', docType: 'Datasheet', docSubject: 'MCF8315A three-phase sensorless-FOC BLDC motor driver',
+      name: 'Package', rawLabel: 'Package', rawValue: 'VQFN-24 (4 mm × 4 mm)', value: 'VQFN-24', unit: '—', kind: 'enum', conditions: '—',
+      page: 1, table: 'T-01-01', row: 'R-05', bbox: '[402, 688, 566, 704]', confidence: 0.99, status: 'Verified', applicability: 'Direct · MPN 匹配',
+      snippet: 'VQFN (24) 4 mm × 4 mm', hash: '9f2c7a1b4e8d6c03a5f1', updated: '2026-11-15 10:38' },
+    { mpn: 'MCF8315A', doc: 'DS-1042', run: 'PR-20261115-1042-01', docType: 'Datasheet', docSubject: 'MCF8315A three-phase sensorless-FOC BLDC motor driver',
+      name: 'PWM Frequency', rawLabel: 'fPWM', rawValue: 'up to 200 kHz (typ.)', value: '200', unit: 'kHz', kind: 'max', conditions: 'Configurable, TA = 25°C',
+      page: 14, table: 'T-14-02', row: 'R-01', bbox: '[322, 558, 548, 574]', confidence: 0.71, status: 'Needs Review', applicability: 'Direct · MPN 匹配',
+      snippet: 'PWM frequency configurable up to 200 kHz (typ.)', hash: '9f2c7a1b4e8d6c03a5f1', updated: '2026-11-15 10:44' },
+    { mpn: 'STM32F103C8T6', doc: 'DS-1041', run: 'PR-20261114-1041-01', docType: 'Datasheet', docSubject: 'STM32F103x8/xB medium-density MCU',
+      name: 'Core', rawLabel: 'Core', rawValue: 'ARM 32-bit Cortex-M3', value: 'ARM Cortex-M3', unit: '—', kind: 'enum', conditions: '—',
+      page: 1, table: 'T-01-02', row: 'R-01', bbox: '[310, 740, 566, 756]', confidence: 0.99, status: 'Verified', applicability: 'Direct · MPN 匹配',
+      snippet: 'ARM 32-bit Cortex-M3 CPU', hash: '3a1d9c6f2b7e8a04c1d2', updated: '2026-11-14 16:22' },
+    { mpn: 'STM32F103C8T6', doc: 'DS-1041', run: 'PR-20261114-1041-01', docType: 'Datasheet', docSubject: 'STM32F103x8/xB medium-density MCU',
+      name: 'Flash Memory', rawLabel: 'Flash memory', rawValue: '64 Kbytes', value: '64', unit: 'KB', kind: 'exact', conditions: '—',
+      page: 1, table: 'T-01-02', row: 'R-04', bbox: '[310, 792, 566, 808]', confidence: 0.98, status: 'Verified', applicability: 'Direct · MPN 匹配',
+      snippet: '64 Kbytes of Flash memory', hash: '3a1d9c6f2b7e8a04c1d2', updated: '2026-11-14 16:23' },
+    { mpn: 'STM32F103C8T6', doc: 'DS-1041', run: 'PR-20261114-1041-01', docType: 'Datasheet', docSubject: 'STM32F103x8/xB medium-density MCU',
+      name: 'Max Clock', rawLabel: 'fCPU', rawValue: 'up to 72 MHz', value: '72', unit: 'MHz', kind: 'max', conditions: '—',
+      page: 2, table: 'T-02-01', row: 'R-02', bbox: '[304, 446, 540, 462]', confidence: 0.96, status: 'Verified', applicability: 'Direct · MPN 匹配',
+      snippet: 'Up to 72 MHz operating frequency', hash: '3a1d9c6f2b7e8a04c1d2', updated: '2026-11-14 16:24' },
+    { mpn: 'STM32F103C8T6', doc: 'DS-1041', run: 'PR-20261114-1041-01', docType: 'Datasheet', docSubject: 'STM32F103x8/xB medium-density MCU',
+      name: 'ADC Resolution', rawLabel: 'ADC resolution', rawValue: '12-bit', value: '12', unit: 'bit', kind: 'exact', conditions: 'Up to 16 channels',
+      page: 18, table: 'T-18-01', row: 'R-03', bbox: '[288, 372, 552, 388]', confidence: 0.74, status: 'Needs Review', applicability: 'Direct · MPN 匹配',
+      snippet: '12-bit ADC with up to 16 channels', hash: '3a1d9c6f2b7e8a04c1d2', updated: '2026-11-14 16:26' },
+    { mpn: 'LM317T', doc: 'DS-1040', run: 'PR-20261114-1040-01', docType: 'Datasheet', docSubject: 'LM317 adjustable three-terminal regulator',
+      name: 'Output Voltage', rawLabel: 'VOUT', rawValue: '1.25 V to 37 V', value: '1.25–37', unit: 'V', kind: 'range', conditions: 'VIN − VOUT ≥ 3 V',
+      page: 2, table: 'T-02-01', row: 'R-01', bbox: '[300, 418, 548, 434]', confidence: 0.99, status: 'Verified', applicability: 'Direct · MPN 匹配',
+      snippet: 'Adjustable output from 1.25 V to 37 V', hash: 'c7e4b2a9d1f6e8035b9c', updated: '2026-11-14 09:50' },
+    { mpn: 'LM317T', doc: 'DS-1040', run: 'PR-20261114-1040-01', docType: 'Datasheet', docSubject: 'LM317 adjustable three-terminal regulator',
+      name: 'Output Current', rawLabel: 'IOUT', rawValue: '1.5 A', value: '1.5', unit: 'A', kind: 'guaranteed', conditions: 'Package thermal limits apply',
+      page: 2, table: 'T-02-01', row: 'R-02', bbox: '[300, 440, 548, 456]', confidence: 0.99, status: 'Verified', applicability: 'Direct · MPN 匹配',
+      snippet: 'Guaranteed 1.5 A output current', hash: 'c7e4b2a9d1f6e8035b9c', updated: '2026-11-14 09:51' },
+    { mpn: 'LM317T', doc: 'DS-1040', run: 'PR-20261114-1040-01', docType: 'Datasheet', docSubject: 'LM317 adjustable three-terminal regulator',
+      name: 'Dropout Voltage', rawLabel: 'Dropout voltage', rawValue: '2.5 V typ.', value: '2.5', unit: 'V', kind: 'typ', conditions: 'IOUT = 1.5 A, TA = 25°C',
+      page: 4, table: 'T-04-01', row: 'R-08', bbox: '[318, 586, 552, 602]', confidence: 0.68, status: 'Needs Review', applicability: 'Direct · MPN 匹配',
+      snippet: 'Dropout voltage, IOUT = 1.5 A (typ.)', hash: 'c7e4b2a9d1f6e8035b9c', updated: '2026-11-14 09:53' },
+    { mpn: 'IRF540NPBF', doc: 'DS-1039', run: 'PR-20261113-1039-01', docType: 'Datasheet', docSubject: 'IRF540N N-channel power MOSFET',
+      name: 'Drain-Source Voltage', rawLabel: 'VDS', rawValue: '100 V', value: '100', unit: 'V', kind: 'max', conditions: 'TC = 25°C',
+      page: 1, table: 'T-01-01', row: 'R-02', bbox: '[306, 512, 548, 528]', confidence: 0.99, status: 'Verified', applicability: 'Direct · MPN 匹配',
+      snippet: 'VDS = 100 V', hash: '5b8f0d3c6a2e7f914d08', updated: '2026-11-13 14:30' },
+    { mpn: 'IRF540NPBF', doc: 'DS-1039', run: 'PR-20261113-1039-01', docType: 'Datasheet', docSubject: 'IRF540N N-channel power MOSFET',
+      name: 'Continuous Drain Current', rawLabel: 'ID', rawValue: '33 A', value: '33', unit: 'A', kind: 'max', conditions: 'TC = 25°C',
+      page: 1, table: 'T-01-01', row: 'R-03', bbox: '[306, 534, 548, 550]', confidence: 0.97, status: 'Verified', applicability: 'Direct · MPN 匹配',
+      snippet: 'ID = 33 A at TC = 25°C', hash: '5b8f0d3c6a2e7f914d08', updated: '2026-11-13 14:31' },
+    { mpn: 'IRF540NPBF', doc: 'DS-1039', run: 'PR-20261113-1039-01', docType: 'Datasheet', docSubject: 'IRF540N N-channel power MOSFET',
+      name: 'RDS(on)', rawLabel: 'RDS(on)', rawValue: '44 mΩ max.', value: '44', unit: 'mΩ', kind: 'max', conditions: 'VGS = 10 V, ID = 16.5 A',
+      page: 2, table: 'T-02-01', row: 'R-05', bbox: '[322, 468, 556, 484]', confidence: 0.73, status: 'Needs Review', applicability: 'Direct · MPN 匹配',
+      snippet: 'RDS(on) max 44 mΩ at VGS = 10 V', hash: '5b8f0d3c6a2e7f914d08', updated: '2026-11-13 14:33' },
+    { mpn: 'TLP185(GB)', doc: 'DS-1037', run: 'PR-20261112-1037-01', docType: 'Datasheet', docSubject: 'TLP185 photocoupler',
+      name: 'Current Transfer Ratio', rawLabel: 'CTR', rawValue: '50% to 600%', value: '50–600', unit: '%', kind: 'range', conditions: 'IF = 5 mA, VCE = 5 V, TA = 25°C',
+      page: 3, table: 'T-03-02', row: 'R-02', bbox: '[304, 498, 552, 514]', confidence: 0.95, status: 'Verified', applicability: 'Direct · MPN 匹配',
+      snippet: 'CTR 50% to 600% at IF = 5 mA', hash: '7d3b9f5a2c8e4d01b6f7', updated: '2026-11-12 11:20' },
+    { mpn: 'TLP185(GB)', doc: 'DS-1037', run: 'PR-20261112-1037-01', docType: 'Datasheet', docSubject: 'TLP185 photocoupler',
+      name: 'Isolation Voltage', rawLabel: 'BV', rawValue: '3750 Vrms', value: '3750', unit: 'Vrms', kind: 'max', conditions: 'AC, 60 s',
+      page: 1, table: 'T-01-01', row: 'R-04', bbox: '[298, 620, 548, 636]', confidence: 0.98, status: 'Verified', applicability: 'Direct · MPN 匹配',
+      snippet: 'Isolation voltage 3750 Vrms', hash: '7d3b9f5a2c8e4d01b6f7', updated: '2026-11-12 11:18' }
   ];
+
 
   /* ------------------------------------------------------------------ 内容 */
   D.contents = [
@@ -135,24 +192,24 @@
   ];
 
   D.videos = [
-    { id: 'VID-31', title: 'MCF8315A BLDC drive solution in 3 minutes', mpn: 'MCF8315A', status: 'Published', platform: 'YouTube', views: 12480, avg: '2:14', clicks: 860, inquiries: 14, updated: '2026-11-14', cover: 'MCF8315A' },
-    { id: 'VID-30', title: 'Choosing between 48V and 24V motor drives', mpn: 'MCF8315A', status: 'Editing', platform: 'YouTube', views: 0, avg: '—', clicks: 0, inquiries: 0, updated: '2026-11-16', cover: '48V' },
-    { id: 'VID-29', title: 'Five optocoupler isolation pitfalls', mpn: 'TLP185(GB)', status: 'Review', platform: 'YouTube', views: 0, avg: '—', clicks: 0, inquiries: 0, updated: '2026-11-15', cover: 'TLP185' },
-    { id: 'VID-28', title: 'LM317 thermal calculation walkthrough', mpn: 'LM317T', status: 'Script', platform: 'YouTube', views: 0, avg: '—', clicks: 0, inquiries: 0, updated: '2026-11-15', cover: 'LM317' },
-    { id: 'VID-27', title: 'Hall-effect current sensor selection', mpn: 'ACS712ELCTR-05B-T', status: 'Idea', platform: 'YouTube', views: 0, avg: '—', clicks: 0, inquiries: 0, updated: '2026-11-13', cover: 'ACS712' },
-    { id: 'VID-26', title: 'MLCC selection: X7R vs X5R', mpn: 'GRM188R71H104KA93D', status: 'Published', platform: 'YouTube', views: 8920, avg: '1:58', clicks: 540, inquiries: 9, updated: '2026-11-10', cover: 'MLCC' }
+    { id: 'VID-31', title: 'MCF8315A BLDC drive solution in 3 minutes', mpn: 'MCF8315A', status: 'Published', platform: 'YouTube', views: 12480, avg: '2:14', clicks: 860, inquiries: 14, landing: '/en/products/mcf8315a', utm: 'utm_source=youtube&utm_medium=video&utm_campaign=q4_motor&utm_content=vid-31', updated: '2026-11-14', cover: 'MCF8315A' },
+    { id: 'VID-30', title: 'Choosing between 48V and 24V motor drives', mpn: 'MCF8315A', status: 'Editing', platform: 'YouTube', views: 0, avg: '—', clicks: 0, inquiries: 0, landing: '/en/guides/48v-vs-24v-motor-drive', utm: 'utm_source=youtube&utm_medium=video&utm_campaign=q4_motor&utm_content=vid-30', updated: '2026-11-16', cover: '48V' },
+    { id: 'VID-29', title: 'Five optocoupler isolation pitfalls', mpn: 'TLP185(GB)', status: 'Review', platform: 'YouTube', views: 0, avg: '—', clicks: 0, inquiries: 0, landing: '/en/products/tlp185-gb', utm: 'utm_source=youtube&utm_medium=video&utm_campaign=isolation&utm_content=vid-29', updated: '2026-11-15', cover: 'TLP185' },
+    { id: 'VID-28', title: 'LM317 thermal calculation walkthrough', mpn: 'LM317T', status: 'Script', platform: 'YouTube', views: 0, avg: '—', clicks: 0, inquiries: 0, landing: '/en/products/lm317t', utm: 'utm_source=youtube&utm_medium=video&utm_campaign=power&utm_content=vid-28', updated: '2026-11-15', cover: 'LM317' },
+    { id: 'VID-27', title: 'Hall-effect current sensor selection', mpn: 'ACS712ELCTR-05B-T', status: 'Idea', platform: 'YouTube', views: 0, avg: '—', clicks: 0, inquiries: 0, landing: '/en/products/acs712elctr-05b-t', utm: 'utm_source=youtube&utm_medium=video&utm_campaign=sensors&utm_content=vid-27', updated: '2026-11-13', cover: 'ACS712' },
+    { id: 'VID-26', title: 'MLCC selection: X7R vs X5R', mpn: 'GRM188R71H104KA93D', status: 'Published', platform: 'YouTube', views: 8920, avg: '1:58', clicks: 540, inquiries: 9, landing: '/en/products/grm188r71h104ka93d', utm: 'utm_source=youtube&utm_medium=video&utm_campaign=passives&utm_content=vid-26', updated: '2026-11-10', cover: 'MLCC' }
   ];
 
   /* ------------------------------------------------------------------ 询盘 */
   D.inquiries = [
-    { lead: 'LD-20261116-001', request: 'RQ-8f3a2c', mpn: 'MCF8315A', qty: 5000, channel: 'Google Organic', utm: 'utm_source=google&utm_medium=organic', country: 'Germany', status: 'New', spam: 0.05, duplicate: '—', created: '2026-11-16 09:12', owner: '未分配' },
-    { lead: 'LD-20261116-002', request: 'RQ-1b9d7e', mpn: 'STM32F103C8T6', qty: 1200, channel: 'LinkedIn', utm: 'utm_source=linkedin&utm_campaign=q4_motor', country: 'Poland', status: 'Assigned', spam: 0.03, duplicate: '—', created: '2026-11-16 08:45', owner: '王敏' },
-    { lead: 'LD-20261115-014', request: 'RQ-4c6e1a', mpn: 'IRF540NPBF', qty: 20000, channel: 'YouTube', utm: 'utm_source=youtube&utm_medium=video', country: 'Brazil', status: 'Quoted', spam: 0.02, duplicate: '—', created: '2026-11-15 17:22', owner: '赵磊' },
-    { lead: 'LD-20261115-011', request: 'RQ-7a2f9c', mpn: 'LM317T', qty: 800, channel: 'Facebook', utm: 'utm_source=facebook&utm_medium=social', country: 'India', status: 'Won', spam: 0.01, duplicate: '—', created: '2026-11-15 14:08', owner: '王敏' },
-    { lead: 'LD-20261115-007', request: 'RQ-2d8b4f', mpn: 'TLP185(GB)', qty: 300, channel: 'Google Organic', utm: 'utm_source=google&utm_medium=organic', country: 'USA', status: 'Lost', spam: 0.04, duplicate: '—', created: '2026-11-15 11:30', owner: '赵磊' },
-    { lead: 'LD-20261115-003', request: 'RQ-9e1c6d', mpn: 'ESP32-WROOM-32E', qty: 50, channel: 'LinkedIn', utm: 'utm_source=linkedin', country: 'Vietnam', status: 'New', spam: 0.06, duplicate: '—', created: '2026-11-15 09:05', owner: '未分配' },
-    { lead: 'LD-20261114-021', request: 'RQ-6f4a8b', mpn: 'MCF8315A', qty: 5000, channel: 'Google Organic', utm: 'utm_source=google&utm_medium=organic', country: 'Germany', status: 'Spam', spam: 0.92, duplicate: '—', created: '2026-11-14 16:44', owner: '—' },
-    { lead: 'LD-20261114-018', request: 'RQ-3b7d1e', mpn: 'MCF8315A', qty: 5000, channel: 'Google Organic', utm: 'utm_source=google&utm_medium=organic', country: 'Germany', status: 'Assigned', spam: 0.07, duplicate: 'LD-20261114-021? 否 / 与 LD-20261116-001 内容重复', created: '2026-11-14 15:20', owner: '王敏' }
+    { lead: 'LD-20261116-001', request: 'RQ-8f3a2c', mpn: 'MCF8315A', qty: 5000, channel: 'Google Organic', utm: 'utm_source=google&utm_medium=organic', landing: '/en/products/mcf8315a', session: 'sess_demo_7f3a91', country: 'Germany', status: 'New', spam: 0.05, duplicate: '—', created: '2026-11-16 09:12', owner: '未分配' },
+    { lead: 'LD-20261116-002', request: 'RQ-1b9d7e', mpn: 'STM32F103C8T6', qty: 1200, channel: 'LinkedIn', utm: 'utm_source=linkedin&utm_campaign=q4_motor', landing: '/en/products/stm32f103c8t6', session: 'sess_demo_2b9d44', country: 'Poland', status: 'Assigned', spam: 0.03, duplicate: '—', created: '2026-11-16 08:45', owner: '王敏' },
+    { lead: 'LD-20261115-014', request: 'RQ-4c6e1a', mpn: 'IRF540NPBF', qty: 20000, channel: 'YouTube', utm: 'utm_source=youtube&utm_medium=video', landing: '/en/products/irf540npbf', session: 'sess_demo_4c6e08', country: 'Brazil', status: 'Quoted', spam: 0.02, duplicate: '—', created: '2026-11-15 17:22', owner: '赵磊' },
+    { lead: 'LD-20261115-011', request: 'RQ-7a2f9c', mpn: 'LM317T', qty: 800, channel: 'Facebook', utm: 'utm_source=facebook&utm_medium=social', landing: '/en/products/lm317t', session: 'sess_demo_7a2f13', country: 'India', status: 'Won', spam: 0.01, duplicate: '—', created: '2026-11-15 14:08', owner: '王敏' },
+    { lead: 'LD-20261115-007', request: 'RQ-2d8b4f', mpn: 'TLP185(GB)', qty: 300, channel: 'Google Organic', utm: 'utm_source=google&utm_medium=organic', landing: '/en/products/tlp185-gb', session: 'sess_demo_2d8b76', country: 'USA', status: 'Lost', spam: 0.04, duplicate: '—', created: '2026-11-15 11:30', owner: '赵磊' },
+    { lead: 'LD-20261115-003', request: 'RQ-9e1c6d', mpn: 'ESP32-WROOM-32E', qty: 50, channel: 'LinkedIn', utm: 'utm_source=linkedin', landing: '/en/products/esp32-wroom-32e', session: 'sess_demo_9e1c02', country: 'Vietnam', status: 'New', spam: 0.06, duplicate: '—', created: '2026-11-15 09:05', owner: '未分配' },
+    { lead: 'LD-20261114-021', request: 'RQ-6f4a8b', mpn: 'MCF8315A', qty: 5000, channel: 'Google Organic', utm: 'utm_source=google&utm_medium=organic', landing: '/en/products/mcf8315a', session: 'sess_demo_6f4a55', country: 'Germany', status: 'Spam', spam: 0.92, duplicate: '—', created: '2026-11-14 16:44', owner: '—' },
+    { lead: 'LD-20261114-018', request: 'RQ-3b7d1e', mpn: 'MCF8315A', qty: 5000, channel: 'Google Organic', utm: 'utm_source=google&utm_medium=organic', landing: '/en/products/mcf8315a', session: 'sess_demo_3b7d90', country: 'Germany', status: 'Assigned', spam: 0.07, duplicate: 'LD-20261114-021? 否 / 与 LD-20261116-001 内容重复', created: '2026-11-14 15:20', owner: '王敏' }
   ];
 
   /* ------------------------------------------------------------------ 用户 / 角色 / 审计 / 审批 */
@@ -291,7 +348,7 @@
       { k: 'LinkedIn', impressions: '186K', clicks: '14.2K', ctr: '7.63%', leads: 268, valid: 41.2, trend: [8, 9, 11, 10, 13, 12, 14] },
       { k: 'Facebook', impressions: '142K', clicks: '9.8K', ctr: '6.90%', leads: 186, valid: 35.5, trend: [6, 7, 6, 8, 9, 8, 10] },
       { k: 'YouTube', impressions: '98K', clicks: '6.4K', ctr: '6.53%', leads: 132, valid: 44.7, trend: [4, 5, 6, 5, 7, 8, 9] },
-      { k: 'GEO / AI 来源', impressions: '—', clicks: '2.1K', ctr: '—', leads: 64, valid: 32.8, trend: [2, 3, 2, 4, 3, 5, 6] }
+      { k: 'GEO / AI Referral（抽样）', impressions: '—', clicks: '2.1K', ctr: '—', leads: 64, valid: 32.8, trend: [2, 3, 2, 4, 3, 5, 6] }
     ],
     funnel: [
       { k: '曝光', v: 1240000, rate: '100%' },
@@ -302,7 +359,80 @@
     ]
   };
 
-  /* ------------------------------------------------------------------ 覆盖矩阵：旧后台 43 action */
+  /* ------------------------------------------------------------------ 数据分析口径 / SEO 技术治理 */
+  D.analytics = {
+    sourceLayers: [
+      { layer: '平台原生数据', source: 'Search Console / LinkedIn / Facebook / YouTube', measures: '曝光、点击、平台侧互动', status: '未连接', note: '只代表平台内行为，不能等同于站内询盘或有效询盘' },
+      { layer: '网站行为数据', source: 'GA4', measures: '会话、页面浏览、generate_lead 事件', status: '未连接', note: 'generate_lead 是前端事件，包含 Spam、重复与测试提交' },
+      { layer: '后台业务数据', source: 'Morrishk Intelligence', measures: 'LeadNo、RequestId、有效询盘', status: 'Demo 数据', note: '唯一可判定询盘有效性的口径' }
+    ],
+    leadBridge: [
+      { event: 'generate_lead（GA4 事件）', v: 1860, note: '前端触发次数，未去重' },
+      { event: '询盘入库（RequestId 去重）', v: 1724, note: '后台可见的询盘记录' },
+      { event: '有效询盘（后台判定）', v: 714, note: '剔除 Spam、重复与无效联系方式' }
+    ],
+    geo: {
+      aiReferral: { sessions: 2140, note: 'GA4 referral 中来自 AI 域名的会话（Demo 抽样）' },
+      coverage: { pieces: 6, total: 12, note: '具备证据与适用边界的 GEO 内容 / 目标内容' },
+      citations: { samples: 40, cited: 11, note: '人工抽样 40 条 AI 回答，11 条引用本站（非全量）' }
+    }
+  };
+
+  D.seoGovernance = {
+    urlRows: [
+      { url: '/en/products/mcf8315a', canonical: '/en/products/mcf8315a', index: 'Index', hreflang: '5 / 5', status: '正常' },
+      { url: '/en/products/stm32f103c8t6?ref=list', canonical: '/en/products/stm32f103c8t6', index: 'Index', hreflang: '5 / 5', status: '参数页重复' },
+      { url: '/en/search?q=motor', canonical: '/en/search', index: 'Noindex', hreflang: '—', status: '正常' },
+      { url: '/en/products/ne555dr', canonical: '/en/products/ne555dr', index: 'Index', hreflang: '4 / 5', status: '缺 ja hreflang' },
+      { url: '/de/products/lm317t', canonical: '/en/products/lm317t', index: 'Index', hreflang: '5 / 5', status: 'canonical 指向 en' }
+    ],
+    hreflang: [
+      { lang: 'en', urls: '9.84M', missing: 0, status: '正常' },
+      { lang: 'de', urls: '1.96M', missing: 1240, status: '待补' },
+      { lang: 'ja', urls: '1.82M', missing: 3860, status: '待补' },
+      { lang: 'es', urls: '1.78M', missing: 2410, status: '待补' },
+      { lang: 'fr', urls: '1.71M', missing: 1980, status: '待补' }
+    ],
+    sitemaps: [
+      { shard: 'sitemap-products-01.xml', urls: '50,000', updated: '2026-11-16 06:00', status: '正常' },
+      { shard: 'sitemap-products-02.xml', urls: '50,000', updated: '2026-11-16 06:00', status: '正常' },
+      { shard: 'sitemap-products-03.xml', urls: '38,420', updated: '2026-11-15 06:00', status: '滞后 1 天' },
+      { shard: 'sitemap-categories.xml', urls: '4,180', updated: '2026-11-16 06:00', status: '正常' },
+      { shard: 'sitemap-content.xml', urls: '12,640', updated: '2026-11-16 06:00', status: '正常' },
+      { shard: 'sitemap-help-news.xml', urls: '1,260', updated: '2026-11-14 06:00', status: '失败待重试' }
+    ],
+    quality: [
+      { issue: '重复内容风险', count: '12,480', detail: '参数页与分类页 Title / 描述高度重复', action: '合并 canonical 或补充差异化内容' },
+      { issue: '结构化数据错误', count: '1,206', detail: 'Product / Offer 字段缺失或类型错误', action: '按 shard 修复后重新校验' },
+      { issue: '低质量页面', count: '3,842', detail: '无参数、无描述、无可引用证据', action: '补充内容或转 Noindex' },
+      { issue: '404 / 软 404', count: '214', detail: '旧站迁移链接与分页参数失效', action: '配置 301 或返回 410' },
+      { issue: '重定向链', count: '96', detail: '两次以上跳转，浪费抓取预算', action: '压平为单跳' }
+    ],
+    release: {
+      batch: '≤ 5,000 URL / 批',
+      canary: '首批 1% 抽样',
+      rollback: '发布前快照，按批次回滚',
+      approval: 'SEO + 商城运营双人确认',
+      note: '不提供“一键全量发布千万页面”；所有规则变更必须分批灰度并保留回滚点'
+    }
+  };
+
+  /* ------------------------------------------------------------------ 旧后台 commands（11 个文件） */
+  D.legacyCommands = [
+    { file: 'AdminAsset.php', actions: '—（AssetBundle）', purpose: '后台静态资源包', module: '新后台前端资产', status: '不适用', note: 'Build 体系替换，不属于业务命令' },
+    { file: 'AdminController.php', actions: 'init / behaviors / logs', purpose: '后台基类、登录鉴权与日志辅助', module: '系统管理 · 权限与审计', status: '部分覆盖', note: '权限矩阵与审计页已设计，基类实现不迁移' },
+    { file: 'CController.php', actions: '7 个（URL 生成 / 提交 / 商品 / 缓存）', purpose: 'URL 生成、提交 Google、商品与列表缓存', module: 'SEO 管理 · 技术治理 / 商品管理', status: '部分覆盖', note: 'URL 治理与 sitemap 分片已设计；Google 提交需 API 授权' },
+    { file: 'CControllerBF.php', actions: '5 个（同 CController）', purpose: 'CController 的并行/备份版本', module: '同上', status: '待确认', note: '与 CController 是否仍并行运行需业务确认，未合并' },
+    { file: 'CartController.php', actions: 'Jump / Send', purpose: '旧站购物车跳转与询盘发送', module: '商城 · 询盘流程', status: '已覆盖', note: '询盘原型含 RequestId、有效性与通知边界' },
+    { file: 'CatController.php', actions: 'Img', purpose: '分类图片处理', module: '商城 · 分类管理 / 内容资产', status: '部分覆盖', note: '图片资产管线未设计' },
+    { file: 'MapController.php', actions: 'Cha / Index / Robots / ToGoogle / Put', purpose: '站点地图、robots、Google 提交与更新', module: 'SEO 管理 · 技术治理', status: '部分覆盖', note: 'sitemap / robots / 灰度回滚已设计；提交动作未接 API' },
+    { file: 'NewsController.php', actions: 'AddTime', purpose: '新闻时间维护', module: '网站基础管理 · 新闻公告', status: '已覆盖', note: '页面编辑支持时间字段（Demo）' },
+    { file: 'ProController.php', actions: 'Day / DayAll / ToPro / Put', purpose: '商品日同步、全量同步与发布', module: '商城 · 商品 / 库存', status: '部分覆盖', note: '库存与商品页已设计；WMS/ERP 同步未实现' },
+    { file: 'SnSiiController.php', actions: 'init / Lang / seo', purpose: 'SEO 辅助与多语言处理', module: 'SEO 管理 / 多语言', status: '部分覆盖', note: 'hreflang 与语言约束已设计；旧实现逻辑待核对' },
+    { file: 'SupplierController.php', actions: 'ProNum', purpose: '供应商商品数量统计', module: '未设计', status: '待确认', note: '供应商维度未进入本轮信息架构，需业务确认' }
+  ];
+
+
   D.legacyCoverage = [
     { ctrl: 'Default', action: 'actionIndex', fn: '后台默认首页/概览', module: '工作台 · 经营概览', status: '已覆盖', note: 'Dashboard 概览与关键指标' },
     { ctrl: 'Api', action: 'actionPutLogs', fn: '外部日志写入接口', module: '系统管理 · 操作审计', status: '部分覆盖', note: '审计页可见日志；写入接口形态待阶段 1 核实' },

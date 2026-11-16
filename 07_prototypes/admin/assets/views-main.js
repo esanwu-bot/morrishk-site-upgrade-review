@@ -202,9 +202,10 @@
       '</textarea><span class="hint">参数引用仅限 Verified；Needs Review 不得写入卖点。</span></div>' +
       '</div>';
 
-    var paramsTable = params.length ? UI.tbl(['参数', '值', '单位', { h: '页码', cls: 'num' }, '状态', '更新时间'], params.map(function (x) {
+    var paramsTable = params.length ? UI.tbl(['参数', '值', '单位', { h: '页码', cls: 'num' }, '状态', '适用性', '更新时间'], params.map(function (x) {
       return '<tr><td><span class="cell-main">' + esc(x.name) + '</span></td><td class="num">' + esc(x.value) + '</td><td>' + esc(x.unit) + '</td>' +
         '<td class="num">p.' + x.page + '</td><td>' + UI.pill(x.status, x.status === 'Verified' ? '已验证' : '待审核') + '</td>' +
+        '<td><span class="body-sm">' + esc(x.applicability || '未判定') + '</span></td>' +
         '<td class="nowrap"><span class="cell-sub">' + esc(x.updated) + '</span></td></tr>';
     }).join('')) + '<div class="note warn mt-3">待审核参数 ' + pending.length + ' 项不会出现在前台详情页；需在「产品参数审核」完成后才能引用。</div>' :
       UI.empty('该商品暂未解析 Datasheet 参数');
@@ -253,8 +254,17 @@
       '<div class="kpi-mini"><span class="k">已验证参数</span><span class="v">' + verified.length + ' 项</span>' + UI.pill(verified.length ? 'Verified' : 'Needs Review', verified.length ? '可引用' : '待补') + '</div>' +
       '<div class="kpi-mini"><span class="k">SEO</span><span class="v">' + seoOf(p) + '</span>' + UI.pill(p.seo === 'Optimized' ? 'Approved' : 'Needs Review', p.seo === 'Optimized' ? '通过' : '待优化') + '</div>' +
       '<div class="kpi-mini"><span class="k">Datasheet</span><span class="v">' + esc(p.datasheet) + '</span>' + UI.pill('Parsed', '已关联') + '</div>' +
-      '<div class="note ' + (p.content === 'Published' ? '' : 'warn') + '">' + (p.content === 'Published' ? '当前版本已发布。' : '当前为草稿，前台不可见；提交后进入审批流。') + '</div>' +
-      '</div>';
+      '</div>' +
+      '<div class="label">发布闸门（三层独立）</div>' +
+      '<div class="stack-sm">' +
+      '<div class="kpi-mini"><span class="k">PIPELINE_PASS</span><span class="v">Demo 快照 · 未运行</span>' + UI.pill('Demo', '未验证') + '</div>' +
+      '<div class="kpi-mini"><span class="k">CONTENT_APPROVED</span><span class="v">' + (p.content === 'Published' ? '详情页内容已通过' : '待人工审核') + '</span>' +
+      UI.pill(p.content === 'Published' ? 'Approved' : 'Needs Review', p.content === 'Published' ? '已通过' : '待审核') + '</div>' +
+      '<div class="kpi-mini"><span class="k">RELEASE_APPROVED</span><span class="v">' + (p.content === 'Published' ? '当前版本已授权' : '未申请') + '</span>' +
+      UI.pill(p.content === 'Published' ? 'Approved' : 'Draft', p.content === 'Published' ? '已授权' : '不可发布') + '</div>' +
+      '</div>' +
+      '<div class="note ' + (p.content === 'Published' ? '' : 'warn') + '">' + (p.content === 'Published' ? '当前版本已发布。' : '参数 Verified ≠ 内容审核通过 ≠ 发布授权；提交后仅发起内容审核，不直接上线。') + '</div>' +
+      '<div class="note">PIPELINE_PASS / CONTENT_APPROVED / RELEASE_APPROVED 相互独立，不得合并为 Verified。</div>';
 
     var tabsHtml = UI.tabs([
       { id: 'base', t: '基础信息' },
@@ -388,6 +398,51 @@
     var seoDesc = S.seoDesc || ('Request a quote for ' + p.mpn + ' from ' + p.brand + '. ' + p.name + '. Datasheet-backed data, global shipping.');
     var suggestions = S.seoSuggestions || [];
 
+    var gov = D.seoGovernance;
+    var govUrlRows = gov.urlRows.map(function (r) {
+      return '<tr><td><span class="mono-sm">' + esc(r.url) + '</span></td><td><span class="mono-sm">' + esc(r.canonical) + '</span></td>' +
+        '<td>' + UI.pill(r.index === 'Index' ? 'Approved' : 'Draft', r.index) + '</td><td class="num">' + esc(r.hreflang) + '</td>' +
+        '<td>' + (r.status === '正常' ? UI.pill('Approved', '正常') : UI.pill('Needs Review', r.status)) + '</td></tr>';
+    }).join('');
+    var govHreflangRows = gov.hreflang.map(function (r) {
+      return '<tr><td><span class="mono-sm">' + esc(r.lang) + '</span></td><td class="num">' + esc(r.urls) + '</td><td class="num">' + UI.num(r.missing) + '</td>' +
+        '<td>' + (r.status === '正常' ? UI.pill('Approved', '正常') : UI.pill('Needs Review', r.status)) + '</td></tr>';
+    }).join('');
+    var govSitemapRows = gov.sitemaps.map(function (r) {
+      return '<tr><td><span class="mono-sm">' + esc(r.shard) + '</span></td><td class="num">' + esc(r.urls) + '</td><td class="nowrap">' + esc(r.updated) + '</td>' +
+        '<td>' + (r.status === '正常' ? UI.pill('Approved', '正常') : UI.pill('Needs Review', r.status)) + '</td></tr>';
+    }).join('');
+    var govQualityRows = gov.quality.map(function (r) {
+      return '<tr><td><span class="cell-main">' + esc(r.issue) + '</span><span class="cell-sub">' + esc(r.detail) + '</span></td>' +
+        '<td class="num">' + esc(r.count) + '</td><td><span class="body-sm">' + esc(r.action) + '</span></td></tr>';
+    }).join('');
+
+    var governance = UI.card({ title: 'URL / Canonical / Index', sub: '抽样 URL 的抓取与索引口径', pad: false,
+        body: UI.tbl(['URL', 'Canonical', 'Index', { h: 'hreflang', cls: 'num' }, '状态'], govUrlRows) +
+          UI.foot('5 条抽样', 'Noindex 用于搜索页与低质量页面') }) +
+      '<div class="grid-2">' +
+      UI.card({ title: '多语言 hreflang', sub: 'en / de / ja / es / fr（默认 en）', pad: false,
+        body: UI.tbl(['语言', { h: 'URL 数', cls: 'num' }, { h: '缺 hreflang', cls: 'num' }, '状态'], govHreflangRows) +
+          UI.foot('缺口为 Demo 统计', '不新增中文 / 印尼语') }) +
+      UI.card({ title: 'Sitemap 分片状态', sub: '按分片生成与提交，失败分片可单独重试', pad: false,
+        body: UI.tbl(['分片', { h: 'URL 数', cls: 'num' }, '最后生成', '状态'], govSitemapRows) +
+          UI.foot('6 个分片', 'Search Console 未连接，提交状态为 Demo') }) +
+      '</div>' +
+      UI.card({ title: '内容质量与抓取异常', sub: '重复内容 / 结构化数据 / 低质量页 / 404 / 重定向链', pad: false,
+        body: UI.tbl(['问题', { h: '数量', cls: 'num' }, '建议动作'], govQualityRows) +
+          UI.foot('Demo 抽样统计', '低质量页面优先转 Noindex 或补内容') }) +
+      UI.card({ title: '发布与回滚', sub: '目标架构：分批灰度，不提供一键全量发布', body:
+        UI.kv([
+          { k: '单批上限', v: esc(gov.release.batch) },
+          { k: '灰度策略', v: esc(gov.release.canary) },
+          { k: '回滚', v: esc(gov.release.rollback) },
+          { k: '审批', v: esc(gov.release.approval) }
+        ]) +
+        '<div class="note warn mt-3"><strong>' + esc(gov.release.note) + '</strong></div>' +
+        '<div class="row mt-3" style="gap:var(--sp-2)"><button class="btn btn-secondary btn-sm" type="button" data-act="toast" data-msg="Demo：仅生成单批发布计划，不执行">生成单批发布计划</button>' +
+        '<button class="btn btn-secondary btn-sm" type="button" data-act="toast" data-msg="Demo：未连接 Search Console">重新提交 sitemap</button></div>' }) +
+      '<div class="note">SEO 技术治理与内容审核分离：Meta 通过审核不代表允许全量索引；URL 规则、sitemap 与灰度发布需独立审批。</div>';
+
     var optimize = '<div class="grid-2">' +
       '<div class="stack-sm">' +
       '<div class="field"><label>选择商品</label><select class="select" data-act="seo-select">' + S.products.map(function (x) {
@@ -414,11 +469,12 @@
       { id: 'zero', body: '<section class="card">' + UI.tbl(['零结果词', { h: '搜索次数', cls: 'num' }, '意图', '建议动作', ''], zeroRows) + UI.foot('4 个零结果词', '来自站内搜索 Demo 日志') + '</section>' },
       { id: 'synonyms', body: '<section class="card"><div class="card-hd"><div><h2>同义词与术语</h2><div class="sub">中英术语映射，保证搜索与 GEO 一致</div></div><button class="btn btn-secondary btn-sm" type="button" data-act="syn-new">新增同义词</button></div>' +
         UI.tbl(['术语', '映射', '类型', ''], synRows) + UI.foot('4 条映射', 'Demo 配置') + '</section>' },
-      { id: 'optimize', body: '<section class="card"><div class="card-bd">' + optimize + '</div></section>' }
+      { id: 'optimize', body: '<section class="card"><div class="card-bd">' + optimize + '</div></section>' },
+      { id: 'governance', body: governance }
     ];
 
     return '<div class="adm-page" data-filter-scope>' +
-      UI.pageHead('SEO 管理', '关键词、零结果词、同义词与页面级 Meta 统一管理；优化建议只基于已审核产品知识。',
+      UI.pageHead('SEO 管理', '关键词、零结果词、同义词、页面级 Meta 与技术治理；URL 规则变更必须分批灰度并可回滚。',
         UI.demoChip('搜索数据为 Demo') +
         '<button class="btn btn-secondary btn-sm" type="button" data-act="export-demo" data-name="SEO 报告">导出报告</button>') +
       '<div class="stat-grid" style="grid-template-columns:repeat(4,minmax(0,1fr))">' + stats + '</div>' +
@@ -426,7 +482,8 @@
         { id: 'keywords', t: '关键词表现', count: D.searchTerms.length },
         { id: 'zero', t: '零结果词', count: D.zeroTerms.length },
         { id: 'synonyms', t: '同义词', count: D.synonyms.length },
-        { id: 'optimize', t: '页面优化' }
+        { id: 'optimize', t: '页面优化' },
+        { id: 'governance', t: '技术治理' }
       ], tab, 'seotabs') +
       '<div class="mt-3">' + UI.panels('seotabs', panels, tab) + '</div>' +
       '<div class="note">生成 SEO 内容是异步任务，不阻塞商品浏览与询盘；事实字段只允许引用 Verified 参数。</div>' +
@@ -450,7 +507,7 @@
     var geoContents = S.contents.filter(function (c) { return /GEO/.test(c.channel); });
 
     return '<div class="adm-page">' +
-      UI.pageHead('GEO 内容管理', '为生成式搜索准备可引用的结构化答案：参数有证据、结论有边界、术语一致。',
+      UI.pageHead('GEO 内容管理', '为生成式搜索准备可引用的结构化答案；AI Referral、内容覆盖与引用抽样分开统计，不并入自然流量。',
         UI.demoChip('未接入真实 AI 搜索平台') +
         '<a class="btn btn-primary btn-sm" href="#/tech-content"><span data-icon="sparkles"></span>生成 GEO 内容</a>') +
       '<div class="grid-4-8">' +
@@ -469,6 +526,20 @@
           '<div class="a">LM317T 保证 1.5 A 输出电流（datasheet v6.0，第 2 页）。实际可用电流取决于封装散热与输入输出压差。</div>' +
           '<div class="src">' + UI.pill('Verified', '证据 c7e4b2a9') + '<span>页码 p.2</span></div></div>' }) +
       '</div>' +
+      (function () {
+        var g = D.analytics.geo;
+        var gRows = [
+          { k: 'AI Referral 会话', v: UI.num(g.aiReferral.sessions), d: g.aiReferral.note },
+          { k: 'GEO 内容覆盖', v: g.coverage.pieces + ' / ' + g.coverage.total, d: g.coverage.note },
+          { k: 'AI 引用抽样', v: g.citations.cited + ' / ' + g.citations.samples, d: g.citations.note }
+        ].map(function (r) {
+          return '<tr><td><span class="cell-main">' + esc(r.k) + '</span></td><td class="num">' + r.v + '</td><td><span class="body-sm">' + esc(r.d) + '</span></td></tr>';
+        }).join('');
+        return UI.card({ title: 'GEO 效果监测（三项分开）', sub: 'AI Referral / 内容覆盖 / 引用抽样', pad: false,
+          body: UI.tbl(['指标', { h: '当前 Demo', cls: 'num' }, '口径说明'], gRows) +
+            UI.foot('AI 搜索不可全量测量', '不把 GEO 当作完整可测流量渠道') +
+            '<div class="card-bd" style="padding-top:0"><div class="note warn">AI Referral 只是 GA4 中的少量 referral 会话；引用抽样为人工观察，不能推断平台整体引用份额。三者不得合并成“GEO 流量”单一指标。</div></div>' });
+      })() +
       UI.card({ title: '内容资产（GEO 渠道）', sub: '只展示已绑定 GEO 渠道的内容', pad: false,
         body: UI.tbl(['标题', '类型', '审核', '发布', '更新'], geoContents.map(function (c) {
           return '<tr><td><button class="link-btn" type="button" data-act="content-view" data-id="' + esc(c.id) + '">' + esc(c.title) + '</button></td>' +

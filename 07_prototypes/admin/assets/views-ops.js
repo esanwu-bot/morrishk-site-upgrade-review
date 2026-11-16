@@ -28,7 +28,7 @@
       var on = p.connected !== 'Disconnected (Demo)';
       return '<div class="plat">' +
         '<div class="plat-hd"><span class="plat-mark">' + esc(p.name.slice(0, 2)) + '</span><div class="grow"><div class="plat-name">' + esc(p.name) + '</div><div class="plat-sub">' + esc(p.handle) + '</div></div>' +
-        UI.pill(on ? 'Connected' : 'Disconnected', on ? '已连接（Demo）' : '未连接') + '</div>' +
+        UI.pill('Not Connected', on ? '未连接 · Demo 状态' : '已停用 · Demo') + '</div>' +
         '<div class="plat-stats">' +
         '<div class="plat-stat"><div class="k">粉丝</div><div class="v">' + UI.num(p.followers) + '</div></div>' +
         '<div class="plat-stat"><div class="k">本期发布</div><div class="v">' + p.posts + '</div></div>' +
@@ -36,7 +36,7 @@
         '<div class="plat-stat"><div class="k">引流询盘</div><div class="v">' + p.inquiries + '</div></div></div>' +
         '<div class="plat-foot"><span class="body-sm muted">内容基调：' + esc(p.tone) + '</span>' +
         '<div class="row" style="gap:var(--sp-2)">' +
-        '<button class="btn btn-secondary btn-xs" type="button" data-act="social-toggle" data-id="' + esc(p.id) + '">' + (on ? '断开 Demo' : '连接 Demo') + '</button>' +
+        '<button class="btn btn-secondary btn-xs" type="button" data-act="social-toggle" data-id="' + esc(p.id) + '">' + (on ? '停用模拟' : '启用模拟') + '</button>' +
         '<button class="btn btn-primary btn-xs" type="button" data-act="social-test" data-id="' + esc(p.id) + '"' + (on ? '' : ' disabled') + '>发布测试</button>' +
         '</div></div></div>';
     }).join('');
@@ -167,6 +167,7 @@
         list.map(function (v) {
           return '<div class="kanban-card"><div class="t">' + esc(v.title) + '</div>' +
             '<div class="m">' + esc(v.mpn) + ' · ' + esc(v.id) + '</div>' +
+            '<div class="m mono-sm">→ ' + esc(v.landing || '未设置落地页') + '</div>' +
             '<div class="a"><span class="muted" style="font-size:var(--fs-caption)">' + esc(v.updated) + '</span>' +
             (st !== 'Published' ? '<button class="link-btn" type="button" data-act="video-advance" data-id="' + esc(v.id) + '">推进</button>' :
               '<button class="link-btn" type="button" data-act="video-view" data-id="' + esc(v.id) + '">数据</button>') + '</div></div>';
@@ -174,9 +175,10 @@
     }).join('') + '</div>';
 
     var pubRows = S.videos.filter(function (v) { return v.status === 'Published'; }).map(function (v) {
-      return '<tr><td><span class="cell-main">' + esc(v.title) + '</span><span class="cell-sub">' + esc(v.mpn) + '</span></td>' +
-        '<td class="num">' + UI.num(v.views) + '</td><td class="num">' + v.avg + '</td><td class="num">' + UI.num(v.clicks) + '</td>' +
-        '<td class="num">' + v.inquiries + '</td><td>' + UI.pill('Published', '已发布') + '</td></tr>';
+      return '<tr><td><span class="cell-main">' + esc(v.title) + '</span><span class="cell-sub">' + esc(v.mpn + ' · ' + v.id) + '</span></td>' +
+        '<td><span class="mono-sm">' + esc(v.landing || '—') + '</span><span class="cell-sub">' + esc(v.utm || '—') + '</span></td>' +
+        '<td class="num">' + UI.num(v.views) + '</td><td class="num">' + v.avg + '</td>' +
+        '<td class="num">' + UI.num(v.clicks) + ' → ' + v.inquiries + '</td><td>' + UI.pill('Published', '已发布') + '</td></tr>';
     }).join('') || '<tr><td colspan="6">' + UI.empty() + '</td></tr>';
 
     return '<div class="adm-page">' +
@@ -185,9 +187,9 @@
         '<button class="btn btn-primary btn-sm" type="button" data-act="video-new"><span data-icon="plus"></span>新建视频</button>') +
       '<div class="stat-grid" style="grid-template-columns:repeat(4,minmax(0,1fr))">' + stats + '</div>' +
       UI.card({ title: '制作看板', sub: '点击“推进”移动到下一阶段（Demo 前端状态）', body: board }) +
-      UI.card({ title: '已发布视频表现', sub: '播放 / 观看时长 / 点击 / 询盘', pad: false,
-        body: UI.tbl(['视频', { h: '播放', cls: 'num' }, { h: '平均观看', cls: 'num' }, { h: '点击', cls: 'num' }, { h: '询盘', cls: 'num' }, '状态'], pubRows) +
-          '<div class="table-foot"><span>Demo 抽样</span><span class="muted">YouTube 数据未接入</span></div>' }) +
+      UI.card({ title: '已发布视频表现', sub: '播放 / 观看时长 / 点击 → 询盘转化', pad: false,
+        body: UI.tbl(['视频 / 关联商品', '落地页 / UTM', { h: '播放', cls: 'num' }, { h: '平均观看', cls: 'num' }, { h: '点击 → 询盘', cls: 'num' }, '状态'], pubRows) +
+          '<div class="table-foot"><span>Demo 抽样</span><span class="muted">YouTube 与落地页归因未接入</span></div>' }) +
       '<div class="note">视频转码与封面处理属于独立媒体任务；营销任务失败不影响商品详情、库存展示与询盘提交。</div>' +
       '</div>';
   };
@@ -235,14 +237,49 @@
     var range = S.analyticsRange || 30;
     var traffic = D.overview.traffic;
     var inq = D.overview.inquiries;
-    var tSeries = range === 7 ? traffic.slice(-7) : range === 90 ? traffic.concat(traffic, traffic) : traffic;
-    var iSeries = range === 7 ? inq.slice(-7) : range === 90 ? inq.concat(inq, inq) : inq;
-    var labels = range === 90 ? dayLabels(90) : dayLabels(range);
+
+    function synthetic(base, n, offset) {
+      var out = [];
+      for (var i = 0; i < n; i++) {
+        var b = base[i % base.length];
+        var swing = ((i * 7 + offset) % 13) - 6;
+        out.push(Math.max(1, Math.round(b * (1 + swing / 100) + i * 0.35)));
+      }
+      return out;
+    }
+
+    var tSeries, iSeries, trendNote;
+    if (range === 7) {
+      tSeries = traffic.slice(-7); iSeries = inq.slice(-7);
+      trendNote = '最近 7 天（Demo 快照）';
+    } else if (range === 90) {
+      tSeries = synthetic(traffic, 90, 3); iSeries = synthetic(inq, 90, 9);
+      trendNote = '90 天为合成 Demo 数据，不是真实历史回填';
+    } else {
+      tSeries = traffic; iSeries = inq;
+      trendNote = '最近 30 天（Demo 快照）';
+    }
+    var labels = dayLabels(range);
+
+    var layerRows = D.analytics.sourceLayers.map(function (l) {
+      return '<tr><td><span class="cell-main">' + esc(l.layer) + '</span><span class="cell-sub">' + esc(l.source) + '</span></td>' +
+        '<td><span class="body-sm">' + esc(l.measures) + '</span></td>' +
+        '<td>' + UI.pill(l.status === '未连接' ? 'Not Connected' : 'Demo', l.status) + '</td>' +
+        '<td><span class="body-sm muted">' + esc(l.note) + '</span></td></tr>';
+    }).join('');
+
+    var bridge = D.analytics.leadBridge;
+    var bridgeFunnel = bridge.map(function (b, i) {
+      return { k: b.event, v: b.v, rate: (b.v / bridge[0].v * 100).toFixed(1) + '%' };
+    });
 
     var utmRows = D.inquiries.filter(function (i) { return i.channel !== 'Direct'; }).map(function (i) {
-      return '<tr><td><span class="mono-sm">' + esc(i.utm) + '</span></td><td>' + esc(i.channel) + '</td>' +
-        '<td>' + esc(i.country) + '</td><td>' + UI.pill(i.status, STATUS_CN[i.status] || i.status) + '</td>' +
-        '<td class="nowrap"><span class="cell-sub">' + esc(i.created) + '</span></td></tr>';
+      var valid = i.spam > 0.5 ? ['Invalid', '无效'] : i.duplicate !== '—' ? ['Needs Review', '待人工确认'] : ['Valid', '有效'];
+      return '<tr><td><button class="link-btn mono-sm" type="button" data-act="inquiry-view" data-id="' + esc(i.lead) + '">' + esc(i.lead) + '</button>' +
+        '<span class="cell-sub">' + esc(i.request) + '</span></td>' +
+        '<td><span class="mono-sm">' + esc(i.session || '—') + '</span></td>' +
+        '<td><span class="mono-sm">' + esc(i.utm) + '</span><span class="cell-sub">' + esc(i.landing || '—') + '</span></td>' +
+        '<td>' + esc(i.channel) + '</td><td>' + UI.pill(valid[0], valid[1]) + '</td></tr>';
     }).join('');
 
     var channelRows = D.overview.channels.map(function (c) {
@@ -251,32 +288,45 @@
     }).join('');
 
     return '<div class="adm-page">' +
-      UI.pageHead('数据分析', '流量、渠道、漏斗与询盘质量在一个口径下核对；当前 GA4 未连接，数据为 Demo。',
-        UI.demoChip('GA4 未连接') +
+      UI.pageHead('数据分析', '平台原生数据、GA4 网站行为与后台业务数据分层展示；询盘有效性只以后台 LeadNo 判定为准。',
+        UI.demoChip('GA4 / Search Console 未连接') +
         '<div class="seg"><button type="button" class="' + (range === 7 ? 'on' : '') + '" data-act="an-range" data-range="7">7 天</button>' +
         '<button type="button" class="' + (range === 30 ? 'on' : '') + '" data-act="an-range" data-range="30">30 天</button>' +
         '<button type="button" class="' + (range === 90 ? 'on' : '') + '" data-act="an-range" data-range="90">90 天</button></div>' +
         '<button class="btn btn-secondary btn-sm" type="button" data-act="export-demo" data-name="分析报告">导出</button>') +
+
+      UI.card({ title: '数据来源分层', sub: '三类数据不可混用同一口径', pad: false,
+        body: UI.tbl(['层级 / 来源', '可衡量指标', '状态', '边界说明'], layerRows) +
+          UI.foot('平台 ≠ GA4 ≠ 后台业务数据', '口径说明见各层边界') }) +
+
       '<div class="grid-7-5">' +
-      UI.card({ title: '访客与询盘', sub: '最近 ' + range + ' 天 · 双序列各自口径', padSm: true,
+      UI.card({ title: '访客与询盘', sub: trendNote, padSm: true,
         body: UI.chart({ h: 210, series: [
           { v: tSeries, cls: 'viz-line-1', area: true, name: '访客' },
           { v: iSeries, cls: 'viz-line-2', name: '询盘' }
         ], labels: labels, label: '访客与询盘趋势' }) +
-          '<div class="viz-legend mt-3"><span><i class="viz-key"></i>访客（UV）</span><span><i class="viz-key k2"></i>询盘（提交量）</span></div>' }) +
-      UI.card({ title: '漏斗', sub: '曝光 → 有效询盘', padSm: true, body: UI.funnel(D.overview.funnel) +
-        '<div class="chart-note">漏斗各阶段为独立统计，非用户级串联。</div>' }) +
+          '<div class="viz-legend mt-3"><span><i class="viz-key"></i>访客（UV · GA4 Demo）</span><span><i class="viz-key k2"></i>询盘（提交量 · 后台 Demo）</span></div>' +
+          '<div class="chart-note">' + esc(trendNote) + '；GA4 未连接，序列不可作为真实历史。</div>' }) +
+      UI.card({ title: '询盘转化桥接', sub: 'generate_lead → 入库 → 有效', padSm: true,
+        body: UI.funnel(bridgeFunnel) +
+          '<div class="chart-note">generate_lead 是前端事件，包含 Spam、重复与测试提交；只有后台 LeadNo 判定后才算有效询盘。</div>' +
+          '<div class="note warn mt-3">1860 → 1724 → 714 均为 Demo 数字，不代表当前真实转化率。</div>' }) +
       '</div>' +
-      UI.card({ title: '渠道指标', sub: '搜索 / 社媒 / 视频 / GEO', pad: false,
-        body: UI.tbl(['渠道', { h: '曝光', cls: 'num' }, { h: '点击', cls: 'num' }, { h: 'CTR', cls: 'num' }, { h: '询盘', cls: 'num' }, { h: '有效%', cls: 'num' }, '趋势'], channelRows) }) +
+
+      UI.card({ title: '渠道指标', sub: '搜索 / 社媒 / 视频 / GEO / AI Referral（抽样）', pad: false,
+        body: UI.tbl(['渠道', { h: '曝光', cls: 'num' }, { h: '点击', cls: 'num' }, { h: 'CTR', cls: 'num' }, { h: '询盘', cls: 'num' }, { h: '有效%', cls: 'num' }, '趋势'], channelRows) +
+          UI.foot('平台数据未连接', 'GEO / AI 来源为抽样，不作为完整可测流量渠道') }) +
+
       '<div class="grid-8-4">' +
-      UI.card({ title: 'UTM 归因明细', sub: '询盘来源参数', pad: false,
-        body: UI.tbl(['UTM', '渠道', '国家', '状态', '时间'], utmRows) + '<div class="table-foot"><span>Demo 抽样</span><span class="muted">UTM 由询盘表单带入</span></div>' }) +
+      UI.card({ title: '询盘归因明细', sub: 'LeadNo ↔ 渠道 ↔ UTM ↔ GA4 Session', pad: false,
+        body: UI.tbl(['LeadNo', 'GA4 Session', 'UTM / 落地页', '渠道', '有效判定'], utmRows) +
+          '<div class="table-foot"><span>Demo 抽样</span><span class="muted">有效性由后台判定</span></div>' }) +
       UI.card({ title: '数据质量', body: '<div class="stack-sm">' +
         '<div class="kpi-mini"><span class="k">Spam 询盘</span><span class="v">' + S.inquiries.filter(function (i) { return i.status === 'Spam'; }).length + '</span></div>' +
         '<div class="kpi-mini"><span class="k">疑似重复</span><span class="v">' + S.inquiries.filter(function (i) { return i.duplicate !== '—'; }).length + '</span></div>' +
         '<div class="kpi-mini"><span class="k">GA4</span><span class="v">未连接</span></div>' +
-        '<div class="note warn mt-3">接入 GA4 后需要重新校准渠道归因与有效询盘率。</div>' +
+        '<div class="kpi-mini"><span class="k">Search Console</span><span class="v">未连接</span></div>' +
+        '<div class="note warn mt-3">接入 GA4 后需要重新校准渠道归因与有效询盘率；Search Console 与社媒原生数据需分别对账。</div>' +
         '<a class="btn btn-secondary btn-sm" href="#/settings">查看集成设置</a></div>' }) +
       '</div></div>';
   };
@@ -294,7 +344,9 @@
         '<td><button class="link-btn" type="button" data-act="inquiry-view" data-id="' + esc(i.lead) + '">' + esc(i.lead) + '</button>' +
         '<span class="cell-sub">' + esc(i.request) + '</span></td>' +
         '<td><span class="cell-main">' + esc(i.mpn) + '</span><span class="cell-sub">' + UI.num(i.qty) + ' pcs</span></td>' +
-        '<td>' + esc(i.channel) + '</td><td>' + esc(i.country) + '</td>' +
+        '<td>' + esc(i.channel) + '</td>' +
+        '<td><span class="mono-sm">' + esc(i.session || '—') + '</span><span class="cell-sub">' + esc(i.landing || '—') + '</span></td>' +
+        '<td>' + esc(i.country) + '</td>' +
         '<td>' + UI.pill(i.status, STATUS_CN[i.status] || i.status) + '</td>' +
         '<td style="min-width:110px">' + UI.progress(Math.round((1 - i.spam) * 100), i.spam > 0.5) + '<span class="cell-sub">Spam ' + Math.round(i.spam * 100) + '%</span></td>' +
         '<td>' + (i.duplicate !== '—' ? '<span class="st st-warn">' + UI.icon('copy') + '疑似重复</span>' : '<span class="muted">—</span>') + '</td>' +
@@ -317,10 +369,10 @@
       ], tab, 'inqtabs') +
       UI.toolbar('<input class="input" type="search" style="width:300px" placeholder="搜索 LeadNo / MPN / 国家 / 渠道" data-filter-input aria-label="搜索询盘">',
         '<span class="toolbar-label" data-filter-count>共 ' + S.inquiries.length + ' 条</span>') +
-      '<section class="card">' + UI.tbl(['LeadNo', '商品 / 数量', '渠道', '国家', '状态', '垃圾评分', '重复', '负责人', ''],
-        rows + '<tr data-empty-row hidden><td colspan="9">' + UI.empty() + '</td></tr>', 'responsive', 'data-table="inquiries"') +
-      UI.foot('共 ' + S.inquiries.length + ' 条（Demo 抽样）', '有效询盘 = 全部 − Spam − 重复') + '</section>' +
-      '<div class="note">询盘响应与营销发布解耦：社媒或内容任务失败不会影响询盘入库与通知。</div>' +
+      '<section class="card">' + UI.tbl(['LeadNo', '商品 / 数量', '渠道', 'GA4 Session / 落地页', '国家', '状态', '垃圾评分', '重复', '负责人', ''],
+        rows + '<tr data-empty-row hidden><td colspan="10">' + UI.empty() + '</td></tr>', 'responsive', 'data-table="inquiries"') +
+      UI.foot('共 ' + S.inquiries.length + ' 条（Demo 抽样）', '有效询盘 = 全部 − Spam − 重复；Session 仅用于归因，不代表有效性') + '</section>' +
+      '<div class="note">询盘响应与营销发布解耦：社媒或内容任务失败不会影响询盘入库与通知。GA4 的 generate_lead 事件不等于有效询盘。</div>' +
       '</div>';
   };
 

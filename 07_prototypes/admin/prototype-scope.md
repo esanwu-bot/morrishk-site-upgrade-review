@@ -100,6 +100,24 @@
 
 **汇总：43 个动作 = 已覆盖 25 + 部分覆盖 18 + 未覆盖 0。**
 
+### 补充：旧后台 Commands（11 个文件，独立列示，不计入 43 个 action）
+
+| 文件 | 命令 / Action | 旧用途 | 新映射 | 状态 | 说明 |
+|---|---|---|---|---|---|
+| AdminAsset.php | AssetBundle | 后台静态资源包 | 新后台前端资产 | 不适用 | Build 体系替换，无业务命令 |
+| AdminController.php | init / behaviors / logs | 后台基类、鉴权与日志 | 系统管理 · 权限与审计 | 部分覆盖 | 权限矩阵与审计页已设计，基类不迁移 |
+| CController.php | GenerateUrlsFromFile / SubmitUrlsToGoogle / ProItem / List / ListUrl / ListCache / Home | URL 生成、Google 提交、商品与缓存 | SEO 技术治理 / 商品管理 | 部分覆盖 | URL 治理与 sitemap 分片已设计；Google 提交需 API 授权 |
+| CControllerBF.php | ProItem / List / ListUrl / ListCache / Home | CController 并行/备份版本 | 同上 | 待确认 | 是否仍并行运行需业务确认 |
+| CartController.php | Jump / Send | 旧站购物车跳转与询盘发送 | 商城 · 询盘流程 | 已覆盖 | 含 RequestId、有效性与通知边界 |
+| CatController.php | Img | 分类图片处理 | 分类管理 / 内容资产 | 部分覆盖 | 图片资产管线未设计 |
+| MapController.php | Cha / Index / Robots / ToGoogle / Put | 站点地图、robots、Google 提交 | SEO 技术治理 | 部分覆盖 | sitemap / robots / 灰度回滚已设计；提交未接 API |
+| NewsController.php | AddTime | 新闻时间维护 | 网站基础管理 · 新闻公告 | 已覆盖 | 页面编辑支持时间字段（Demo） |
+| ProController.php | Day / DayAll / ToPro / Put | 商品日同步、全量同步与发布 | 商品 / 库存 | 部分覆盖 | WMS/ERP 同步未实现 |
+| SnSiiController.php | init / Lang / seo | SEO 辅助与多语言 | SEO 管理 / 多语言 | 部分覆盖 | hreflang 与语言约束已设计；旧实现待核对 |
+| SupplierController.php | ProNum | 供应商商品数量统计 | 未设计 | 待确认 | 供应商维度未进入本轮信息架构 |
+
+> 命令文件与 43 个后台 action 是两套清单；“待确认”不视为已覆盖。
+
 ---
 
 ## 三、部分覆盖的具体缺口

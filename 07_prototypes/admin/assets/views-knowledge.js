@@ -16,15 +16,74 @@
   ];
   window.ADMIN_VERSIONS = VERSIONS;
 
+  function withDoc(p) {
+    var d = D.documents.filter(function (x) { return x.id === p.doc; })[0] || {};
+    var o = {};
+    for (var k in p) { if (Object.prototype.hasOwnProperty.call(p, k)) o[k] = p[k]; }
+    o.file = d.file;
+    o.docVersion = d.version;
+    o.docType = d.type;
+    o.docSubject = d.subject;
+    return o;
+  }
+
   /* ================================================================ Ds Bit 数据资产 */
   V.dsbit = function (S) {
     var stats = [
-      { k: 'Datasheet 文档', v: '1,284', note: '当前版本', icon: 'file' },
-      { k: '已解析文档', v: '1,240', note: '96.6% 成功', icon: 'check' },
+      { k: 'Datasheet 文档', v: '1,284', note: 'Demo 快照', icon: 'file' },
+      { k: '已解析文档', v: '1,240', note: '96.6%（Demo）', icon: 'check' },
       { k: '结构化参数', v: '186,420', note: '跨 3,120 个 MPN', icon: 'database' },
-      { k: '已验证参数', v: '172,930', note: '92.7% Verified', icon: 'shield-check' },
+      { k: '参数级 Verified', v: '172,930', note: '92.7% ReviewStatus', icon: 'shield-check' },
       { k: '待审核', v: '1,268', note: '含低置信度', icon: 'clock', warn: true }
     ].map(function (x) { return UI.stat(x); }).join('');
+
+    var runtimeRows = [
+      ['Ds Bit 解析引擎', '未连接 · Demo 快照', '只读对接 dsbit.internal:8080'],
+      ['内容发布队列', '未接入 · Demo 状态', '异步发布队列 + 失败重试'],
+      ['GA4', '未连接', '网站行为数据接入'],
+      ['Search Console', '未连接', '搜索表现数据接入'],
+      ['社媒 API', '未连接', 'OAuth 授权与平台发布接口']
+    ].map(function (r) {
+      return '<tr><td><span class="cell-main">' + r[0] + '</span></td>' +
+        '<td>' + UI.pill('Not Connected', r[1]) + '</td><td class="muted">' + r[2] + '</td></tr>';
+    }).join('');
+
+    var gates = [
+      { k: 'PIPELINE_PASS', t: '文档可解析、证据字段完整（页码 / 表格 / 行 / bbox / 原文）', fail: '不进入参数候选', now: '未运行（Demo 快照）' },
+      { k: 'CONTENT_APPROVED', t: '参数审核与内容审核通过，可被商品详情与内容引用', fail: '保持只读或退回修改', now: '部分参数 Verified（Demo）' },
+      { k: 'RELEASE_APPROVED', t: '指定发布批次获批，可写入生产站点或渠道', fail: '保持草稿，不可发布', now: '未申请（Demo）' }
+    ].map(function (g) {
+      return '<tr><td><span class="mono-sm">' + g.k + '</span></td><td>' + g.t + '</td><td class="muted">' + g.fail + '</td>' +
+        '<td>' + UI.pill('Demo', g.now) + '</td></tr>';
+    }).join('');
+
+    var modelFields = [
+      ['DocumentId', '文档唯一编号', 'DS-1042'],
+      ['ParseRunId', '一次解析运行编号', 'PR-20261115-1042-01'],
+      ['DocumentVersion', '文档版本', 'v2.1'],
+      ['DocumentType', '文档类型', 'Datasheet / Selection Guide'],
+      ['DocumentSubject', '文档主体（系列或型号）', 'MCF8315A three-phase … driver'],
+      ['RawLabel', '文档原始参数名', 'VVM'],
+      ['RawValue', '文档原始值', '4.5 V to 35 V'],
+      ['NormalizedValue', '标准化值 + 单位', '4.5–35 V'],
+      ['ValueKind', '值类型', 'range / typ / max / enum'],
+      ['Conditions', '测试或适用条件', 'TA = 25°C'],
+      ['PageNo', '页码', 'p.8'],
+      ['TableId', '表格编号', 'T-08-02'],
+      ['RowId', '行编号', 'R-04'],
+      ['CellBBox', '单元格坐标', '[312, 486, 528, 502]'],
+      ['ReviewStatus', '参数审核状态', 'Verified / Needs Review / Rejected']
+    ].map(function (f) {
+      return '<tr><td><span class="mono-sm">' + f[0] + '</span></td><td>' + f[1] + '</td><td class="muted mono-sm">' + esc(f[2]) + '</td></tr>';
+    }).join('');
+
+    var appRows = D.documents.map(function (d) {
+      return '<tr><td><span class="mono-sm">' + esc(d.id) + '</span></td><td><span class="cell-main">' + esc(d.mpn) + '</span></td>' +
+        '<td>' + esc(d.type) + '</td><td class="muted">' + esc(d.subject) + '</td><td>' + esc(d.version) + '</td>' +
+        '<td>' + UI.pill(d.applicability === 'Direct' ? 'Approved' : d.applicability === 'Family match' ? 'Demo' : 'Needs Review',
+          d.applicability === 'Direct' ? 'Direct · MPN 匹配' : d.applicability === 'Family match' ? 'Family match（仅背景）' : '待判定') + '</td>' +
+        '<td class="muted">' + esc(d.applicabilityNote || (d.applicability === 'Direct' ? '参数可绑定到该 MPN' : '不绑定参数')) + '</td></tr>';
+    }).join('');
 
     var nodes = [
       { k: '01 PDF', v: '入库', d: '文件哈希与版本' },
@@ -33,7 +92,7 @@
       { k: '04 Registry', v: '候选', d: '参数候选注册' },
       { k: '05 LLM', v: '归并', d: '同义与单位统一' },
       { k: '06 Evidence', v: '对齐', d: '页码 + bbox + 原文', gate: true },
-      { k: '07 Audit', v: '定级', d: 'Verified / Review' }
+      { k: '07 Audit', v: '定级', d: 'ReviewStatus 分流' }
     ];
 
     var pipeline = '<div class="pipeline">' + nodes.map(function (n) {
@@ -41,7 +100,7 @@
     }).join('') + '</div>';
 
     var statusRows = [
-      { s: 'Verified', t: '证据可定位、置信度达标、人工确认', down: '可进入商品详情、知识库与营销内容', cls: 'Verified' },
+      { s: 'Verified', t: '证据可定位、置信度达标、人工确认', down: '参数可进入商品详情、知识库与营销内容', cls: 'Verified' },
       { s: 'Needs Review', t: '证据存在但置信度低或存在歧义', down: '不进入前台；进入审核队列', cls: 'Needs Review' },
       { s: 'Rejected', t: '证据缺失、冲突或无法对齐', down: '禁止引用；保留失败记录', cls: 'Rejected' }
     ].map(function (r) {
@@ -56,19 +115,31 @@
     var sample = S.params.filter(function (p) { return p.mpn === 'MCF8315A' && p.status !== 'Verified'; })[0] || S.params[0];
 
     return '<div class="adm-page">' +
-      UI.pageHead('Ds Bit 数据资产', 'Ds Bit 是独立运行的文档解析与证据校验引擎；本后台只设计数据管理与使用入口，不复制解析核心。',
+      UI.pageHead('Ds Bit 数据资产', 'Ds Bit 是独立运行的文档解析与证据校验引擎；本后台只设计数据管理与使用入口，当前原型不连接引擎、不执行解析。',
         UI.demoChip('Ds Bit 数据为 Demo 快照') +
         '<a class="btn btn-secondary btn-sm" href="#/coverage">覆盖矩阵</a>' +
         '<a class="btn btn-primary btn-sm" href="#/param-review">去审核</a>') +
+      '<div class="grid-7-5">' +
+      UI.card({ title: '当前原型状态', sub: '与目标架构分开标注，不把 Demo 快照写成运行状态', pad: false,
+        body: UI.tbl(['系统', '当前原型', '目标架构'], runtimeRows) +
+          '<div class="table-foot"><span>当前原型</span><span class="muted">无真实连接、无 Token、无队列</span></div>' }) +
+      UI.card({ title: '三层质量状态', sub: '三个状态独立判定，不可合并为 Verified', pad: false,
+        body: UI.tbl(['层级', '通过含义', '不通过', '当前'], gates) +
+          '<div class="table-foot"><span>ReviewStatus 为参数级</span><span class="muted">不等于三个发布闸门</span></div>' }) +
+      '</div>' +
       '<div class="stat-grid">' + stats + '</div>' +
-      UI.card({ title: '处理流水线', sub: '每一级都可追溯；证据对齐是进入知识库前的硬门槛', actions: UI.pill('Parsed', '引擎运行中'), body: pipeline,
-        padSm: true,
-        after: '' }) +
+      UI.card({ title: '处理流水线（目标架构）', sub: '每一级都可追溯；证据对齐是进入知识库前的硬门槛；当前原型只展示流程与字段', actions: UI.pill('Target', '目标架构'),
+        body: pipeline, padSm: true }) +
+      UI.card({ title: '参数数据模型（15 字段）', sub: '来源、原始值、标准化值、位置证据与审核状态一一对应', pad: false,
+        body: UI.tbl(['字段', '说明', 'Demo 示例'], modelFields) }) +
+      UI.card({ title: '产品 ↔ Datasheet 适用关系', sub: '同一份文档不一定适用于所有商品', pad: false,
+        body: UI.tbl(['DocumentId', 'MPN', '类型', 'DocumentSubject', '版本', '适用性', '说明'], appRows) +
+          '<div class="table-foot"><span>Family match 仅作选型背景</span><span class="muted">不绑定参数证据</span></div>' }) +
       '<div class="grid-8-4">' +
-      UI.card({ title: '状态语义与下游影响', sub: '三种状态决定数据能否被使用', pad: false,
+      UI.card({ title: '参数级 ReviewStatus', sub: '决定参数能否被商品与内容引用', pad: false,
         body: UI.tbl(['状态', '判定条件', '下游行为'], statusRows) }) +
-      UI.card({ title: '证据样例', padSm: true, sub: '待审核参数不会进入前台',
-        body: UI.evidence(sample) + '<div class="row mt-3" style="gap:var(--sp-2)"><a class="btn btn-secondary btn-sm" href="#/param-review">审核该参数</a>' +
+      UI.card({ title: '证据样例', padSm: true, sub: '完整证据链字段，不以 bbox 代替适用性',
+        body: UI.evidence(withDoc(sample)) + '<div class="row mt-3" style="gap:var(--sp-2)"><a class="btn btn-secondary btn-sm" href="#/param-review">审核该参数</a>' +
           '<button class="btn btn-ghost btn-sm" type="button" data-act="toast" data-msg="Demo：源文档预览未接入真实文件">查看源文档</button></div>' }) +
       '</div>' +
       '<div class="grid-7-5">' +
@@ -79,7 +150,7 @@
       }).join('') + '</div>' }) +
       UI.card({ title: '稳定性原则', sub: '8 条设计约束', pad: false, body: UI.tbl(['原则', '说明', '类型'], principles) }) +
       '</div>' +
-      '<div class="note"><strong>系统边界：</strong>Ds Bit 与商城后台是两个系统。原型中的解析状态、参数与证据均为 Demo 快照；不包含解析器实现、模型调用与真实队列。</div>' +
+      '<div class="note"><strong>系统边界：</strong>Ds Bit 与商城后台是两个系统。原型中的解析状态、参数与证据均为 Demo 快照；不包含解析器实现、模型调用与真实队列。PIPELINE_PASS 不等于 CONTENT_APPROVED，CONTENT_APPROVED 也不等于 RELEASE_APPROVED。</div>' +
       '</div>';
   };
 
@@ -96,18 +167,20 @@
     ].map(function (x) { return UI.stat(x); }).join('');
 
     var rows = S.docs.map(function (d) {
-      return '<tr data-search="' + esc((d.file + ' ' + d.mpn + ' ' + d.id).toLowerCase()) + '" data-fstatus="' + esc(d.status) + '">' +
+      return '<tr data-search="' + esc((d.file + ' ' + d.mpn + ' ' + d.id + ' ' + d.subject).toLowerCase()) + '" data-fstatus="' + esc(d.status) + '">' +
         '<td><button class="link-btn" type="button" data-act="doc-view" data-id="' + esc(d.id) + '">' + esc(d.file) + '</button>' +
-        '<span class="cell-sub">' + esc(d.id) + ' · ' + esc(d.version) + '</span></td>' +
-        '<td><span class="cell-main">' + esc(d.mpn) + '</span><span class="cell-sub mono-sm">SHA ' + esc(d.hash) + '…</span></td>' +
-        '<td class="num">' + d.pages + '</td><td class="num">' + esc(d.size) + '</td>' +
-        '<td class="num">' + (d.params || '—') + '</td>' +
-        '<td>' + UI.pill(d.status, { Parsed: '已解析', Parsing: '解析中', Failed: '失败' }[d.status] || d.status) + '</td>' +
+        '<span class="cell-sub">' + esc(d.id) + ' · ' + esc(d.version) + ' · ' + esc(d.size) + '</span></td>' +
+        '<td><span class="cell-main">' + esc(d.mpn) + '</span><span class="cell-sub mono-sm">' + esc(d.run) + ' · SHA ' + esc(d.hash) + '…</span></td>' +
+        '<td><span class="cell-main">' + esc(d.type) + '</span><span class="cell-sub">' + esc(d.subject) + '</span></td>' +
+        '<td class="num">' + d.pages + '</td><td class="num">' + (d.params || '—') + '</td>' +
+        '<td>' + UI.pill(d.applicability === 'Direct' ? 'Approved' : d.applicability === 'Family match' ? 'Demo' : 'Needs Review',
+          d.applicability === 'Direct' ? 'Direct' : d.applicability === 'Family match' ? 'Family match' : '待判定') + '</td>' +
+        '<td>' + UI.pill(d.status, { Parsed: '已解析（Demo）', Parsing: '解析中（Demo）', Failed: '失败' }[d.status] || d.status) + '</td>' +
         '<td class="num">' + (d.issues ? '<span class="st st-warn">' + UI.icon('alert') + d.issues + '</span>' : '<span class="muted">0</span>') + '</td>' +
         '<td class="nowrap"><span class="cell-sub">' + esc(d.uploaded) + '</span></td>' +
         '<td class="actions"><div class="row-actions">' +
         (d.status === 'Failed' ? '<button class="link-btn" type="button" data-act="doc-retry" data-id="' + esc(d.id) + '">重试</button>' :
-          d.status === 'Parsing' ? '<button class="link-btn" type="button" data-act="toast" data-msg="Demo：解析任务运行中">查看进度</button>' :
+          d.status === 'Parsing' ? '<button class="link-btn" type="button" data-act="toast" data-msg="Demo：解析状态为快照，未连接 Ds Bit 引擎">查看进度</button>' :
             '<button class="link-btn" type="button" data-act="doc-view" data-id="' + esc(d.id) + '">详情</button>') +
         '</div></td></tr>';
     }).join('');
@@ -121,9 +194,9 @@
       UI.toolbar('<input class="input" type="search" style="width:300px" placeholder="搜索文件名 / MPN / 文档编号" data-filter-input aria-label="搜索文档">' +
         '<select class="select" style="width:150px" data-filter-status aria-label="解析状态"><option value="">全部状态</option><option>Parsed</option><option>Parsing</option><option>Failed</option></select>',
         '<span class="toolbar-label" data-filter-count>共 ' + S.docs.length + ' 份</span>') +
-      '<section class="card">' + UI.tbl(['文件', 'MPN / 哈希', { h: '页数', cls: 'num' }, { h: '大小', cls: 'num' }, { h: '参数', cls: 'num' }, '解析状态', { h: '问题', cls: 'num' }, '上传时间', ''], rows) +
-      UI.foot('共 ' + S.docs.length + ' 份（Demo 抽样）', '文档哈希用于证据追溯') + '</section>' +
-      '<div class="note">上传新版本不会覆盖旧证据；旧版本归档后可回滚。解析在 Ds Bit 侧执行，本后台只轮询状态。</div>' +
+      '<section class="card">' + UI.tbl(['DocumentId / 文件', 'MPN / ParseRunId', '类型 / 主体', { h: '页数', cls: 'num' }, { h: '参数', cls: 'num' }, '适用性', '解析状态', { h: '问题', cls: 'num' }, '上传时间', ''], rows) +
+      UI.foot('共 ' + S.docs.length + ' 份（Demo 抽样）', 'DocumentId + ParseRunId + SHA-256 共同定位证据') + '</section>' +
+      '<div class="note">上传新版本不会覆盖旧证据；旧版本归档后可回滚。解析在 Ds Bit 侧执行，本后台只轮询状态。Family match 文档只作选型背景，不绑定参数证据。</div>' +
       '</div>';
   };
 
@@ -138,25 +211,27 @@
     if (filterMpn) list = list.filter(function (p) { return p.mpn === filterMpn; });
 
     var rows = list.map(function (p) {
-      return '<tr data-search="' + esc((p.mpn + ' ' + p.name).toLowerCase()) + '">' +
+      return '<tr data-search="' + esc((p.mpn + ' ' + p.name + ' ' + (p.rawLabel || '')).toLowerCase()) + '">' +
         '<td><input class="chk rowpchk" type="checkbox" value="' + esc(p.mpn + '|' + p.name) + '" aria-label="选择 ' + esc(p.name) + '"></td>' +
         '<td><button class="link-btn pn" type="button" data-act="param-view" data-id="' + esc(p.mpn + '|' + p.name) + '">' + esc(p.mpn) + '</button>' +
         '<span class="cell-sub">' + esc(p.name) + '</span></td>' +
-        '<td class="num"><span class="cell-main">' + esc(p.value) + '</span> <span class="muted">' + esc(p.unit) + '</span></td>' +
-        '<td class="num">p.' + p.page + '</td>' +
-        '<td style="min-width:120px">' + UI.progress(Math.round(p.confidence * 100), p.confidence < 0.8) + '<span class="cell-sub">' + Math.round(p.confidence * 100) + '%</span></td>' +
+        '<td><span class="cell-sub mono-sm">' + esc(p.rawLabel) + ' = ' + esc(p.rawValue) + '</span>' +
+        '<span class="cell-main">' + esc(p.value) + ' <span class="muted">' + esc(p.unit) + '</span></span></td>' +
+        '<td><span class="cell-sub">' + esc(p.kind) + '</span><span class="cell-sub">' + esc(p.conditions) + '</span></td>' +
+        '<td class="num"><span class="cell-sub">p.' + p.page + '</span><span class="cell-sub">' + esc(p.table) + ' / ' + esc(p.row) + '</span></td>' +
+        '<td style="min-width:110px">' + UI.progress(Math.round(p.confidence * 100), p.confidence < 0.8) + '<span class="cell-sub">' + Math.round(p.confidence * 100) + '%</span></td>' +
         '<td>' + UI.pill(p.status, p.status === 'Verified' ? '已验证' : p.status === 'Rejected' ? '已拒绝' : '待审核') + '</td>' +
-        '<td class="nowrap"><span class="cell-sub">' + esc(p.updated) + '</span></td>' +
+        '<td><span class="cell-sub">' + esc(p.applicability) + '</span></td>' +
         '<td class="actions"><div class="row-actions">' + (p.status === 'Needs Review' ?
           '<button class="link-btn" type="button" data-act="param-approve" data-id="' + esc(p.mpn + '|' + p.name) + '">通过</button>' +
           '<button class="link-btn" type="button" data-act="param-reject" data-id="' + esc(p.mpn + '|' + p.name) + '">拒绝</button>' :
           '<button class="link-btn" type="button" data-act="param-view" data-id="' + esc(p.mpn + '|' + p.name) + '">证据</button>') + '</div></td></tr>';
-    }).join('') || '<tr><td colspan="8">' + UI.empty('该筛选下没有参数') + '</td></tr>';
+    }).join('') || '<tr><td colspan="9">' + UI.empty('该筛选下没有参数') + '</td></tr>';
 
     var mpns = ['']; S.params.forEach(function (p) { if (mpns.indexOf(p.mpn) < 0) mpns.push(p.mpn); });
 
     return '<div class="adm-page" data-filter-scope>' +
-      UI.pageHead('产品参数审核', '证据可定位、置信度达标的参数才可进入商品与内容；审核动作会写入审计。',
+      UI.pageHead('产品参数审核', '本页只处理参数级 ReviewStatus；PIPELINE_PASS、CONTENT_APPROVED、RELEASE_APPROVED 是三个独立闸门。',
         UI.demoChip('审核为 Demo，不写库') +
         '<button class="btn btn-secondary btn-sm" type="button" data-act="param-batch">批量通过</button>') +
       '<div class="grid-3">' +
@@ -174,9 +249,9 @@
         '<span class="toolbar-label">共显示 ' + list.length + ' 条</span>',
         '<span class="toolbar-label">抽样 ' + (pending.length + verified.length + rejected.length) + ' / 1,268</span>') +
       '<section class="card">' +
-      UI.tbl(['', '商品 / 参数', { h: '值', cls: 'num' }, { h: '页码', cls: 'num' }, '置信度', '状态', '更新时间', ''], rows) +
+      UI.tbl(['', '商品 / 参数', '原始值 → 标准化', 'ValueKind / Conditions', { h: '位置', cls: 'num' }, '置信度', 'ReviewStatus', '适用性', ''], rows) +
       UI.foot('当前视图 ' + list.length + ' 条', '未审核参数不会进入前台') + '</section>' +
-      '<div class="note warn"><strong>事实边界：</strong>“通过”只改变演示状态；真实环境需记录审核人、时间、证据哈希，并同步到知识库版本。</div>' +
+      '<div class="note warn"><strong>三层状态：</strong>参数“通过”只表示 CONTENT_APPROVED 的前置条件；是否获准写入生产站点仍需 RELEASE_APPROVED。真实环境需记录审核人、时间、证据哈希，并同步到知识库版本。</div>' +
       '</div>';
   };
 
@@ -280,13 +355,18 @@
     var resultCard = '';
     if (g.status === 'done' && g.result) {
       resultCard = UI.card({ title: '生成结果（草稿）', sub: '事实引用仅来自 Verified 参数',
-        actions: UI.pill('Needs Review', '待人工审核'),
+        actions: UI.pill('Needs Review', 'CONTENT_APPROVED 待审核'),
         body: '<div class="stack-sm">' +
           '<h3 class="h-sm">' + esc(g.result.title) + '</h3>' +
           '<p class="body-sm muted">' + esc(g.result.excerpt) + '</p>' +
           '<div class="evidence verified"><h4>引用证据</h4>' + params.slice(0, 2).map(function (x) {
             return '<div class="meta-row"><span>' + esc(x.name) + '：' + esc(x.value) + ' ' + esc(x.unit) + '</span><span>p.' + x.page + '</span><span>' + esc(x.mpn) + '</span></div>';
           }).join('') + '</div>' +
+          '<div class="label">发布闸门</div>' +
+          '<div class="stack-sm">' +
+          '<div class="kpi-mini"><span class="k">PIPELINE_PASS</span><span class="v">Demo 快照 · 未运行</span>' + UI.pill('Demo', '未验证') + '</div>' +
+          '<div class="kpi-mini"><span class="k">CONTENT_APPROVED</span><span class="v">待人工审核</span>' + UI.pill('Needs Review', '待审核') + '</div>' +
+          '<div class="kpi-mini"><span class="k">RELEASE_APPROVED</span><span class="v">未申请</span>' + UI.pill('Draft', '不可发布') + '</div></div>' +
           '<div class="row" style="gap:var(--sp-2)"><button class="btn btn-primary btn-sm" type="button" data-act="gen-save">保存到内容资产库</button>' +
           '<button class="btn btn-secondary btn-sm" type="button" data-act="gen-run">重新生成</button>' +
           '<a class="btn btn-ghost btn-sm" href="#/content">打开内容库</a></div>' +
@@ -353,6 +433,14 @@
       '<div class="matrix-wrap"><table class="matrix" data-table="coverage"><thead><tr><th>Controller</th><th>Action</th><th>旧功能</th><th>新模块</th><th>覆盖状态</th><th>备注</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table></div>' +
       '<div class="note warn"><strong>结论口径：</strong>“部分覆盖”表示新原型已有相近入口，但操作对象、权限或字段范围仍需业务确认；“未列出”不等于旧功能废弃。</div>' +
+      '<div class="mt-4" data-filter-exempt>' + UI.card({ title: '旧后台 Commands（11 个文件）', sub: '命令文件独立列示，不计入上方 43 个 action', pad: false,
+        body: UI.tbl(['文件', '命令 / Action', '用途', '映射模块', '状态', '备注'], D.legacyCommands.map(function (x) {
+          return '<tr><td><span class="cell-main mono-sm">' + esc(x.file) + '</span></td>' +
+            '<td><span class="body-sm" style="white-space:normal;word-break:break-word">' + esc(x.actions) + '</span></td>' +
+            '<td style="white-space:normal;word-break:break-word">' + esc(x.purpose) + '</td><td style="white-space:normal;word-break:break-word">' + esc(x.module) + '</td>' +
+            '<td>' + UI.pill(x.status === '已覆盖' ? 'Approved' : x.status === '不适用' ? 'Draft' : 'Needs Review', x.status) + '</td>' +
+            '<td class="muted body-sm" style="white-space:normal;word-break:break-word">' + esc(x.note) + '</td></tr>';
+        }).join('')) + UI.foot('11 个命令文件', '待确认项不视为已覆盖') + '</div>' }) +
       '</div>';
   };
 })();

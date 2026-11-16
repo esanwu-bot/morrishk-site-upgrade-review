@@ -173,29 +173,29 @@
       '<div class="form-actions"><button class="btn btn-primary btn-sm" type="button" data-act="settings-save">保存语言</button></div></div></section>';
 
     var integrationPanel = '<div class="grid-2">' +
-      '<section class="card"><div class="card-hd"><div><h2>Ds Bit 引擎</h2><div class="sub">独立系统 · 只读状态</div></div>' + UI.pill('Connected', '运行中') + '</div>' +
+      '<section class="card"><div class="card-hd"><div><h2>Ds Bit 引擎</h2><div class="sub">独立系统 · 目标架构为只读对接</div></div>' + UI.pill('Not Connected', '未连接 · Demo') + '</div>' +
       '<div class="card-bd"><div class="kv">' +
-      '<div><span class="k">接口地址</span><span class="v mono">dsbit.internal:8080</span></div>' +
-      '<div><span class="k">认证</span><span class="v">服务账号（只读）</span></div>' +
-      '<div><span class="k">轮询频率</span><span class="v">60s</span></div>' +
+      '<div><span class="k">当前状态</span><span class="v">未连接（原型使用 Demo 快照）</span></div>' +
+      '<div><span class="k">目标接口</span><span class="v mono">dsbit.internal:8080</span></div>' +
+      '<div><span class="k">目标认证</span><span class="v">服务账号（只读）</span></div>' +
       '<div><span class="k">写入权限</span><span class="v">禁止</span></div>' +
-      '</div><div class="note mt-3">后台只读取解析结果与证据，不复制解析核心代码。</div></div></section>' +
+      '</div><div class="note warn mt-3">“目标接口 / 目标认证”为目标架构描述，当前原型未建立任何连接。后台只读取解析结果与证据，不复制解析核心代码。</div></div></section>' +
       '<section class="card"><div class="card-hd"><div><h2>分析工具</h2><div class="sub">GA4 / Search Console</div></div>' + UI.pill('Not Connected', '未连接') + '</div>' +
       '<div class="card-bd"><div class="kv">' +
-      '<div><span class="k">GA4</span><span class="v">未配置</span></div>' +
-      '<div><span class="k">Search Console</span><span class="v">未配置</span></div>' +
+      '<div><span class="k">GA4</span><span class="v">未连接</span></div>' +
+      '<div><span class="k">Search Console</span><span class="v">未连接</span></div>' +
       '<div><span class="k">归因</span><span class="v">Demo 估算</span></div>' +
       '<div><span class="k">数据保留</span><span class="v">—</span></div>' +
       '</div><button class="btn btn-secondary btn-sm mt-3" type="button" data-act="toast" data-msg="Demo：OAuth 未接入">连接 GA4</button></div></section>' +
-      '<section class="card"><div class="card-hd"><div><h2>社媒平台</h2><div class="sub">LinkedIn / Facebook / YouTube</div></div>' + UI.pill('Demo Connected', 'Demo') + '</div>' +
-      '<div class="card-bd"><p class="body-sm muted">当前仅为原型状态，不保存任何 Token，不调用发布接口。</p>' +
+      '<section class="card"><div class="card-hd"><div><h2>社媒平台</h2><div class="sub">LinkedIn / Facebook / YouTube</div></div>' + UI.pill('Not Connected', '未连接 · Demo') + '</div>' +
+      '<div class="card-bd"><p class="body-sm muted">当前为原型状态：未连接任何平台 API，不保存 Token，不调用发布接口。页面中的“未连接（Demo 状态）”仅表示前端演示状态。</p>' +
       '<a class="btn btn-secondary btn-sm mt-3" href="#/social">管理账号</a></div></section>' +
-      '<section class="card"><div class="card-hd"><div><h2>任务队列</h2><div class="sub">内容生成 / 发布 / 视频处理</div></div>' + UI.pill('Connected', '正常') + '</div>' +
+      '<section class="card"><div class="card-hd"><div><h2>任务队列</h2><div class="sub">内容生成 / 发布 / 视频处理</div></div>' + UI.pill('Not Connected', '未接入 · Demo') + '</div>' +
       '<div class="card-bd"><div class="kv">' +
-      '<div><span class="k">内容生成</span><span class="v">异步</span></div>' +
-      '<div><span class="k">社媒发布</span><span class="v">独立队列</span></div>' +
-      '<div><span class="k">视频处理</span><span class="v">独立队列</span></div>' +
-      '<div><span class="k">失败重试</span><span class="v">3 次</span></div></div></div></section>' +
+      '<div><span class="k">内容生成</span><span class="v">未接入（异步为目标架构）</span></div>' +
+      '<div><span class="k">社媒发布</span><span class="v">未接入（独立队列为目标架构）</span></div>' +
+      '<div><span class="k">视频处理</span><span class="v">未接入（独立队列为目标架构）</span></div>' +
+      '<div><span class="k">失败重试</span><span class="v">未实现（目标 3 次）</span></div></div></div></section>' +
       '</div>';
 
     var notifyPanel = '<section class="card"><div class="card-bd"><div class="stack-sm">' +

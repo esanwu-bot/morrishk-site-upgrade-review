@@ -44,7 +44,7 @@ file:///<repo>/07_prototypes/admin/index.html
 
 ---
 
-## 三、页面与导航（29 个菜单 + 2 个扩展页）
+## 三、页面与导航（32 个菜单 + 2 个扩展页，共 34 个路由）
 
 | 分组 | 路由 | 页面 | 核心内容 |
 |---|---|---|---|
@@ -61,14 +61,14 @@ file:///<repo>/07_prototypes/admin/index.html
 | 商城 | `#/inquiries` | 询盘管理 | 7 个状态 Tab、Spam 概率、重复标记、详情抽屉与状态流转 |
 | 商城 | `#/site-basics` | 网站基础管理 | 帮助中心 / 信息页 / 新闻公告、页面编辑与新建 |
 | 营销 | `#/marketing` | 营销总览 | 内容与渠道 KPI、流量趋势、内容流水、活动、未来排期 |
-| 营销 | `#/seo` | SEO 管理 | 关键词、零结果词、同义词、页面优化建议（仅引用 Verified） |
-| 营销 | `#/geo` | GEO 内容管理 | 问答式内容草稿、证据引用状态 |
+| 营销 | `#/seo` | SEO 管理 | 关键词、零结果词、同义词、页面优化建议；技术治理含 URL/Canonical、hreflang、Index、sitemap 分片、重复内容、结构化数据、404/重定向与灰度回滚 |
+| 营销 | `#/geo` | GEO 内容管理 | 问答式内容草稿、证据引用状态；AI Referral / 内容覆盖 / 引用抽样三项分开 |
 | 营销 | `#/content` | 内容资产库 | 审核 / 发布双状态、AI/人工来源、新建与审阅抽屉 |
-| 营销 | `#/social` | 社媒账号管理 | 平台卡、连接状态（Demo）、发布测试、发布规则 |
+| 营销 | `#/social` | 社媒账号管理 | 平台卡、未连接（Demo 状态）、发布测试、发布规则 |
 | 营销 | `#/calendar` | 社媒发布日历 | 月/周视图、平台筛选、排期抽屉、审核/排期/发布/重试 |
-| 营销 | `#/video` | 视频营销 | 五阶段看板、推进、已发布表现表 |
+| 营销 | `#/video` | 视频营销 | 五阶段看板、推进、关联商品 / 落地页 / UTM / 询盘转化链路 |
 | 营销 | `#/campaigns` | 营销活动 | 活动列表、周期、内容数、询盘、暂停/恢复 |
-| 营销 | `#/analytics` | 数据分析 | 7/30/90 天、双序列趋势、漏斗、渠道、UTM 明细、数据质量 |
+| 营销 | `#/analytics` | 数据分析 | 7/30/90 天、三类数据来源分层、generate_lead→入库→有效桥接、渠道、LeadNo 归因、数据质量 |
 | 知识 | `#/dsbit` | Ds Bit 数据资产 | 流水线、状态语义、证据样例、稳定原则、业务链路 |
 | 知识 | `#/datasheets` | Datasheet 文档管理 | 文档表、解析状态、失败重试、上传弹窗 |
 | 知识 | `#/param-review` | 产品参数审核 | 待审核/已验证/已拒绝、置信度、证据抽屉、通过/拒绝/批量 |
@@ -114,7 +114,8 @@ file:///<repo>/07_prototypes/admin/index.html
   - Toast 文案里明确「（Demo）」。
 - 不虚构价格：所有商品与库存页统一显示 `Request Quote`。
 - 未审核参数统一显示「待审核 / Needs Review」，不得出现在前台预览、SEO 文案或生成内容中。
-- 社媒「已连接（Demo）」、GA4「未连接」、Ds Bit「只读」均为状态展示，不接入真实 Token / API。
+- 社媒「未连接（Demo 状态）」、GA4 / Search Console「未连接」、Ds Bit「未连接（Demo 快照）」、发布队列「未接入（Demo）」均为当前原型状态，不接入真实 Token / API；目标架构与当前状态在页面上分开描述。
+- 参数证据链固定展示 15 个字段：DocumentId、ParseRunId、DocumentVersion、DocumentType、DocumentSubject、RawLabel、RawValue、NormalizedValue、ValueKind、Conditions、PageNo、TableId、RowId、CellBBox、ReviewStatus，并单独展示商品↔Datasheet 适用性判定。
 
 ---
 
@@ -124,10 +125,11 @@ file:///<repo>/07_prototypes/admin/index.html
 2. **复用 Morris Design System**：`tokens.css` 提供颜色/间距/字号；`admin.css` 零字面色值，状态色走语义 Token。
 3. **状态三通道**：颜色 + 图标 + 文字同时表达（`UI.pill` / `UI.stock`），不依赖单一颜色。
 4. **表格优先、抽屉补充**：列表用于扫描与批量操作；详情/编辑进入右侧抽屉，避免跳页丢失上下文。
-5. **知识闸门**：Verified 才能进入详情页、SEO/GEO、社媒和生成内容；审核页面与知识版本是唯一入口。
-6. **权限隔离显式化**：四个角色 × 九个业务域的矩阵，切换只改当前前端状态，真实 RBAC 待后端落地。
-7. **系统边界可见**：Ds Bit 独立引擎、只读接入；GA4 / Search Console / 社媒未连接；任务队列仅展示状态。
-8. **可复核性**：每页保留状态表与标注层，Reviewer 可区分「已实现交互」与「模拟数据/待开发」。
+5. **三层质量闸门**：PIPELINE_PASS、CONTENT_APPROVED、RELEASE_APPROVED 相互独立，不得合并为 Verified；参数级 ReviewStatus 只代表该参数审核状态，详情页与生成内容分别展示三道闸门。
+6. **证据 ≠ 适用性**：CellBBox 与置信度只证明文本位置和识别把握，不证明参数适用于该 MPN；适用性需结合 MPN 匹配、文档主体与测试条件。
+7. **权限隔离显式化**：四个角色 × 九个业务域的矩阵，切换只改当前前端状态，真实 RBAC 待后端落地。
+8. **系统边界可见**：Ds Bit 独立引擎、只读接入；GA4 / Search Console / 社媒未连接；任务队列仅展示状态。
+9. **可复核性**：每页保留状态表与标注层，Reviewer 可区分「已实现交互」与「模拟数据/待开发」。
 
 ---
 
@@ -168,7 +170,7 @@ admin/
 
 - `node --check`：`ui.js` / `data.js` / 四个 `views-*.js` / `admin.js` 全部通过。
 - 浏览器控制台：无报错、无 404。
-- 33 个路由（29 菜单 + 个人账号 + 覆盖矩阵 + 未知回落）逐页渲染通过，均有标题与状态表。
+- 34 个路由（32 菜单 + 个人账号 + 覆盖矩阵）逐页渲染通过，均有标题与状态表。
 - 动作覆盖：视图内 81 个 `data-act` 全部在 `admin.js` 注册表中存在（脚本比对）。
 - 交互抽查：筛选/计数、Tab、抽屉、弹窗、创建、通过/退回、发布闸门、权限切换、日历月周切换、生成流程、全局搜索、CSV 导出、通知已读、任务完成、库存保存、审计追加。
 - 截图：`screenshots/01-dashboard.png` … `22-kpis.png`，1600px 宽，覆盖 10 个必做页面及系统管理页面；`23-tablet-products.png` 为 1024px 平板断点（侧栏收起，表格横向可读）。

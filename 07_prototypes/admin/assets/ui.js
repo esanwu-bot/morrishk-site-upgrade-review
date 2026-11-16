@@ -288,11 +288,32 @@
   }
 
   function evidence(p) {
-    return '<div class="evidence"><h4>证据来源 · Ds Bit</h4>' +
+    var items = [
+      ['DocumentId', p.doc || '—'],
+      ['ParseRunId', p.run || '—'],
+      ['DocumentVersion', p.docVersion || '—'],
+      ['DocumentType', p.docType || '—'],
+      ['DocumentSubject', p.docSubject || '—'],
+      ['Product MPN', p.mpn || '—'],
+      ['RawLabel', p.rawLabel || '—'],
+      ['RawValue', p.rawValue || '—'],
+      ['NormalizedValue', p.value == null ? '—' : p.value + (p.unit && p.unit !== '—' ? ' ' + p.unit : '')],
+      ['ValueKind', p.kind || '—'],
+      ['Conditions', p.conditions || '—'],
+      ['PageNo', p.page == null ? '—' : 'p.' + p.page],
+      ['TableId / RowId', (p.table || '—') + ' / ' + (p.row || '—')],
+      ['CellBBox', p.bbox || '—'],
+      ['ReviewStatus', p.status || '—']
+    ];
+    return '<div class="evidence"><h4>证据链 · Ds Bit（Demo 快照）</h4>' +
       '<blockquote>' + esc(p.snippet) + '</blockquote>' +
-      '<div class="meta-row"><span>文档 SHA-256：' + esc(p.hash) + '…</span><span>页码：p.' + p.page + '</span>' +
-      '<span>bbox：[x0, y0, x1, y1]（由 Ds Bit 证据层返回）</span><span>置信度：' + Math.round(p.confidence * 100) + '%</span></div>' +
-      '<div class="meta-row">未审核参数不会进入商品详情与营销内容。</div></div>';
+      '<div class="kv ev-kv">' + items.map(function (it) {
+        return '<div><span class="k">' + esc(it[0]) + '</span><span class="v mono">' + esc(it[1]) + '</span></div>';
+      }).join('') + '</div>' +
+      '<div class="meta-row"><span>来源文件：' + esc(p.file || '—') + '</span><span>文档 SHA-256：' + esc(p.hash) + '…</span>' +
+      '<span>适用性：' + esc(p.applicability || '未判定') + '</span></div>' +
+      '<div class="meta-row">CellBBox 只证明文本在页面中的位置，不证明参数适用于该产品；适用性由 MPN 匹配、文档主体与测试条件共同判断。</div>' +
+      '<div class="meta-row">ReviewStatus 是参数级状态，不等于 PIPELINE_PASS / CONTENT_APPROVED / RELEASE_APPROVED。</div></div>';
   }
 
   function note(text, kind, title) {

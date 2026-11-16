@@ -155,6 +155,21 @@
     return h || 'dashboard';
   }
 
+  function applyHashState(route) {
+    var q = location.hash.split('?')[1];
+    if (!q) return;
+    var params = {};
+    q.split('&').forEach(function (pair) {
+      var kv = pair.split('=');
+      if (kv[0]) params[kv[0]] = decodeURIComponent(kv[1] || '');
+    });
+    if (route === 'seo' && params.tab) STATE.seoTab = params.tab;
+    if (route === 'settings' && params.tab) STATE.settingsTab = params.tab;
+    if (route === 'analytics' && params.range) STATE.analyticsRange = parseInt(params.range, 10) || 30;
+    if (route === 'product-detail' && params.mpn) STATE.selectedProduct = params.mpn;
+    if (route === 'param-review' && params.tab) STATE.paramTab = params.tab;
+  }
+
   function statusBlock(route) {
     var p = PAGES[route] || PAGES.dashboard;
     function row(k, v) { return '<tr><td>' + k + '</td><td>' + v + '</td></tr>'; }
@@ -170,6 +185,7 @@
 
   function render(route, keepScroll) {
     route = safe(route);
+    applyHashState(route);
     var page = PAGES[route] || PAGES.dashboard;
     currentRoute = route;
 
@@ -207,7 +223,9 @@
     var stock = fstock ? fstock.value : '';
     var status = fstatus && fstatus.value ? fstatus.value : (TAB_FILTER[currentRoute] || '');
     var type = ftype ? ftype.value : '';
-    var rows = $$('tbody tr', scope).filter(function (r) { return !r.hasAttribute('data-empty-row'); });
+    var rows = $$('tbody tr', scope).filter(function (r) {
+      return !r.hasAttribute('data-empty-row') && !r.closest('[data-filter-exempt]');
+    });
 
     var shown = 0;
     rows.forEach(function (r) {
@@ -335,7 +353,15 @@
     ]) +
       '<div class="label">Spam 评分</div>' + UI.progress(Math.round((1 - i.spam) * 100), i.spam > 0.5) +
       '<div class="chart-note">垃圾概率 ' + Math.round(i.spam * 100) + '% · 重复标记 ' + esc(i.duplicate) + '</div>' +
-      '<div class="label">UTM</div><div class="mono-sm">' + esc(i.utm) + '</div>' +
+      '<div class="label">来源归因（目标架构分层）</div>' +
+      UI.kv([
+        { k: 'UTM', v: esc(i.utm), mono: true },
+        { k: '落地页', v: esc(i.landing || '—'), mono: true },
+        { k: 'GA4 Session', v: esc(i.session || '—'), mono: true },
+        { k: '后台 LeadNo', v: esc(i.lead), mono: true },
+        { k: '有效询盘判定', v: UI.pill(i.spam > 0.5 ? 'Invalid' : i.duplicate !== '—' ? 'Needs Review' : 'Valid', i.spam > 0.5 ? '无效' : i.duplicate !== '—' ? '待人工确认' : '有效') }
+      ]) +
+      '<div class="chart-note">GA4 的 generate_lead 是前端事件，不等于后台有效询盘；有效与否以 LeadNo 入库后的 Spam / 重复判定为准。当前均为 Demo 数据。</div>' +
       (i.duplicate !== '—' ? '<div class="note warn">该询盘疑似重复提交，不计入有效询盘。</div>' : '') +
       '<div class="note">询盘状态流转为 Demo；真实环境需通知、分配与审计联动。</div>';
 
@@ -381,17 +407,23 @@
     if (!d) return;
     var params = STATE.params.filter(function (p) { return p.mpn === d.mpn; });
     var body = UI.kv([
-      { k: '文档编号', v: esc(d.id), mono: true },
+      { k: 'DocumentId', v: esc(d.id), mono: true },
       { k: '文件', v: esc(d.file) },
-      { k: 'MPN', v: esc(d.mpn) },
-      { k: '版本', v: esc(d.version) },
+      { k: 'ParseRunId', v: esc(d.run || '—'), mono: true },
+      { k: 'DocumentVersion', v: esc(d.version) },
+      { k: 'DocumentType', v: esc(d.type || '—') },
+      { k: 'DocumentSubject', v: esc(d.subject || '—') },
+      { k: 'Product MPN', v: esc(d.mpn) },
       { k: '页数 / 大小', v: esc(d.pages + ' 页 · ' + d.size) },
       { k: '解析状态', v: UI.pill(d.status, { Parsed: '已解析', Parsing: '解析中', Failed: '失败' }[d.status] || d.status) },
+      { k: '适用性', v: UI.pill(d.applicability, d.applicability === 'Family match' ? '系列匹配' : d.applicability === 'Pending' ? '待判定' : '直接匹配') },
       { k: '参数 / 问题', v: esc((d.params || 0) + ' 项 · ' + d.issues + ' 个问题') },
       { k: '上传时间', v: esc(d.uploaded) }
     ]) +
+      (d.applicabilityNote ? '<div class="note warn">' + esc(d.applicabilityNote) + '</div>' : '') +
       '<div class="evidence"><h4>文档哈希（证据锚点）</h4><blockquote>' + esc(d.hash) + '</blockquote>' +
-      '<div class="meta-row"><span>SHA-256 前缀（Demo）</span><span>证据 = 哈希 + 页码 + bbox + 原文</span></div></div>' +
+      '<div class="meta-row"><span>SHA-256 前缀（Demo）</span><span>证据 = 哈希 + 页码 + bbox + 原文</span></div>' +
+      '<div class="meta-row">文档级适用性是参数审核的前置判断，不能替代逐参数 ReviewStatus。</div></div>' +
       (params.length ? '<div class="label">关联参数</div><div class="stack-sm">' + params.slice(0, 4).map(function (p) {
         return '<div class="list-row" style="padding:var(--sp-2) 0"><div class="grow"><div class="ttl">' + esc(p.name) + '</div>' +
           '<div class="meta"><span>' + esc(p.value + ' ' + p.unit) + '</span><span>p.' + p.page + '</span></div></div>' +
@@ -407,18 +439,28 @@
     var pid = splitId(id);
     var p = STATE.params.filter(function (x) { return x.mpn === pid.mpn && x.name === pid.name; })[0];
     if (!p) return;
-    var body = UI.evidence(p) + UI.kv([
-      { k: '商品', v: esc(p.mpn) },
-      { k: '参数', v: esc(p.name) },
-      { k: '值', v: esc(p.value + ' ' + p.unit) },
-      { k: '页码', v: 'p.' + p.page },
-      { k: '置信度', v: Math.round(p.confidence * 100) + '%' },
-      { k: '状态', v: UI.pill(p.status, p.status === 'Verified' ? '已验证' : p.status === 'Rejected' ? '已拒绝' : '待审核') }
-    ]) + '<div class="note warn">通过只会改变 Demo 状态；真实环境需记录审核人、时间与证据哈希。</div>';
+    var doc = find(STATE.docs, 'id', p.doc) || {};
+    var merged = {
+      doc: p.doc, run: p.run || doc.run, docVersion: doc.version, docType: p.docType || doc.type,
+      docSubject: p.docSubject || doc.subject, file: doc.file, hash: p.hash || doc.hash,
+      mpn: p.mpn, rawLabel: p.rawLabel, rawValue: p.rawValue, value: p.value, unit: p.unit,
+      kind: p.kind, conditions: p.conditions, page: p.page, table: p.table, row: p.row,
+      bbox: p.bbox, confidence: p.confidence, status: p.status, applicability: p.applicability
+    };
+    var body = UI.evidence(merged) +
+      '<div class="label">适用性判定</div>' +
+      UI.kv([
+        { k: '判定结果', v: esc(p.applicability || '未判定') },
+        { k: '参数级状态', v: UI.pill(p.status, p.status === 'Verified' ? '已验证' : p.status === 'Rejected' ? '已拒绝' : '待审核') },
+        { k: '商品 MPN', v: esc(p.mpn) },
+        { k: '文档主体', v: esc(p.docSubject || '—') }
+      ]) +
+      '<div class="note warn">适用性 = MPN 匹配 + 文档主体 + 测试条件共同判断。CellBBox 或置信度单独存在不能证明参数适用于该产品。参数级 ReviewStatus 不等于 PIPELINE_PASS / CONTENT_APPROVED / RELEASE_APPROVED。</div>' +
+      '<div class="note">通过只会改变 Demo 状态；真实环境需记录审核人、时间、审核意见与证据哈希。</div>';
     var foot = p.status === 'Needs Review' ?
       '<button class="btn btn-secondary" type="button" data-act="param-reject" data-id="' + esc(id) + '">拒绝</button>' +
       '<button class="btn btn-primary" type="button" data-act="param-approve" data-id="' + esc(id) + '">通过</button>' : '';
-    UI.openDrawer({ kicker: '参数证据 · Ds Bit', title: p.name, sub: esc(p.mpn + ' · ' + p.value + ' ' + p.unit), body: body, foot: drawerFoot(foot) });
+    UI.openDrawer({ kicker: '参数证据 · Ds Bit（Demo 快照）', title: p.name, sub: esc(p.mpn + ' · ' + p.value + ' ' + p.unit), body: body, foot: drawerFoot(foot) });
   }
 
   function brandDrawer(name) {
@@ -515,13 +557,23 @@
     var body = UI.kv([
       { k: '视频 ID', v: esc(v.id), mono: true },
       { k: '关联商品', v: esc(v.mpn) },
+      { k: '落地页', v: esc(v.landing || '—'), mono: true },
+      { k: 'UTM', v: esc(v.utm || '—'), mono: true },
       { k: '平台', v: esc(v.platform) },
       { k: '状态', v: UI.pill(v.status === 'Published' ? 'Published' : 'Draft', v.status) },
       { k: '播放', v: UI.num(v.views) },
       { k: '平均观看', v: esc(v.avg) },
       { k: '点击', v: UI.num(v.clicks) },
       { k: '询盘', v: String(v.inquiries) }
-    ]) + '<div class="note">视频处理使用独立媒体任务；平台播放数据未接入，为 Demo。</div>';
+    ]) +
+      '<div class="label">转化链路</div>' +
+      '<div class="flow"><div class="flow-step done"><span class="n">01</span><span class="t">视频播放</span></div><span class="flow-arrow">' + UI.icon('arrow-right') + '</span>' +
+      '<div class="flow-step done"><span class="n">02</span><span class="t">视频描述链接</span></div><span class="flow-arrow">' + UI.icon('arrow-right') + '</span>' +
+      '<div class="flow-step done"><span class="n">03</span><span class="t">商品落地页</span></div><span class="flow-arrow">' + UI.icon('arrow-right') + '</span>' +
+      '<div class="flow-step active"><span class="n">04</span><span class="t">询盘提交</span></div><span class="flow-arrow">' + UI.icon('arrow-right') + '</span>' +
+      '<div class="flow-step"><span class="n">05</span><span class="t">后台 LeadNo</span></div></div>' +
+      '<div class="chart-note">播放 / 点击为平台 Demo 数据；询盘归属依赖 UTM 与落地页参数，有效询盘以后台 LeadNo 判定为准。</div>' +
+      '<div class="note">视频处理使用独立媒体任务；平台播放数据未接入，为 Demo。</div>';
     UI.openDrawer({ kicker: '视频 · Demo', title: v.title, sub: esc(v.mpn + ' · ' + v.id), body: body, foot: drawerFoot() });
   }
 

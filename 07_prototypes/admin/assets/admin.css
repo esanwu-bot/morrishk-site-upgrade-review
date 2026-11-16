@@ -492,6 +492,9 @@ table.grid td.actions { white-space: nowrap; }
 .evidence h4 { margin: 0 0 var(--sp-2); font-size: var(--fs-label); font-weight: var(--fw-semibold); color: var(--color-text); }
 .evidence blockquote { margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: var(--bw-2) solid var(--color-border-strong); background: var(--color-surface); font-family: var(--font-mono); font-size: 10px; line-height: 15px; color: var(--color-text-body); white-space: pre-wrap; }
 .evidence .meta-row { display: flex; gap: var(--sp-4); flex-wrap: wrap; margin-top: var(--sp-2); font-size: var(--fs-caption); color: var(--color-text-muted); }
+.ev-kv { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: var(--sp-3); border-top: 0; }
+.ev-kv > div { grid-template-columns: 108px minmax(0, 1fr); padding: 4px 0; border-bottom: 0; }
+.ev-kv .v.mono { font-size: 10px; line-height: 15px; word-break: break-all; }
 
 .preview-frame { border: var(--border-default); border-radius: var(--radius-sm); background: var(--color-surface); overflow: hidden; }
 .preview-bar { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); background: var(--color-canvas); border-bottom: var(--border-default); font-size: var(--fs-caption); color: var(--color-text-muted); }
