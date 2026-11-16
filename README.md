@@ -12,10 +12,10 @@
 | 项目 | morrishk.net 老站升级（电子元器件 B2B 独立站） |
 | 仓库 | https://github.com/esanwu-bot/morrishk-site-upgrade-review |
 | Branch | `main` |
-| 送审版本 | tag **`v1.5.9-review`**（`v1.4-review` / `v1.5-review` / `v1.5.1-review` / `v1.5.2-review` / `v1.5.3-review` / `v1.5.4-review` / `v1.5.5-review` / `v1.5.6-review` / `v1.5.7-review` / `v1.5.8-review` 保留未覆盖） |
+| 送审版本 | tag **`v1.5.10-review`**（`v1.4-review` / `v1.5-review` / `v1.5.1-review` / `v1.5.2-review` / `v1.5.3-review` / `v1.5.4-review` / `v1.5.5-review` / `v1.5.6-review` / `v1.5.7-review` / `v1.5.8-review` / `v1.5.9-review` 保留未覆盖） |
 | 并行送审包 | **`08_php84_compatibility/`**（PHP 8.4 兼容性评估），独立工作流、各自冻结。**本文件不转述其版本号**——版本以该包 `README.md` 头部与远程 tag 系列 `php84-v1.2.x-review` 为准 |
 | 交付日期 | 2026-11-16 |
-| 文档版本 | 商务方案 客户版 v1.1（rev.3） ／ 技术方案 技术版 v1.2（rev.3） ／ **原型 v1.5.9-prototype** ／ **Design System v1.0** |
+| 文档版本 | 商务方案 客户版 v1.1（rev.3） ／ 技术方案 技术版 v1.2（rev.3） ／ **原型 v1.5.10-prototype** ／ **Design System v1.0** |
 | 数据基线 | 2024-11-30 导出，静态终态（不随线上变化） |
 | 签名状态 | 本仓库的 commit 与 tag **均未做 Git 签名**（unsigned / 非 GPG 验证）。可用于确认版本内容与父子关系，**不可**作为经过签名的发布物 |
 
@@ -37,7 +37,7 @@ git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git ref
 也可直接打开下列直链绕过仓库首页缓存：
 
 - 提交历史：https://github.com/esanwu-bot/morrishk-site-upgrade-review/commits/main
-- 标签 `v1.5.9-review`：https://github.com/esanwu-bot/morrishk-site-upgrade-review/releases/tag/v1.5.9-review
+- 标签 `v1.5.10-review`：https://github.com/esanwu-bot/morrishk-site-upgrade-review/releases/tag/v1.5.10-review
 
 若仓库首页显示的提交数或 README 版本文字与上述 SHA 不符，属于页面缓存，请以 `git ls-remote` 的结果为准。
 
@@ -839,7 +839,7 @@ R3-17 的注入点特意放在 `_ident()` **返回之后**而不是 `mkdir` 返�
   目标被并发建成**空目录**仍会被 POSIX 覆盖（无内容可丢）。消除它需要
   `renameat2(RENAME_NOREPLACE)` 或 `MoveFileExW` 级别的原语，本项目暂不引入。
 
-### 8.15 R3 边界收口：承认两条窗口不可消除，改为「后果有界」并写成断言（v1.5.9）
+### 8.15 R3 边界收口：承认两条窗口不可消除，改为「后果有界」并写成断言（v1.5.9 / 措辞收窄 v1.5.10）
 
 第六轮复核（针对 v1.5.8）认可 `.prev/bundle` 的静态抢占已修，但指出**证明确实缺一个前提**，成立：
 
@@ -856,16 +856,31 @@ R3-17 的注入点特意放在 `_ident()` **返回之后**而不是 `mkdir` 返�
 
 | 窗口 | 是否消除 | 处置 |
 |---|---|---|
-| `prev/bundle` 占位在 mkdir 与 rename 之间被改名调换 | **否** | 披露；后果由不变量 I1 限死为「可能替换一个空目录」 |
+| `prev/bundle` 占位在 mkdir 与 rename 之间被改名调换 | **否** | 披露；在「竞争者只建普通目录」模型内，后果由 I1 限死为「可能替换一个空目录」 |
 | `_rmdir_own()` 身份比较与 `os.rmdir` 之间的调换 | **否** | 披露；后果由 `rmdir` 语义限死为「只能删空目录」 |
 | 发布到 `<out>` 本体时被并发建成空目录 | **否** | 5.3 起一直披露，需 `renameat2` 才消除 |
 
-**可证明的不变量**（不依赖平台，已写成自测）：
+**可证明的不变量**（v1.5.10 已收窄措辞，见下方说明）：
 
-| 编号 | 不变量 | 依据 | 测试 |
+| 编号 | 不变量（限定表述） | 依据 | 测试 |
 |---|---|---|---|
-| I1 | 任何被替换或被删除的目标，**必然是空目录** | `rename` 到非空 → POSIX `ENOTEMPTY` / Windows 失败；`os.rmdir` 非空 → 两平台失败 | R3-18 / R3-19 |
-| I2 | **旧包内容在任何并发场景下都不会丢失** | 由 I1 推出：旧包目录永远非空，不可能成为被覆盖或 `rmdir` 的对象；替换失败时回滚只是把它 rename 回原位 | R3-14/15/17/18/19 |
+| I1 | 在**普通目录竞争**模型内：目标路径上是普通目录（非符号链接、非普通文件）且**非空**时，本工具的 `rename` 与 `os.rmdir` 都会失败 | `rename` 到非空普通目录 → POSIX `ENOTEMPTY` / Windows 失败；`os.rmdir` 非空 → 两平台失败 | R3-18 / R3-19 |
+| I2 | **工具自身操作的数据保护**：在本工具自身执行的发布、回滚与清理动作中，不会因覆盖或删除非空旧包目录而丢失旧包内容 | 由 I1 推出：旧包目录永远非空，不可能成为被覆盖或 `rmdir` 的对象；替换失败时回滚只是把它 rename 回原位 | R3-14/15/17/18/19 |
+
+**v1.5.10 对 I1 / I2 的措辞收窄（复核指出，成立）**：
+
+- **I1 不是文件系统级定理**。目标路径上是**符号链接**时，POSIX 的 `rename` 会替换链接本身、
+  不要求目标为空——被替换的仍只是一个文件名条目、链接指向的原对象不受影响，但这已超出
+  「空目录」的范围。所以 I1 只在「本工具 + 只创建普通目录的竞争者」这个模型内成立。
+  本工具自身的产物包由 `bundle_problem()` 用 `os.lstat` 要求是真实目录、拒绝符号链接。
+- **I2 不再是「任何并发场景下都不会丢失」**。工具自身的 `rename` / `rmdir` 不会把非空旧包
+  当作可覆盖或可删的对象，这一点成立；但它不保证其他进程**直接修改、删除或移动旧包内容**。
+  那已不属于「两次本工具运行撞车」这个威胁模型，写入 I2 就是把承诺说得比代码能做到的更大。
+- **代码 docstring 三处旧断言已同步删除**（此前只有 README 历史记录里有更正，不足以替代
+  代码当前位置的准确表述）：模块 docstring 第 5.b 项、`_needs_mkdir_placeholder()`、
+  `publish_bundle()` 的替换路径约定。三处统一改为「占位把窗口压到『占位目录未被改名替换』
+  这个前提内，前提不成立时窗口仍在，处置见第 8 项」，不再保留无条件的「只能覆盖本进程
+  目录」表述。
 
 **新增测试（137 项，原 129 项）**：
 
