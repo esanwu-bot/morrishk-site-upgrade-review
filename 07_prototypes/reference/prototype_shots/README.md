@@ -20,8 +20,9 @@
 |---|---|
 | `v1.4/` | 旧版 5 页截图（index / home / detail / search / inquiry） |
 | `v1.5.1/` | 新版 5 页截图，同视口同高度 |
-| `diff/diff_*.png` | 差异图：灰度打底，红 = 可见差异，浅红 = 严格差异但视觉不可辨 |
-| `PIXEL_DIFF.md` | 页面集合/尺寸/完成度前置校验、逐页差异像素数、差异行段定位、位移补偿明细（含分子分母与校验式）（脚本生成） |
+| `pixel_diff/` | **一个目录 = 一个原子发布单元**：内含 `PIXEL_DIFF.md` 与 `diff/`，整组以一次 `rename` 就位 |
+| `pixel_diff/diff/diff_*.png` | 差异图：灰度打底，红 = 可见差异，浅红 = 严格差异但视觉不可辨 |
+| `pixel_diff/PIXEL_DIFF.md` | 页面集合/尺寸/完成度前置校验、逐页差异像素数、差异行段定位、位移补偿明细（含分子分母与校验式）（脚本生成） |
 | `CSS_VALUE_DIFF.md` | 两版 `proto.css` 逐条取值比对，652 条等价 / 51 条真实变更，含分类合计自校验（脚本生成） |
 
 ## 重跑方式
@@ -34,7 +35,8 @@ git archive v1.4-review | tar -x -C /tmp/_v14_snapshot
 #    见 VISUAL_DIFF.md 第二节的完整命令
 
 # 3) 像素差分（页面集合不一致会直接失败，不会静默跳过）
-python tools/pixel_diff.py --a <v1.4 截图> --b <v1.5.1 截图> --out .
+#    --out 是本次 run 独占的结果目录，发布后内含 PIXEL_DIFF.md 与 diff/
+python tools/pixel_diff.py --a <v1.4 截图> --b <v1.5.1 截图> --out pixel_diff
 
 # 4) CSS 取值比对
 python tools/css_value_diff.py \
@@ -44,34 +46,40 @@ python tools/css_value_diff.py \
 
 两个脚本都带**非零退出码**语义，可直接接 CI：
 `pixel_diff.py` 缺页/仅多页/两者兼有均退出 3、尺寸不一致或差分失败退出 4、完成页数不足 5、
-发布目标已存在且未加 `--replace-dir` 退出 6、产物校验或发布失败（已回滚）退出 7；
+发布目标已存在且未加 `--replace-dir`（或目标不是本工具产物、或发布瞬间被抢占）退出 6、产物校验失败 / 发布失败已回滚 / 回滚本身失败退出 7；
 `css_value_diff.py` 分类合计与真实变更数不一致退出 3。
 
-**发布模型**：每次运行写入独立结果目录 `<out>/.runs/<时间戳>-<pid>/`，全部页面完成、
-报告写毕、产物校验通过后，才用**目录级原子重命名**把 `diff/` 整组发布到 `<out>/diff/`。
-目标已存在时默认拒绝（退出 6），加 `--replace-dir` 才替换，且旧目录在新结果发布成功后才删除。
-报告替换是提交点，失败则图与目录一并回滚。**任何失败都不改动历史证据。**
+**发布模型（一个目录 = 一个原子单元）**：`--out` 指向的结果目录内含 `PIXEL_DIFF.md` 与 `diff/`，
+二者同属一个目录，**整组以一次 `rename` 就位**，因此没有「图已发布、报告仍是旧版」的中间态，
+也不存在报告被单独 `os.replace` 覆盖的情况。运行先在同级目录建
+`.<out>.staging.<时间戳>-<pid>/`，差分、写报告、校验（每张图存在/非空/可解码 + 报告非空）
+全部通过后才发布。目标不存在时，这一次 `rename` 同时充当存在性检查（不依赖先 check 后 rename），
+并发抢占只会让 `rename` 失败、本次结果不发布，不会静默覆盖。
+目标已存在时默认拒绝（退出 6），加 `--replace-dir` 才替换（旧目录整组移到 `<out>.prev.<pid>`，
+新目录就位后才删除）。**任何失败都不改动历史证据。**
 
-写回本目录（`diff/` 已存在）需显式加参数：
+覆盖上一次结果（`pixel_diff/` 已存在）需显式加参数：
 
 ```bash
 python tools/pixel_diff.py \
-  --a v1.4 --b v1.5.1 --out . --replace-dir
+  --a v1.4 --b v1.5.1 --out pixel_diff --replace-dir
 ```
 
-回归用例见 `python tools/selftest.py`（47 项断言，含「目标已存在拒绝发布」「失败时整组证据字节不变」「两次独立运行报告字节一致」）。
+回归用例见 `python tools/selftest.py`（65 项断言，含「目标已存在拒绝发布」「报告已存在而缺 diff/ 也不覆盖」
+「发布瞬间被并发抢占不覆盖对方」「第二次 rename 失败后回滚字节不变」「回滚本身失败时保留 prev 并给出恢复命令」
+「目标只发生一次 rename」「两次独立运行报告字节一致」）。
 
 ## 文件哈希（SHA-256）
 
 | 文件 | 字节 | SHA-256 |
 |---|---|---|
 | `CSS_VALUE_DIFF.md` | 6,624 | `a97f7e20c611693ee9442bd3718b5e4923f1acceed3788adcdb4d6435f2d79dc` |
-| `PIXEL_DIFF.md` | 5,092 | `f447510ebdbc108ccdfc0eb849bf669359d4265d6213e42c066f4733298d6051` |
-| `diff/diff_detail.png` | 143,925 | `4e1973925c037adc6add33253ec6482c1864e00cd069f9fdab6b4b5658516d59` |
-| `diff/diff_home.png` | 152,906 | `d887afe4682def5c290e2acc8ff77f7bd921625afb8aa8def50034fe36c71a61` |
-| `diff/diff_index.png` | 110,563 | `5f911d48a5227090db6e76c8862e470bb76c3848fee15df4c2a7b79c8bdefd72` |
-| `diff/diff_inquiry.png` | 125,684 | `3933ac4a6307a918e5a266c88a2839b784d8711c52bae6c1e0398b7a1cce3586` |
-| `diff/diff_search.png` | 129,019 | `381e8a2a703f8642aba7172c7cde3db79241d7c65dfcdeffafda603deacd54db` |
+| `pixel_diff/PIXEL_DIFF.md` | 7,085 | `812db0cf9811e7bb33abd2885587fdb5f69053b19a7039e204c5496228395ae0` |
+| `pixel_diff/diff/diff_detail.png` | 143,925 | `4e1973925c037adc6add33253ec6482c1864e00cd069f9fdab6b4b5658516d59` |
+| `pixel_diff/diff/diff_home.png` | 152,906 | `d887afe4682def5c290e2acc8ff77f7bd921625afb8aa8def50034fe36c71a61` |
+| `pixel_diff/diff/diff_index.png` | 110,563 | `5f911d48a5227090db6e76c8862e470bb76c3848fee15df4c2a7b79c8bdefd72` |
+| `pixel_diff/diff/diff_inquiry.png` | 125,684 | `3933ac4a6307a918e5a266c88a2839b784d8711c52bae6c1e0398b7a1cce3586` |
+| `pixel_diff/diff/diff_search.png` | 129,019 | `381e8a2a703f8642aba7172c7cde3db79241d7c65dfcdeffafda603deacd54db` |
 | `v1.4/detail.png` | 247,236 | `5ef511bc437a40559dd94849fb31e28ff69fb7e154ab80f0062787ca6499a721` |
 | `v1.4/home.png` | 194,563 | `80ca85b3ba5fe8e43116b156a98d9e33971ebf29fabcef338be8aae4c7c6ecc3` |
 | `v1.4/index.png` | 188,723 | `0c0f8cfb698102ed271fad581461e4320354323e7988e1cd8f3800aa0e82b90f` |

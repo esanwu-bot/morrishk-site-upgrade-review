@@ -12,10 +12,10 @@
 | 项目 | morrishk.net 老站升级（电子元器件 B2B 独立站） |
 | 仓库 | https://github.com/esanwu-bot/morrishk-site-upgrade-review |
 | Branch | `main` |
-| 送审版本 | tag **`v1.5.3-review`**（`v1.4-review` / `v1.5-review` / `v1.5.1-review` / `v1.5.2-review` 保留未覆盖） |
+| 送审版本 | tag **`v1.5.4-review`**（`v1.4-review` / `v1.5-review` / `v1.5.1-review` / `v1.5.2-review` / `v1.5.3-review` 保留未覆盖） |
 | 并行送审包 | **`08_php84_compatibility/`**（PHP 8.4 兼容性评估 v1.2.2，tag `php84-v1.2.2-review`），独立工作流、各自冻结；该包自行递增，最新版本以远程 tag 为准 |
 | 交付日期 | 2026-11-16 |
-| 文档版本 | 商务方案 客户版 v1.1（rev.3） ／ 技术方案 技术版 v1.2（rev.3） ／ **原型 v1.5.3-prototype** ／ **Design System v1.0** |
+| 文档版本 | 商务方案 客户版 v1.1（rev.3） ／ 技术方案 技术版 v1.2（rev.3） ／ **原型 v1.5.4-prototype** ／ **Design System v1.0** |
 | 数据基线 | 2024-11-30 导出，静态终态（不随线上变化） |
 | 签名状态 | 本仓库的 commit 与 tag **均未做 Git 签名**（unsigned / 非 GPG 验证）。可用于确认版本内容与父子关系，**不可**作为经过签名的发布物 |
 
@@ -36,7 +36,7 @@ git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git ref
 也可直接打开下列直链绕过仓库首页缓存：
 
 - 提交历史：https://github.com/esanwu-bot/morrishk-site-upgrade-review/commits/main
-- 标签 `v1.5.3-review`：https://github.com/esanwu-bot/morrishk-site-upgrade-review/releases/tag/v1.5.3-review
+- 标签 `v1.5.4-review`：https://github.com/esanwu-bot/morrishk-site-upgrade-review/releases/tag/v1.5.4-review
 
 若仓库首页显示的提交数或 README 版本文字与上述 SHA 不符，属于页面缓存，请以 `git ls-remote` 的结果为准。
 
@@ -75,17 +75,17 @@ git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git ref
 │   └── screenshots/              ❗ 未提供（原型截图不在此目录，实际位于 07_prototypes/reference/prototype_shots/）
 ├── 08_php84_compatibility/       ★ 并行送审包：PHP 8.4 兼容性评估（独立工作流，版本见其 README）
 │   ├── README.md                   送审说明 + 证据索引 + 10 分钟复核路径
-│   ├── docs/app_code_compatibility.md   主报告 v1.2.1（应用层 + 依赖层）
+│   ├── docs/app_code_compatibility.md   主报告 v1.2.2（应用层 + 依赖层）
 │   ├── evidence/solve/01–06        依赖求解的命令、退出码与 lock 差异
 │   ├── evidence/scan/              扫描结果、召回夹具与基线（20/21）
 │   ├── evidence/prod/              生产环境核验记录（§6 证据）
 │   └── reference/                  composer.json / composer.lock（未改动，含 md5）
 ├── tools/                        ★ 可复核脚本（从仓库根直接执行）
 │   ├── check_tokens.py             Token 合规扫描 → 生成 07_prototypes/TOKEN_AUDIT.md
-│   ├── pixel_diff.py               同视口逐像素差分 → 生成 PIXEL_DIFF.md
+│   ├── pixel_diff.py               同视口逐像素差分 → 生成 pixel_diff/ 结果目录（报告 + 差异图）
 │   ├── css_value_diff.py           两版 CSS 逐条取值比对 → 生成 CSS_VALUE_DIFF.md
 │   └── selftest.py                 三个工具的回归自测（47 项断言，退出码 0/1）
-└── 07_prototypes/                新版原型 + Design System（本轮 v1.5.3）
+└── 07_prototypes/                新版原型 + Design System（本轮 v1.5.4）
     ├── DESIGN.md                     ★ Morris Design System v1.0（唯一视觉权威）
     ├── README.md                     原型说明、标注系统、已知缺口
     ├── TOKEN_AUDIT.md                ★ Token 使用检查报告（脚本生成，可重跑）
@@ -104,7 +104,9 @@ git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git ref
     │   └── prototype_shots/           ★ 两版同视口截图 + 差异图 + 独立哈希
     │       ├── v1.4/ · v1.5.1/           各 5 张 1440×2600 截图
     │       ├── diff/                     5 张差异图
-    │       ├── PIXEL_DIFF.md             逐页差异像素数与行段定位
+    │       ├── pixel_diff/               ★ 一个目录 = 一个原子发布单元
+    │       │   ├── PIXEL_DIFF.md             逐页差异像素数与行段定位
+    │       │   └── diff/                     5 张差异图
     │       ├── CSS_VALUE_DIFF.md         652 条等价 / 51 条真实变更
     │       └── SHA256SUMS.txt            17 个证据文件的哈希
     └── assets/
@@ -336,7 +338,7 @@ reviewer 复核提交 `4db2aec` 后给出结论：**库存状态整改可关闭�
 |---|---|---|---|---|
 | R1 | `css_value_diff.py` 的 `category()` 先用 `border` 关键字判颜色，再判 `border-radius`，导致后者永不可达 | 分类统计口径错误（**不影响 51 条总数**） | 圆角判断前置，正则覆盖 `border-*-radius` 全族长写；报告新增「分类合计校验」，合计 ≠ 真实变更数时脚本以非零码退出 | `reference/prototype_shots/CSS_VALUE_DIFF.md` |
 | R2 | `check_tokens.py` 的 HTML `style` 属性**按行匹配且只认双引号**，单引号与跨行写法整段漏检；报告「扫描范围」表述宽于实现 | 工具覆盖范围与报告口径不一致（**未发现原型中存在硬编码色值**） | style 属性改为全文扫描，单/双引号/跨行共用一条正则；新增 0.1「检测方式与覆盖边界」与 A1「边界探针」 | `TOKEN_AUDIT.md` 0.1 / A1 |
-| R3 | `pixel_diff.py` 以旧版目录为基准，新版缺页只打印 SKIP 后继续，且不检查新版独有文件，**永远返回 0** | 允许「少比一页仍算通过」 | 两版页面集合必须完全相等、尺寸必须一致、完成页数必须等于集合大小；任一不满足即非零退出、不写报告、不留半成品差异图；报告新增第 0 节前置校验 | `reference/prototype_shots/PIXEL_DIFF.md` 第 0 节 |
+| R3 | `pixel_diff.py` 以旧版目录为基准，新版缺页只打印 SKIP 后继续，且不检查新版独有文件，**永远返回 0** | 允许「少比一页仍算通过」 | 两版页面集合必须完全相等、尺寸必须一致、完成页数必须等于集合大小；任一不满足即非零退出、不写报告、不留半成品差异图；报告新增第 0 节前置校验 | `reference/prototype_shots/pixel_diff/PIXEL_DIFF.md` 第 0 节 |
 
 **R2 回归验证（修复前后同一组用例，可复现）**：
 
@@ -503,7 +505,7 @@ R3「仅多页」独立用例与失败清理范围、9.62% 的分子分母抽查
 | R2 | 注释、`<script>` 字符串等误报边界是否处理并披露 | HTML 注释与 `<style>` 块先遮蔽再找 `style` 属性（其中的同名文本不计入 A）；`<script>` **有意不遮蔽**——内联模板可能生成真实样式，排除会变漏检，改用 `count_script_style_attrs()` 单独量化（本轮 0 处）；转义引号截断作为已知边界写入 0.1 | `TOKEN_AUDIT.md` 0.1 与 A1；selftest R2 组 |
 | R3 | 补「仅多页」独立用例 | 已补：`only_detail → full` 单独断言退出 3 且报出「仅新版存在」 | selftest R3 组 |
 | R3 | 失败清理不得误删运行前已有文件 | 改为**暂存目录 + 原子搬移**：差异图先写入本次运行的独立临时目录，全部页面成功后才 `os.replace` 到 `diff/`；任一页失败则删除整个暂存目录，`--out` 下已有文件完全不被触碰。断言用「预置红色 10×10 哨兵图，失败后字节不变」验证 | selftest R3 组（含字节比对） |
-| 9.62% | 分子分母与汇总口径是否一致 | 报告新增 1.1 明细：逐页列出「平移后差异像素 / 重叠面积 / 残余率」与合计，并给出校验式 `1,797,945 / 18,684,000 = 9.623%`；同时说明补偿口径分母（重叠面积 18,684,000）与严格口径分母（原图总面积 18,720,000）为何不同且不可混用 | `PIXEL_DIFF.md` 1.1 |
+| 9.62% | 分子分母与汇总口径是否一致 | 报告新增 1.1 明细：逐页列出「平移后差异像素 / 重叠面积 / 残余率」与合计，并给出校验式 `1,797,945 / 18,684,000 = 9.623%`；同时说明补偿口径分母（重叠面积 18,684,000）与严格口径分母（原图总面积 18,720,000）为何不同且不可混用 | `reference/prototype_shots/pixel_diff/PIXEL_DIFF.md` 1.1 |
 
 **措辞收紧**：按 reviewer 意见，不再写「剩下 9.62% 是内容本身变化」。改为
 「在整页单一纵向位移模型下，差异率由 11.642% 降至约 9.62%，说明全局纵向平移不足以解释大部分像素差异；
@@ -541,6 +543,10 @@ git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git ref
 2. 成功路径下 `os.replace()` 仍会覆盖运行前已存在的同名图，与「绝不触碰已有证据」的说法不符。
 
 改为评审建议的四段式：
+
+> **注**：下表是 v1.5.3 的实现状态。第三轮复核指出它仍有 R3-1（先 check 后 rename 的竞态）、
+> R3-2（报告 `os.replace` 仍可能覆盖旧报告）、R3-3（两次操作之间非整组原子）三个问题，
+> 该模型已在 **v1.5.4 整体替换为「一个目录 = 一个原子单元」**，见 8.10。本节保留为历史记录。
 
 | 要求 | 实现 |
 |---|---|
@@ -589,17 +595,62 @@ R3 的「工具层可靠性」按本轮实现可以关闭，但**关闭与否由
 `v1.5.3-review` 指向 rebase 后的新提交。判断同一版本请以 `git ls-remote` 的 SHA 为准，
 不要依赖页面上的版本文字或提交计数。
 
+### 8.10 R3 改为「一个目录 = 一个原子单元」（v1.5.4，回应第三轮复核）
+
+第三轮复核认定 v1.5.3 的 R3 仍有三个问题，全部成立，本轮按评审的建议做法重做，
+并**只改 R3 与一处版本文字**，不扩展其他工具、不重跑整套业务扫描。
+
+| 编号 | 评审指出的问题 | 本轮处置 |
+|---|---|---|
+| R3-1 | `if os.path.exists(dst_diff)` 与 `os.rename` 之间存在竞态窗口，目标可能被并发创建 | **取消「先 check 后 rename」**：目标不存在时，`rename` 本身就是存在性检查。目标被并发建成非空目录 → rename 失败（POSIX `ENOTEMPTY` / Windows `OSError`）→ 本次不发布、退出 6，不覆盖对方内容 |
+| R3-2 | 只检查 `diff/`，`os.replace(src_md, dst_md)` 仍可能覆盖已存在的 `PIXEL_DIFF.md` | 报告不再单独替换：`PIXEL_DIFF.md` 与 `diff/` 同属一个结果目录，「目标是否存在」对二者同时生效。源码中已不存在 `os.replace` |
+| R3-3 | `rename(diff)` 与 `replace(md)` 两段操作之间可能被看到「新图 + 旧报告」，进程崩溃时回滚代码没机会执行 | **改为对目录做一次 rename**：整组同时出现，不存在中间态 |
+| — | 自测缺故障注入 | 新增 5 类定向用例（见下表），断言总数 47 → **65** |
+
+**新发布模型**：`--out` 是本次 run 独占的结果目录，内含 `PIXEL_DIFF.md` 与 `diff/`。
+每次运行先在同级目录建 `.<out>.staging.<时间戳>-<pid>/`，差分、写报告、校验
+（每张图存在/非空/可解码 + 报告非空）全部通过后，对目标目录做**一次 rename**。
+目标已存在（且确属本工具产物）时默认退出 6；加 `--replace-dir` 才整组替换
+（旧目录移到 `<out>.prev.<pid>`，新目录就位后才删除）。
+
+**新增护栏**：目标目录若含本工具产物以外的条目（例如上一版的 `prototype_shots/`，
+里面还有 `v1.4/`、`v1.5.1/`、`CSS_VALUE_DIFF.md`），**即使加 `--replace-dir` 也拒绝**，
+避免 `--out` 误指而把别人的证据整组搬走。
+
+**新增故障注入用例**（`tools/selftest.py` 的 R3 组）：
+
+| 场景 | 断言 |
+|---|---|
+| 目录里只有 `PIXEL_DIFF.md`、没有 `diff/`（报告目标已存在） | 退出 6；报告内容字节未变；目录内未混入差异图 |
+| 发布那一次 `rename` 之前目标被另一进程创建并写入内容 | `PublishError`（退出 6）；抢占者内容未被覆盖；本次结果仍在 staging |
+| `--replace-dir` 时第二次 `rename` 失败 | 抛原始 `OSError`；回滚后旧整组字节不变；无 `.prev` 残留 |
+| 回滚自身也失败 | 抛 `RollbackError`；旧整组完好保留在 `prev`；消息给出 `mv` 恢复命令；目标未被误建 |
+| 正常发布 | 对目标只发生 **1 次** `rename`；发布后报告与图同时就位；源码中已无单文件 `os.replace` 提交点 |
+
+**仍未消除的边界（如实声明）**：`--replace-dir` 的替换是两次 `rename`，中间有一瞬目标不存在。
+进程恰在此刻被杀，会留下完整的 `<out>.prev.<pid>` 而目标缺失——属可人工恢复状态，
+不是「新旧混合」。真正的单步目录交换需平台相关系统调用（Linux `RENAME_EXCHANGE`），
+本项目在 Windows 上开发与复现，**不引入平台相关分支**，因此保留这一已披露的窗口。
+
+证据目录随之迁移为 `07_prototypes/reference/prototype_shots/pixel_diff/`（报告 + 5 张差异图的
+一个原子单元）。5 张差异图 SHA-256 与迁移前**逐张一致**，报告除「发布单元」两行说明外数字全文未变：
+严格 2,179,447（11.642%）、补偿 1,797,945（18,684,000 → 9.623%）。
+
+**版本文字修正**：根 README 目录树中 `08_php84_compatibility/docs/app_code_compatibility.md` 原标
+「主报告 v1.2.1」，实际文件头部与 08 包 README 均为 **v1.2.2**，已改为 v1.2.2（属旧文字未同步，
+不是 tag 指向错误）。
+
 ## 九、版本与校验
 
 **文件数量口径**（四个数字含义不同，勿混用）：
 
 | 口径 | 数量 | 说明 |
 |---|---|---|
-| 仓库纳入版本控制的文件总数 | **65** | 含 `.gitattributes`、三份 `SHA256SUMS.txt`、`07_prototypes/` 下 40 个文件、`tools/` 下 4 个脚本 |
+| 仓库纳入版本控制的文件总数 | **65** | 含 `.gitattributes`、三份 `SHA256SUMS.txt`、`07_prototypes/` 下 40 个文件、`tools/` 下 4 个脚本（`08_php84_compatibility/` 另计 24 个，自带清单） |
 | 根清单 `06_evidence/hashes/SHA256SUMS.txt` 覆盖数 | **64** | 除自身以外的全部文件 |
 | `07_prototypes/SHA256SUMS.txt` 覆盖数 | **39** | 该目录内除自身以外的全部文件（含 `reference/prototype_shots/`） |
 | `07_prototypes/` 文件总数 | **40** | 39 个交付文件 + 1 个哈希清单 |
-| `reference/prototype_shots/SHA256SUMS.txt` 覆盖数 | **17** | 截图与差分证据，独立成清单 |
+| `reference/prototype_shots/SHA256SUMS.txt` 覆盖数 | **17** | 截图、差分证据与 `pixel_diff/` 内的报告和差异图，独立成清单 |
 
 ```bash
 # 1) 校验全仓库（在仓库根目录，应输出 64 行 OK）
@@ -614,12 +665,13 @@ sha256sum -c SHA256SUMS.txt
 # 4) 重跑 Token 审计（在仓库根目录，应输出 RESULT: PASS，退出码 0）
 python tools/check_tokens.py --path 07_prototypes/
 
-# 5) 重跑像素差分（在仓库根目录，数字应与 PIXEL_DIFF.md 完全一致）
-#    --out 指向新目录即可直接跑；若要写回仓库内已有 diff/ 的目录，需显式加 --replace-dir
+# 5) 重跑像素差分（在仓库根目录，数字应与 pixel_diff/PIXEL_DIFF.md 完全一致）
+#    --out 是本次 run 独占的结果目录（内含 PIXEL_DIFF.md + diff/），整组以一次 rename 发布；
+#    指向新目录可直接跑；写回仓库内已有结果目录需显式加 --replace-dir
 python tools/pixel_diff.py \
   --a 07_prototypes/reference/prototype_shots/v1.4 \
   --b 07_prototypes/reference/prototype_shots/v1.5.1 \
-  --out /tmp/pd_check
+  --out /tmp/pd_check/pixel_diff
 
 # 5b) 重跑 CSS 取值比对（分类合计 ≠ 真实变更数时退出 3）
 python tools/css_value_diff.py \
@@ -628,7 +680,7 @@ python tools/css_value_diff.py \
   --tokens 07_prototypes/assets/tokens.css \
   --out /tmp/pd_check/CSS_VALUE_DIFF.md
 
-# 5c) 跑工具回归自测（47 项断言，含 R1 覆盖 / R2 边界 / R3 负向用例与报告可复现性）
+# 5c) 跑工具回归自测（65 项断言，含 R1 覆盖 / R2 边界 / R3 负向用例、并发与回滚故障注入、报告可复现性）
 python tools/selftest.py
 
 # 6) 查看本仓库全部提交与送审 tag
@@ -638,7 +690,8 @@ git tag -n
 
 **三个脚本都有非零退出码，可直接接 CI**：`check_tokens.py` 有 FAIL 退出 1；
 `pixel_diff.py` —— 集合不一致 3、尺寸不符或差分失败 4、完成页数不足 5、
-**发布目标已存在且未加 `--replace-dir` 6**、**产物校验或发布失败（已回滚）7**；
+**发布目标已存在 / 目标不是本工具产物 / 发布瞬间被并发抢占 6**、
+**产物校验失败、发布失败已回滚、回滚本身失败 7**；
 `css_value_diff.py` 分类合计与真实变更数不一致退出 3。「脚本跑完没报错」不等于「通过」，
 必须同时看退出码与报告里的判定行。
 

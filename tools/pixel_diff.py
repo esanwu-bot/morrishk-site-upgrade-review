@@ -7,7 +7,7 @@
     python tools/pixel_diff.py \
         --a 07_prototypes/reference/prototype_shots/v1.4 \
         --b 07_prototypes/reference/prototype_shots/v1.5.1 \
-        --out 07_prototypes/reference/prototype_shots
+        --out 07_prototypes/reference/prototype_shots/pixel_diff
 
 要求两版截图满足：同一浏览器、同一内核版本、同一视口（--window-size）、同一缩放、
 **同一页面集合**。
@@ -21,24 +21,30 @@
   6. **位移补偿口径**：在 ±N 像素纵向偏移内搜索最小差异率，用来区分
      "同样的内容整体错位" 与 "内容本身真的变了"。两种口径并列给出，不互相替代。
 
-发布模型（整组一次性发布，不覆盖已有证据）：
-  1. 每次运行在 `<out>/.runs/<时间戳>-<pid>/` 创建独立结果目录，内含 `diff/` 与 `PIXEL_DIFF.md`。
-  2. 全部页面差分完成、报告写毕、产物校验通过后，才把整组结果发布到 `<out>/`。
-  3. 发布用**同一文件系统内的目录级原子重命名**：目标 `diff/` 必须预先不存在。
-     若已存在，默认拒绝发布并退出 6；确认要替换时加 `--replace-dir`，
-     此时旧目录先被移开（可回滚），新目录发布成功后才删除旧目录。
-  4. 报告中转（PIXEL_DIFF.md）是提交点：它替换成功才算发布完成；
-     若它失败，新目录与旧目录一并回滚，不留部分更新。
-  5. 任何失败只删除本次结果目录，历史证据不被触碰。
+发布模型（**一个目录 = 一个原子发布单元**）：
+  1. `--out` 是本次 run 独占的结果目录，内含 `PIXEL_DIFF.md` 与 `diff/`。
+     二者同属一个目录，因此**不存在**「图已发布、报告还是旧的」这种中间态。
+  2. 每次运行先在同级目录建 `.out.staging.<时间戳>-<pid>/`，差分、写报告、
+     校验（每张图存在/非空/可解码 + 报告非空）全部做完，才进入发布。
+  3. 发布 = **对目标目录做一次 rename**。目标不存在时这一次 rename 既完成
+     发布、又充当存在性检查，没有「先 check 再 rename」的竞态窗口：
+     目标若被其他进程抢先建成非空目录，rename 直接失败（POSIX ENOTEMPTY /
+     Windows OSError），本次结果不发布、退出 6，不覆盖对方内容。
+  4. 目标已存在（且确属本工具产物）时默认拒绝并退出 6；加 `--replace-dir` 才替换：
+     旧目录整组 rename 到 `<out>.prev.<pid>`，新目录再 rename 就位，第二步失败则
+     改名回滚。这套替换是**两次 rename**，中间有一瞬目标不存在，但不出现新旧混合；
+     进程恰在此刻被杀死会留下 `<out>.prev.<pid>`（完整旧证据）而目标缺失，
+     属可人工恢复状态，错误消息里给出恢复命令。
+  5. 任何失败只删除本次 staging 目录，历史证据不被触碰。
 
 退出码：
   0 = 集合一致、尺寸一致、全部页面完成差分、发布成功
-  2 = 目录缺失或目录内没有 PNG
+  2 = 目录缺失或目录内没有 PNG，或 --out 无父目录
   3 = 两版页面集合不一致（缺页 / 多页）
   4 = 尺寸不一致或单页差分失败（此时不发布）
   5 = 完成页数少于页面集合（此时不发布）
-  6 = 发布目标已存在且未指定 --replace-dir（此时不发布）
-  7 = 产物校验或发布失败（已回滚，旧证据完好）
+  6 = 发布目标已存在且未指定 --replace-dir，或目标不是本工具产物，或发布瞬间被抢占
+  7 = 产物校验失败、发布失败已回滚、或回滚本身失败（消息会给出 prev 目录路径）
 """
 from __future__ import annotations
 
@@ -53,9 +59,17 @@ from PIL import Image, ImageChops
 
 VISIBLE_DELTA = 24
 
+# 结果目录（bundle）允许出现的条目：本工具只拥有这两项。
+BUNDLE_ENTRIES = {"diff", "PIXEL_DIFF.md"}
+
 
 class PublishError(Exception):
-    """发布阶段的预期失败（目标已存在、校验不通过等）。"""
+    """发布阶段的预期失败（目标已存在、目标不是本工具产物、校验不通过等）。退出码 6。"""
+
+
+class RollbackError(Exception):
+    """发布失败且回滚也失败：旧整组证据仍完整保留在 prev 目录，需人工改名恢复。退出码 7。"""
+
 
 
 def load(path):
@@ -177,12 +191,12 @@ def diff_one(a_path, b_path, save_dir, name, shift_search):
 
 
 # --------------------------------------------------------------------------
-# 发布：整组一次性，不覆盖已有证据
+# 发布：一个目录 = 一个原子单元，整组一次 rename
 # --------------------------------------------------------------------------
 
-def verify_run(run_dir, names):
-    """发布前校验产物完整性：每张差异图存在、非空、可解码。"""
-    diff_dir = os.path.join(run_dir, "diff")
+def verify_bundle(staging_dir, names):
+    """发布前校验整组产物：每张差异图存在、非空、可解码；报告非空。"""
+    diff_dir = os.path.join(staging_dir, "diff")
     problems = []
     for n in names:
         p = os.path.join(diff_dir, "diff_%s.png" % n)
@@ -196,68 +210,99 @@ def verify_run(run_dir, names):
             Image.open(p).verify()
         except Exception as exc:
             problems.append("无法解码 %s: %s" % (p, exc))
-    md = os.path.join(run_dir, "PIXEL_DIFF.md")
+    md = os.path.join(staging_dir, "PIXEL_DIFF.md")
     if not os.path.exists(md) or os.path.getsize(md) == 0:
         problems.append("报告缺失或为空: %s" % md)
     if problems:
         raise PublishError("产物校验失败：" + "；".join(problems))
 
 
-def publish_run(out_dir, run_dir, replace_dir):
-    """把 run_dir 整组发布到 out_dir。
+def is_bundle_dir(path):
+    """目标目录是否只含本工具的产物（diff/ 与 PIXEL_DIFF.md）。
 
-    - `diff/` 用目录级 rename 发布；目标已存在时默认拒绝，需 replace_dir=True。
-    - `PIXEL_DIFF.md` 最后替换，作为提交点；失败则连同 diff 目录一起回滚。
-
-    返回 (diff_dir, md_path)。
+    这条护栏防止把 --out 指到「不只属于本工具」的目录（例如上一版的
+    prototype_shots/，里面还有 v1.4/ v1.5.1/ CSS_VALUE_DIFF.md 等），
+    避免 --replace-dir 把别人的证据整组搬走。
     """
-    src_diff = os.path.join(run_dir, "diff")
-    src_md = os.path.join(run_dir, "PIXEL_DIFF.md")
-    dst_diff = os.path.join(out_dir, "diff")
-    dst_md = os.path.join(out_dir, "PIXEL_DIFF.md")
+    if not os.path.isdir(path):
+        return False
+    return set(os.listdir(path)) <= BUNDLE_ENTRIES
 
+
+def _rmtree(path):
+    shutil.rmtree(path, ignore_errors=True)
+
+
+def _restore(prev, out_dir):
+    """把移开的旧目录改回原位；自身失败时抛 RollbackError 并保留 prev。"""
+    try:
+        os.rename(prev, out_dir)
+    except OSError as exc:
+        raise RollbackError(
+            "发布失败，且把旧目录改回原位也失败。\n"
+            "  旧整组证据仍完整保留在：%s\n"
+            "  恢复命令：mv \"%s\" \"%s\"\n"
+            "  （本次新结果已丢弃，不会覆盖该目录）" % (prev, prev, out_dir)) from exc
+
+
+def publish_bundle(out_dir, staging_dir, replace_dir):
+    """把整个 staging 目录作为一个原子单元发布到 out_dir，返回 out_dir。
+
+    原子单元是**目录**而不是目录里的文件：`PIXEL_DIFF.md` 与 `diff/` 在同一个
+    目录里，一次 rename 同时就位，因此没有「图已发布、报告仍是旧版」的中间态，
+    也不存在「报告单独 os.replace 覆盖旧报告」的问题。
+
+    目标不存在时，这次 rename 本身就是存在性检查（不依赖先 check 后 rename），
+    因此并发抢占只会让 rename 失败，不会静默覆盖。
+    """
     prev = None
-    if os.path.exists(dst_diff):
+    if os.path.lexists(out_dir):
+        if not is_bundle_dir(out_dir):
+            raise PublishError(
+                "发布目标不是本工具独占的结果目录（含额外内容），拒绝发布：%s\n"
+                "  已存在条目：%s\n"
+                "  请把 --out 指到一个只含 PIXEL_DIFF.md 与 diff/ 的目录（或新建目录）。"
+                % (out_dir, ", ".join(sorted(os.listdir(out_dir))) or "（空）"))
         if not replace_dir:
             raise PublishError(
                 "发布目标已存在：%s\n"
-                "  为避免覆盖已有证据，默认拒绝发布。确认要替换请加 --replace-dir。" % dst_diff)
-        prev = dst_diff + ".prev.%d" % os.getpid()
-        if os.path.exists(prev):
-            shutil.rmtree(prev, ignore_errors=True)
-        os.rename(dst_diff, prev)  # 旧证据移开，保留到发布成功为止
+                "  整组发布不覆盖已有证据，默认拒绝。确认要替换请加 --replace-dir。" % out_dir)
+        prev = out_dir + ".prev.%d" % os.getpid()
+        if os.path.lexists(prev):
+            _rmtree(prev)  # 上一次同 pid 崩溃遗留，作用域仅本进程命名空间
+        os.rename(out_dir, prev)  # 旧整组移开，保留到新目录就位为止
 
     try:
-        os.rename(src_diff, dst_diff)  # 目录级原子发布
-    except Exception:
+        os.rename(staging_dir, out_dir)  # 对目标的唯一一次 rename
+    except OSError:
         if prev:
-            os.rename(prev, dst_diff)  # 回滚
-        raise
-
-    try:
-        os.replace(src_md, dst_md)  # 单文件原子，作为提交点
-    except Exception:
-        shutil.rmtree(dst_diff, ignore_errors=True)
-        if prev:
-            os.rename(prev, dst_diff)  # 连图一起回滚
+            _restore(prev, out_dir)
+            raise
+        if os.path.lexists(out_dir):
+            raise PublishError(
+                "发布目标在发布瞬间被其他进程创建：%s\n"
+                "  本次结果未发布（暂存目录会被删除），未覆盖对方内容。" % out_dir)
         raise
 
     if prev:
-        shutil.rmtree(prev, ignore_errors=True)
-    return dst_diff, dst_md
+        _rmtree(prev)  # 新目录已就位，旧整组此时才删除
+    return out_dir
+
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--a", required=True, help="旧版截图目录")
     ap.add_argument("--b", required=True, help="新版截图目录")
-    ap.add_argument("--out", required=True, help="输出目录（差异图与报告）")
+    ap.add_argument("--out", required=True,
+                    help="本次 run 独占的结果目录，发布后内含 PIXEL_DIFF.md 与 diff/。"
+                         "整组以一次 rename 发布，目标已存在时默认拒绝")
     ap.add_argument("--label-a", default="v1.4")
     ap.add_argument("--label-b", default="v1.5.1")
     ap.add_argument("--shift-search", type=int, default=40,
                     help="纵向位移补偿搜索半径（像素），0 表示关闭该口径。默认 40")
     ap.add_argument("--replace-dir", action="store_true",
-                    help="允许替换 --out 下已存在的 diff/ 目录。默认拒绝，以免覆盖历史证据")
+                    help="允许替换 --out 已存在的结果目录。默认拒绝，以免覆盖历史证据")
     args = ap.parse_args(argv)
 
     for d in (args.a, args.b):
@@ -287,13 +332,18 @@ def main(argv=None):
             sys.stderr.write("  仅新版存在（旧版无对应）: %s.png\n" % n)
         return 3
 
-    os.makedirs(args.out, exist_ok=True)
+    # --out 是本工具独占的结果目录：一个目录 = 一个原子发布单元。
+    # staging 建在 --out 的同级目录（同一文件系统，rename 才具备原子性）。
+    out_abs = os.path.abspath(args.out)
+    parent = os.path.dirname(out_abs)
+    if not parent or parent == out_abs:
+        sys.stderr.write("ERROR: --out 不能是文件系统根目录: %s\n" % args.out)
+        return 2
+    os.makedirs(parent, exist_ok=True)
 
-    # 每次运行独立且唯一的结果目录（与 --out 同文件系统，保证 rename 原子）
     run_id = "%s-%d" % (time.strftime("%Y%m%d-%H%M%S"), os.getpid())
-    run_root = os.path.join(args.out, ".runs")
-    run_dir = os.path.join(run_root, run_id)
-    run_diff = os.path.join(run_dir, "diff")
+    staging = os.path.join(parent, ".%s.staging.%s" % (os.path.basename(out_abs), run_id))
+    run_diff = os.path.join(staging, "diff")
     os.makedirs(run_diff)
 
     try:
@@ -342,8 +392,8 @@ def main(argv=None):
         add("| 严格口径 | 三通道任一不同即计入 |")
         add("| 可见口径 | \\|ΔR\\|+\\|ΔG\\|+\\|ΔB\\| > %d |" % VISIBLE_DELTA)
         add("| 位移补偿搜索半径 | ±%d px（`--shift-search`） |" % args.shift_search)
-        add("| 发布方式 | 每次运行先落到独立唯一结果目录，校验通过后目录级 rename 整组发布"
-            "（运行 ID 只打印到 stdout，不写进报告，保证本报告字节级可复现） |")
+        add("| 发布单元 | **一个目录**（本报告 + `diff/`），对目标目录做**一次 rename** 整组发布 |")
+        add("| 运行 ID | 只打印到 stdout，不写进报告，保证本报告字节级可复现 |")
         add("")
 
         # ---------------- 0. 前置校验 ----------------
@@ -362,10 +412,12 @@ def main(argv=None):
         add("| 差分完成度 | 完成页数必须等于页面集合页数 | **PASS**（%d / %d） |" %
             (len(results), len(names_a)))
         add("")
-        add("**失败与发布语义**：全部页面差分完成、报告写毕、产物校验通过后才整组发布。"
-            "发布用同一文件系统内的**目录级原子重命名**，目标 `diff/` 必须预先不存在；"
-            "已存在时默认拒绝（退出 6），加 `--replace-dir` 才替换，且旧目录在发布成功后才删除。"
-            "报告中转是提交点：报告替换失败则连同新目录一起回滚。**任何失败都不触碰历史证据。**")
+        add("**失败与发布语义**：本报告与 `diff/` 同属一个目录，**该目录整体就是一个原子发布单元**——"
+            "全部页面差分完成、报告写毕、产物校验通过后，对目录做**一次 rename** 让它整组就位。"
+            "因此不存在「图已发布、报告仍是旧版」的中间态，也不存在报告被单独覆盖的情况："
+            "目标目录已存在时默认拒绝发布（退出 6），加 `--replace-dir` 才整组替换。"
+            "目标不存在时，这一次 rename 同时充当存在性检查，不依赖「先 check 后 rename」，"
+            "并发抢占只会让 rename 失败而不会静默覆盖。**任何失败都不触碰历史证据。**")
         add("")
         add("页面集合（两版逐一对应）：")
         add("")
@@ -467,32 +519,32 @@ def main(argv=None):
             "不判断剩下的差异是否可接受，也不能把残余率直接当作纯内容差异。")
         add("")
 
-        # 报告写进本次结果目录，与差异图同属一个发布单元
-        io.open(os.path.join(run_dir, "PIXEL_DIFF.md"), "w",
+        # 报告写进本次 staging 目录，与差异图同属**同一个**原子发布单元
+        io.open(os.path.join(staging, "PIXEL_DIFF.md"), "w",
                 encoding="utf-8", newline="\n").write("\n".join(L) + "\n")
 
-        # 校验 → 发布（整组）
-        verify_run(run_dir, [r["name"] for r in results])
-        diff_dir, md_path = publish_run(args.out, run_dir, args.replace_dir)
+        # 校验 → 一次 rename 发布整个目录
+        verify_bundle(staging, [r["name"] for r in results])
+        bundle = publish_bundle(out_abs, staging, args.replace_dir)
 
-        print("written: %s" % md_path)
-        print("images:  %s" % diff_dir)
+        print("written: %s" % os.path.join(bundle, "PIXEL_DIFF.md"))
+        print("images:  %s" % os.path.join(bundle, "diff"))
         print("pages=%d  strict=%s  set_check=PASS  size_check=PASS  publish=PASS" %
               (len(results), format(ts, ",")))
         return 0
+    except RollbackError as exc:
+        sys.stderr.write("ERROR: %s\n" % exc)
+        return 7
     except PublishError as exc:
         sys.stderr.write("ERROR: %s\n" % exc)
         return 6
     except Exception as exc:
-        sys.stderr.write("ERROR: 发布失败，已回滚：%s\n" % exc)
+        sys.stderr.write("ERROR: 发布失败：%s\n" % exc)
         return 7
     finally:
-        # 无论成败都清掉本次结果目录；历史证据不在这个目录里
-        shutil.rmtree(run_dir, ignore_errors=True)
-        try:
-            os.rmdir(run_root)  # 只在空目录时成功，避免留下空的 .runs
-        except OSError:
-            pass
+        # 只清本次 staging 目录；历史证据不在这个目录里。
+        # 发布成功后 staging 已被 rename 成 --out，这里对不存在的路径是空操作。
+        shutil.rmtree(staging, ignore_errors=True)
 
 
 if __name__ == "__main__":
