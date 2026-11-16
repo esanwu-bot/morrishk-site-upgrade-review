@@ -12,10 +12,10 @@
 | 项目 | morrishk.net 老站升级（电子元器件 B2B 独立站） |
 | 仓库 | https://github.com/esanwu-bot/morrishk-site-upgrade-review |
 | Branch | `main` |
-| 送审版本 | tag **`v1.5.8-review`**（`v1.4-review` / `v1.5-review` / `v1.5.1-review` / `v1.5.2-review` / `v1.5.3-review` / `v1.5.4-review` / `v1.5.5-review` / `v1.5.6-review` / `v1.5.7-review` 保留未覆盖） |
+| 送审版本 | tag **`v1.5.9-review`**（`v1.4-review` / `v1.5-review` / `v1.5.1-review` / `v1.5.2-review` / `v1.5.3-review` / `v1.5.4-review` / `v1.5.5-review` / `v1.5.6-review` / `v1.5.7-review` / `v1.5.8-review` 保留未覆盖） |
 | 并行送审包 | **`08_php84_compatibility/`**（PHP 8.4 兼容性评估），独立工作流、各自冻结。**本文件不转述其版本号**——版本以该包 `README.md` 头部与远程 tag 系列 `php84-v1.2.x-review` 为准 |
 | 交付日期 | 2026-11-16 |
-| 文档版本 | 商务方案 客户版 v1.1（rev.3） ／ 技术方案 技术版 v1.2（rev.3） ／ **原型 v1.5.8-prototype** ／ **Design System v1.0** |
+| 文档版本 | 商务方案 客户版 v1.1（rev.3） ／ 技术方案 技术版 v1.2（rev.3） ／ **原型 v1.5.9-prototype** ／ **Design System v1.0** |
 | 数据基线 | 2024-11-30 导出，静态终态（不随线上变化） |
 | 签名状态 | 本仓库的 commit 与 tag **均未做 Git 签名**（unsigned / 非 GPG 验证）。可用于确认版本内容与父子关系，**不可**作为经过签名的发布物 |
 
@@ -37,7 +37,7 @@ git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git ref
 也可直接打开下列直链绕过仓库首页缓存：
 
 - 提交历史：https://github.com/esanwu-bot/morrishk-site-upgrade-review/commits/main
-- 标签 `v1.5.8-review`：https://github.com/esanwu-bot/morrishk-site-upgrade-review/releases/tag/v1.5.8-review
+- 标签 `v1.5.9-review`：https://github.com/esanwu-bot/morrishk-site-upgrade-review/releases/tag/v1.5.9-review
 
 若仓库首页显示的提交数或 README 版本文字与上述 SHA 不符，属于页面缓存，请以 `git ls-remote` 的结果为准。
 
@@ -86,7 +86,7 @@ git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git ref
 │   ├── check_tokens.py             Token 合规扫描 → 生成 07_prototypes/TOKEN_AUDIT.md
 │   ├── pixel_diff.py               同视口逐像素差分 → 生成 pixel_diff/ 结果目录（报告 + 差异图）
 │   ├── css_value_diff.py           两版 CSS 逐条取值比对 → 生成 CSS_VALUE_DIFF.md
-│   └── selftest.py                 三个工具的回归自测（129 项断言，退出码 0/1）
+│   └── selftest.py                 三个工具的回归自测（137 项断言，退出码 0/1）
 └── 07_prototypes/                新版原型 + Design System（本轮 v1.5.6）
     ├── DESIGN.md                     ★ Morris Design System v1.0（唯一视觉权威）
     ├── README.md                     原型说明、标注系统、已知缺口
@@ -802,11 +802,15 @@ v1.5.7 的 R3-14 只证明了「非空 `bundle` 不被覆盖」，因为当时�
 | Windows | 一律失败（**含空目录**），本身就是 no-replace | 直接 rename，**不占位**（占位反而会把自己挡住） |
 | POSIX | 目标为空目录时**成功并覆盖** | 先 `os.mkdir(<out>.prev/bundle)` 占位，再 rename |
 
-两条分支的对外语义完全一致：**`prev/bundle` 已存在（无论空非空）→ 拒绝，不覆盖、不删除。**
+两条分支在**占位/移动那一刻**的语义一致：`prev/bundle` 已存在（无论空非空）→ 拒绝。
 
 关键论证（不依赖平台实测）：POSIX 分支的拒绝判据来自 `os.mkdir` 的 `FileExistsError`，
-**发生在 rename 之前**；占位成功后，那次 rename 覆盖的只能是本进程刚创建的空目录。
-因此本工具不存在「覆盖他人目录」的代码路径。
+**发生在 rename 之前**，因此不依赖 rename 的内核语义。
+
+> **本段结论在 8.15 已被修正，不要单独引用**：上面这条论证隐含一个前提——占位目录在
+> `mkdir` 与 `rename` 之间没有被第三方改名替换。该前提不成立时，那次 rename 仍会覆盖对方
+> 新建的空目录。因此「不存在覆盖他人目录的代码路径」属**过强表述**，8.15 已撤回，
+> 改为可证明的不变量 I1（被替换/删除的目标必然是空目录）与明确披露的威胁模型。
 
 **容器身份复核**：`box_ident` 在 `mkdir(prev)` 之后立即记录，移动旧包后做三重复核——
 容器身份（设备号 + inode）、移进去的目录身份、`bundle_problem()` 再验一次。任一不符就把旧包
@@ -834,6 +838,60 @@ R3-17 的注入点特意放在 `_ident()` **返回之后**而不是 `mkdir` 返�
 - **仍未关闭**（与 `.prev` 无关、单独披露）：正常发布路径把新包 rename 到 `<out>` 本体时，
   目标被并发建成**空目录**仍会被 POSIX 覆盖（无内容可丢）。消除它需要
   `renameat2(RENAME_NOREPLACE)` 或 `MoveFileExW` 级别的原语，本项目暂不引入。
+
+### 8.15 R3 边界收口：承认两条窗口不可消除，改为「后果有界」并写成断言（v1.5.9）
+
+第六轮复核（针对 v1.5.8）认可 `.prev/bundle` 的静态抢占已修，但指出**证明确实缺一个前提**，成立：
+
+> 「rename 覆盖的只能是本进程刚创建的空目录」——这要求 `prev_bundle` 在 `mkdir` 之后到
+> `rename` 之前**始终还是本进程创建的那个目录**。
+
+若第三方把这个占位目录改名移走、并在原路径新建一个空目录，那次 `rename` 在 POSIX 上仍会
+覆盖对方的新空目录。同时复核指出第二个同类问题：`_rmdir_own()` 的**身份比较与 `os.rmdir`
+是两个独立操作**，R3-17 只覆盖了「读取身份时被调换」，没覆盖「比较之后、删除之前」。
+
+**我接受这个判断，不再尝试加检查。** 理由：检查与操作之间的窗口只能被移动、不能被消除；
+每加一次检查都会制造一层「已经检查过了」的虚假安全感。R3-18 / R3-19 因此**不证明「不会发生」**，
+而是把「发生时的后果」测量出来并锁死。
+
+| 窗口 | 是否消除 | 处置 |
+|---|---|---|
+| `prev/bundle` 占位在 mkdir 与 rename 之间被改名调换 | **否** | 披露；后果由不变量 I1 限死为「可能替换一个空目录」 |
+| `_rmdir_own()` 身份比较与 `os.rmdir` 之间的调换 | **否** | 披露；后果由 `rmdir` 语义限死为「只能删空目录」 |
+| 发布到 `<out>` 本体时被并发建成空目录 | **否** | 5.3 起一直披露，需 `renameat2` 才消除 |
+
+**可证明的不变量**（不依赖平台，已写成自测）：
+
+| 编号 | 不变量 | 依据 | 测试 |
+|---|---|---|---|
+| I1 | 任何被替换或被删除的目标，**必然是空目录** | `rename` 到非空 → POSIX `ENOTEMPTY` / Windows 失败；`os.rmdir` 非空 → 两平台失败 | R3-18 / R3-19 |
+| I2 | **旧包内容在任何并发场景下都不会丢失** | 由 I1 推出：旧包目录永远非空，不可能成为被覆盖或 `rmdir` 的对象；替换失败时回滚只是把它 rename 回原位 | R3-14/15/17/18/19 |
+
+**新增测试（137 项，原 129 项）**：
+
+| 用例 | 注入点 | 断言 |
+|---|---|---|
+| R3-18 | 占位 `mkdir` 成功后，第三方把它改名移走、在原路径建**非空**目录 | 退出 6；对方文件**逐字节未被覆盖**；旧包未动；本进程被移走的占位仍在第三方改名处、未被删除 |
+| R3-19 | `_rmdir_own` 身份比较已通过、`os.rmdir` 执行之前，把目录换成**非空**目录 | 抛错；换入的目录**没被删掉**；旧包未丢；本进程占位未被删 |
+
+两条用例都用**非空**目录：空目录会被覆盖/删掉，用它做断言等于在断言缺陷本身。
+
+**明确不承诺的威胁模型**（写进 `pixel_diff.py` 模块 docstring 第 8 条）：
+
+> 具备同目录写权限、并主动改名替换 `<out>.prev` / `<out>.prev/bundle` 占位目录的并发进程，
+> 可以让本工具替换或删除它刚创建的**空**目录（内容损失为零，它需要重新 mkdir）。
+
+**为什么不上 `renameat2`**：这是本地审计脚本，真实并发源是「两次 run 撞车」，不是恶意进程。
+`renameat2` 仅 Linux、`renamex_np` 仅 macOS、`MoveFileExW` 仅 Windows，引入它们会让主开发平台
+（Windows）**跑不到该代码路径**——用不可测的代码换一个本工具不需要的保证，是把风险从
+「已披露的空目录边界」换成「未测试的平台分支」。若将来这个工具要对抗恶意并发，正确的顺序是
+先在 Linux CI 上建立可执行覆盖，再引入原语，而不是反过来。
+
+**R3 的关闭条件因此改写**（不再以「Linux 129/129 全绿」为条件，那是验证内核行为、不是消除竞态）：
+
+1. I1 / I2 两条不变量有测试且长期不回归；
+2. 上述三条窗口在 README 与 docstring 中均有明确披露，不出现「绝不覆盖」「原子」这类过强措辞；
+3. 若业务上要求强 no-replace，另立需求并先解决「Linux 可测」再动原语。
 
 ## 九、版本与校验
 
@@ -875,7 +933,7 @@ python tools/css_value_diff.py \
   --tokens 07_prototypes/assets/tokens.css \
   --out /tmp/pd_check/CSS_VALUE_DIFF.md
 
-# 5c) 跑工具回归自测（129 项断言，含 R1 覆盖 / R2 边界 / R3 负向用例、并发与回滚故障注入、报告可复现性）
+# 5c) 跑工具回归自测（137 项断言，含 R1 覆盖 / R2 边界 / R3 负向用例、并发与回滚故障注入、报告可复现性）
 python tools/selftest.py
 
 # 6) 查看本仓库全部提交与送审 tag

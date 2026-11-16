@@ -226,6 +226,17 @@ def patched_mkdir(fn):
         os.mkdir = real
 
 
+@contextlib.contextmanager
+def patched_rmdir(fn):
+    """替换 os.rmdir，用于在「身份检查通过、删除执行之前」注入第三方动作。"""
+    real = os.rmdir
+    os.rmdir = fn
+    try:
+        yield real
+    finally:
+        os.rmdir = real
+
+
 def _staging_leftovers(directory):
     """同级目录内是否留下 .<name>.staging.* 暂存目录。"""
     return [n for n in os.listdir(directory) if ".staging." in n]
@@ -841,6 +852,102 @@ def test_r3():
         check("R3", "R3-17 本进程被移走的容器仍在第三方改名处",
               os.path.isdir(hj_moved), "已消失" if not os.path.isdir(hj_moved) else "仍在")
         check("R3", "R3-17 注入确实触发了", hj_seen["done"] is True, "hj_seen=%r" % (hj_seen,))
+
+        # ---------------- 第七轮：两条**未消除**的窗口，测的是后果边界而不是防护 ----------------
+        # 结论先说清楚：POSIX 标准库没有 no-replace 的目录 rename，所以「mkdir 占位后
+        # 被第三方主动改名替换」这条**无法消除**，再补身份检查只是换一个 TOCTOU 窗口。
+        # 因此这两条用例不证明「不会发生」，只证明**发生时后果有界**（不变量 I1）：
+        # 被替换/被删除的目标必然是空目录，旧包内容永远不受影响。
+
+        # R3-18：占位目录在 mkdir 之后、rename 之前被第三方改名移走，并在原路径建一个
+        # **非空**目录。此时那次 rename 必然失败（POSIX ENOTEMPTY / Windows 已存在），
+        # 于是走到拒绝分支——对方的**数据**不会被覆盖。
+        ob_out = os.path.join(base, "ob_out")
+        os.rename(_make_staging(base, "ob_seed"), ob_out)
+        ob_before = _snapshot(ob_out)
+        ob_box = ob_out + ".prev"
+        ob_ph = os.path.join(ob_box, "bundle")
+        ob_stolen = ob_ph + ".stolen"
+        ob_state = {"done": False}
+
+        def steal_placeholder(path, *a, **kw):
+            r = real_mkdir(path, *a, **kw)
+            if (not ob_state["done"]
+                    and os.path.abspath(str(path)) == os.path.abspath(ob_ph)):
+                ob_state["done"] = True
+                os.rename(ob_ph, ob_stolen)   # 第三方把本进程的占位改名移走
+                real_mkdir(ob_ph)             # 在原路径新建一个
+                with io.open(os.path.join(ob_ph, "THEIRS.txt"), "wb") as f:
+                    f.write(b"their data\n")  # 并写入内容 -> 变成非空
+            return r
+
+        st_ob = _make_staging(base, "ob_new")
+        err18 = [None]
+        pd._needs_mkdir_placeholder = lambda: True   # 强制 POSIX 分支（该分支才有占位）
+        try:
+            with patched_mkdir(steal_placeholder) as real_mkdir:
+                try:
+                    pd.publish_bundle(ob_out, st_ob, True)
+                except pd.PublishError as exc:
+                    err18[0] = exc
+        finally:
+            pd._needs_mkdir_placeholder = orig_need
+        check("R3", "R3-18 占位被换成非空目录 -> 拒绝（不覆盖对方数据）",
+              isinstance(err18[0], pd.PublishError), "%r" % err18[0])
+        check("R3", "R3-18 对方的文件内容逐字节未被覆盖",
+              _snapshot(ob_ph) == {"THEIRS.txt": b"their data\n"},
+              "%d 个文件" % len(_snapshot(ob_ph)))
+        check("R3", "R3-18 旧包未丢（仍在 out）", _snapshot(ob_out) == ob_before,
+              "%d 个文件" % len(_snapshot(ob_out)))
+        check("R3", "R3-18 本进程被移走的占位仍在第三方改名处（未被删）",
+              os.path.isdir(ob_stolen), "已消失" if not os.path.isdir(ob_stolen) else "仍在")
+
+        # R3-19：`_rmdir_own()` 的身份比较与 `os.rmdir()` 之间被调换（两个独立操作，
+        # 不是原子的）。后果被 rmdir 语义限死：非空目录删不掉，所以数据不受影响。
+        rd_out = os.path.join(base, "rd_out")
+        os.rename(_make_staging(base, "rd_seed"), rd_out)
+        rd_before = _snapshot(rd_out)
+        rd_box = rd_out + ".prev"
+        rd_ph = os.path.join(rd_box, "bundle")
+        rd_stolen = rd_ph + ".stolen"
+        rd_state = {"done": False}
+
+        def pollute_before_rmdir(path, *a, **kw):
+            p = os.path.abspath(str(path))
+            if not rd_state["done"] and p == os.path.abspath(rd_ph):
+                rd_state["done"] = True
+                os.rename(rd_ph, rd_stolen)   # 身份检查已通过，此刻把目录换掉
+                real_mkdir(rd_ph)
+                with io.open(os.path.join(rd_ph, "THEIRS2.txt"), "wb") as f:
+                    f.write(b"their data 2\n")
+            return real_rmdir(path, *a, **kw)
+
+        def fail_move(src, dst):
+            if os.path.abspath(str(dst)) == os.path.abspath(rd_ph):
+                raise OSError("injected: move failed")
+            return real_rd_rename(src, dst)
+
+        st_rd = _make_staging(base, "rd_new")
+        err19 = [None]
+        pd._needs_mkdir_placeholder = lambda: True
+        try:
+            with patched_rename(fail_move) as real_rd_rename:
+                with patched_rmdir(pollute_before_rmdir) as real_rmdir:
+                    try:
+                        pd.publish_bundle(rd_out, st_rd, True)
+                    except pd.PublishError as exc:
+                        err19[0] = exc
+        finally:
+            pd._needs_mkdir_placeholder = orig_need
+        check("R3", "R3-19 删除前被换成非空目录 -> 抛错（不能删）",
+              isinstance(err19[0], pd.PublishError), "%r" % err19[0])
+        check("R3", "R3-19 身份检查后被换入的目录**没被删掉**（rmdir 非空失败）",
+              _snapshot(rd_ph) == {"THEIRS2.txt": b"their data 2\n"},
+              "%d 个文件" % len(_snapshot(rd_ph)))
+        check("R3", "R3-19 旧包未丢（仍在 out）", _snapshot(rd_out) == rd_before,
+              "%d 个文件" % len(_snapshot(rd_out)))
+        check("R3", "R3-19 本进程被移走的占位仍在（未被删）",
+              os.path.isdir(rd_stolen), "已消失" if not os.path.isdir(rd_stolen) else "仍在")
     finally:
         shutil.rmtree(base, ignore_errors=True)
 

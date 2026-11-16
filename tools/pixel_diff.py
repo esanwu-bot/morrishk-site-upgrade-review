@@ -68,12 +68,36 @@
            容器（用 `os.rmdir`，非空则失败，不会误删）。删除前还要比对身份
            （设备号 + inode）：容器在 mkdir 之后可能被第三方改名替换，此时路径上的
            对象已不是本进程建的那个，不删。成功路径不删除任何目录。
-  8. 两条 rename 路径的并发边界不同，不要混用：
-       - 发布到 `<out>`：靠「目标不存在时 rename 即检查」，目标被并发建成**空目录**
-         时 POSIX 允许覆盖（无内容可丢），Windows 上失败。**这一条仍未关闭**，
-         属已披露边界，需 `renameat2(RENAME_NOREPLACE)`（仅 Linux）才能消除；
-       - 停放到 `<out>.prev/bundle`：两级都先 `os.mkdir` 独占占位，随后那次 rename
-         覆盖的只是**本进程自己刚建的空目录**，因此**空目录也不会被覆盖**。
+  8. **威胁模型：本工具不承诺「目标路径存在就绝不触碰」的强不变量。**
+     纯标准库 + 跨平台 + 任意并发，三者不能同时成立：POSIX 标准库没有 no-replace 的
+     目录 rename（`renameat2(RENAME_NOREPLACE)` 仅 Linux，`renamex_np` 仅 macOS）。
+     因此「先 mkdir 占位、再按路径 rename」这一组合，在**占位目录被第三方主动改名替换**
+     时，仍可能让那次 rename 落到对方新建的空目录上。
+     **即使再加一次身份检查也不成立**——检查与 rename 之间是同一个 TOCTOU 结构。
+
+     能证明的是下面两条不变量（不依赖平台，且已写成自测 R3-18 / R3-19）：
+
+     I1. **任何被替换或被删除的目标，必然是空目录。**
+         `rename` 到非空目录 -> POSIX ENOTEMPTY / Windows 失败；
+         `os.rmdir` 非空目录 -> 两平台均失败。
+         所以第三方只要往里面写了任何文件，本工具就删不掉也覆盖不了它。
+
+     I2. **旧包内容（`PIXEL_DIFF.md` + `diff/`）在任何并发场景下都不会丢失。**
+         由 I1 直接推出：旧包目录永远非空，因此它不可能成为被覆盖或被 rmdir 的对象；
+         替换路径失败时的回滚也只是把它 rename 回原位。
+
+     **明确不承诺**（写出来而不是假装不存在）：具备同目录写权限、并主动改名替换
+     `<out>.prev` / `<out>.prev/bundle` 占位目录的并发进程，可以让本工具替换掉它刚创建的
+     **空**目录（内容损失为零，它需要重新 mkdir）。若业务上需要更强的保证，只有换原语：
+     Linux `renameat2(RENAME_NOREPLACE)`、macOS `renamex_np(RENAME_EXCL)`、
+     Windows `MoveFileExW`（不带 `MOVEFILE_REPLACE_EXISTING`，即现有 `os.rename` 语义）。
+     本项目刻意不引入这些平台专有调用：那会让主开发平台（Windows）无法覆盖该代码路径，
+     用不可测的代码换取一个本工具不需要的保证。
+
+     两条 rename 路径的差异仅在于**窗口大小与触发条件**：
+       - 发布到 `<out>`：目标被并发建成空目录时 POSIX 允许覆盖（Windows 失败）；
+       - 停放到 `<out>.prev/bundle`：两级都先 `os.mkdir` 占位，未发生「占位被人主动调换」
+         时窗口为零；发生调换时退化为上一条同样的边界。
 
 退出码：
   0 = 集合一致、尺寸一致、全部页面完成差分、发布成功
@@ -362,6 +386,11 @@ def _rmdir_own(path, expect_ident):
     单靠 `_rmdir_quiet` 不够：容器可能在 mkdir 之后被第三方改名替换，此时路径上的
     对象已不是本进程建的那个，删它等于删别人的目录。所以先比身份（设备号 + inode），
     不一致就什么都不做。
+
+    **身份比较与 `os.rmdir` 之间仍有一个窗口**，本函数不假装它不存在：两步不能原子化，
+    检查通过后、rmdir 执行前目录仍可被调换。这个窗口的后果被 `rmdir` 的语义限死了——
+    `os.rmdir` 只能删空目录，非空目录两平台都失败。所以最坏结果是删掉一个**空目录**，
+    不可能丢内容（不变量 I1，见模块 docstring 第 8 条，自测 R3-19）。
     """
     try:
         if _ident(path) != expect_ident:
@@ -460,10 +489,13 @@ def publish_bundle(out_dir, staging_dir, replace_dir):
         #   Windows：os.rename 对已存在的目标（**含空目录**）一律失败，本身就是
         #            no-replace，不需要也不应该预先占位（占位反而会把自己挡住）；
         #   POSIX  ：rename 会**覆盖空目录**，因此先用 os.mkdir 占位，此后那次 rename
-        #            覆盖的只是本进程刚创建的空目录，不存在覆盖他人目录的路径。
-        # 两条分支的对外语义一致：`prev/bundle` 已存在（无论空非空）→ 拒绝。
-        # 关键：POSIX 分支的拒绝判据来自 os.mkdir 的原子性，发生在 rename **之前**，
-        # 因此不依赖 rename 的内核语义（见自测 R3-16）。
+        #            覆盖的只是本进程刚创建的空目录。
+        #
+        # POSIX 分支的**拒绝判据**来自 os.mkdir 的原子性，发生在 rename 之前，因此不依赖
+        # rename 的内核语义（自测 R3-16）。但「占位目录在 mkdir 与 rename 之间被第三方
+        # 改名替换」这条**未被消除**：那时 rename 会落到对方新建的空目录上。再补一次身份
+        # 检查只是换一个 TOCTOU 窗口，所以不补、只披露——后果被不变量 I1 限死为「可能替换
+        # 一个空目录，内容损失为零」。完整威胁模型见模块 docstring 第 8 条。
         prev_bundle = os.path.join(prev, "bundle")
         placeholder = None
         if _needs_mkdir_placeholder():
