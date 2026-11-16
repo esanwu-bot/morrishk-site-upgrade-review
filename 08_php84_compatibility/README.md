@@ -2,18 +2,19 @@
 
 | 项 | 内容 |
 |---|---|
-| 送审包版本 | **v1.2.4**（一致性修订：D1 G2 口径、D2 依赖层文档取证约束、D3 旧文档版本基准） |
+| 送审包版本 | **v1.2.5**（术语收尾：staging 定义覆盖全包；技术结论与 v1.2.4 一致） |
 | 日期 | 2026-11-16 |
 | 范围 | PHP 7.4 → 8.4 的**应用层静态评估**与**依赖层求解评估**；不含商务方案、原型、Design System、数据库改造 |
 | 明确不覆盖 | 8.4 运行期验收结论、测试代码与业务行为兼容性、任何代码或配置的实际变更 |
 | 明确禁止（本阶段） | 生产 PHP-FPM 版本变更、宝塔 PHP 运行池变更、Nginx vhost / FPM socket 变更、**生产文件系统任何写入（含临时探针）** |
-| 与主送审的关系 | 本包是**独立工作流**，与根 README 的主送审（当前 `v1.5.3-review`）无内容交叉，仅占用同一仓库的不同目录 |
-| 冻结方式 | 本目录内容为本轮冻结快照；后续修订以新 commit + tag `php84-v1.2.4-review` 递增，不覆盖历史 |
+| 与主送审的关系 | 本包是**独立工作流**，与根 README 的主送审（tag 系列 `v1.5.x-review`，当前以远程 tag 为准）无内容交叉，仅占用同一仓库的不同目录 |
+| 冻结方式 | 本目录内容为本轮冻结快照；后续修订以新 commit + tag `php84-v1.2.5-review` 递增，不覆盖历史。**`php84-v1.2.4-review` 保持冻结于 `50c8d98`，不移动** |
 
-> **本包状态声明**：以下全部内容为**提交方自述**。评审方已独立核验到 v1.2.3 的**版本关系**（main / 父提交 / tag 解引用一致）
-> 并接受 R-7 与 G1/G3/G4 的 OPEN 状态，但**尚未对 v1.2.4 做独立复核，也未在全新克隆中逐项复跑 23 项 SHA**
-> （评审原文：远端清单存在、23 项已读取，但未逐一重算）。本包记录**不等同于独立验收通过**。
-> 第八节给出供独立复核使用的校验命令。tag 与 commit **均未签名**，指向关系已核实，但不构成签名真实性验证。
+> **本包状态声明**：以下全部内容为**提交方自述**。评审方已独立核验 v1.2.4 的**版本关系**（main / 父提交 / tag 解引用一致），
+> 并确认 **D1–D3 主要修订通过**；另提出一处 staging 术语跨文档尾项，即本版所修。
+> 但评审方**尚未在全新克隆中逐项复跑 23 项 SHA**（其原文：远端清单存在、23 项已读取，未逐一重算），
+> 47 项自测与 R3 原子发布模型也未复跑。本包记录**不等同于独立验收通过**。
+> 第八节给出供独立复核使用的校验命令。tag 与 commit **均未签名**（`verified: false`），指向关系已核实，但不构成签名真实性验证。
 
 ---
 
@@ -57,22 +58,37 @@
 
 ---
 
-## 一、本轮（v1.2.4）只做 D1–D3 三项一致性修订
+## 一、本版（v1.2.5）只做 staging 术语收尾
 
-评审裁定：v1.2.3 的核心裁定已接受、R-7 接受，但**送审包暂不做最终文档验收关闭**，另有 D1–D3 三处自相矛盾待修。
-本轮只修这三处，**不重扫业务代码、不重跑 Composer 求解、不碰生产服务器**。
+评审对 v1.2.4 的结论是：D1–D3 主要修订已落实、三处核心矛盾可关闭，另有一处**术语跨文档一致性**尾项。
+本版只修这一处，**不改技术结论、不改测试计划、不重扫代码、不重跑依赖求解、不移动 v1.2.4 tag**。
+
+| # | 问题 | 改法 |
+|---|---|---|
+| 1 | 主报告 v1.2.4 的术语约定原文写"**本报告中**出现的 staging…"，严格说覆盖不到单独阅读的 `runtime_upgrade_plan.md` / `yii_extension_audit.md` | 作用域改为"**本送审包内所有文档**中出现的"，并注明两份旧文档另有重复定义 |
+| 2 | `runtime_upgrade_plan.md` 头部仍写"批准范围：仅批准盘点、评估、Staging 试验、回滚设计"，可能被单读时理解为"允许在生产服务器建测试站点" | 文首增补 staging 定义：**指独立于生产服务器的测试主机或独立容器，不包括在生产服务器上创建的 staging 站点**；并绑定主报告 §7.4 的 R-1～R-7 |
+| 3 | `yii_extension_audit.md` §6 仍写"真正的结论必须来自 staging 运行" | 同上增补定义，并注明该句中的 staging 指独立环境，**不构成**在生产服务器建测试站点的许可 |
+
+版本引用同步：`php_compatibility.md`、`runtime_upgrade_plan.md`、`yii_extension_audit.md`、`prod_baseline.md` 的"唯一有效裁定依据"已从 v1.2.4 统一升到 **v1.2.5**。
+
+> 说明：本版把主报告版本号推到 v1.2.5，是为了让"文档版本 ↔ tag ↔ main 的 08 包内容"保持一一对应（评审自己核验时用的就是这条性质）。
+> **`php84-v1.2.4-review` 不移动、不删除**，仍冻结在 `50c8d98`；v1.2.5 与它的差异仅为上述三处 + 版本栏。
+
+---
+
+## 一之二、上一版（v1.2.4）的 D1–D3（已通过，保留追溯）
 
 | # | 问题 | 落点 | 改法 |
 |---|---|---|---|
 | **D1** | G2 行仍写"与 G1 做逐项差异表"，与"G1 仍 OPEN""G2 不能反推 G1"两条声明冲突 | 报告 §6.3、`evidence/prod/prod_baseline.md` G2 行 | 改为"与 `composer.lock` 的 `ext-*` 逐项核对；**不与未取得的 G1 建差异表**"。G1 获授权并完成 FPM 取证后，才可另行建立生产 7.4 ↔ 独立 8.4 差异表 |
-| **D2** | `php_compatibility.md` §7 仍写"在生产执行 `php -m`""`php -i` 导出" | `docs/php_compatibility.md` | 生产扩展项改为"G1 OPEN、不执行生产探针；CLI `php -m` 仅交叉参考，不得作为关闭依据"；php.ini 项标注"可按既有权限只读核验，但不得替代 FPM worker 证据"；MySQL 项区分"8.4 在独立环境实测"与"生产 mysqlnd 属 G4 OPEN"；文首注明取证约束以主报告 v1.2.4 为准 |
-| **D3** | 三份旧文档版本基准落后（v1.2 / v1.2.2 / v1.2.1） | `prod_baseline.md`、`runtime_upgrade_plan.md`、`yii_extension_audit.md` 顶部 | 统一加"适用性声明"：**主报告 v1.2.4 是当前唯一有效裁定依据**，与主报告冲突的生产操作指令**一律作废**；`runtime_upgrade_plan.md` 的并存池 / 灰度 / 回滚池**仅为未来架构讨论**；三份均补 **R-7** 生产文件系统写入禁令 |
+| **D2** | `php_compatibility.md` §7 仍写"在生产执行 `php -m`""`php -i` 导出" | `docs/php_compatibility.md` | 生产扩展项改为"G1 OPEN、不执行生产探针；CLI 模块清单仅交叉参考，不得作为关闭依据"；php.ini 项标注"可按既有权限只读核验，但不得替代 FPM worker 证据"；MySQL 项区分"8.4 在独立环境实测"与"生产 mysqlnd 属 G4 OPEN" |
+| **D3** | 三份旧文档版本基准落后 | `prod_baseline.md`、`runtime_upgrade_plan.md`、`yii_extension_audit.md` 顶部 | 统一加"适用性声明"：主报告为唯一有效裁定依据，冲突的生产操作指令一律作废；并存池 / 灰度 / 回滚池**仅为未来架构讨论**；三份均补 **R-7** |
 
-> D1 修正时发现**主报告 §6.3 的 G2 行有同款冲突**（评审只点到 `prod_baseline.md`）。同一问题同一改法，一并修正，否则报告内部仍自相矛盾。
+> D1 修正时发现**主报告 §6.3 有同款冲突**（评审只点到 `prod_baseline.md`），一并修正。评审在 v1.2.4 轮次确认此处理"正确"。
 
 ---
 
-## 一之二、上一轮（v1.2.3）的定性更正（已接受，保留追溯）
+## 一之三、更早（v1.2.3）的定性更正（已接受，保留追溯）
 
 v1.2.2 把"用探针页做只读采集"写成生产侧**被允许**的动作，属**定性错误**。评审已确认此项修正：
 
@@ -116,18 +132,21 @@ v1.2.2 把"用探针页做只读采集"写成生产侧**被允许**的动作，�
 | v1.2.1 | E1–E4 四处收窄（平台下界口径、`*_bak.php` 适用范围、双轨验证、mysqlnd 取证环境） | 第四轮确认**全部接受并关闭** |
 | v1.2.2 | §7.4 生产红线 R-1~R-6、"灰度新增池"降级、README 补件、校验和重算与 tag 对齐 | 方向认可；文档修订待复核 |
 | v1.2.3 | R-7 生产文件系统写入禁令；删除"只读采集含探针页"的错误定性；G1/G3/G4 标 OPEN | **版本关系通过、R-7 接受、G1/G3/G4 保持 OPEN**；另指出 D1–D3 |
+| v1.2.4 | D1 G2 口径、D2 生产取证约束、D3 旧文档适用性声明 | **D1 通过、D2 通过、D3 主要要求通过**；另指出 staging 术语尾项 |
+| v1.2.5 | staging 定义覆盖全包；两份旧文档各自增补定义 | 本版，待复核 |
 
 ---
 
 ## 三之二、评审已核实与未核实的事项（明确边界）
 
-评审在 v1.2.3 轮次的实际核验范围如下，本包**不做扩大表述**：
+评审在 v1.2.4 轮次的实际核验范围如下，本包**不做扩大表述**：
 
 | 事项 | 评审状态 |
 |---|---|
-| `main` = `6e5f671…`，父提交 `28b98b8…` | **已核实** |
-| tag `php84-v1.2.3-review` 为 annotated tag，解引用精确指向该提交 | **已核实** |
-| README 可读取、内容为 v1.2.3 | **已核实** |
+| `main` 在核验时为 `50c8d98…`，父提交 `6e5f671…` | **已核实** |
+| tag `php84-v1.2.4-review` 为 annotated tag（object `7675adc…`），解引用精确指向 `50c8d98…` | **已核实** |
+| README 可读取、内容为 v1.2.4 | **已核实** |
+| 核验后 main 前进两个提交（至 `c7e500b…`），**未修改 `08_php84_compatibility/`** | **评审已确认**（故 v1.2.4 tag 无需移动） |
 | 23 项 SHA-256 在全新克隆中逐一重算并匹配 | **未核实**（仅读取了清单与项数） |
 | 47 项自测、R3 目录原子发布模型 | **未复跑**（属主送审原型工作流，不以本包版本核验作为其关闭证据） |
 | tag / commit 签名真实性 | **未验证**（`verified: false`，且本包不主张已签名） |
@@ -208,27 +227,28 @@ composer update --dry-run --no-scripts --no-interaction
 | 不主张"CLI 结果可代表 FPM" | SAPI 不同，ini / `extension_dir` / `disable_functions` 均可能不同 |
 | 不主张备份文件在所有入口都不可达 | 结论仅限已核实的 morrishk.net vhost 常规静态映射 |
 | 不主张"生产可直接新增 8.4 池" | 未来架构可能性，非当前建议；R-1~R-7 全部禁止 |
-| 不主张本包记录等于独立验收 | 评审方尚未独立复核；复核方式见第八节 |
+| 不主张本包记录等于独立验收 | 评审方仅核验到 v1.2.4 的版本关系与 D1–D3，未复跑 23 项 SHA；复核方式见第八节 |
 
 ---
 
 ## 八、供独立复核使用的校验命令
 
-评审方尚未独立复核。以下命令可在本地对远端 `main` 与 tag 一次性核验：
+评审方已核验 v1.2.4 的版本关系与 D1–D3，但未在全新克隆中复跑 SHA-256、未复跑 47 项自测。以下命令可对远端 `main` 与 tag 一次性核验：
 
 ```bash
 # 1) 克隆并确认提交
 git clone https://github.com/esanwu-bot/morrishk-site-upgrade-review.git
 cd morrishk-site-upgrade-review
-git log --oneline -3                     # 期望 HEAD 为 v1.2.4 提交
+git log --oneline -3                     # 期望 HEAD 为 v1.2.5 提交
 git rev-parse HEAD
-git rev-list -n1 php84-v1.2.4-review     # 期望与 HEAD 相同
-git cat-file -t php84-v1.2.4-review      # 期望 tag（注解标签；未签名）
+git rev-list -n1 php84-v1.2.5-review     # 期望与 HEAD 相同
+git cat-file -t php84-v1.2.5-review      # 期望 tag（注解标签；未签名）
+git rev-list -n1 php84-v1.2.4-review     # 期望仍为 50c8d98…（v1.2.4 未被移动）
 
 # 2) 确认父提交与工作流隔离（08 包应与主送审目录无重叠）
 git show --stat --oneline HEAD
 
-# 3) 校验本包完整性（评审此前未做的一步，本轮建议执行）
+# 3) 校验本包完整性（评审此前未做的一步，建议本轮执行）
 cd 08_php84_compatibility
 sha256sum -c SHA256SUMS.txt              # 期望 23 项全部 OK
 md5sum reference/composer.lock           # 期望 654cb46e10d31af4b4b4896e1c6fd9a6
@@ -238,11 +258,16 @@ grep -n "R-7" docs/app_code_compatibility.md
 grep -c "OPEN · 未获授权" docs/app_code_compatibility.md evidence/prod/prod_baseline.md
 grep -rn "唯一允许的动作是只读采集" docs evidence    # 期望无输出（本 README 引用旧句，故不在检查范围）
 
-# 5) 确认 D1–D3 已修（本轮三项）
+# 5) 确认 D1–D3 已修
 grep -rn "与 G1 做\*\*逐项差异表\*\*" docs evidence ; echo "D1 期望无输出"
 grep -rn "在生产执行 .php -m." docs ; echo "D2 期望无输出"
-grep -ln "v1.2.4" docs/runtime_upgrade_plan.md docs/yii_extension_audit.md evidence/prod/prod_baseline.md
-#   D3 期望三行全部命中（三份旧文档均已指向 v1.2.4）
+grep -ln "v1.2.5" docs/runtime_upgrade_plan.md docs/yii_extension_audit.md evidence/prod/prod_baseline.md
+#   D3 期望三行全部命中（三份旧文档均已指向 v1.2.5）
+
+# 6) 确认本版 staging 术语已覆盖（v1.2.5 三项）
+grep -n "本送审包内所有文档" docs/app_code_compatibility.md        # 期望命中（主报告作用域已扩）
+grep -c "不包括在现有生产服务器上创建的 staging 站点" docs/runtime_upgrade_plan.md docs/yii_extension_audit.md
+#   期望两个文件各命中 1 次
 ```
 
 ---
@@ -254,7 +279,7 @@ grep -ln "v1.2.4" docs/runtime_upgrade_plan.md docs/yii_extension_audit.md evide
 ├── README.md                        本文件（裁定状态 + 红线 + 证据索引 + 复核路径）
 ├── SHA256SUMS.txt                   本包全部文件的 SHA-256（23 项）
 ├── docs/
-│   ├── app_code_compatibility.md    主报告 v1.2.4（应用层 + 依赖层；§6.3 G1–G5 状态；§7.4 红线含 R-7）
+│   ├── app_code_compatibility.md    主报告 v1.2.5（应用层 + 依赖层；§6.3 G1–G5 状态；§7.4 红线含 R-7）
 │   ├── php_compatibility.md         依赖层盘点（含与前版的勘误对照）
 │   ├── yii_extension_audit.md       扩展审计（v1.0 期产物，顶部已标注作废项）
 │   └── runtime_upgrade_plan.md      运行时升级方案（v1.0 期产物，顶部已标注作废项 + 生产红线）
@@ -268,4 +293,4 @@ grep -ln "v1.2.4" docs/runtime_upgrade_plan.md docs/yii_extension_audit.md evide
 ```
 
 `docs/yii_extension_audit.md` 与 `docs/runtime_upgrade_plan.md` 属 v1.0 期产物，保留仅为让 §3.3 与 §7 的引用闭环；
-两者顶部均已加勘误提示与生产红线说明，**结论以主报告 v1.2.4 为准**。
+两者顶部均已加勘误提示与生产红线说明，**结论以主报告 v1.2.5 为准**。
