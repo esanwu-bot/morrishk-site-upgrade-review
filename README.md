@@ -13,7 +13,7 @@
 | 仓库 | https://github.com/esanwu-bot/morrishk-site-upgrade-review |
 | Branch | `main` |
 | 送审版本 | tag **`v1.5.3-review`**（`v1.4-review` / `v1.5-review` / `v1.5.1-review` / `v1.5.2-review` 保留未覆盖） |
-| 并行送审包 | **`08_php84_compatibility/`**（PHP 8.4 兼容性评估 v1.2.1，tag `php84-v1.2.1-review`），独立工作流、各自冻结 |
+| 并行送审包 | **`08_php84_compatibility/`**（PHP 8.4 兼容性评估 v1.2.2，tag `php84-v1.2.2-review`），独立工作流、各自冻结；该包自行递增，最新版本以远程 tag 为准 |
 | 交付日期 | 2026-11-16 |
 | 文档版本 | 商务方案 客户版 v1.1（rev.3） ／ 技术方案 技术版 v1.2（rev.3） ／ **原型 v1.5.3-prototype** ／ **Design System v1.0** |
 | 数据基线 | 2024-11-30 导出，静态终态（不随线上变化） |
@@ -21,7 +21,8 @@
 
 ### 并行送审包（独立工作流）
 
-除主送审包外，仓库内另有 **`08_php84_compatibility/`**：PHP 8.4 兼容性评估 **v1.2.1**，tag `php84-v1.2.1-review`。
+除主送审包外，仓库内另有 **`08_php84_compatibility/`**：PHP 8.4 兼容性评估，当前 tag 为 `php84-v1.2.2-review`
+（`php84-v1.2.1-review` 保留）。该包由独立工作流维护，版本会先于本文件更新，**以远程 tag 为准**。
 该包只涉及"老站能否迁到 PHP 8.4"的评估与依赖求解证据，**与主送审的方案/原型/审计工具无内容交叉**，各自冻结、各自递增版本。
 主送审包的 `06_evidence/hashes/SHA256SUMS.txt` 仍只覆盖主包；`08` 目录自带 `SHA256SUMS.txt`。
 
@@ -72,7 +73,7 @@ git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git ref
 │   ├── test_reports/             ❗ 未提供（指技术实现侧的单测/集成测试报告，属方案阶段，不在本轮范围）
 │   ├── benchmark/                ❗ 未提供（同上：检索性能基准属方案阶段，不在本轮范围）
 │   └── screenshots/              ❗ 未提供（原型截图不在此目录，实际位于 07_prototypes/reference/prototype_shots/）
-├── 08_php84_compatibility/       ★ 并行送审包：PHP 8.4 兼容性评估 v1.2.1（独立工作流）
+├── 08_php84_compatibility/       ★ 并行送审包：PHP 8.4 兼容性评估（独立工作流，版本见其 README）
 │   ├── README.md                   送审说明 + 证据索引 + 10 分钟复核路径
 │   ├── docs/app_code_compatibility.md   主报告 v1.2.1（应用层 + 依赖层）
 │   ├── evidence/solve/01–06        依赖求解的命令、退出码与 lock 差异
@@ -583,7 +584,7 @@ R3 的「工具层可靠性」按本轮实现可以关闭，但**关闭与否由
 修正后自测从 46 项增至 **47 项**，`python tools/selftest.py` 输出「合计 47 项，通过 47，失败 0」。
 
 **关于版本一致性（回应「页面显示 4 commits / v1.2-review」）**：仓库同时被另一条独立工作流推送了
-`08_php84_compatibility/`（PHP 8.4 评估 v1.2.1，tag `php84-v1.2.1-review`）。两个送审包共用同一个
+`08_php84_compatibility/`（PHP 8.4 评估，tag 系列 `php84-v1.2.x-review`）。两个送审包共用同一个
 `main`，因此本轮提交在该提交之上做了 rebase。结果是**本轮 SHA 与上一轮通报的 SHA 不同**，
 `v1.5.3-review` 指向 rebase 后的新提交。判断同一版本请以 `git ls-remote` 的 SHA 为准，
 不要依赖页面上的版本文字或提交计数。
