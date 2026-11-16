@@ -570,21 +570,35 @@
   V.content = function (S) {
     var tab = S.contentTab || 'all';
     var rows = S.contents.map(function (c) {
+      var rel = c.release || null;
+      var relOk = c.origin === 'manual' ? (!!rel && rel.mode === 'manual') : (!!rel && rel.mode === 'dsbit');
+      var canPublish = c.review === 'Approved' && relOk;
+      var act = '';
+      if (c.publish !== 'Published') {
+        if (canPublish) {
+          act = '<button class="link-btn" type="button" data-act="content-publish" data-id="' + esc(c.id) + '">发布</button>';
+        } else {
+          act = '<span class="cell-sub">' + (c.review !== 'Approved' ? '待审核' : (c.origin === 'dsbit' ? '未获发布授权' : '待独立审批')) + '</span>';
+        }
+      }
       return '<tr data-search="' + esc((c.title + ' ' + c.mpn + ' ' + c.type).toLowerCase()) + '" data-fstatus="' + esc(c.review + ' ' + c.publish + (c.review !== 'Approved' ? ' NotApproved' : '')) + '" data-ftype="' + esc(c.type) + '">' +
         '<td><button class="link-btn" type="button" data-act="content-view" data-id="' + esc(c.id) + '">' + esc(c.title) + '</button>' +
         '<span class="cell-sub">' + esc(c.id) + ' · ' + esc(c.type) + ' · ' + esc(c.mpn) + '</span></td>' +
         '<td>' + esc(c.channel) + '</td><td>' + UI.pill(c.review, { Approved: '已通过', 'Pending Review': '待审核', 'Needs Revision': '待修改' }[c.review] || c.review) + '</td>' +
         '<td>' + UI.pill(c.publish, c.publish === 'Published' ? '已发布' : '草稿') + '</td>' +
-        '<td>' + (c.ai === 'AI Generated' ? '<span class="st st-muted">' + UI.icon('sparkles') + 'AI</span>' : '<span class="st">' + UI.icon('user') + '人工</span>') + '</td>' +
+        '<td>' + (c.origin === 'manual'
+          ? '<span class="st st-muted">人工内容</span>'
+          : '<span class="st">Ds Bit 参数</span>') +
+          '<span class="cell-sub">' + (c.ai === 'AI Generated' ? 'AI 生成' : '人工撰写') + '</span></td>' +
         '<td class="nowrap"><span class="cell-sub">' + esc(c.updated) + '</span></td>' +
         '<td class="actions"><div class="row-actions"><button class="link-btn" type="button" data-act="content-view" data-id="' + esc(c.id) + '">审阅</button>' +
-        '<button class="link-btn" type="button" data-act="content-publish" data-id="' + esc(c.id) + '">发布</button></div></td></tr>';
+        act + '</div></td></tr>';
     }).join('');
 
     var types = ['技术文章', '产品对比', '选型指南', '技术问答', '新闻公告', '应用方案'];
 
     return '<div class="adm-page" data-filter-scope>' +
-      UI.pageHead('内容资产库', '技术文章、对比、选型指南与公告的唯一内容源；发布前必须经过人工审核。',
+      UI.pageHead('内容资产库', '技术文章、对比、选型指南与公告的唯一内容源；审核通过不等于发布授权，发布资格按内容来源区分。',
         UI.demoChip('内容为 Demo 草稿') +
         '<button class="btn btn-secondary btn-sm" type="button" data-act="export-demo" data-name="内容资产">导出</button>' +
         '<button class="btn btn-primary btn-sm" type="button" data-act="content-new"><span data-icon="plus"></span>新建内容</button>') +
@@ -602,7 +616,7 @@
       UI.tbl(['标题', '渠道', '审核', '发布', '来源', '更新时间', ''], rows +
         '<tr data-empty-row hidden><td colspan="7">' + UI.empty() + '</td></tr>', 'responsive', 'data-table="contents"') +
       UI.foot('共 ' + S.contents.length + ' 条（Demo 抽样）', 'AI 生成内容必须人工审核') + '</section>' +
-      '<div class="note warn">内容审核与发布为两个独立状态：审核通过不等于已发布；Needs Revision 不可绕过审核直接发布。</div>' +
+      '<div class="note warn">发布资格按来源区分：manual 内容走独立内容审批；dsbit-derived 内容必须同时具备内容版本审核记录与发布批次授权。审核通过不等于发布授权，Demo 中无授权记录时显示“未获发布授权”。</div>' +
       '</div>';
   };
 })();

@@ -308,30 +308,61 @@
     });
   }
 
+  function contentRelease(c) {
+    var rel = c.release || null;
+    if (c.origin === 'manual') {
+      var manualOk = !!rel && rel.mode === 'manual';
+      return {
+        ok: manualOk,
+        qual: manualOk ? '人工内容独立审批通过' : '未到发布环节',
+        basis: manualOk
+          ? '人工撰写内容不引用 Ds Bit 参数，走独立内容审批：' + rel.ref + '（' + rel.batch + '）'
+          : '人工撰写内容需先通过独立内容审核；不套用商品详情三层闸门。'
+      };
+    }
+    var dsbitOk = !!rel && rel.mode === 'dsbit';
+    return {
+      ok: dsbitOk,
+      qual: dsbitOk ? '已获发布授权 · 批次 ' + rel.batch : '未获发布授权',
+      basis: dsbitOk
+        ? '内容版本 ' + rel.version + ' 已通过内容审核，发布批次 ' + rel.batch + '（' + rel.ref + '）；授权仅限该批次。'
+        : '内容引用 Ds Bit 参数，必须有内容版本审核记录与发布批次授权；Demo 中无授权记录，因此不能发布。'
+    };
+  }
+
   function contentDrawer(id) {
     var c = find(STATE.contents, 'id', id);
     if (!c) return;
+    var rel = contentRelease(c);
     var body = UI.kv([
       { k: '内容 ID', v: esc(c.id), mono: true },
       { k: '类型', v: esc(c.type) },
       { k: '关联商品', v: esc(c.mpn) },
       { k: '渠道', v: esc(c.channel) },
+      { k: '内容来源', v: c.origin === 'manual' ? 'manual · 人工撰写（独立审批）' : 'dsbit-derived · 引用 Ds Bit 参数' },
       { k: '事实来源', v: esc(c.source) },
       { k: '生成方式', v: c.ai === 'AI Generated' ? 'AI 生成（Demo）' : '人工撰写' },
       { k: '审核状态', v: UI.pill(c.review, { Approved: '已通过', 'Pending Review': '待审核', 'Needs Revision': '待修改' }[c.review] || c.review) },
-      { k: '发布状态', v: UI.pill(c.publish, c.publish === 'Published' ? '已发布' : '草稿') }
+      { k: '发布状态', v: UI.pill(c.publish, c.publish === 'Published' ? '已发布' : '草稿') },
+      { k: '发布资格', v: rel.qual },
+      { k: '发布依据', v: rel.basis }
     ]) +
       '<div class="evidence"><h4>引用边界</h4><blockquote>' + esc(c.source) + '</blockquote>' +
       '<div class="meta-row"><span>仅引用 Ds Bit Verified 参数</span><span>AI 内容必须人工审核</span></div></div>' +
-      '<div class="note' + (c.review === 'Approved' ? '' : ' warn') + '">' +
-      (c.review === 'Approved' ? '已通过审核，可执行发布动作（Demo）。' : '未通过审核，发布按钮不可用；请先审核通过。') + '</div>';
+      '<div class="note' + (c.review === 'Approved' && rel.ok ? '' : ' warn') + '">' +
+      (c.review !== 'Approved'
+        ? '未通过审核，发布按钮不可用；请先审核通过。'
+        : (rel.ok ? '审核与发布资格均满足，可执行发布动作（Demo）。' : '审核已通过，但' + (c.origin === 'dsbit' ? '缺少发布批次授权' : '缺少独立审批记录') + '，发布不可执行。')) + '</div>';
 
     var foot = '';
     if (c.review !== 'Approved') {
       foot += '<button class="btn btn-secondary" type="button" data-act="content-return" data-id="' + esc(c.id) + '">退回修改</button>' +
-        '<button class="btn btn-primary" type="button" data-act="content-approve" data-id="' + esc(c.id) + '">审核通过</button>';
+        '<button class="btn btn-primary" type="button" data-act="content-approve" data-id="' + esc(c.id) + '">' +
+        (c.origin === 'manual' ? '人工审核通过' : '审核通过') + '</button>';
     } else if (c.publish !== 'Published') {
-      foot += '<button class="btn btn-primary" type="button" data-act="content-publish" data-id="' + esc(c.id) + '">发布</button>';
+      foot += rel.ok
+        ? '<button class="btn btn-primary" type="button" data-act="content-publish" data-id="' + esc(c.id) + '">发布</button>'
+        : '<button class="btn btn-secondary" type="button" disabled aria-disabled="true">未获发布授权</button>';
     }
     UI.openDrawer({
       kicker: '内容资产 · Demo', title: c.title, sub: esc(c.id + ' · ' + c.mpn), body: body, foot: drawerFoot(foot)
@@ -1142,7 +1173,7 @@
       var id = 'CNT-' + (202 + STATE.contents.length);
       STATE.contents.unshift({
         id: id, title: p.mpn + ' 关键参数与选型边界（GEO 草稿）', type: '应用方案', mpn: mpn,
-        source: 'Ds Bit 已审核参数', ai: 'AI Generated', review: 'Pending Review', publish: 'Draft',
+        origin: 'dsbit', source: 'Ds Bit 已审核参数', ai: 'AI Generated', review: 'Pending Review', publish: 'Draft', release: null,
         updated: nowStr(), channel: 'SEO / GEO'
       });
       UI.closeAll(); rerender();
@@ -1156,8 +1187,8 @@
       if (!title) { UI.toast('请填写标题', 'err'); return; }
       var id = 'CNT-' + (202 + STATE.contents.length);
       STATE.contents.unshift({
-        id: id, title: title, type: val('ncType'), mpn: val('ncMpn'), source: '人工撰写',
-        ai: 'Human', review: 'Pending Review', publish: 'Draft', updated: nowStr(), channel: val('ncChannel')
+        id: id, title: title, type: val('ncType'), mpn: val('ncMpn'), origin: 'manual', source: '人工撰写',
+        ai: 'Human', review: 'Pending Review', publish: 'Draft', release: null, updated: nowStr(), channel: val('ncChannel')
       });
       UI.closeModal(); rerender();
       UI.toast('已创建内容草稿 ' + id + '（待审核）', 'warn');
@@ -1166,8 +1197,14 @@
       var c = find(STATE.contents, 'id', el.getAttribute('data-id'));
       c.review = 'Approved';
       audit('审核内容', c.id + ' / ' + c.title, 'Approved');
-      UI.closeAll(); rerender();
-      UI.toast('内容已通过审核（Demo），可执行发布');
+      if (c.origin === 'manual') {
+        c.release = { mode: 'manual', ref: 'MA-' + c.id, batch: '人工内容审批', version: 'v1' };
+        UI.closeAll(); rerender();
+        UI.toast('人工内容审核通过（独立审批）：' + c.release.ref + '，可发布');
+      } else {
+        UI.closeAll(); rerender();
+        UI.toast('内容审核通过（Demo）：未获发布批次授权时仍不可发布', 'warn');
+      }
     },
     'content-return': function (el) {
       var c = find(STATE.contents, 'id', el.getAttribute('data-id'));
@@ -1180,6 +1217,13 @@
       var c = find(STATE.contents, 'id', el.getAttribute('data-id'));
       if (!c) return;
       if (c.review !== 'Approved') { UI.toast('未通过审核，不能发布', 'err'); return; }
+      var rel = contentRelease(c);
+      if (!rel.ok) {
+        UI.toast(c.origin === 'dsbit'
+          ? '该内容引用 Ds Bit 参数，未获发布批次授权，不能发布'
+          : '人工内容缺少独立审批记录，不能发布', 'err');
+        return;
+      }
       c.publish = 'Published';
       c.updated = nowStr();
       audit('发布内容', c.id + ' / ' + c.title, 'Success');

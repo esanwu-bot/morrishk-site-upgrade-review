@@ -4,7 +4,7 @@
 - 第二轮提交：`045e3d9`
 - 日期：2026-11-16
 - 范围：仅 `07_prototypes/admin/` 内的 HTML / CSS / JS / 原型说明 / 截图，另按自检要求更新 `07_prototypes/SHA256SUMS.txt`。
-- 状态：第二轮 P1/P2 已落实；第三轮针对 P1-3 状态依赖、P1-2 流程图 / Confidence / 哈希标注与报告统计完成收尾，等待针对性复核。
+- 状态：第二轮 P1/P2 已落实；第三轮闸门依赖与 Ds Bit 已复核通过；第四轮仅处理内容资产库的发布权限边界，等待最后一次定向复核。
 - 边界：未创建 React 工程、未实现 API、未接真实服务、未修改生产环境，也不代表后台重构获批。
 
 ---
@@ -16,10 +16,10 @@
 | 文件 | 修改类型 |
 |---|---|
 | `index.html` | 侧栏运行状态、原型状态说明 |
-| `assets/admin.js` | 深链接状态、证据抽屉、询盘 / 视频抽屉、筛选豁免、内容审核动作 |
-| `assets/data.js` | 15 字段参数模型、历史验证快照、适用性、归因分层、SEO 治理、Commands |
+| `assets/admin.js` | 深链接状态、证据抽屉、询盘 / 视频抽屉、筛选豁免、内容审核动作、内容发布资格判断 |
+| `assets/data.js` | 15 字段参数模型、历史验证快照、内容来源 / 发布授权、适用性、归因分层、SEO 治理、Commands |
 | `assets/ui.js` | 证据链渲染器、Confidence、SHA-256 前缀标注、三层闸门提示 |
-| `assets/views-main.js` | 商品详情三层闸门依赖、SEO 技术治理、GEO 效果监测 |
+| `assets/views-main.js` | 商品详情三层闸门依赖、内容发布资格列、SEO 技术治理、GEO 效果监测 |
 | `assets/views-ops.js` | 数据分析 90 天、来源分层、LeadNo 桥接、询盘 / 视频归因 |
 | `assets/views-knowledge.js` | Ds Bit 状态分层、8 阶段流水线、参数模型、证据样例、Commands 独立表 |
 | `assets/views-system.js` | 设置页“当前状态 / 目标接口”分离 |
@@ -29,10 +29,10 @@
 | `prototype-scope.md` | 11 个 Commands 独立清单 |
 | `REVIEW-RESPONSE-v2.md` | 本文件 |
 
-### 1.2 截图（26 张，均在 `07_prototypes/admin/screenshots/`）
+### 1.2 截图（27 张，均在 `07_prototypes/admin/screenshots/`）
 
-- 更新 23 张：`01`–`23`（第二轮）；第三轮再次更新 `03-product-detail.png`、`11-dsbit.png`、`13-param-review.png`。
-- 新增 3 张：`24-seo-governance.png`、`25-analytics-90d.png`、`26-coverage.png`。
+- 更新 23 张：`01`–`23`（第二轮）；第三轮再次更新 `03-product-detail.png`、`11-dsbit.png`、`13-param-review.png`；第四轮更新 `07-content.png`。
+- 新增 4 张：`24-seo-governance.png`、`25-analytics-90d.png`、`26-coverage.png`、`27-content-publish-guard.png`。
 
 ### 1.3 清单文件（1 个，自检要求）
 
@@ -93,6 +93,27 @@
 - `assets/ui.js:314`：参数证据哈希标签改为“文档 SHA-256 前缀（20 hex，Demo）”。
 - `assets/admin.js:425`：文档抽屉同步为“SHA-256 前缀（20 hex，Demo）”。
 
+### 2.4 内容资产库发布授权边界（第四轮）
+
+**问题**：内容资产库存在“审核通过即可发布”的独立路径，未区分内容来源，也未校验发布批次授权。
+
+**修正**：
+
+- `assets/data.js:175-187`：内容增加 `origin`（`manual` / `dsbit`）与 `release`（发布授权记录）。`release.mode` 为 `dsbit` 时记录内容版本、批次号与授权号；`manual` 时记录独立审批号。CNT-200 设为“已通过但无发布授权”的样例，用于展示拦截状态。
+- `assets/admin.js:311-355`：新增 `contentRelease(c)` 统一判断发布资格：
+  - `manual`：需独立审批记录，显示“人工内容独立审批通过 / 未到发布环节”。
+  - `dsbit`：需内容版本审核记录 + 发布批次授权，显示“已获发布授权 · 批次 B-…”或“未获发布授权”。
+  - 抽屉新增“内容来源”“发布资格”“发布依据”三行；无授权时发布按钮替换为禁用的“未获发布授权”，并用提示说明缺哪一项。
+- `assets/admin.js:1165-1195`：
+  - `content-approve`：人工内容审核通过时写入独立审批记录 `MA-…`；dsbit 内容只记录内容审核，不生成发布授权，并提示“未获发布批次授权时仍不可发布”。
+  - `content-publish`：审核通过后仍校验 `contentRelease`；dsbit 内容无批次授权、人工内容无独立审批记录时直接拒绝并提示。
+- `assets/admin.js:1143-1147, 1158-1161`：新建 GEO 草稿标记为 `dsbit` 且无授权；新建内容标记为 `manual`。
+- `assets/views-main.js:572-600`：列表“来源”列显示 `Ds Bit 参数` / `人工内容` 与生成方式；发布链接仅在“审核通过 + 具备对应授权”时出现，否则显示“未获发布授权”“待独立审批”或“待审核”。
+- `assets/views-main.js:586-605`：页头与底部说明改为按来源区分发布资格，明确审核通过不等于发布授权。
+- `screenshots/07-content.png` 重拍；新增 `screenshots/27-content-publish-guard.png` 展示 CNT-200 的“未获发布授权”抽屉。
+
+**边界说明**：`release` 为 Demo 记录，仅用于演示授权规则，不代表真实审批数据；正式系统必须读取不可变的审核与发布记录，不能由当前状态反推授权。
+
 ---
 
 ## 3. 第二轮 P1 逐项（保留记录）
@@ -151,6 +172,8 @@
 
 第三轮收尾（`045e3d9` 之后）修改 8 个文本文件（含本回应）、重拍 3 张截图、更新 1 次清单；未新增文件。
 
+第四轮（`1305b4f` 之后）仅处理内容发布权限边界：修改 4 个文本文件（`data.js`、`admin.js`、`views-main.js`、本回应）、重拍 `07-content.png`、新增 `27-content-publish-guard.png`、更新 1 次清单；未改动其他文件。
+
 ---
 
 ## 6. 自检结果
@@ -177,15 +200,17 @@
 | 参数证据抽屉 | Confidence（补充）与“SHA-256 前缀（20 hex，Demo）”存在 |
 | 覆盖矩阵 | 计数 43；筛选“部分覆盖”显示 18；Commands 11 行保持可见 |
 | SEO 技术治理 / 分析 90 天 / 询盘 / 视频 / GEO | 与第二轮一致，均可切换与打开 |
+| 定向测试 1：dsbit 内容无发布授权 | CNT-200（已通过、无授权）抽屉显示“未获发布授权”；强制触发发布被拒绝，提示“未获发布批次授权，不能发布”；状态保持草稿 |
+| 定向测试 2：人工内容独立审批 | CNT-195 点击“人工审核通过”生成 `MA-CNT-195`；再次打开显示“人工内容独立审批通过”，随后发布成功 |
 
 ### 6.4 SHA256 清单
 
-- `07_prototypes/SHA256SUMS.txt`：76 条（不含清单自身）。
-- `cd 07_prototypes && sha256sum -c SHA256SUMS.txt`：76/76 `OK`，0 `FAILED`。
+- `07_prototypes/SHA256SUMS.txt`：77 条（不含清单自身）。
+- `cd 07_prototypes && sha256sum -c SHA256SUMS.txt`：77/77 `OK`，0 `FAILED`。
 
 ### 6.5 截图
 
-`03-product-detail.png`、`11-dsbit.png`、`13-param-review.png` 已按本轮修改重拍；`24`、`25`、`26` 保持第二轮内容。
+`07-content.png` 已按第四轮修改重拍；新增 `27-content-publish-guard.png`（CNT-200 抽屉）。`03`、`11`、`13` 为第三轮重拍结果，`24`、`25`、`26` 保持第二轮内容。
 
 ### 6.6 并发修改
 
