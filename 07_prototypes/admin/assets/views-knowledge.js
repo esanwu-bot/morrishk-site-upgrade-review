@@ -50,7 +50,7 @@
 
     var gates = [
       { k: 'PIPELINE_PASS', t: '文档可解析、证据字段完整（页码 / 表格 / 行 / bbox / 原文）', fail: '不进入参数候选', now: '未运行（Demo 快照）' },
-      { k: 'CONTENT_APPROVED', t: '参数审核与内容审核通过，可被商品详情与内容引用', fail: '保持只读或退回修改', now: '部分参数 Verified（Demo）' },
+      { k: 'CONTENT_APPROVED', t: '引用该参数的内容版本通过内容审核；参数 Verified 只是候选前提', fail: '内容版本不得标记为已批准', now: '无内容版本审核记录（Demo）' },
       { k: 'RELEASE_APPROVED', t: '指定发布批次获批，可写入生产站点或渠道', fail: '保持草稿，不可发布', now: '未申请（Demo）' }
     ].map(function (g) {
       return '<tr><td><span class="mono-sm">' + g.k + '</span></td><td>' + g.t + '</td><td class="muted">' + g.fail + '</td>' +
@@ -72,7 +72,8 @@
       ['TableId', '表格编号', 'T-08-02'],
       ['RowId', '行编号', 'R-04'],
       ['CellBBox', '单元格坐标', '[312, 486, 528, 502]'],
-      ['ReviewStatus', '参数审核状态', 'Verified / Needs Review / Rejected']
+      ['ReviewStatus', '参数审核状态', 'Verified / Needs Review / Rejected'],
+      ['Confidence（补充）', '抽取置信度，供人工审核参考', '0.92']
     ].map(function (f) {
       return '<tr><td><span class="mono-sm">' + f[0] + '</span></td><td>' + f[1] + '</td><td class="muted mono-sm">' + esc(f[2]) + '</td></tr>';
     }).join('');
@@ -86,13 +87,14 @@
     }).join('');
 
     var nodes = [
-      { k: '01 PDF', v: '入库', d: '文件哈希与版本' },
-      { k: '02 Parser', v: '解析', d: '页 / 表格 / 文本' },
-      { k: '03 Tables', v: '抽取', d: '行列结构还原' },
-      { k: '04 Registry', v: '候选', d: '参数候选注册' },
-      { k: '05 LLM', v: '归并', d: '同义与单位统一' },
-      { k: '06 Evidence', v: '对齐', d: '页码 + bbox + 原文', gate: true },
-      { k: '07 Audit', v: '定级', d: 'ReviewStatus 分流' }
+      { k: '01 文档接收', v: '入库', d: 'PDF · 版本 · SHA-256' },
+      { k: '02 类型 / 主体', v: '判定', d: 'Datasheet / Selection Guide · MPN 或系列' },
+      { k: '03 表格还原', v: '抽取', d: '跨页表格 · TableId / RowId' },
+      { k: '04 原始键值', v: '读取', d: 'RawLabel / RawValue' },
+      { k: '05 映射 / 归一', v: '标准化', d: 'NormalizedValue · ValueKind · 单位' },
+      { k: '06 条件 / 置信度', v: '校核', d: 'Conditions · Confidence' },
+      { k: '07 证据封装', v: '对齐', d: 'PageNo · CellBBox · 原文 · 哈希', gate: true },
+      { k: '08 质量门 / 审核', v: '分流', d: 'PIPELINE_PASS → ReviewStatus', gate: true }
     ];
 
     var pipeline = '<div class="pipeline">' + nodes.map(function (n) {
@@ -100,7 +102,7 @@
     }).join('') + '</div>';
 
     var statusRows = [
-      { s: 'Verified', t: '证据可定位、置信度达标、人工确认', down: '参数可进入商品详情、知识库与营销内容', cls: 'Verified' },
+      { s: 'Verified', t: '证据可定位、置信度达标、人工确认', down: '参数级证据通过，成为内容审核的候选数据；不代表内容版本已获 CONTENT_APPROVED 或发布授权', cls: 'Verified' },
       { s: 'Needs Review', t: '证据存在但置信度低或存在歧义', down: '不进入前台；进入审核队列', cls: 'Needs Review' },
       { s: 'Rejected', t: '证据缺失、冲突或无法对齐', down: '禁止引用；保留失败记录', cls: 'Rejected' }
     ].map(function (r) {
@@ -123,20 +125,21 @@
       UI.card({ title: '当前原型状态', sub: '与目标架构分开标注，不把 Demo 快照写成运行状态', pad: false,
         body: UI.tbl(['系统', '当前原型', '目标架构'], runtimeRows) +
           '<div class="table-foot"><span>当前原型</span><span class="muted">无真实连接、无 Token、无队列</span></div>' }) +
-      UI.card({ title: '三层质量状态', sub: '三个状态独立判定，不可合并为 Verified', pad: false,
+      UI.card({ title: '三层质量状态', sub: '三个状态独立记录，但依赖上游通过', pad: false,
         body: UI.tbl(['层级', '通过含义', '不通过', '当前'], gates) +
-          '<div class="table-foot"><span>ReviewStatus 为参数级</span><span class="muted">不等于三个发布闸门</span></div>' }) +
+          '<div class="table-foot"><span>ReviewStatus 为参数级</span><span class="muted">不等于三个发布闸门</span></div>' +
+          '<div class="note warn mt-3">依赖顺序：PIPELINE_PASS → CONTENT_APPROVED → RELEASE_APPROVED；上游未通过时，下游不得标记为已批准。</div>' }) +
       '</div>' +
       '<div class="stat-grid">' + stats + '</div>' +
-      UI.card({ title: '处理流水线（目标架构）', sub: '每一级都可追溯；证据对齐是进入知识库前的硬门槛；当前原型只展示流程与字段', actions: UI.pill('Target', '目标架构'),
+      UI.card({ title: '处理流水线（目标架构）', sub: '类型判定 → 表格还原 → 原始键值 → 归一 → 条件/置信度 → 证据 → 质量门；当前原型只展示流程与字段', actions: UI.pill('Target', '目标架构'),
         body: pipeline, padSm: true }) +
-      UI.card({ title: '参数数据模型（15 字段）', sub: '来源、原始值、标准化值、位置证据与审核状态一一对应', pad: false,
+      UI.card({ title: '参数数据模型（15 字段 + Confidence 补充）', sub: '来源、原始值、标准化值、位置证据与审核状态一一对应', pad: false,
         body: UI.tbl(['字段', '说明', 'Demo 示例'], modelFields) }) +
       UI.card({ title: '产品 ↔ Datasheet 适用关系', sub: '同一份文档不一定适用于所有商品', pad: false,
         body: UI.tbl(['DocumentId', 'MPN', '类型', 'DocumentSubject', '版本', '适用性', '说明'], appRows) +
           '<div class="table-foot"><span>Family match 仅作选型背景</span><span class="muted">不绑定参数证据</span></div>' }) +
       '<div class="grid-8-4">' +
-      UI.card({ title: '参数级 ReviewStatus', sub: '决定参数能否被商品与内容引用', pad: false,
+      UI.card({ title: '参数级 ReviewStatus', sub: '参数级证据状态；具体内容版本仍需 CONTENT_APPROVED 与 RELEASE_APPROVED', pad: false,
         body: UI.tbl(['状态', '判定条件', '下游行为'], statusRows) }) +
       UI.card({ title: '证据样例', padSm: true, sub: '完整证据链字段，不以 bbox 代替适用性',
         body: UI.evidence(withDoc(sample)) + '<div class="row mt-3" style="gap:var(--sp-2)"><a class="btn btn-secondary btn-sm" href="#/param-review">审核该参数</a>' +
@@ -231,7 +234,7 @@
     var mpns = ['']; S.params.forEach(function (p) { if (mpns.indexOf(p.mpn) < 0) mpns.push(p.mpn); });
 
     return '<div class="adm-page" data-filter-scope>' +
-      UI.pageHead('产品参数审核', '本页只处理参数级 ReviewStatus；PIPELINE_PASS、CONTENT_APPROVED、RELEASE_APPROVED 是三个独立闸门。',
+      UI.pageHead('产品参数审核', '本页只处理参数级 ReviewStatus；PIPELINE_PASS、CONTENT_APPROVED、RELEASE_APPROVED 分开记录，且依赖上游通过。',
         UI.demoChip('审核为 Demo，不写库') +
         '<button class="btn btn-secondary btn-sm" type="button" data-act="param-batch">批量通过</button>') +
       '<div class="grid-3">' +
@@ -269,7 +272,7 @@
       var p = S.products.filter(function (x) { return x.mpn === m; })[0] || { brand: '—' };
       return '<tr data-search="' + esc((m + ' ' + p.brand).toLowerCase()) + '"><td><span class="cell-main">' + esc(m) + '</span><span class="cell-sub">' + esc(p.brand) + '</span></td>' +
         '<td class="num">' + c.ver + ' / ' + c.total + '</td><td style="min-width:140px">' + UI.progress(pct, pct < 80) + '<span class="cell-sub">' + pct + '%</span></td>' +
-        '<td>' + UI.pill(pct === 100 ? 'Verified' : 'Needs Review', pct === 100 ? '可全量引用' : '部分可引用') + '</td>' +
+        '<td>' + UI.pill(pct === 100 ? 'Verified' : 'Needs Review', pct === 100 ? '覆盖完整' : '部分覆盖') + '</td>' +
         '<td class="actions"><a class="link-btn" href="#/param-review">查看参数</a></td></tr>';
     }).join('');
 
@@ -286,7 +289,7 @@
         '<a class="btn btn-primary btn-sm" href="#/tech-content">生成内容</a>') +
       '<div class="stat-grid" style="grid-template-columns:repeat(4,minmax(0,1fr))">' +
       UI.stat({ k: '覆盖商品', v: String(mpns.length), note: '有参数记录的商品', icon: 'box' }) +
-      UI.stat({ k: '已验证参数', v: String(S.params.filter(function (p) { return p.status === 'Verified'; }).length), note: '可被内容引用', icon: 'shield-check' }) +
+      UI.stat({ k: '已验证参数', v: String(S.params.filter(function (p) { return p.status === 'Verified'; }).length), note: '内容审核候选', icon: 'shield-check' }) +
       UI.stat({ k: '待审核', v: String(S.params.filter(function (p) { return p.status === 'Needs Review'; }).length), note: '不进入内容', icon: 'clock', warn: true }) +
       UI.stat({ k: '知识版本', v: String(VERSIONS.length), note: '支持回滚', icon: 'history' }) +
       '</div>' +

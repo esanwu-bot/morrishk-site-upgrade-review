@@ -422,7 +422,7 @@
     ]) +
       (d.applicabilityNote ? '<div class="note warn">' + esc(d.applicabilityNote) + '</div>' : '') +
       '<div class="evidence"><h4>文档哈希（证据锚点）</h4><blockquote>' + esc(d.hash) + '</blockquote>' +
-      '<div class="meta-row"><span>SHA-256 前缀（Demo）</span><span>证据 = 哈希 + 页码 + bbox + 原文</span></div>' +
+      '<div class="meta-row"><span>SHA-256 前缀（20 hex，Demo）</span><span>证据 = 哈希 + 页码 + bbox + 原文</span></div>' +
       '<div class="meta-row">文档级适用性是参数审核的前置判断，不能替代逐参数 ReviewStatus。</div></div>' +
       (params.length ? '<div class="label">关联参数</div><div class="stack-sm">' + params.slice(0, 4).map(function (p) {
         return '<div class="list-row" style="padding:var(--sp-2) 0"><div class="grow"><div class="ttl">' + esc(p.name) + '</div>' +
@@ -1024,17 +1024,21 @@
     'pd-save': function () { UI.toast('已保存草稿（Demo，不写库）'); },
     'pd-publish': function () {
       var p = byMpn(STATE.selectedProduct);
+      var snap = p.verifySnapshot;
+      if (snap) {
+        UI.toast('当前版本已有发布快照 ' + snap.id + '；新版本需重新通过 PIPELINE_PASS 与内容审核', 'warn');
+        return;
+      }
       UI.confirm({
-        title: '提交发布',
-        body: '商品 <strong>' + esc(p.mpn) + '</strong> 将提交发布。发布检查：基础字段完整、' +
-          STATE.params.filter(function (x) { return x.mpn === p.mpn && x.status === 'Verified'; }).length + ' 项已验证参数可引用、未审核参数不会进入前台。',
-        ok: '提交发布',
+        title: '提交内容审核',
+        body: '商品 <strong>' + esc(p.mpn) + '</strong> 将提交内容审核（Demo）。当前无 PIPELINE_PASS 快照，因此只能进入审核队列，不会被标记为已批准或已发布。' +
+          STATE.params.filter(function (x) { return x.mpn === p.mpn && x.status === 'Verified'; }).length + ' 项已验证参数仅作为内容候选；未审核参数不会进入前台。',
+        ok: '提交审核',
         onOk: function () {
-          p.content = 'Published';
           p.updated = nowStr();
-          audit('发布商品详情页', p.mpn, 'Approved');
+          audit('提交商品内容审核', p.mpn, 'Pending');
           rerender();
-          UI.toast('已提交发布（Demo）：' + p.mpn);
+          UI.toast('已提交内容审核（Demo）：' + p.mpn + '，需 PIPELINE_PASS 后才可批准', 'warn');
         }
       });
     },
@@ -1127,7 +1131,7 @@
           '<div class="a">' + (ver.length ? '根据 Ds Bit 已审核参数：' + ver.slice(0, 3).map(function (x) {
             return esc(x.name + ' ' + x.value + ' ' + x.unit + '（p.' + x.page + '）');
           }).join('；') + '。具体选型需结合实际工况。' : '该商品暂无可引用的已审核参数，暂不生成具体结论。') + '</div>' +
-          '<div class="src">' + UI.pill(ver.length ? 'Verified' : 'Needs Review', ver.length ? '证据可引用' : '待补证据') + '<span>未审核参数不进入答案</span></div></div>' +
+          '<div class="src">' + UI.pill(ver.length ? 'Verified' : 'Needs Review', ver.length ? '可进入内容草稿' : '待补证据') + '<span>未审核参数不进入答案</span></div></div>' +
           '<div class="note warn">GEO 内容需人工审核；不承诺库存、价格与交期。</div>',
         foot: drawerFoot('<button class="btn btn-primary" type="button" data-act="geo-save" data-id="' + esc(mpn) + '">保存为内容草稿</button>')
       });

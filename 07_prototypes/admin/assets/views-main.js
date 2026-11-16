@@ -249,22 +249,28 @@
       '<button class="btn btn-primary mt-3" type="button" data-act="demo-rfq">Request a Quote</button>' +
       '<div class="chart-note">前台只展示 Verified 参数；未审核参数不出现。</div></div></div>';
 
+    var snap = p.verifySnapshot || null;
+    var pipeOk = !!snap && snap.pipeline === 'PASS';
+    var contentOk = pipeOk && snap.contentApproved === true;
+    var releaseOk = contentOk && snap.releaseApproved === true;
+
     var checklist = '<div class="stack-sm">' +
       '<div class="kpi-mini"><span class="k">基础字段</span><span class="v">完整</span>' + UI.pill('Approved', '通过') + '</div>' +
-      '<div class="kpi-mini"><span class="k">已验证参数</span><span class="v">' + verified.length + ' 项</span>' + UI.pill(verified.length ? 'Verified' : 'Needs Review', verified.length ? '可引用' : '待补') + '</div>' +
+      '<div class="kpi-mini"><span class="k">已验证参数</span><span class="v">' + verified.length + ' 项</span>' + UI.pill(verified.length ? 'Verified' : 'Needs Review', verified.length ? '内容候选' : '待补') + '</div>' +
       '<div class="kpi-mini"><span class="k">SEO</span><span class="v">' + seoOf(p) + '</span>' + UI.pill(p.seo === 'Optimized' ? 'Approved' : 'Needs Review', p.seo === 'Optimized' ? '通过' : '待优化') + '</div>' +
       '<div class="kpi-mini"><span class="k">Datasheet</span><span class="v">' + esc(p.datasheet) + '</span>' + UI.pill('Parsed', '已关联') + '</div>' +
       '</div>' +
-      '<div class="label">发布闸门（三层独立）</div>' +
+      '<div class="label">发布闸门（三层独立，依赖上游通过）</div>' +
       '<div class="stack-sm">' +
-      '<div class="kpi-mini"><span class="k">PIPELINE_PASS</span><span class="v">Demo 快照 · 未运行</span>' + UI.pill('Demo', '未验证') + '</div>' +
-      '<div class="kpi-mini"><span class="k">CONTENT_APPROVED</span><span class="v">' + (p.content === 'Published' ? '详情页内容已通过' : '待人工审核') + '</span>' +
-      UI.pill(p.content === 'Published' ? 'Approved' : 'Needs Review', p.content === 'Published' ? '已通过' : '待审核') + '</div>' +
-      '<div class="kpi-mini"><span class="k">RELEASE_APPROVED</span><span class="v">' + (p.content === 'Published' ? '当前版本已授权' : '未申请') + '</span>' +
-      UI.pill(p.content === 'Published' ? 'Approved' : 'Draft', p.content === 'Published' ? '已授权' : '不可发布') + '</div>' +
+      '<div class="kpi-mini gate"><span class="k">PIPELINE_PASS</span><span class="v">' + (pipeOk ? '历史快照 ' + esc(snap.id) + ' · 已通过' : '未运行 · 无验证快照') + '</span>' +
+      UI.pill(pipeOk ? 'Approved' : 'Demo', pipeOk ? '已通过' : '未验证') + '</div>' +
+      '<div class="kpi-mini gate"><span class="k">CONTENT_APPROVED</span><span class="v">' + (contentOk ? '内容版本 ' + esc(snap.contentVersion) + ' 已通过' : (pipeOk ? '待人工审核' : '上游未通过 · 不可审核')) + '</span>' +
+      UI.pill(contentOk ? 'Approved' : 'Draft', contentOk ? '已通过' : '不可批准') + '</div>' +
+      '<div class="kpi-mini gate"><span class="k">RELEASE_APPROVED</span><span class="v">' + (releaseOk ? '批次 ' + esc(snap.batch) + ' 已授权' : (contentOk ? '未申请' : '上游未通过 · 不可申请')) + '</span>' +
+      UI.pill(releaseOk ? 'Approved' : 'Draft', releaseOk ? '已授权' : '不可发布') + '</div>' +
       '</div>' +
-      '<div class="note ' + (p.content === 'Published' ? '' : 'warn') + '">' + (p.content === 'Published' ? '当前版本已发布。' : '参数 Verified ≠ 内容审核通过 ≠ 发布授权；提交后仅发起内容审核，不直接上线。') + '</div>' +
-      '<div class="note">PIPELINE_PASS / CONTENT_APPROVED / RELEASE_APPROVED 相互独立，不得合并为 Verified。</div>';
+      '<div class="note ' + (releaseOk ? '' : 'warn') + '">' + (releaseOk ? '历史验证快照：该版本在发布时通过三层闸门；当前 Demo 会话不重新运行解析。' : '依赖顺序：PIPELINE_PASS → CONTENT_APPROVED → RELEASE_APPROVED；上游未通过时，下游不得标记为已批准。') + '</div>' +
+      '<div class="note">三层状态分开记录，但依赖必须成立；不得合并为 Verified。</div>';
 
     var tabsHtml = UI.tabs([
       { id: 'base', t: '基础信息' },
@@ -277,7 +283,7 @@
       UI.pageHead('商品详情页管理', '一个商品一页：基础字段、已审核参数、SEO 与版本记录在同一处维护。',
         selector + UI.demoChip('表单为 Demo，保存不写库') +
         '<button class="btn btn-secondary btn-sm" type="button" data-act="pd-save">保存草稿</button>' +
-        '<button class="btn btn-primary btn-sm" type="button" data-act="pd-publish">提交发布</button>') +
+        '<button class="btn btn-primary btn-sm" type="button" data-act="pd-publish">提交内容审核</button>') +
       '<div class="grid-side">' +
       '<section class="card"><div class="card-hd"><div><h2>' + esc(p.mpn) + ' <span class="muted body-sm">' + esc(p.brand) + '</span></h2>' +
       '<div class="sub">最后更新 ' + esc(p.updated) + ' · 详情页状态 ' + esc(p.content) + '</div></div>' +

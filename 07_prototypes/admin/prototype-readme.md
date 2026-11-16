@@ -37,7 +37,7 @@ file:///<repo>/07_prototypes/admin/index.html
 
 | 链路 | 路径 | 边界 |
 |---|---|---|
-| A 产品数据 → 商品详情页 | Ds Bit 解析 → 参数标准化 → 证据校验 → 人工审核 → 详情页 → 发布 | 仅 Verified 可进入详情页 |
+| A 产品数据 → 商品详情页 | Ds Bit 解析 → 参数标准化 → 证据校验 → 人工审核 → 详情页 → 发布 | 仅 Verified 可成为详情页内容候选 |
 | B 产品知识 → SEO / GEO | 已审核知识 → 内容生成 → 人工审核 → 发布 → Search Console / GA4 回填 | 待审核参数不得写入正文 |
 | C 产品知识 → 社媒与视频 | 生成 → 审核 → 排期 → 发布 → 引流询盘 | 发布失败不回滚商品与询盘 |
 | D 营销数据回流 | 询盘 → 渠道 → UTM → 漏斗 → GA4 → 有效询盘 | Spam / 重复不计入有效询盘 |
@@ -125,7 +125,7 @@ file:///<repo>/07_prototypes/admin/index.html
 2. **复用 Morris Design System**：`tokens.css` 提供颜色/间距/字号；`admin.css` 零字面色值，状态色走语义 Token。
 3. **状态三通道**：颜色 + 图标 + 文字同时表达（`UI.pill` / `UI.stock`），不依赖单一颜色。
 4. **表格优先、抽屉补充**：列表用于扫描与批量操作；详情/编辑进入右侧抽屉，避免跳页丢失上下文。
-5. **三层质量闸门**：PIPELINE_PASS、CONTENT_APPROVED、RELEASE_APPROVED 相互独立，不得合并为 Verified；参数级 ReviewStatus 只代表该参数审核状态，详情页与生成内容分别展示三道闸门。
+5. **三层质量闸门**：PIPELINE_PASS、CONTENT_APPROVED、RELEASE_APPROVED 分开记录，但依赖上游通过（PIPELINE_PASS → CONTENT_APPROVED → RELEASE_APPROVED），不得合并为 Verified；参数级 ReviewStatus 只代表该参数审核状态，详情页与生成内容分别展示三道闸门。已发布商品展示历史验证快照，不把当前未运行写成已通过。
 6. **证据 ≠ 适用性**：CellBBox 与置信度只证明文本位置和识别把握，不证明参数适用于该 MPN；适用性需结合 MPN 匹配、文档主体与测试条件。
 7. **权限隔离显式化**：四个角色 × 九个业务域的矩阵，切换只改当前前端状态，真实 RBAC 待后端落地。
 8. **系统边界可见**：Ds Bit 独立引擎、只读接入；GA4 / Search Console / 社媒未连接；任务队列仅展示状态。

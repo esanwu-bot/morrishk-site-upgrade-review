@@ -362,7 +362,7 @@ table.grid td.actions { white-space: nowrap; }
 .flow-arrow { align-self: center; color: var(--color-text-disabled); flex: 0 0 auto; }
 .flow-arrow .i { width: 12px; height: 12px; }
 
-.pipeline { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--sp-2); }
+.pipeline { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: var(--sp-2); }
 .pipe-node { padding: var(--sp-4); border: var(--border-default); border-radius: var(--radius-sm); background: var(--color-surface); min-width: 0; }
 .pipe-node .k { font-size: 9px; letter-spacing: var(--ls-widest); text-transform: uppercase; color: var(--color-text-muted); font-weight: var(--fw-semibold); }
 .pipe-node .v { margin-top: var(--sp-2); font-size: var(--fs-title-sm); font-weight: var(--fw-semibold); font-feature-settings: var(--font-feature); }
@@ -674,6 +674,9 @@ table.matrix th:first-child { background: var(--color-canvas); z-index: 2; }
 .kpi-mini { display: flex; align-items: center; gap: var(--sp-3); font-size: var(--fs-label); }
 .kpi-mini .k { color: var(--color-text-muted); min-width: 92px; }
 .kpi-mini .v { font-weight: var(--fw-semibold); font-feature-settings: var(--font-feature); }
+.kpi-mini.gate { flex-wrap: wrap; align-items: flex-start; row-gap: var(--sp-1); }
+.kpi-mini.gate .k { width: 100%; min-width: 0; }
+.kpi-mini.gate .v { flex: 1 1 auto; }
 
 .avatar-lg {
   width: 56px; height: 56px; border-radius: var(--radius-sm);

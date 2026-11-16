@@ -33,6 +33,22 @@
     { mpn: 'GRM188R71H104KA93D', brand: 'Murata', name: '0.1µF 50V X7R 0603 MLCC', category: 'Passives', stock: 'In Stock', qty: 240000, warehouse: 'HK', lead: '3–5 days', datasheet: 'v1.4', seo: 'Optimized', content: 'Published', updated: '2026-11-11 17:31', price: 'Request Quote' }
   ];
 
+  /* 历史验证快照：已发布商品保留其发布时的三层闸门结果；当前 Demo 会话不重新运行解析。 */
+  D.products.forEach(function (p, i) {
+    if (p.content !== 'Published') { p.verifySnapshot = null; return; }
+    var d = p.updated.slice(0, 10).replace(/-/g, '');
+    var seq = (i + 1 < 10 ? '0' : '') + (i + 1);
+    p.verifySnapshot = {
+      id: 'VS-' + d + '-' + seq,
+      run: 'PR-' + d + '-' + seq + '-01',
+      pipeline: 'PASS',
+      contentVersion: 'v2',
+      contentApproved: true,
+      releaseApproved: true,
+      batch: 'B-' + d + '-01'
+    };
+  });
+
   D.brands = [
     { name: 'Texas Instruments', products: 3120, category: 'IC / Analog / Power', status: 'Active', updated: '2026-11-16' },
     { name: 'STMicroelectronics', products: 1840, category: 'MCU / Power', status: 'Active', updated: '2026-11-16' },

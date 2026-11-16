@@ -303,14 +303,15 @@
       ['PageNo', p.page == null ? '—' : 'p.' + p.page],
       ['TableId / RowId', (p.table || '—') + ' / ' + (p.row || '—')],
       ['CellBBox', p.bbox || '—'],
-      ['ReviewStatus', p.status || '—']
+      ['ReviewStatus', p.status || '—'],
+      ['Confidence（补充）', p.confidence == null ? '—' : Math.round(p.confidence * 100) + '%']
     ];
     return '<div class="evidence"><h4>证据链 · Ds Bit（Demo 快照）</h4>' +
       '<blockquote>' + esc(p.snippet) + '</blockquote>' +
       '<div class="kv ev-kv">' + items.map(function (it) {
         return '<div><span class="k">' + esc(it[0]) + '</span><span class="v mono">' + esc(it[1]) + '</span></div>';
       }).join('') + '</div>' +
-      '<div class="meta-row"><span>来源文件：' + esc(p.file || '—') + '</span><span>文档 SHA-256：' + esc(p.hash) + '…</span>' +
+      '<div class="meta-row"><span>来源文件：' + esc(p.file || '—') + '</span><span>文档 SHA-256 前缀（20 hex，Demo）：' + esc(p.hash) + '…</span>' +
       '<span>适用性：' + esc(p.applicability || '未判定') + '</span></div>' +
       '<div class="meta-row">CellBBox 只证明文本在页面中的位置，不证明参数适用于该产品；适用性由 MPN 匹配、文档主体与测试条件共同判断。</div>' +
       '<div class="meta-row">ReviewStatus 是参数级状态，不等于 PIPELINE_PASS / CONTENT_APPROVED / RELEASE_APPROVED。</div></div>';
