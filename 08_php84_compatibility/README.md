@@ -8,7 +8,7 @@
 | 明确不覆盖 | 8.4 运行期验收结论、测试代码与业务行为兼容性、任何代码或配置的实际变更 |
 | 明确禁止（本阶段） | 生产 PHP-FPM 版本变更、宝塔 PHP 运行池变更、Nginx vhost / FPM socket 变更、**生产文件系统任何写入（含临时探针）** |
 | 与主送审的关系 | 本包是**独立工作流**，与根 README 的主送审（tag 系列 `v1.5.x-review`，当前以远程 tag 为准）无内容交叉，仅占用同一仓库的不同目录 |
-| 冻结方式 | 本目录内容为本轮冻结快照；后续修订以新 commit + tag `php84-v1.2.5-review` 递增，不覆盖历史。**`php84-v1.2.4-review` 保持冻结于 `50c8d98`，不移动** |
+| 冻结方式 | **历史 tag 一经评审核验即不再移动。** 当前：`php84-v1.2.5-review`（`cd3f42b`）冻结于 `ce1c499`；`php84-v1.2.4-review`（`7675adc`）冻结于 `50c8d98`，未移动。**main 后续仅文档补正提交不进入任何 tag**，冻结边界见第一节末 |
 
 > **本包状态声明**：以下全部内容为**提交方自述**。评审方已独立核验 v1.2.4 的**版本关系**（main / 父提交 / tag 解引用一致），
 > 并确认 **D1–D3 主要修订通过**；另提出一处 staging 术语跨文档尾项，即本版所修。
@@ -71,8 +71,18 @@
 
 版本引用同步：`php_compatibility.md`、`runtime_upgrade_plan.md`、`yii_extension_audit.md`、`prod_baseline.md` 的"唯一有效裁定依据"已从 v1.2.4 统一升到 **v1.2.5**；主报告第 850 行结论段标记同步为"**报告结论（v1.2.5；技术结论与 v1.2.4 一致）**"（此项由评审在 v1.2.5 复核时指出，属同一版内的标记补正）。
 
-> 说明：本版把主报告版本号推到 v1.2.5，是为了让"文档版本 ↔ tag ↔ main 的 08 包内容"保持一一对应（评审自己核验时用的就是这条性质）。
+> 说明：本版把主报告版本号推到 v1.2.5，是为了让"文档版本 ↔ tag"保持一一对应（评审核验时用的就是这条性质）。
 > **`php84-v1.2.4-review` 不移动、不删除**，仍冻结在 `50c8d98`；v1.2.5 与它的差异仅为上述三处 + 版本栏。
+
+**冻结边界（后续引用必须区分，v1.2.5 复核后补）**：
+
+| 对象 | 内容 | 状态 |
+|---|---|---|
+| tag `php84-v1.2.5-review`（`cd3f42b` → `ce1c499`） | **v1.2.5 全量内容的冻结快照**；其中主报告第 850 行结论段标记**仍为 `（v1.2.4）`** | 已冻结，不移动 |
+| main `8ca1f0f` 起的提交 | **仅文档标记补正**：该行改为 `（v1.2.5；技术结论与 v1.2.4 一致）` | 在 main 上，不进入 tag |
+
+因此**不得表述为"v1.2.5 tag 与 main 当前 08 包内容完全一致"**。准确表述是：**v1.2.5 tag 是冻结快照；后续仅文档标记补正提交在 main 上，历史 tag 不移动。**
+核对方式见第八节第 7 步。
 
 ---
 
@@ -269,6 +279,22 @@ grep -n "本送审包内所有文档" docs/app_code_compatibility.md        # �
 grep -c "不包括在现有生产服务器上创建的 staging 站点" docs/runtime_upgrade_plan.md docs/yii_extension_audit.md
 #   期望两个文件各命中 1 次
 ```
+
+**7) 冻结边界核对**（在第 8 节位置单独执行，回到仓库根）：
+
+```bash
+cd /path/to/morrishk-site-upgrade-review
+git rev-list -n1 php84-v1.2.5-review     # 期望 ce1c499…（未被移动）
+git rev-parse HEAD                        # 期望 8ca1f0f… 或其后代
+# main 相对 v1.2.5 tag 应仅有文档标记补正，不涉及任何技术内容
+git diff --stat php84-v1.2.5-review HEAD -- 08_php84_compatibility
+#   期望：只涉及 README.md、SHA256SUMS.txt、docs/app_code_compatibility.md 三个文件；
+#   若出现 docs/ 下其他文件或 evidence/ 任何文件，说明冻结边界被破坏
+git diff php84-v1.2.5-review HEAD -- 08_php84_compatibility/docs/app_code_compatibility.md
+#   期望：唯一的内容性改动是第 850 行版本标记（其余为空白上下文）
+```
+
+> 若第 7 步看到的差异**超出**上述范围，说明 main 上还有未纳入冻结快照的实质改动，应视为冻结边界被破坏，需单独说明。
 
 ---
 
