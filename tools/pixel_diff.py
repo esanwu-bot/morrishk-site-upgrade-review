@@ -45,11 +45,14 @@
           「不存在才创建」），失败即说明该路径已被占用 → 拒绝，不覆盖、不删除。
           这一步刻意不用「先 `lexists` 再 `rename`」：那种写法在 POSIX 下
           `rename(dir, 已存在的空目录)` 会成功，等于覆盖对方刚建的空目录；
-       b. 旧包整组 rename 到容器内的 `<out>.prev/bundle`（该子路径刚随容器一起
-          被本进程占用，因此不存在覆盖对象）；
-       c. 移走后**复核身份**：设备号 + inode 必须与校验时一致，且要再过一次
-          `bundle_problem()`。若在「校验」与「rename」之间被其他进程调换，
-          就把它改名回原位并拒绝；
+       b. **同一条规则在容器内再应用一次**：再用 `os.mkdir(<out>.prev/bundle)`
+          占位，然后才 `rename(out_dir, prev_bundle)`。若不占位，直接 rename 到
+          `prev/bundle` 会重现 a 步刚消除的那个竞态（目标已存在且为空目录时
+          POSIX 允许覆盖），只是下沉了一层。占位之后，那次 rename 覆盖的**只能是
+          本进程刚创建的空目录**，因此不存在「覆盖他人目录」的代码路径；
+       c. 移走后**三重复核**：容器仍是本进程建的那个（设备号 + inode）、移进去的
+          确实是校验过的那个目录、且再过一次 `bundle_problem()`。任何一项不符就
+          把旧包改名回原位并拒绝；
        d. 新目录 rename 就位；
        e. **本工具不删除旧包**：成功后 `<out>.prev/bundle` 原样保留，
           由人确认后自行清理。理由见下。
@@ -61,12 +64,16 @@
      这样「删除只作用于被验证过的目录」不再是承诺，而是**没有删除旧包的动作**。
   7. 本工具仍会删除两类目录，均不承载历史证据：
        (a) 本次运行的 staging 目录（名字唯一、本次自建）；
-       (b) 失败回滚后**自己刚建、且已空**的 `<out>.prev` 容器（用 `os.rmdir`，
-           非空则失败，不会误删）。成功路径不删除任何目录。
+       (b) 失败回滚后**自己刚建、且已空**的 `<out>.prev/bundle` 占位与 `<out>.prev`
+           容器（用 `os.rmdir`，非空则失败，不会误删）。删除前还要比对身份
+           （设备号 + inode）：容器在 mkdir 之后可能被第三方改名替换，此时路径上的
+           对象已不是本进程建的那个，不删。成功路径不删除任何目录。
   8. 两条 rename 路径的并发边界不同，不要混用：
        - 发布到 `<out>`：靠「目标不存在时 rename 即检查」，目标被并发建成**空目录**
-         时 POSIX 允许覆盖（无内容可丢），Windows 上失败；
-       - 停放到 `<out>.prev`：靠 `os.mkdir` 独占占位，**空目录也不会被覆盖**。
+         时 POSIX 允许覆盖（无内容可丢），Windows 上失败。**这一条仍未关闭**，
+         属已披露边界，需 `renameat2(RENAME_NOREPLACE)`（仅 Linux）才能消除；
+       - 停放到 `<out>.prev/bundle`：两级都先 `os.mkdir` 独占占位，随后那次 rename
+         覆盖的只是**本进程自己刚建的空目录**，因此**空目录也不会被覆盖**。
 
 退出码：
   0 = 集合一致、尺寸一致、全部页面完成差分、发布成功
@@ -75,7 +82,8 @@
   4 = 尺寸不一致或单页差分失败（此时不发布）
   5 = 完成页数少于页面集合（此时不发布）
   6 = 发布前置条件不满足：目标已存在且未加 --replace-dir / 目标不是完整有效的本工具结果包 /
-      `<out>.prev` 已被占用（含并发抢占）/ 发布瞬间被其他进程抢占 / 替换过程中目标被调换
+      `<out>.prev` 或 `<out>.prev/bundle` 已被占用（含并发抢占）/ 发布瞬间被其他进程抢占 /
+      替换过程中目标或保留目录被调换
   7 = 产物校验失败、发布失败已回滚、或回滚本身失败（消息会给出 prev 目录路径）
 """
 from __future__ import annotations
@@ -348,6 +356,21 @@ def _rmdir_quiet(path):
         pass
 
 
+def _rmdir_own(path, expect_ident):
+    """只删「仍是本进程创建的那个」且「已空」的目录。
+
+    单靠 `_rmdir_quiet` 不够：容器可能在 mkdir 之后被第三方改名替换，此时路径上的
+    对象已不是本进程建的那个，删它等于删别人的目录。所以先比身份（设备号 + inode），
+    不一致就什么都不做。
+    """
+    try:
+        if _ident(path) != expect_ident:
+            return
+    except OSError:
+        return
+    _rmdir_quiet(path)
+
+
 def _restore(prev, out_dir):
     """把移开的旧目录改回原位；自身失败时抛 RollbackError 并保留 prev。"""
     try:
@@ -358,6 +381,19 @@ def _restore(prev, out_dir):
             "  旧整组证据仍完整保留在：%s\n"
             "  恢复命令：mv \"%s\" \"%s\"\n"
             "  （本次新结果已丢弃，不会覆盖该目录）" % (prev, prev, out_dir)) from exc
+
+
+def _needs_mkdir_placeholder():
+    """把旧包移到 `<out>.prev/bundle` 之前，是否必须先用 `os.mkdir` 占位。
+
+    Windows：`os.rename` 对已存在的目标（**含空目录**）一律失败，本身就是 no-replace，
+             不需要占位——占了反而会把自己挡住（目标已存在）。
+    POSIX  ：`rename(dir, 已存在的空目录)` 会成功并覆盖它，所以必须先占位；占位之后
+             那次 rename 覆盖的只是本进程刚创建的空目录。
+
+    抽成函数是为了让自测能强制切换分支，验证两条路径的控制流（见 R3-16）。
+    """
+    return os.name != "nt"
 
 
 def publish_bundle(out_dir, staging_dir, replace_dir):
@@ -372,10 +408,12 @@ def publish_bundle(out_dir, staging_dir, replace_dir):
 
     替换路径（replace_dir=True）的约定：
       1. 旧目录必须通过 `bundle_problem()` 的完整校验（残缺包一律拒绝）；
-      2. 既有 `<out>.prev` 不覆盖、不删除：存在即拒绝并给出处理方式；
-      3. 移走旧目录后**复核身份**（设备号 + inode + 再验一次包），
-         若在「检查」与「rename」之间被其他进程调换，则把它改回原位并拒绝；
-      4. **本函数不删除旧包**：成功后 `<out>.prev` 原样保留，清理权交给人。
+      2. 两级目标都**不覆盖、不删除**：`<out>.prev` 与 `<out>.prev/bundle` 都用
+         `os.mkdir` 独占占位，已存在即拒绝并给出处理方式；
+      3. 占位之后才 rename，因此被覆盖的目标只可能是本进程刚建的空目录；
+         移走旧目录后**三重复核**（容器身份 + 目录身份 + 再验一次包），
+         任何一项不符就把旧包改回原位并拒绝；
+      4. **本函数不删除旧包**：成功后 `<out>.prev/bundle` 原样保留，清理权交给人。
          原因：验证与删除之间，`prev` 路径的对象可被改名/替换/改写，
          `st_dev + st_ino` 只证明目录身份、不证明内容未变；在删除前再查一次
          仍是同一个 TOCTOU 结构。放弃删除权后，「删除只作用于被验证过的目录」
@@ -386,6 +424,7 @@ def publish_bundle(out_dir, staging_dir, replace_dir):
     """
     prev = None
     prev_bundle = None
+    box_ident = None
     if os.path.lexists(out_dir):
         problem = bundle_problem(out_dir)
         if problem:
@@ -414,18 +453,53 @@ def publish_bundle(out_dir, staging_dir, replace_dir):
         except OSError as exc:
             raise PublishError(
                 "无法创建旧包保留目录：%s\n  原因：%s" % (prev, exc))
+        box_ident = _ident(prev)
 
+        # **同一目标在容器内也要做到「已存在即拒绝」**，但两个平台的 no-replace 原语
+        # 恰好相反，必须显式分流——这不是「引入平台行为抽象」，而是各用各的内核保证：
+        #   Windows：os.rename 对已存在的目标（**含空目录**）一律失败，本身就是
+        #            no-replace，不需要也不应该预先占位（占位反而会把自己挡住）；
+        #   POSIX  ：rename 会**覆盖空目录**，因此先用 os.mkdir 占位，此后那次 rename
+        #            覆盖的只是本进程刚创建的空目录，不存在覆盖他人目录的路径。
+        # 两条分支的对外语义一致：`prev/bundle` 已存在（无论空非空）→ 拒绝。
+        # 关键：POSIX 分支的拒绝判据来自 os.mkdir 的原子性，发生在 rename **之前**，
+        # 因此不依赖 rename 的内核语义（见自测 R3-16）。
         prev_bundle = os.path.join(prev, "bundle")
+        placeholder = None
+        if _needs_mkdir_placeholder():
+            try:
+                os.mkdir(prev_bundle)
+            except FileExistsError:
+                _rmdir_own(prev, box_ident)  # 容器仍是自己那个且已空时才删
+                raise PublishError(
+                    "旧包保留位置已被占用，拒绝覆盖或删除：%s\n"
+                    "  该路径应由本工具用 mkdir 独占创建；它已存在说明有并发写入，\n"
+                    "  或是上一次替换留下的残骸。请人工确认后处理：\n"
+                    "    mv \"%s\" \"%s.discard.$(date +%%Y%%m%%d%%H%%M%%S)\"\n"
+                    "  然后重新运行。" % (prev_bundle, prev_bundle, prev_bundle))
+            except OSError as exc:
+                _rmdir_own(prev, box_ident)
+                raise PublishError(
+                    "无法创建旧包保留位置：%s\n  原因：%s" % (prev_bundle, exc))
+            placeholder = _ident(prev_bundle)
+
         ident_before = _ident(out_dir)
         try:
-            os.rename(out_dir, prev_bundle)  # 移进刚独占创建的容器
+            os.rename(out_dir, prev_bundle)  # POSIX 下覆盖的是本进程刚建的空目录
         except OSError as exc:
-            _rmdir_quiet(prev)  # 只删本进程刚建的空容器，非空时失败
+            if placeholder is not None:
+                _rmdir_own(prev_bundle, placeholder)  # 被写入则删不掉，不会误删
+            _rmdir_own(prev, box_ident)
             raise PublishError(
-                "旧结果包移动到 %s 失败：%s\n  发布未进行，%s 未被改动。"
-                % (prev_bundle, exc, out_dir))
+                "旧结果包移动到 %s 失败（该位置已存在，或不可写）：%s\n"
+                "  发布未进行，%s 未被改动。" % (prev_bundle, exc, out_dir))
 
-        swapped = _ident(prev_bundle) != ident_before or bundle_problem(prev_bundle) is not None
+        # 三重复核：容器仍是本进程建的那个、移进去的确实是刚验证过的目录、包仍完整。
+        # 容器被调换时，rename 会把旧包送进别人新建的容器——这里发现后原样退回。
+        box_hijacked = _ident(prev) != box_ident
+        swapped = (box_hijacked
+                   or _ident(prev_bundle) != ident_before
+                   or bundle_problem(prev_bundle) is not None)
         if swapped:
             # 移走的不是刚验证过的那个目录：把它放回去，拒绝发布，不删除任何内容
             try:
@@ -435,18 +509,19 @@ def publish_bundle(out_dir, staging_dir, replace_dir):
                     "替换过程中目标目录被其他进程调换，且把当前内容放回原位也失败。\n"
                     "  内容仍完整保留在：%s\n"
                     "  恢复命令：mv \"%s\" \"%s\"" % (prev_bundle, prev_bundle, out_dir)) from exc
-            _rmdir_quiet(prev)
+            _rmdir_own(prev, box_ident)  # 容器被换过时不删（那不是本进程的目录）
             raise PublishError(
-                "替换过程中目标目录被其他进程调换：%s\n"
+                "替换过程中%s被其他进程调换：%s\n"
                 "  已将当时移走的目录放回原位并拒绝发布，未删除任何内容。\n"
-                "  请确认无并发写入后重试。" % out_dir)
+                "  请确认无并发写入后重试。"
+                % ("旧包保留目录" if box_hijacked else "目标目录", out_dir))
 
     try:
         os.rename(staging_dir, out_dir)  # 对目标的唯一一次 rename
     except OSError:
         if prev:
             _restore(prev_bundle, out_dir)  # 回滚：旧包改回原位
-            _rmdir_quiet(prev)              # 容器此时应为空，删掉不留残骸
+            _rmdir_own(prev, box_ident)     # 容器仍是自己那个且已空才删
             raise
         if os.path.lexists(out_dir):
             raise PublishError(

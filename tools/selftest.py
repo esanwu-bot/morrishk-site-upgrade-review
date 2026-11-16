@@ -215,6 +215,17 @@ def patched_rename(fn):
         os.rename = real
 
 
+@contextlib.contextmanager
+def patched_mkdir(fn):
+    """替换 os.mkdir，用于在「目录刚建好」这个瞬间注入第三方动作。"""
+    real = os.mkdir
+    os.mkdir = fn
+    try:
+        yield real
+    finally:
+        os.mkdir = real
+
+
 def _staging_leftovers(directory):
     """同级目录内是否留下 .<name>.staging.* 暂存目录。"""
     return [n for n in os.listdir(directory) if ".staging." in n]
@@ -695,6 +706,141 @@ def test_r3():
               "%d 个文件" % len(_snapshot(sat_out)))
         check("R3", "R3-14 非空容器未被 rmdir 误删",
               os.path.isdir(sat_box), "容器已消失" if not os.path.isdir(sat_box) else "仍在")
+
+        # R3-15（评审要求）：容器建好之后、旧包移动之前，第三方在容器内抢先建一个
+        # **空** bundle。这是顶层 .prev 竞态的下沉版本，两条平台分支都要拒绝：
+        #   POSIX  → 随后的 os.mkdir(prev_bundle) 得到 FileExistsError；
+        #   Windows→ 随后的 os.rename 对已存在目标（含空目录）一律失败。
+        # 判据不是「走了哪条分支」，而是「对方那个空目录既没被覆盖、也没被删除」。
+        eb_out = os.path.join(base, "eb_out")
+        os.rename(_make_staging(base, "eb_seed"), eb_out)
+        eb_before = _snapshot(eb_out)
+        eb_box = eb_out + ".prev"
+        eb_intruder = os.path.join(eb_box, "bundle")
+        st_eb = _make_staging(base, "eb_new")
+        box_seen = {"done": False}
+
+        def inject_empty_bundle(path, *a, **kw):
+            r = real_mkdir(path, *a, **kw)
+            if (not box_seen["done"]
+                    and os.path.abspath(str(path)) == os.path.abspath(eb_box)):
+                box_seen["done"] = True
+                real_mkdir(eb_intruder)  # 第三方在建好的容器内抢建**空**目录
+            return r
+
+        err15 = [None]
+        with patched_mkdir(inject_empty_bundle) as real_mkdir:
+            try:
+                pd.publish_bundle(eb_out, st_eb, True)
+            except pd.PublishError as exc:
+                err15[0] = exc
+        check("R3", "R3-15 空的 prev/bundle 被并发抢占 -> PublishError（退出 6）",
+              isinstance(err15[0], pd.PublishError), "%r" % err15[0])
+        check("R3", "R3-15 对方空 bundle 仍在且仍为空（未被覆盖、未被删除）",
+              os.path.isdir(eb_intruder) and os.listdir(eb_intruder) == [],
+              str(os.listdir(eb_intruder)) if os.path.isdir(eb_intruder) else "目录已消失")
+        check("R3", "R3-15 旧包未被改动（仍在 out）", _snapshot(eb_out) == eb_before,
+              "%d 个文件" % len(_snapshot(eb_out)))
+        check("R3", "R3-15 本次 staging 未丢", os.path.exists(os.path.join(st_eb, "PIXEL_DIFF.md")))
+        check("R3", "R3-15 注入确实触发了（用例不是空转）", box_seen["done"] is True,
+              "box_seen=%r" % (box_seen,))
+
+        # R3-16：强制走 **POSIX 分支**（mkdir 占位），证明「对方已有空 bundle -> 拒绝」
+        # 的判据发生在 rename **之前**，因此不依赖 POSIX rename 的内核语义。
+        # 诚实边界：本机是 Windows，无法实测「POSIX rename 覆盖空目录」这一内核行为；
+        # 本用例证明的是控制流——被拒绝的理由来自 os.mkdir 的原子性（FileExistsError），
+        # 而不是 rename 是否覆盖。断言里显式检查「没有对 prev/bundle 发起 rename」。
+        px_out = os.path.join(base, "px_out")
+        os.rename(_make_staging(base, "px_seed"), px_out)
+        px_before = _snapshot(px_out)
+        px_box = px_out + ".prev"
+        px_intruder = os.path.join(px_box, "bundle")
+        st_px = _make_staging(base, "px_new")
+        px_seen = {"done": False}
+        px_renames = []
+        orig_need = pd._needs_mkdir_placeholder
+
+        def px_inject(path, *a, **kw):
+            r = real_mkdir(path, *a, **kw)
+            if (not px_seen["done"]
+                    and os.path.abspath(str(path)) == os.path.abspath(px_box)):
+                px_seen["done"] = True
+                real_mkdir(px_intruder)
+            return r
+
+        def px_watch_rename(src, dst):
+            px_renames.append(os.path.abspath(str(dst)))
+            return real_px_rename(src, dst)
+
+        pd._needs_mkdir_placeholder = lambda: True   # 强制 POSIX 分支
+        err16 = [None]
+        try:
+            with patched_mkdir(px_inject) as real_mkdir:
+                with patched_rename(px_watch_rename) as real_px_rename:
+                    try:
+                        pd.publish_bundle(px_out, st_px, True)
+                    except pd.PublishError as exc:
+                        err16[0] = exc
+        finally:
+            pd._needs_mkdir_placeholder = orig_need
+        check("R3", "R3-16 POSIX 分支：空 bundle 抢占 -> PublishError",
+              isinstance(err16[0], pd.PublishError), "%r" % err16[0])
+        check("R3", "R3-16 拒绝发生在 rename 之前（未对 prev/bundle 发起 rename）",
+              os.path.abspath(px_intruder) not in px_renames, str(px_renames))
+        check("R3", "R3-16 对方空 bundle 仍在且仍为空",
+              os.path.isdir(px_intruder) and os.listdir(px_intruder) == [],
+              str(os.listdir(px_intruder)) if os.path.isdir(px_intruder) else "目录已消失")
+        check("R3", "R3-16 旧包未被改动", _snapshot(px_out) == px_before,
+              "%d 个文件" % len(_snapshot(px_out)))
+        check("R3", "R3-16 注入确实触发了", px_seen["done"] is True, "px_seen=%r" % (px_seen,))
+
+        # R3-17：容器在 mkdir 之后被第三方**改名调换**——此时 `prev/bundle` 内部路径
+        # 会解析到另一个容器。这是「容器本身没有在移动旧包前验证身份」那条威胁面。
+        # 处置不是「rename 前再 lstat 一次」（同一个 TOCTOU），而是**移走后三重复核**：
+        # 容器身份不符 -> 把旧包改回原位并拒绝，且**不删除**那个不是自己建的容器。
+        hj_out = os.path.join(base, "hj_out")
+        os.rename(_make_staging(base, "hj_seed"), hj_out)
+        hj_before = _snapshot(hj_out)
+        hj_box = hj_out + ".prev"
+        hj_moved = hj_box + ".hijacked"
+        hj_seen = {"done": False}
+        orig_ident = pd._ident
+
+        def ident_hook(path):
+            """在「容器身份被读走之后」立刻调换容器——这才是可被复核抓住的窗口。
+
+            注入放在 mkdir 返回处是不对的：那时 `box_ident` 还没被读取，本进程会
+            直接读到第三方新容器的身份，之后无从判断，也不该判为缺陷（无从知晓）。
+            """
+            r = orig_ident(path)
+            if (not hj_seen["done"]
+                    and os.path.abspath(str(path)) == os.path.abspath(hj_box)):
+                hj_seen["done"] = True
+                os.rename(hj_box, hj_moved)   # 第三方把本进程的容器整体移走
+                os.mkdir(hj_box)              # 并在同路径建一个自己的
+            return r
+
+        st_hj = _make_staging(base, "hj_new")
+        err17 = [None]
+        pd._ident = ident_hook
+        try:
+            pd.publish_bundle(hj_out, st_hj, True)
+        except pd.PublishError as exc:
+            err17[0] = exc
+        finally:
+            pd._ident = orig_ident
+        check("R3", "R3-17 容器被改名调换 -> PublishError（退出 6）",
+              isinstance(err17[0], pd.PublishError), "%r" % err17[0])
+        check("R3", "R3-17 错误消息指明是保留目录被调换",
+              bool(err17[0]) and "旧包保留目录" in str(err17[0]),
+              (str(err17[0])[:60] if err17[0] else "无"))
+        check("R3", "R3-17 旧包已放回原位且逐字节未变", _snapshot(hj_out) == hj_before,
+              "%d 个文件" % len(_snapshot(hj_out)))
+        check("R3", "R3-17 第三方容器未被删除（身份不符则不删）",
+              os.path.isdir(hj_box), "容器已消失" if not os.path.isdir(hj_box) else "仍在")
+        check("R3", "R3-17 本进程被移走的容器仍在第三方改名处",
+              os.path.isdir(hj_moved), "已消失" if not os.path.isdir(hj_moved) else "仍在")
+        check("R3", "R3-17 注入确实触发了", hj_seen["done"] is True, "hj_seen=%r" % (hj_seen,))
     finally:
         shutil.rmtree(base, ignore_errors=True)
 

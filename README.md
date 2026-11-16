@@ -12,10 +12,10 @@
 | 项目 | morrishk.net 老站升级（电子元器件 B2B 独立站） |
 | 仓库 | https://github.com/esanwu-bot/morrishk-site-upgrade-review |
 | Branch | `main` |
-| 送审版本 | tag **`v1.5.7-review`**（`v1.4-review` / `v1.5-review` / `v1.5.1-review` / `v1.5.2-review` / `v1.5.3-review` / `v1.5.4-review` / `v1.5.5-review` / `v1.5.6-review` 保留未覆盖） |
+| 送审版本 | tag **`v1.5.8-review`**（`v1.4-review` / `v1.5-review` / `v1.5.1-review` / `v1.5.2-review` / `v1.5.3-review` / `v1.5.4-review` / `v1.5.5-review` / `v1.5.6-review` / `v1.5.7-review` 保留未覆盖） |
 | 并行送审包 | **`08_php84_compatibility/`**（PHP 8.4 兼容性评估），独立工作流、各自冻结。**本文件不转述其版本号**——版本以该包 `README.md` 头部与远程 tag 系列 `php84-v1.2.x-review` 为准 |
 | 交付日期 | 2026-11-16 |
-| 文档版本 | 商务方案 客户版 v1.1（rev.3） ／ 技术方案 技术版 v1.2（rev.3） ／ **原型 v1.5.7-prototype** ／ **Design System v1.0** |
+| 文档版本 | 商务方案 客户版 v1.1（rev.3） ／ 技术方案 技术版 v1.2（rev.3） ／ **原型 v1.5.8-prototype** ／ **Design System v1.0** |
 | 数据基线 | 2024-11-30 导出，静态终态（不随线上变化） |
 | 签名状态 | 本仓库的 commit 与 tag **均未做 Git 签名**（unsigned / 非 GPG 验证）。可用于确认版本内容与父子关系，**不可**作为经过签名的发布物 |
 
@@ -37,7 +37,7 @@ git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git ref
 也可直接打开下列直链绕过仓库首页缓存：
 
 - 提交历史：https://github.com/esanwu-bot/morrishk-site-upgrade-review/commits/main
-- 标签 `v1.5.7-review`：https://github.com/esanwu-bot/morrishk-site-upgrade-review/releases/tag/v1.5.7-review
+- 标签 `v1.5.8-review`：https://github.com/esanwu-bot/morrishk-site-upgrade-review/releases/tag/v1.5.8-review
 
 若仓库首页显示的提交数或 README 版本文字与上述 SHA 不符，属于页面缓存，请以 `git ls-remote` 的结果为准。
 
@@ -86,7 +86,7 @@ git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git ref
 │   ├── check_tokens.py             Token 合规扫描 → 生成 07_prototypes/TOKEN_AUDIT.md
 │   ├── pixel_diff.py               同视口逐像素差分 → 生成 pixel_diff/ 结果目录（报告 + 差异图）
 │   ├── css_value_diff.py           两版 CSS 逐条取值比对 → 生成 CSS_VALUE_DIFF.md
-│   └── selftest.py                 三个工具的回归自测（113 项断言，退出码 0/1）
+│   └── selftest.py                 三个工具的回归自测（129 项断言，退出码 0/1）
 └── 07_prototypes/                新版原型 + Design System（本轮 v1.5.6）
     ├── DESIGN.md                     ★ Morris Design System v1.0（唯一视觉权威）
     ├── README.md                     原型说明、标注系统、已知缺口
@@ -779,6 +779,62 @@ POSIX 下 `rename(dir, 已存在的空目录)` 会**成功**（用 `dir` 覆盖�
 
 成功路径**不删除任何目录**——旧包原样停在 `<out>.prev/bundle`。
 
+> **本节只关闭了顶层**。容器内的 `<out>.prev/bundle` 当时仍有同类竞态，见 8.14。
+
+### 8.14 R3 补完：容器内层也要 no-replace，两个平台各用各的原语（v1.5.8）
+
+第五轮复核（针对 v1.5.7）确认顶层已关闭，同时指出**同类竞态下沉了一层**，成立：
+
+```python
+os.mkdir(prev)                          # 顶层已占位
+os.rename(out_dir, prev + "/bundle")    # ← 目标若被第三方抢先建成**空目录**，
+                                        #   POSIX 下 rename 会成功并覆盖它
+```
+
+v1.5.7 的 R3-14 只证明了「非空 `bundle` 不被覆盖」，因为当时特意用非空目录换取跨平台稳定断言——
+但那只覆盖了一半事实。同时复核指出第二个威胁面：容器自身在 `mkdir` 之后可能被改名调换，
+`prev/bundle` 的路径解析会落到别人的目录里。
+
+**处置：不用「rename 前再检查一次」，而是让两个平台各自用自带的 no-replace 原语。**
+
+| 平台 | `rename(dir, 已存在的目标)` | 本工具的做法 |
+|---|---|---|
+| Windows | 一律失败（**含空目录**），本身就是 no-replace | 直接 rename，**不占位**（占位反而会把自己挡住） |
+| POSIX | 目标为空目录时**成功并覆盖** | 先 `os.mkdir(<out>.prev/bundle)` 占位，再 rename |
+
+两条分支的对外语义完全一致：**`prev/bundle` 已存在（无论空非空）→ 拒绝，不覆盖、不删除。**
+
+关键论证（不依赖平台实测）：POSIX 分支的拒绝判据来自 `os.mkdir` 的 `FileExistsError`，
+**发生在 rename 之前**；占位成功后，那次 rename 覆盖的只能是本进程刚创建的空目录。
+因此本工具不存在「覆盖他人目录」的代码路径。
+
+**容器身份复核**：`box_ident` 在 `mkdir(prev)` 之后立即记录，移动旧包后做三重复核——
+容器身份（设备号 + inode）、移进去的目录身份、`bundle_problem()` 再验一次。任一不符就把旧包
+改名回原位并拒绝。回滚清理改用 `_rmdir_own(path, expect_ident)`：**身份不符则不删**，
+避免删掉第三方换进来的容器。
+
+**新增测试（129 项，原 113 项）**：
+
+| 用例 | 平台覆盖 | 断言 |
+|---|---|---|
+| R3-15：容器建好后、旧包移动前，第三方在容器内抢建**空** `bundle` | 两平台 | 退出 6；对方空目录**仍在且仍为空**；旧包未动；staging 未丢 |
+| R3-16：强制走 **POSIX 分支**，同样注入空 `bundle` | 分支逻辑 | 退出 6；**`rename` 调用记录为空**——证明拒绝发生在 rename 之前；对方空目录未被覆盖/删除 |
+| R3-17：容器身份被读走之后、移动之前，第三方把容器改名并重建 | 两平台 | 退出 6；消息指明「旧包保留目录被调换」；旧包**已放回原位且逐字节未变**；第三方容器**未被删除**；本进程被移走的容器仍在第三方改名处 |
+
+R3-17 的注入点特意放在 `_ident()` **返回之后**而不是 `mkdir` 返回之后：后者的窗口里本进程
+还没读到容器身份，读到的已经是新容器的身份，无从判断，也不应判为缺陷。可被复核抓住的窗口
+只在「身份已记录」之后。
+
+**诚实边界（本机条件限制，不掩饰）**：
+
+- 本机为 Windows，WSL 与容器运行时被安全策略阻断，**POSIX 内核行为（rename 覆盖空目录）
+  未在本机实测**。R3-16 证明的是控制流（拒绝发生在 rename 之前），不是内核语义。
+- 因此这一条需要你在 Linux 上跑一次 `python tools/selftest.py` 才能作为「两平台实测」签署；
+  在此之前，POSIX 分支只算「逻辑闭合 + 控制流有测试」，不算「内核实测通过」。
+- **仍未关闭**（与 `.prev` 无关、单独披露）：正常发布路径把新包 rename 到 `<out>` 本体时，
+  目标被并发建成**空目录**仍会被 POSIX 覆盖（无内容可丢）。消除它需要
+  `renameat2(RENAME_NOREPLACE)` 或 `MoveFileExW` 级别的原语，本项目暂不引入。
+
 ## 九、版本与校验
 
 **文件数量口径**（四个数字含义不同，勿混用）：
@@ -819,7 +875,7 @@ python tools/css_value_diff.py \
   --tokens 07_prototypes/assets/tokens.css \
   --out /tmp/pd_check/CSS_VALUE_DIFF.md
 
-# 5c) 跑工具回归自测（113 项断言，含 R1 覆盖 / R2 边界 / R3 负向用例、并发与回滚故障注入、报告可复现性）
+# 5c) 跑工具回归自测（129 项断言，含 R1 覆盖 / R2 边界 / R3 负向用例、并发与回滚故障注入、报告可复现性）
 python tools/selftest.py
 
 # 6) 查看本仓库全部提交与送审 tag
@@ -829,8 +885,9 @@ git tag -n
 
 **三个脚本都有非零退出码，可直接接 CI**：`check_tokens.py` 有 FAIL 退出 1；
 `pixel_diff.py` —— 集合不一致 3、尺寸不符或差分失败 4、完成页数不足 5、
-**发布目标已存在 / 目标不是完整有效结果包 / 既有 `<out>.prev` 未人工处理（含并发抢占，
-`os.mkdir` 占位失败）/ 发布瞬间被抢占 / 替换中被调换 6**、**产物校验失败、发布失败已回滚、回滚本身失败 7**；
+**发布目标已存在 / 目标不是完整有效结果包 / 既有 `<out>.prev` 或 `<out>.prev/bundle`
+未人工处理（含并发抢占，占位或移动失败）/ 发布瞬间被抢占 / 替换中目标或保留目录被调换 6**、
+**产物校验失败、发布失败已回滚、回滚本身失败 7**；
 `css_value_diff.py` 分类合计与真实变更数不一致退出 3。「脚本跑完没报错」不等于「通过」，
 必须同时看退出码与报告里的判定行。
 

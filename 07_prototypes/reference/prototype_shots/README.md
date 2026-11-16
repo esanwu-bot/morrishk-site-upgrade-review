@@ -46,7 +46,7 @@ python tools/css_value_diff.py \
 
 两个脚本都带**非零退出码**语义，可直接接 CI：
 `pixel_diff.py` 缺页/仅多页/两者兼有均退出 3、尺寸不一致或差分失败退出 4、完成页数不足 5、
-发布前置条件不满足（目标已存在且未加 `--replace-dir`、目标不是完整有效结果包、既有 `<out>.prev` 未人工处理（含并发抢占，`os.mkdir` 占位失败）、发布瞬间被抢占、替换中被调换）退出 6；产物校验失败 / 发布失败已回滚 / 回滚本身失败退出 7；
+发布前置条件不满足（目标已存在且未加 `--replace-dir`、目标不是完整有效结果包、既有 `<out>.prev` 或 `<out>.prev/bundle` 未人工处理（含并发抢占）、发布瞬间被抢占、替换中目标或保留目录被调换）退出 6；产物校验失败 / 发布失败已回滚 / 回滚本身失败退出 7；
 `css_value_diff.py` 分类合计与真实变更数不一致退出 3。
 
 **发布模型（一个目录 = 一个原子单元）**：`--out` 指向的结果目录内含 `PIXEL_DIFF.md` 与 `diff/`，
@@ -59,6 +59,12 @@ python tools/css_value_diff.py \
 （POSIX 与 Windows 上都是原子的「不存在才创建」，失败即被占用——这里刻意不用「先 `lexists` 再
 `rename`」，因为 POSIX 下 `rename(dir, 已存在的空目录)` 会成功，等于覆盖对方刚建的空目录），
 再把旧包整组 rename 到容器内的 **`<out>.prev/bundle`**，然后新包就位。
+
+容器内层**同样是 no-replace**，但两个平台的原语相反：Windows 的 `os.rename` 对已存在目标
+（含空目录）一律失败，因此直接 rename、**不占位**；POSIX 的 `rename` 会覆盖空目录，因此先
+`os.mkdir(<out>.prev/bundle)` 占位，被覆盖的只是本进程刚建的空目录。两条分支对外语义一致：
+`prev/bundle` 已存在（无论空非空）→ 拒绝。移动旧包后还会**三重校验**容器身份（设备号 + inode）、
+目录身份与包完整性，不符则原样退回（详见根 README 8.14）。
 
 **旧包不会被自动删除**：`<out>.prev/bundle` 原样保留，由人确认后清理——验证与删除之间无法排除第三方
 替换 `prev` 路径的对象，本工具因此放弃删除权（详见根 README 8.12 / 8.13）。`<out>.prev` 已存在时
@@ -74,12 +80,14 @@ mv pixel_diff.prev/bundle /tmp/pixel_diff.prev.$(date +%Y%m%d%H%M%S)   # 确认�
 rmdir pixel_diff.prev                                                  # 容器已空，可删
 ```
 
-回归用例见 `python tools/selftest.py`（**113 项断言**，覆盖：目标已存在拒绝发布、残缺包 7 种（含
+回归用例见 `python tools/selftest.py`（**129 项断言**，覆盖：目标已存在拒绝发布、残缺包 7 种（含
 JPEG 冒充 `.png`）在 `--replace-dir` 下仍被拒且字节不变、既有 `.prev` 不被覆盖/删除、
 发布成功后旧包原样保留在 `.prev/bundle` 且本进程从不 `rmtree` 它、`.prev` 未清理时再次替换被拒、
 发布后第三方替换 `.prev` 时冒名目录逐字节完好、发布瞬间被并发抢占不覆盖对方、
 空 `.prev` 被并发抢占时对方目录仍在且仍为空（占位不靠 rename）且源码不含 `lexists(prev)`、
-容器内 `bundle` 被抢占时第三方内容不被覆盖且非空容器不被 `rmdir` 误删、
+容器内 `bundle` 被抢占（空与非空两种）时第三方内容不被覆盖、非空容器不被 `rmdir` 误删、
+POSIX 分支下拒绝发生在 rename 之前（rename 调用记录为空）、容器被改名调换时旧包原样退回
+且第三方容器不被删除、
 替换过程中目标被调换时不删除未验证目录（逐字节比对）、第二次 rename 失败后回滚字节不变、
 回滚本身失败时保留 prev 并给出恢复命令、回滚时目标被抢占、目标只发生一次 rename、
 两次独立运行报告字节一致）。
