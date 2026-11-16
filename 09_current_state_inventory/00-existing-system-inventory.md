@@ -55,29 +55,32 @@
 
 | 级别 | 含义 | 示例 |
 |---|---|---|
-| E1 | **生产数据 + 生产代码**双重证据 | `snsii_product` 约 1,009 万 AUTO_INCREMENT + 详情路由代码 |
+| E1 | **生产快照数据 + 生产代码**可对应 | `snsii_product` 约 1,009 万 AUTO_INCREMENT + 详情路由代码 |
 | E2 | 仅代码/结构存在，未证明生产使用 | 某 console command 存在但无定时任务证据 |
 | E3 | 规划/契约/设计文档 | Phase 1 API 契约、三层闸门定义 |
 | E4 | 原型/Demo | `07_prototypes/admin`、`DsBit/prototype.html` |
 | E5 | 推断 | 由命名/注释推断，需后续核实 |
 
-文档中的「状态」列与「证据级别」列配合阅读：**E2 + EXISTS_PRODUCTION 的组合不会出现**；只有 E1 才允许判定生产使用。
+**本轮证据的时间边界**：数据库证据来自 `2024-11-30` 的静态结构导出；本轮**没有**执行线上 URL 探针、实时 SQL 或后台登录。因此 E1 只证明「历史生产快照与代码路径可对应」，不证明「当前线上正在运行」。
 
 ---
 
 ## 3. 状态口径
 
-严格采用任务书定义，不合并、不替换：
+严格采用任务书定义，并增加一个证据级别后缀以区分快照与实时验证：
 
 | 状态 | 判定规则 | 本目录中的典型对象 |
 |---|---|---|
-| `EXISTS_PRODUCTION` | 有生产数据/生产配置证据，且代码路径可对应 | 旧站商品详情、分类、搜索、询盘邮件、GA4 标签 |
+| `EXISTS_PRODUCTION`（= `EXISTS_PRODUCTION_SNAPSHOT`） | 历史生产快照（2024-11-30 结构导出）中的数据/配置与生产代码可对应；**本轮未实时验证** | 旧站商品详情、分类、搜索、询盘邮件、GA4 标签 |
+| `EXISTS_PRODUCTION_VERIFIED` | 经本轮或近期只读探针/实时数据验证，确认当前线上可用 | **本目录暂无**（本轮未做生产探针） |
 | `EXISTS_CODE` | 代码存在，但本轮无生产使用证据 | 旧站 Google Indexing 命令、Ads 后台、platform 组件 |
 | `EXISTS_PROTOTYPE` | 仅存在于 HTML/静态原型，无后端实现 | 后台 34 路由中的营销/审核/权限页面 |
 | `PARTIAL` | 主链路存在但关键环节缺失/不可用/仅部分数据 | Datasheet 展示、库存、订单跟踪、广告位 |
 | `NOT_FOUND` | **在本次调查范围内**未发现，不表示绝对不存在 | 替代料、客户账户、社媒发布、审计日志 |
 | `UNKNOWN` | 资料不足，无法判断 | 生产定时任务是否仍在运行、第三方服务当前可用性 |
 
+> 为保持与任务书原状态名的兼容，本目录表格继续写 `EXISTS_PRODUCTION`，但其含义**一律**为 `EXISTS_PRODUCTION_SNAPSHOT`；只有明确写 `EXISTS_PRODUCTION_VERIFIED` 才代表实时验证。E2 与 `EXISTS_PRODUCTION` 的组合不会出现。
+>
 > `NOT_FOUND` 的使用约定：一律写「调查范围内未发现」，并在「待确认」列说明还需查什么。
 
 ---
@@ -86,8 +89,8 @@
 
 ```text
                          ┌──────────────────────────────────────────┐
-                         │  旧站 Yii2（生产，URL 冻结）               │
-                         │  www.morrishk.net + 79 个语种域名          │
+                         │  旧站 Yii2（历史生产快照，URL 冻结）       │
+                         │  www.morrishk.net + 79 个一域一语域名      │
                          │  snsii_* 表 31 张 / 商品约 1,009 万        │
                          └───────────────┬──────────────────────────┘
                                          │ 第三方邮件接口（wm.zokoko.cn）
@@ -110,7 +113,7 @@
 
 | 数据源 | 载体 | 现状 | 证据 |
 |---|---|---|---|
-| 旧站商品参数 | `snsii_product.DataAttr`（JSON 文本） | 生产使用；后台手工编辑 | `models/SnSiiProduct.php`、`modules/ejadmin/views/product/form.php:112` |
+| 旧站商品参数 | `snsii_product.DataAttr`（JSON 文本） | 生产快照中在用；后台手工编辑（本轮未实时验证） | `models/SnSiiProduct.php`、`modules/ejadmin/views/product/form.php:112` |
 | 新平台参数模型 | `pd_param_def` / `pd_model` 等 12 表 | Migration 已写，未接生产数据 | `platform/db/migrations/*.up.sql` |
 | Ds Bit 参数候选 | `src/icpdf/domain/parameter.py` + `runs/<run_id>` | 代码可运行，未入生产库 | `icpdf-extractor/src/icpdf/domain/`、`workbench/serve_parser.py` |
 
@@ -120,8 +123,10 @@
 
 | 载体 | 现状 | 证据 |
 |---|---|---|
-| 旧站 News/Info/Help | 生产使用（后台 CRUD） | `modules/ejadmin/controllers/NewsController.php` 等 |
-| 旧站 Blog（前台读取 News） | 生产使用 | `controllers/BlogController.php` |
+| 旧站 News | 生产快照中有代码与数据（`snsii_news` 186 AUTO_INCREMENT） | `modules/ejadmin/controllers/NewsController.php`；`02_table_inventory.csv` |
+| 旧站 Info | 生产快照中有代码与数据（`snsii_info` 6 AUTO_INCREMENT） | `modules/ejadmin/controllers/InfoController.php`；`02_table_inventory.csv` |
+| 旧站 Help | **不可归类为生产可用**：控制器引用不存在的 `SnSiiHelp` / `SnSiiHelpCategory` 模型，31 表快照中也未发现对应表 | `HelpController.php:19-22`；`models/`；`02_table_inventory.csv` |
+| 旧站 Blog（前台读取 News） | 生产快照中可见代码 | `controllers/BlogController.php` |
 | 后台原型「内容资产库」 | 仅 Demo | `07_prototypes/admin/assets/data.js` |
 | Ds Bit「技术内容生成」 | 仅原型/设计 | `07_prototypes/admin/assets/views-knowledge.js` |
 
@@ -146,12 +151,12 @@
 | 新平台 API 契约 | 9 个端点 | `platform/docs/phase1/03-api-contract.yaml` |
 | 归档 API 实现 | ThinkPHP 6.1，8 个端点（无 `/home`） | `platform/_archive/platform_server/route/app.php` |
 | 新平台迁移 | 4 组 up/down，12 张表，**0 条 ALTER** | `platform/db/migrations/` |
-| 新前台语言 | 代码 5 种：`en,de,ja,es,id` | `platform/web/src/i18n/locales.ts:18` |
-| 文档中的语言 | 文档写 6 种：`en,zh,ja,de,es,id` | `04-web-frontend-plan.md:125`、`05-frontend-routing-and-acceptance.md:82` |
-| 客户最终语种（记忆/客户确认） | 5 种 `en,de,ja,es,fr`（待本轮以文件核实） | 见 `07-open-questions.md` Q1 |
+| 客户确认的目标语言 | **5 种：`en,de,ja,es,fr`**；默认 `en`；`id`、`zh` 不属于目标语言；印度市场暂以英文支持 | Reviewer 任务书（2026-11-16）；见 `07` Q-01 决策记录 |
+| 当前代码实现的语言 | 5 种：`en,de,ja,es,id`；**`fr` 尚未实现，`id` 为遗留实现差异** | `platform/web/src/i18n/locales.ts:18` |
+| 平台文档中的语言 | 6 种：`en,zh,ja,de,es,id`；与客户决策、当前代码均不一致 | `04-web-frontend-plan.md:125`、`05-frontend-routing-and-acceptance.md:82` |
 | Ds Bit 解析器 | Phase 1 完成；确定性解析 + 候选；**无 LLM、无数据库** | `icpdf-extractor/README.md:3-6`、`workbench/serve_parser.py:18` |
 | Ds Bit 运行产物 | `runs/` 下 51 个目录 | `icpdf-extractor/runs/` |
-| 三层闸门 | 仅存在于原型与设计文档，代码中 0 命中 | `07_prototypes/admin/assets/views-knowledge.js:52-54`；`grep` 结果为空 |
+| 三层闸门 | HTML 原型存在**前端演示级**资格判断（含 `contentRelease()`）；正式业务后端**无持久化实现** | `07_prototypes/admin/assets/views-knowledge.js:52-54`、`admin.js:313-355`；后端 `grep` 为空 |
 | 后台原型 | 单页 Hash 路由，34 个页面，全部 Demo | `07_prototypes/admin/assets/admin.js:22-57` |
 
 ---
@@ -160,8 +165,8 @@
 
 | 术语 | 本目录中的含义 |
 |---|---|
-| 老站 / 旧站 | `www.morrishk.net` 及 79 个语种域名上的 Yii2 站点 |
-| 语种域名 | `domain.txt`/`DuoLang` 中「一个域名对应一种语言」的机制，不是 URL 前缀 |
+| 老站 / 旧站 | `www.morrishk.net` 及 79 个一域一语域名上的 Yii2 站点（历史生产快照） |
+| 语种域名 | `domain.txt`/`DuoLang` 中「一个域名对应一种语言」的旧机制，不是 URL 前缀，也不等于新版目标语言 |
 | 商城运营后台 | 旧站 `modules/ejadmin` |
 | 管理后台原型 | `07_prototypes/admin` 的静态 SPA，仅用于评审，不是生产后台 |
 | 营销工作台 | 任务书中定义的「计划/内容/渠道/排期/线索/分析」集合；现状仅有原型 |
@@ -171,7 +176,7 @@
 | `RELEASE_APPROVED` | 指定发布批次获批；**不等于**历史内容自动获批 |
 | 参数级 `ReviewStatus` | 单个参数的审核状态（`Verified` / `Needs Review` / `Rejected`），**不等于**三层闸门 |
 
-> 三层闸门依赖顺序固定为 `PIPELINE_PASS → CONTENT_APPROVED → RELEASE_APPROVED`，上游未通过时下游不得标记为已批准。该语义在原型中已固化，但**代码中尚不存在**。
+> 三层闸门依赖顺序固定为 `PIPELINE_PASS → CONTENT_APPROVED → RELEASE_APPROVED`，上游未通过时下游不得标记为已批准。HTML 原型存在前端演示级资格判断（`contentRelease()`），但**正式业务后端没有持久化的三层闸门实现**，也不存在可依赖的服务端审核、发布授权、批次记录与审计闭环。参数级 `ReviewStatus` 只代表单个参数，不能与 `CONTENT_APPROVED` 或 `RELEASE_APPROVED` 混用。
 
 ---
 
@@ -235,7 +240,7 @@
 | 工程计划 | `docs/phase1/01-engineering-plan.md` | 全文章节 |
 | DB 变更协议 | `docs/phase1/02-db-change-protocol.md` | 全文 |
 | API 契约 | `docs/phase1/03-api-contract.yaml` | 9 个 path |
-| 前端计划 | `docs/phase1/04-web-frontend-plan.md` | 125（六语种） |
+| 前端计划 | `docs/phase1/04-web-frontend-plan.md` | 125（过期的六语种口径） |
 | 路由验收 | `docs/phase1/05-frontend-routing-and-acceptance.md` | 15、82 |
 | 后台技术决策 | `docs/phase1/06-admin-frontend-technology-decision.md` | §3、§9.1 |
 | 后台阶段 0 | `docs/phase1/admin/00-project-scope.md` | §3-§6 |

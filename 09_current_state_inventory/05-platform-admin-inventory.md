@@ -1,13 +1,13 @@
 # 05 · 平台管理中心现状盘点
 
 > 覆盖对象：
-> - 旧站管理后台 `modules/ejadmin`（唯一实际在用的管理入口）
+> - 旧站管理后台 `modules/ejadmin`（历史生产快照中唯一在用的管理入口；本轮未实时验证）
 > - 新平台工程 `E:\workspace\独立站\morries\platform`（前台脚手架 + 契约 + 迁移 + 归档后端）
 > - 管理后台原型 `07_prototypes/admin`（Demo）
 > - `08_php84_compatibility` 仅作背景，不在本文展开
 >
 > 阅读前提：**「新工程里有代码」「原型里有页面」「文档里有方案」三者互不等于「平台管理中心已具备该能力」。**
-> 本文状态严格按 `00` 文档定义，`EXISTS_PRODUCTION` 必须有生产数据 + 生产代码双证据。
+> 本文状态严格按 `00` 文档定义。`EXISTS_PRODUCTION` 在本目录等价于 `EXISTS_PRODUCTION_SNAPSHOT`：仅表示 2024-11-30 快照与代码可对应，不表示当前线上实时可用；实时验证后才可标记 `EXISTS_PRODUCTION_VERIFIED`。
 
 ---
 
@@ -15,12 +15,12 @@
 
 | 形态 | 路径 | 是否运行 | 能管理什么 | 证据 |
 |---|---|---|---|---|
-| 旧 Yii2 后台 | `newPlan/morrishk.net/modules/ejadmin` | **是**（生产在用） | 商品、分类、内容、广告、管理员账号 | `modules/ejadmin` 10 控制器 43 action；`snsii_manage` AUTO_INCREMENT 195 |
+| 旧 Yii2 后台 | `newPlan/morrishk.net/modules/ejadmin` | **历史生产快照中在用**（未实时验证） | 商品、分类、内容、广告、管理员账号 | `modules/ejadmin` 10 控制器 43 action；`snsii_manage` AUTO_INCREMENT 195 |
 | 新平台工程 | `platform/` | **前台未上线；后台未创建** | 目前只有组件、契约、迁移、归档原型 | `platform/README.md:3`；`web/src` 无 `page.tsx`/`layout.tsx` |
 | 后台原型 | `07_prototypes/admin` | 静态 Demo | 34 个 hash 路由的交互演示，不写库 | `assets/admin.js:22-57` |
 
 > 因此，本任务书中的「平台管理中心」在现状上应拆成两句话：
-> 1. **管理职能目前全部由旧 Yii2 后台承担**（且能力有限，见 `02`）。
+> 1. **按历史生产快照，管理职能由旧 Yii2 后台承担**（未实时验证；且能力有限，见 `02`）。
 > 2. **新平台管理中心尚不存在**；只有技术方向文档与 UI 原型。
 
 ---
@@ -42,7 +42,7 @@ platform/
 | 前端框架 | Next.js 16.4.6 / React 19.3.1 / TypeScript strict | `web/package.json` |
 | 页面完成度 | `web/src` 下 **0 个 `page.tsx` / `layout.tsx`**；只有 8 个组件 | `find web/src -name page.tsx -o -name layout.tsx` 计数 0 |
 | 组件清单 | `AlternativesPanel`、`AssetPanel`、`PriceLadder`、`SpecTable`、`FacetGroup`、`ResultRow`、`StockStatusView`、`Badge` | `web/src/components/**` |
-| 语言清单 | 代码 5 种：`en/de/ja/es/id`，默认 `en`，明确不支持中文 | `web/src/i18n/locales.ts:18` |
+| 语言清单 | **目标 5 种：`en/de/ja/es/fr`**（默认 `en`，`id`/`zh` 不属于目标）；**当前代码仍是 `en/de/ja/es/id`，`fr` 未实现** | 客户决策见 `07` Q-01；代码见 `web/src/i18n/locales.ts:18` |
 | 消息文件 | `en/de/es/id/ja` 五份 JSON | `web/src/messages/` |
 | API 契约 | OpenAPI 3.1，**9 个路径**：health、models/{mpn}、home、models、search、suggest、categories/{slug}、inquiries、inquiries/{leadNo} | `docs/phase1/03-api-contract.yaml:34,66,111,164,203,304,348,396,469` |
 | 归档后端 | ThinkPHP 6.1，8 条路由与契约基本对应 | `_archive/platform_server/route/app.php:9-21` |
@@ -162,7 +162,7 @@ platform/
 | 编号 | 状态 | 证据级别 | 证据 | 仅原型 | 重复实现 | 问题/待确认 |
 |---|---|---|---|---|---|---|
 | PA-26 | NOT_FOUND | E2（负向） | 无配置控制器；`config/params.php` 静态 | 是（settings Demo） | 原型 settings | 配置变更是否允许在线 |
-| PA-27 | EXISTS_CODE | E1 | `config/params.php:12`（80 条） | 是（settings 语言展示） | 新平台 `locales.ts`（5 种） | 80 域名如何收敛待定 |
+| PA-27 | EXISTS_CODE | E1 | `config/params.php:12`（80 条） | 是（settings 语言展示） | 新平台 `locales.ts`（当前 5 种） | 80 域名处置与新版 5 语种目标是两个问题；前者见 `07` Q-02 |
 | PA-28 | PARTIAL | E2 | `config/web.php` SMTP/组件配置 | 是（settings 集成 Tab） | 无 | 密钥轮换与最小权限未设计 |
 | PA-29 | NOT_FOUND | E2（负向） | 无模板表 | 是（settings 通知 Tab） | 无 | — |
 | PA-30 | NOT_FOUND | E2（负向） | 无字典表 | 否 | 多个硬编码枚举 | 参数单位标准归属待定 |
@@ -194,7 +194,7 @@ platform/
 
 | 编号 | 三级功能 | 功能说明 | 使用角色 | 业务输入 | 业务输出 | 关键业务规则 | 依赖 |
 |---|---|---|---|---|---|---|---|
-| PA-39 | 新版语种清单 | 前台支持的语言 | 产品 | 决策 | `LOCALE_CODES` | 5 种 `en/de/ja/es/id`，默认 `en`，不支持中文 | `web/src/i18n/locales.ts:18` |
+| PA-39 | 新版语种清单 | 前台支持的语言 | 产品 | 决策 | `LOCALE_CODES` | **目标 5 种 `en/de/ja/es/fr`**，默认 `en`；`id`/`zh` 不属于目标语言。当前代码仍为 `en/de/ja/es/id`，`fr` 未实现 | 客户决策见 `07` Q-01；代码见 `web/src/i18n/locales.ts:18` |
 | PA-40 | 消息词库 | 各语种 UI 文案 | 内容运营 | 译文 | `messages/*.json` | 缺 key 构建期失败；不允许英文占位 | `web/src/messages/` |
 | PA-41 | 路由前缀与 hreflang | `as-needed` 前缀与 canonical | 开发 | locale | URL/标签 | 默认语言不带前缀；每页唯一 canonical | `web/src/i18n/routing.ts`、`docs/phase1/05-frontend-routing-and-acceptance.md:15` |
 | PA-42 | 旧域名/旧语种映射 | 80 个旧域名如何跳转 | 运维/开发 | 旧域名清单 | 301 规则 | **盘点文档缺失**；仅见 `legacy-url-redirects.csv` | `docs/phase1/legacy-url-redirects.csv` |
@@ -203,10 +203,10 @@ platform/
 
 | 编号 | 状态 | 证据级别 | 证据 | 仅原型 | 重复实现 | 问题/待确认 |
 |---|---|---|---|---|---|---|
-| PA-39 | EXISTS_CODE | E2 | `web/src/i18n/locales.ts:18` | 否 | `config/params.php` 80 域名 | **文档仍有「六语种含 zh」的旧口径**（`04-web-frontend-plan.md`、`05-frontend-routing-and-acceptance.md:82`） |
+| PA-39 | EXISTS_CODE | E2 | `web/src/i18n/locales.ts:18` | 否 | `config/params.php` 80 域名 | **目标（fr）与代码（id）不一致**；`fr` 未实现，`id` 为遗留；文档仍写「六语种含 zh」 |
 | PA-40 | EXISTS_CODE | E2 | 5 份 JSON；`locales.test.ts` | 否 | 旧站多语表 | 译文来源与审校流程未定 |
 | PA-41 | EXISTS_CODE | E3 | `routing.ts`、验收文档 `:15` | 否 | 旧站 `DuoLang` 域名路由 | 旧 URL 冻结与新路由如何并存未定 |
-| PA-42 | NOT_FOUND | E2/E3 | `07-language-and-legacy-domain-mapping.md` 被引用但**文件不存在** | 否 | 旧站 80 域名 | 80 域名处置是上线前置条件 |
+| PA-42 | NOT_FOUND | E2/E3 | `07-language-and-legacy-domain-mapping.md` 被引用但**文件不存在** | 否 | 旧站 80 域名 | 80 域名处置是上线前置条件；与目标语言集合分开确认（`07` Q-02） |
 | PA-43 | EXISTS_PRODUCTION | E1 | `commands/AdminController.php:30` | 否 | 原型中文界面 | 新后台是否多语未定 |
 | PA-44 | PARTIAL | E1/E2 | `snsii_attr_name_lang` 等表；后台无维护入口 | 否 | 新平台消息文件 | 商品参数翻译归属待定 |
 
@@ -240,10 +240,10 @@ platform/
 
 ## 6. 本文件结论（只陈述现状）
 
-1. **平台管理中心尚无新产品**：旧后台是唯一在用的管理入口；新工程没有后台应用、没有后台契约、没有账号/权限/审计数据模型。
+1. **平台管理中心尚无新产品**：旧后台是历史生产快照中唯一在用的管理入口（本轮未实时验证）；新工程没有后台应用、没有后台契约、没有账号/权限/审计数据模型。
 2. **旧后台的真实能力边界**是「登录 + 菜单可见性 + 10 个控制器的业务 CRUD」，不是 RBAC，也没有审计与任务监控。
 3. **原型覆盖了完整的管理中心信息架构**，但全部是 Demo，不能计入实现。
-4. **多语言存在三套口径**：旧站 80 域名 / 新代码 5 语种 / 文档仍写 6 语种（含 zh）。三者需要在进入设计前统一（见 `07`）。
+4. **多语言存在四层事实**：客户目标 5 语种（`en/de/ja/es/fr`）/ 当前代码 5 语种（`en/de/ja/es/id`）/ 文档仍写 6 语种（含 zh）/ 旧站 80 域名。目标与实现差异需在开发前消除；80 域名处置单独确认（见 `07` Q-02）。
 5. **新平台契约 9 条路径均未见 Yii2 生产实现**；这是 Phase 1 前台能否上线的前置事实，不是管理中心独有问题。
 
 > 本文不提出目标架构、不排期、不给出改造优先级。相关问题统一收敛到 `06` 与 `07`。

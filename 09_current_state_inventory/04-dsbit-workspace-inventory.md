@@ -17,7 +17,7 @@
 | 数据持久化 | **不连数据库、不写 PostgreSQL** | `workbench/serve_parser.py:18`、`workbench/parse_worker.py:17` |
 | 运行产物 | `runs/<run_id>/`，每文件带 SHA-256，配置脱敏 | `README.md`「run artifacts」；`runs/` 51 个目录 |
 | 生产接入 | Slice 6 仍为 DRAFT；item 98「pending production integration」 | `docs/SLICE6_INTEGRATION_PLAN.md` |
-| 三层闸门 | **只存在于原型/设计文档**；代码中 0 命中 | `07_prototypes/admin/assets/views-knowledge.js:52-54`；`grep` 结果为空 |
+| 三层闸门 | HTML 原型存在**前端演示级** `contentRelease()` 资格判断；正式业务后端**无持久化实现** | `07_prototypes/admin/assets/views-knowledge.js:52-54`、`admin.js:313-355`；后端 `grep` 为空 |
 
 > 部署≠可用：G0 环境的作用是证明「部署链路通 + 解析被锁死」，不是生产解析服务。
 
@@ -81,9 +81,9 @@ PDF
 | DSB-20 | 质量状态 | 参数/表格状态 | 系统 | 校验结果 | `verified/audited/unverified/unresolved/quarantined/rejected` | `unresolved/quarantined/rejected` 必须写原因 | `domain/parameter.py:22-27` |
 | DSB-21 | 人工审核 | 审核人确认/退回 | 审核人 | 候选 | 审核状态 | **未实现**：模型无审核人/时间/意见字段，无审核 API/UI | 无 |
 | DSB-22 | 知识版本 | 版本、差异、回滚 | 知识管理员 | 参数集 | 版本记录 | **未实现**：无版本表/快照/回滚 | 无 |
-| DSB-23 | 发布授权 | 批次授权 | 发布负责人 | 内容版本 | 授权记录 | **未实现**：仅在原型/设计中出现 `RELEASE_APPROVED` | 无 |
-| DSB-24 | 发布记录 | 发布批次与结果 | 运营 | 授权 | 发布记录 | **未实现** | 无 |
-| DSB-25 | 三层闸门 | PIPELINE/CONTENT/RELEASE | 多角色 | 上游结果 | 三态 | 依赖顺序固定；**代码 0 实现** | 原型 `views-knowledge.js:52-54` |
+| DSB-23 | 发布授权 | 批次授权 | 发布负责人 | 内容版本 | 授权记录 | **未实现**：仅 HTML 原型前端演示 `RELEASE_APPROVED`；无服务端授权记录 | 无 |
+| DSB-24 | 发布记录 | 发布批次与结果 | 运营 | 授权 | 发布记录 | **未实现**：无持久化批次记录 | 无 |
+| DSB-25 | 三层闸门 | PIPELINE/CONTENT/RELEASE | 多角色 | 上游结果 | 三态 | 依赖顺序固定；**HTML 原型有前端演示，正式后端 0 实现** | 原型 `views-knowledge.js:52-54`、`admin.js:313-355` |
 | DSB-26 | 审计留痕 | 谁在何时改了什么 | 合规 | 操作 | 审计日志 | `audit` 包为空 | `src/icpdf/audit/__init__.py` |
 
 ### 3.4 与外部系统
@@ -129,14 +129,14 @@ PDF
 | DSB-22 | NOT_FOUND | — | 无版本表 | 是（原型有） | 后台原型「知识版本」 | 版本与参数快照关系未定义 |
 | DSB-23 | NOT_FOUND | — | 无授权模型 | 是（原型有） | 后台原型「发布授权」 | 授权粒度/审批人未定 |
 | DSB-24 | NOT_FOUND | — | 无发布记录 | 是（原型有） | 后台原型「发布记录」 | — |
-| DSB-25 | NOT_FOUND | — | 代码 0 命中 | 是（原型有） | 后台原型三层闸门 | 需落到哪套系统（Ds Bit 还是商城后台）未定 |
+| DSB-25 | NOT_FOUND | — | 正式后端 0 命中；仅 HTML 原型前端演示 | 是（原型有） | 后台原型三层闸门 | 正式服务端落点（Ds Bit 还是商城后台）未定 |
 | DSB-26 | NOT_FOUND | — | `audit` 包 6 行 | 是（原型有） | 后台原型审计 | — |
 | DSB-27 | NOT_FOUND | — | 无持久关联 | 否 | 平台 `pd_model_doc` | 关联主数据归属未定 |
 | DSB-28 | NOT_FOUND | — | 无对接代码 | 是（原型有） | 平台 `pd_model` | 只读/写入边界未定 |
 | DSB-29 | NOT_FOUND | — | 明确不连库 | 否 | 平台 12 表 | **生产落库是最大缺口** |
 | DSB-30 | NOT_FOUND | — | 无队列 | 否 | 后台原型任务队列 | 并发/重试/幂等未设计 |
 | DSB-31 | EXISTS_CODE | E2 | `serve_parser.py:1139,1180` | 否 | 无 | 仅进程级健康 |
-| DSB-32 | EXISTS_PRODUCTION | E1 | 部署 README 的实测矩阵 | 否 | 无 | 仅为 G0 预备环境，非生产解析 |
+| DSB-32 | EXISTS_CODE | E2 | 部署 README 的实测矩阵 | 否 | 无 | 仅为 G0 预备环境部署验证，**不是生产解析服务** |
 | DSB-33 | NOT_FOUND | — | `README.md:3-6` | 是（原型有「AI 生成」） | 后台原型技术内容生成 | 若引入 LLM，需先定义证据约束 |
 | DSB-34 | EXISTS_PROTOTYPE | E4 | `DsBit/prototype.html`；`07_prototypes/admin` | 是 | 后台原型产品知识 7 页 | 原型数据全部 Demo |
 
@@ -146,24 +146,31 @@ PDF
 
 | 闸门 | 定义 | 上游依赖 | 下游影响 | 当前实现位置 |
 |---|---|---|---|---|
-| `PIPELINE_PASS` | 文档可解析、证据字段完整（页码/表格/行/bbox/原文） | 无 | 不通过则不进入参数候选 | 原型 `views-knowledge.js:52`；引擎侧有部分校验能力，但未以此命名/落库 |
-| `CONTENT_APPROVED` | 引用该参数的内容版本通过内容审核 | 必须 `PIPELINE_PASS` | 不通过则内容版本不得标记批准 | **仅原型/设计** |
-| `RELEASE_APPROVED` | 指定发布批次获批 | 必须 `CONTENT_APPROVED` | 不通过则保持草稿 | **仅原型/设计** |
+| `PIPELINE_PASS` | 文档可解析、证据字段完整（页码/表格/行/bbox/原文） | 无 | 不通过则不进入参数候选 | HTML 原型前端演示 `views-knowledge.js:52`；引擎侧有部分校验能力，但未以此命名/落库 |
+| `CONTENT_APPROVED` | 引用该参数的内容版本通过内容审核 | 必须 `PIPELINE_PASS` | 不通过则内容版本不得标记批准 | **仅 HTML 原型前端演示**；无服务端审核实现 |
+| `RELEASE_APPROVED` | 指定发布批次获批 | 必须 `CONTENT_APPROVED` | 不通过则保持草稿 | **仅 HTML 原型前端演示**；无服务端授权/批次记录 |
+
+**边界事实**：
+
+- HTML 原型存在前端演示级 `contentRelease()` 资格判断，但它只操作浏览器内 Demo 状态，不能作为发布授权或审计依据。
+- 正式业务后端**没有持久化的三层闸门实现**；不存在可依赖的服务端审核、发布授权、批次记录和审计闭环。
+- 因此，当前不能把任何「原型显示已通过」当作真实审批结果。
 
 必须保持的语义（不得合并）：
 
-1. 参数级 `ReviewStatus`（`Verified` / `Needs Review` / `Rejected`）**只代表该参数**，不等于 `CONTENT_APPROVED`。
+1. 参数级 `ReviewStatus`（`Verified` / `Needs Review` / `Rejected`）**只代表该参数**，不等于 `CONTENT_APPROVED`，更不等于 `RELEASE_APPROVED`。
 2. `CONTENT_APPROVED` **只对特定内容版本**有效，不自动覆盖新版本。
 3. `RELEASE_APPROVED` **只对特定发布批次**有效，不自动覆盖后续批次。
-4. 已发布商品展示的是**历史验证快照**，不能把当前未运行写成已通过。
-5. Demo 快照与授权记录**不能作为真实审计依据**。
+4. 三层依赖顺序固定：`PIPELINE_PASS → CONTENT_APPROVED → RELEASE_APPROVED`，上游未通过时下游不得标记为已批准。
+5. 已发布商品展示的是**历史验证快照**，不能把当前未运行写成已通过。
+6. Demo 快照与授权记录**不能作为真实审计依据**。
 
 ---
 
 ## 6. Ds Bit 结论摘要
 
 1. **真实存在的**：确定性 PDF 解析、表格/候选/证据模型、参数正式容器、运行产物、冻结部署环境。这些是可复核的工程资产。
-2. **不存在的**：生产数据库、参数落库、人工审核流、知识版本、发布授权、发布记录、三层闸门的代码实现、队列、审计、LLM。
+2. **不存在的**：生产数据库、参数落库、人工审核流、知识版本、发布授权、发布记录、三层闸门的**正式后端实现**、队列、审计、LLM。HTML 原型只有前端演示级 `contentRelease()`，不构成服务端闭环。
 3. **最大断点**：解析结果无法进入商城/知识库成为可运营的数据；原型中的「工作台」没有后端支撑。
 4. **必须区分的三件事**：
    - 「解析器能跑」≠「参数可发布」；

@@ -2,7 +2,7 @@
 
 > 对象：`E:\workspace\独立站\morries\newPlan\morrishk.net`（生产代码快照）
 > 数据证据：`E:\workspace\独立站\morries\mysql_schema_audit`（2024-11-30 生产库静态导出）
-> 说明：本轮未做线上探针。`EXISTS_PRODUCTION` 表示「生产代码 + 生产库数据」可互相印证，**不表示**本轮已重新验证线上可用性。
+> 说明：本轮未做线上探针。`EXISTS_PRODUCTION` 在本目录等价于 `EXISTS_PRODUCTION_SNAPSHOT`：仅表示 2024-11-30 生产库结构快照与生产代码可对应，**不表示**当前线上实时可用；实时验证后才可标记 `EXISTS_PRODUCTION_VERIFIED`（本目录暂无）。
 
 ---
 
@@ -120,7 +120,7 @@
 | 编号 | 三级功能 | 功能说明 | 使用角色 | 业务输入 | 业务输出 | 关键业务规则 | 依赖 |
 |---|---|---|---|---|---|---|---|
 | FE-52 | 博客列表/详情/标签 | 新闻资讯 | 访客 | 新闻表 | 列表/详情 | `BlogController::actionIndex/actionItem/actionTags` | `controllers/BlogController.php:31-103` |
-| FE-53 | 信息页/帮助 | About/Contact/Help 等 | 访客 | `snsii_info` | 静态内容页 | `PageController::actionInfo` 按 `Links` 取 | `controllers/PageController.php:30` |
+| FE-53 | 信息页（About/Contact 等） | 静态信息页 | 访客 | `snsii_info` | 静态内容页 | `PageController::actionInfo` 按 `Links` 取 | `controllers/PageController.php:30` |
 | FE-54 | 制造商/品牌页 | 品牌介绍与商品 | 访客 | `snsii_supplier` | 品牌页 | `MfrController` 按 `Links` 查询 | `controllers/MfrController.php:35-57` |
 | FE-55 | 移动端搜索 | 移动端搜索入口 | 访客 | — | — | **不可用**：移动端只有 `<input>`，无 `form`、无 `name`、无提交按钮 | `views/layouts/header.php:74-77` |
 | FE-56 | 广告位 | 站内广告展示 | 运营 | `snsii_ad` | 广告区块 | 后台有广告 CRUD，前台**未发现**渲染代码 | `modules/ejadmin/controllers/AdController.php` |
@@ -170,14 +170,14 @@
 | FE-30 | EXISTS_PRODUCTION | E1 | `CartController.php:21-200`；`snsii_cart` 2,397 | 否 | 无 | Session 购物车，换设备丢失 |
 | FE-31 | EXISTS_PRODUCTION | E1 | `CartController.php:209-232`；SMTP 配置 | 否 | `biz_inquiry` | 走 Gmail SMTP；发件成功率未验证 |
 | FE-32 | EXISTS_PRODUCTION | E1 | `PageController.php:30-40`；`snsii_contact` 1,606 | 否 | `biz_inquiry` | 只入库不通知；后台无查看入口 |
-| FE-33 | EXISTS_PRODUCTION | E2 | `CartController.php:246-270` | 否 | 无 | 热卖询盘写 `snsii_cart`，字段完整性未验证 |
+| FE-33 | PARTIAL | E2 | `CartController.php:246-270` | 否 | 无 | 热卖询盘写 `snsii_cart`，字段完整性未验证；仅有代码，未证明生产使用 |
 | FE-34 | NOT_FOUND | — | 无 UTM/来源字段 | 否 | 后台原型询盘 UTM（Demo） | 归因口径需业务确认 |
 | FE-35 | NOT_FOUND | — | 无注册控制器/视图 | 否 | 后台原型「客户管理」不存在 | 是否需要 B2B 客户账户，需决策 |
 | FE-36 | NOT_FOUND | — | `views/user/login.php` 为管理员登录 | 否 | — | 客户与管理员账号未分离 |
 | FE-37 | NOT_FOUND | — | 无等级/价格权限 | 否 | 后台原型「价格权限」未建模 | 若做会员价，需先定规则 |
 | FE-38 | PARTIAL | E2 | `views/layouts/header.php:32`；`snsii_track_order` 表 | 否 | 新平台订单（无） | 链接无效；表无前台读取代码 |
-| FE-39 | EXISTS_PRODUCTION | E1 | `commands/SnSiiController.php:70-79`；80 域名 | 否 | 新平台 5 语种（冲突） | 旧机制与新方案语种清单不一致，见 `07` Q1 |
-| FE-40 | EXISTS_PRODUCTION | E1 | `config/params.php:12`；`messages/` 80 | 否 | 新平台 `locales.ts` | 80 域名是否全部保留，需决策 |
+| FE-39 | EXISTS_PRODUCTION | E1 | `commands/SnSiiController.php:70-79`；80 域名 | 否 | 新平台目标 5 语种 `en/de/ja/es/fr` | 旧域名机制与新版目标语言是两件事；80 域名处置见 `07` Q-02 |
+| FE-40 | EXISTS_PRODUCTION | E1 | `config/params.php:12`；`messages/` 80 | 否 | 新平台 `locales.ts` | 80 域名如何处置仍待确认（`07` Q-02），不改变新版 5 语种目标 |
 | FE-41 | PARTIAL | E2 | `LangController.php:41-75` | 否 | 新平台语言切换 | `actionDomain` 依赖未定义参数，运行会报错 |
 | FE-42 | EXISTS_PRODUCTION | E1 | `messages/` 80 目录 | 否 | 新平台 `messages/*.json` | 旧翻译质量/完整性未评估 |
 | FE-43 | PARTIAL | E2 | `LangController.php:55`；`params.php` 无 `DuoLangOK` | 否 | 无 | 未定义参数是明确代码缺陷 |
@@ -190,7 +190,7 @@
 | FE-50 | EXISTS_CODE | E2 | `commands/CController.php:115-147` | 否 | 无 | 服务账号密钥路径为服务器绝对路径；是否仍运行未知 |
 | FE-51 | EXISTS_PRODUCTION | E1 | `views/layouts/main.php` 多处 | 否 | 后台原型分析（Demo） | GA4 ID 硬编码；无 Consent 管理 |
 | FE-52 | EXISTS_PRODUCTION | E1 | `BlogController.php:31-103`；`snsii_news` | 否 | 后台原型内容库 | 博客与新闻同源 |
-| FE-53 | EXISTS_PRODUCTION | E1 | `PageController.php:30`；`snsii_info` | 否 | 后台原型站点内容 | 地址文案在代码中硬替换 |
+| FE-53 | EXISTS_PRODUCTION | E1 | `PageController.php:30`；`snsii_info` | 否 | 后台原型站点内容 | 仅 About/Contact 等信息页；Help 无前台路由（见 `02` CA-30） |
 | FE-54 | EXISTS_PRODUCTION | E1 | `MfrController.php:35-57`；`snsii_supplier` | 否 | 后台原型品牌管理 | 无独立品牌内容模型 |
 | FE-55 | PARTIAL | E1 | `views/layouts/header.php:74-77` | 否 | 新平台响应式组件 | **移动端搜索不可用**（无 form/name/submit） |
 | FE-56 | PARTIAL | E2 | `snsii_ad` 4 行；`AdController`；前台无渲染 | 否 | 后台原型广告位（无） | 后台引用的 `app\models\SnSiiAd` **类不存在**，广告 CRUD 可能直接报错 |
@@ -203,10 +203,10 @@
 
 ## 4. 前台结论摘要
 
-1. **可确认为生产使用的主链路**：首页、分类、前缀搜索、商品详情、参数（手工）、库存/价格（静态字段）、商品页询盘（第三方邮件）、Session RFQ、联系表单入库、80 语种域名、4 类分析标签、博客/信息页/品牌页。
+1. **生产快照与代码可对应的主链路**（未实时验证）：首页、分类、前缀搜索、商品详情、参数（手工）、库存/价格（静态字段）、商品页询盘（第三方邮件）、Session RFQ、联系表单入库、旧站 80 域名（一域一语）、4 类分析标签、博客/信息页/品牌页。
 2. **明确不可用或缺失**：移动端搜索、客户账户、订单跟踪、替代料、Datasheet 前台入口、相关推荐、广告前台展示、订阅、社媒账号运营、Canonical/OG/JSON-LD。
 3. **代码存在但未证明生产使用**：sitemap/Indexing 命令、页面缓存、Cloudflare 集成、广告后台。
 4. **三类系统性缺口**：
    - 参数无来源/证据/单位/条件结构（与 Ds Bit 的能力不衔接）；
    - 询盘直发第三方、不落本站库（与新平台 `biz_inquiry` 规划不衔接）；
-   - 80 语种域名机制与新平台 5 语种方案并存（口径冲突）。
+   - 旧站 80 域名（一域一语）机制与新平台 5 语种目标并存（口径冲突）。
