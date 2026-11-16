@@ -3,7 +3,7 @@
 | 项 | 内容 |
 |---|---|
 | 文档编号 | MRH-P1-PHP-PROD-001 |
-| 版本 | v1.1（增补 §六 FPM 上下文采集方式；P2/P4/P6/P7 按生产红线收窄措辞） |
+| 版本 | v1.2（G1/G3/G4 保持 OPEN；§六 探针方案降级为"待授权，不得执行"；P2/P4/P6/P7 按生产红线收窄措辞） |
 | 记录日期 | 2026-11-16 |
 | 取证方式 | **评审方在宿主机与本项目 vhost 范围内现场核实**；本记录只汇总"已确认的事实 + 取得方式 + 未确认项"，**不复制任何未实际执行的命令输出** |
 | 适用对象 | `morrishk.net`（生产），PHP 7.4-FPM |
@@ -16,7 +16,10 @@
 > 在现有生产服务器上安装新版本 PHP-FPM、在宝塔新增 PHP 8.4 运行池、修改 Nginx vhost / FPM socket / 宝塔 PHP 版本配置
 > **一律不批准**。生产 PHP 7.4.33-FPM 保持不变。本记录中任何"可照抄 / 可并存 / 切换点明确"的表述，
 > 均指**未来**独立评审通过后的架构可能性，**不是当前实施建议**。
-> 生产侧唯一允许的动作是只读采集（§六 的探针页方式），采集后立即删除探针。
+>
+> **生产侧不执行任何写入（v1.2.3 裁定）**：创建、上传或执行任何文件（含临时探针页）都属生产文件系统变更，
+> **不在已批准的只读范围内**。"采集后立即删除"不改变其性质。§六 所列探针方案即属此类，**当前未获授权，不得执行**。
+> 只读仅指不落盘的查询（读配置、看进程、看日志）。因此 G1 / G3 / G4 保持 **OPEN · 未验证**。
 
 ---
 
@@ -42,15 +45,20 @@
 
 ## 三、仍缺（8.4 验收前的硬前提）
 
-| # | 缺口 | 采集要求 | 为什么不能省 |
-|---|---|---|---|
-| G1 | FPM 实际加载的完整扩展清单 | **通过实际 morrishk.net vhost 请求一个临时 PHP 探针页**，在真实 PHP 7.4-FPM worker 中采集 `phpinfo()`、`get_loaded_extensions()`、`PHP_VERSION`、`php_ini_loaded_file()`、`php_ini_scanned_files()` 等信息，再与 `composer.lock` 的 19 个 `ext-*` 逐项比对。**CLI 使用 FPM ini 执行 `php -m` 的结果仅作交叉参考，不得作为 FPM 实际加载清单的唯一证据**（CLI 与 FPM 可能加载不同 ini、不同扩展目录、不同 `disable_functions`）。探针采集后立即删除，并保留采集时间、vhost、FPM socket 路径与输出摘要。完整探针脚本见 §六 | 缺任一扩展（`zip`/`gd`/`intl` 等）即等于目标环境不可用 |
-| G2 | PHP 8.4 目标扩展清单 | Ubuntu 24.04 下 `php8.4 -m`，与 G1 做**逐项差异表** | "目标环境是否等价于生产"的唯一依据 |
-| G3 | OPcache 运行状态 | `php -i` 中 `Opcode Caching`、`opcache.enable`、`validate_timestamps` | 性能对比与部署行为 |
-| G4 | MySQL 客户端库 | 7.4 的 `pdo_mysql` 所用 mysqlnd / libmysqlclient 版本；8.4 的 mysqlnd 版本。**沿用 G1 的探针页取证方式**（`mysqli_get_client_info()`、`(new PDO(...))->getAttribute(PDO::ATTR_CLIENT_VERSION)`、`phpinfo()` 的 mysqlnd 段），CLI 输出仅作交叉参考 | 服务端仍为 5.6.50，跨版本连接需实测 |
-| G5 | `vendor/` 实际版本 | 副本 `composer install` 后 `composer show` 留档 | 4 个待核实包的运行风险只能在此之后评估 |
+> **本表状态口径（v1.2.3 裁定）**：G1 / G3 / G4 的取证需在生产站点目录放探针文件，属**生产文件系统写入**，
+> **当前未获授权，一律不执行**，状态保持 **OPEN · 未验证**。§六 的方案仅为**待授权的取证方案**，不是已批准动作。
+
+| # | 缺口 | 采集要求 | 当前状态 | 为什么不能省 |
+|---|---|---|---|---|
+| G1 | FPM 实际加载的完整扩展清单 | 真实 7.4-FPM worker 内的 `get_loaded_extensions()`、`PHP_VERSION`、`php_ini_loaded_file()`、`php_ini_scanned_files()`、`extension_dir`，与 `composer.lock` 的 19 个 `ext-*` 逐项比对。**唯一有效取得方式是在站点目录放探针页 → 需单独授权**。CLI 用 FPM ini 跑 `php -m` 仅作交叉参考，**不得作为唯一证据**。参考方案见 §六（未获批准，不得执行） | **OPEN · 未获授权** | 缺任一扩展（`zip`/`gd`/`intl` 等）即等于目标环境不可用 |
+| G2 | PHP 8.4 目标扩展清单 | 独立 8.4 环境内 `php8.4 -m`，与 G1 做**逐项差异表** | **可在独立环境采集**（不触碰生产） | "目标环境是否等价于生产"的唯一依据。**G2 不能反推 G1** |
+| G3 | OPcache 运行状态 | 真实 FPM worker 内 `opcache_get_status()`；`php -i` 的 `Opcode Caching` 行仅交叉参考 | **OPEN · 未获授权** | 性能对比与部署行为 |
+| G4 | MySQL 客户端库 | 真实 FPM worker 内 `mysqli_get_client_info()`、`(new PDO(...))->getAttribute(PDO::ATTR_CLIENT_VERSION)`、`phpinfo()` 的 mysqlnd 段；CLI 输出不得替代 | **OPEN · 未获授权** | 服务端仍为 5.6.50，跨版本连接需实测 |
+| G5 | `vendor/` 实际版本 | 副本 `composer install` 后 `composer show` 留档 | **可按现有证据独立核验**（不依赖生产探针） | 4 个待核实包的运行风险只能在此之后评估 |
 
 > 排序：G1–G3 是 **PHP 8.4 验收前**的关键环境证据；G4–G5 是补齐运行时与依赖基线。
+>
+> **生产环境临时探针属于生产文件系统写入，不属于本报告已批准的只读采集范围。未经系统所有者单独、明确授权，不得创建、上传或执行探针文件。G1、G3、G4 在获得授权并完成真实 FPM 上下文采集前，均保持未验证状态，不得以 CLI 结果或独立环境结果替代。**
 
 ## 四、适用范围声明（备份文件结论的边界）
 
@@ -78,16 +86,29 @@
 
 ---
 
-## 六、附录：FPM 上下文采集方式（G1 / G4）
+## 六、附录：待授权的取证方案（G1 / G3 / G4）——**当前未获批准，不得执行**
 
-### 6.1 采集方式（唯一具备证明力的路径）
+> **状态：未获授权，禁止执行（v1.2.3 裁定）**
+>
+> 本节内容的性质是**方案参考**，不是已批准动作。在生产站点目录创建探针文件属于**生产文件系统写入**，
+> 不在本报告已批准的只读采集范围内。"文件只存在几分钟、采集后立即删除"**不改变其性质**。
+>
+> 另有独立风险：`phpinfo()` 类探针若访问控制、部署路径或删除确认任一环节出错，都可能**短暂暴露 PHP 配置、
+> 扩展、路径与环境信息**。因此不能仅凭"采集后会删除"把风险视为零。
+>
+> **未来若确需采集**，须由系统所有者**另行批准**具体文件路径、访问限制、采集字段、执行窗口与删除验证方式；
+> 尤其**不得公开暴露完整 `phpinfo()` 页面**。授权前 G1 / G3 / G4 一律保持 **OPEN · 未验证**。
+
+### 6.1 采集方式（技术上唯一具备证明力的路径，但需授权）
 
 `php -m` 是 **CLI SAPI** 命令；即使指定 FPM 的 ini，也不能证明 FPM worker 最终加载了相同的扩展与配置
-（ini 路径、`extension_dir`、`disable_functions`、`opcache`、`env` 都可能不同）。故 G1 / G4 一律通过下列方式采集：
+（ini 路径、`extension_dir`、`disable_functions`、`opcache`、`env` 都可能不同）。故 G1 / G4 若要取证，只能走下列方式——
+**前提是取得授权**：
 
 ```php
 <?php
 // probe.php —— 临时探针，放在站点可访问目录，采集完成后立即删除
+// 【当前未获授权，不得部署执行】
 header('Content-Type: text/plain; charset=utf-8');
 
 echo 'PHP_VERSION='   . PHP_VERSION . "\n";
@@ -113,22 +134,36 @@ echo 'OPCACHE=' . (function_exists('opcache_get_status')
 echo "---EXT---\n" . implode("\n", get_loaded_extensions()) . "\n";
 ```
 
-采集要求：
+**采集要求（仅在获得授权后适用；未授权时整节不执行）：**
 
-1. 通过**实际 morrishk.net vhost** 发起 HTTP 请求（`curl https://morrishk.net/probe.php`），确保命中的是生产 7.4-FPM worker；
-2. 同时保存 `phpinfo()` 输出（可用 `phpinfo(INFO_MODULES)` 单独一份）作为交叉证据；
-3. 采集内容至少包含：`PHP_VERSION`、`PHP_SAPI`（应为 `fpm-fcgi`）、`LOADED_INI`、`SCANNED_INI`、`extension_dir`、
+> 授权时须同时明确并批准下列每一项，缺任一项都不构成有效授权：
+
+1. **具体文件路径**：探针文件的落地路径必须事先报批，不得自行选择目录；
+2. **访问限制**：限来源 IP、加 Basic Auth 或临时 token，不得裸奔公开；**不输出完整 `phpinfo()` 页面**；
+3. **采集字段**：以本节第 3 条为上限，不额外扩大采集面；
+4. **执行窗口**：明确起止时间，采集完成即刻结束窗口；
+5. **删除验证方式**：删除后必须**回读确认返回 404**，并留存回读记录。
+
+执行时的技术要求（同样以授权为前提）：
+
+1. 通过**实际 morrishk.net vhost** 发起请求（`curl https://morrishk.net/probe.php`），确保命中的是生产 7.4-FPM worker；
+2. 采集内容至少包含：`PHP_VERSION`、`PHP_SAPI`（应为 `fpm-fcgi`）、`LOADED_INI`、`SCANNED_INI`、`extension_dir`、
    `get_loaded_extensions()` 全量、MySQL 客户端库版本（`mysqli_get_client_info()` 与
    `(new PDO(...))->getAttribute(PDO::ATTR_CLIENT_VERSION)` 两条路径）、`opcache_get_status()`；
-4. **探针文件采集后立即删除**，并确认删除后请求返回 404；
-5. 留档：采集时间（含时区）、vhost 名、FPM socket 路径（当前为 `/tmp/php-cgi-74.sock`）、请求命令、完整输出摘要。
+3. 留档：采集时间（含时区）、vhost 名、FPM socket 路径（当前为 `/tmp/php-cgi-74.sock`）、请求命令、完整输出摘要。
 
 ### 6.2 CLI 结果的定位
 
 CLI（即使使用 FPM 的 ini）执行 `php -m` 只能作为**交叉参考**：用于发现"CLI 有而 FPM 没有"或反之的差异线索，
-**不得作为 FPM 实际加载清单的唯一证据**，也不得作为 G1 / G4 的关闭依据。
+**不得作为 FPM 实际加载清单的唯一证据**，也不得作为 G1 / G4 的关闭依据，**更不得替代因未授权而保持 OPEN 的 G1 / G3 / G4**。
 
 ### 6.3 与 8.4 目标环境的对照
 
-G2（8.4 目标扩展清单）在**独立隔离环境**内以同样方式采集（同版本探针页），
-再与 G1 的输出做逐项差异表；两侧都必须带 `PHP_SAPI=fpm-fcgi` 与 ini 路径，避免拿 CLI 结果对比 FPM 结果。
+G2（8.4 目标扩展清单）在**独立隔离环境**内采集——该环境属我方自建，探针页在这里不构成对生产的影响，
+可直接用同版本探针页取 `PHP_SAPI=fpm-fcgi` 与 ini 路径，避免拿 CLI 结果对比。
+
+但必须明确：**G2 只能描述"独立 8.4 环境装了什么"，不能反推"生产 7.4-FPM 实际加载了什么"。**
+在 G1 仍为 OPEN 的情况下，G2 与生产之间**不存在可对齐的另一侧**，因此不做"逐项差异表"是当前正确状态；
+若强行用 G2 去推断 G1，等于用未知替换未知。
+
+待 G1 获得授权并完成采集后，才建立"生产 7.4 实测 ↔ 独立 8.4 实测"的逐项差异表。
