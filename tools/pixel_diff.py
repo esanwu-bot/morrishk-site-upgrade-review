@@ -36,22 +36,26 @@
      `renameat2(RENAME_NOREPLACE)`，仅 Linux 可用，本项目在 Windows 上开发与
      复现，不引入平台分支，故保留此已披露边界。
   4. 目标已存在时，先做**完整性校验**（`bundle_problem()`）：必须是「PIXEL_DIFF.md
-     为普通文件且非空 + diff/ 为真实目录且非空 + diff/ 下全是可解码的 diff_*.png +
-     无第三条目」。空目录、只有报告、只有图、`diff` 是普通文件、报告为空、
-     diff 里有杂项，一律拒绝（退出 6）——因为通过校验的旧目录随后会被**删除**，
-     只检查「条目名在白名单内」会把残缺包也删掉。
+     为普通文件且非空 + diff/ 为真实目录且非空 + diff/ 下全是**真 PNG**（解码格式
+     必须是 PNG，不能只凭扩展名）的 diff_*.png + 无第三条目」。空目录、只有报告、
+     只有图、`diff` 是普通文件、报告为空、JPEG 冒充 .png、diff 里有杂项，
+     一律拒绝（退出 6）——校验不通过就不该被任何后续动作「处理」。
   5. 校验通过后默认仍拒绝并退出 6；加 `--replace-dir` 才替换。替换路径：
-       a. 既有 `<out>.prev.<pid>` **不自动删除**（它可能是上次失败替换后唯一的旧证据），
-          遇到即拒绝并给出人工处理方式；
-       b. 旧目录整组 rename 到 `<out>.prev.<pid>`；
-       c. **复核身份**：设备号 + inode 必须与校验时一致，且 prev 要再过一次
+       a. 旧包被整组 rename 到 **`<out>.prev`（稳定名字，不带 pid）**；
+       b. 移走后**复核身份**：设备号 + inode 必须与校验时一致，且 prev 要再过一次
           `bundle_problem()`。若在「校验」与「rename」之间被其他进程调换，
-          就把移走的目录改名回原位并拒绝——绝不删除未验证过的目录；
-       d. 新目录 rename 就位，成功后此时才删除 prev；第二/三步失败则改名回滚。
-     这套替换是**两次 rename**，中间有一瞬目标不存在，但不出现新旧混合；
-     进程恰在此刻被杀死会留下 `<out>.prev.<pid>`（完整旧证据）而目标缺失，
-     属可人工恢复状态，错误消息里给出恢复命令。
-  6. 任何失败只删除本次 staging 目录，历史证据不被触碰。
+          就把移走的目录改名回原位并拒绝；
+       c. 新目录 rename 就位。
+       d. **本工具不删除旧包**：成功发布后 `<out>.prev` 原样保留，由人确认后自行清理。
+          理由见下（为什么不做「验证后再删」）。
+  6. **为什么旧包不做自动删除**：`bundle_problem()` 与 `_rmtree()` 之间，`prev` 路径
+     对应的对象可以被其他进程改名、替换，甚至目录内文件被改写；`st_dev + st_ino`
+     只能证明目录身份，证明不了内容在验证后未变，也防不住「检查之后、删除之前」的
+     调换。在删除前再加一次 lstat / 校验，仍然是同一个 TOCTOU 结构。
+     因此本工具**放弃删除权**：它只把旧包停在 `<out>.prev`，是否丢弃由人决定。
+     若 `<out>.prev` 已存在，则拒绝发布并给出处理方式（不自动清理，也不覆盖它）。
+     这样「删除只作用于被验证过的目录」不再是承诺，而是**没有删除动作**。
+  7. 任何失败只删除本次 staging 目录（名字唯一、属本次运行自建，不承载历史证据）。
 
 退出码：
   0 = 集合一致、尺寸一致、全部页面完成差分、发布成功
@@ -60,7 +64,7 @@
   4 = 尺寸不一致或单页差分失败（此时不发布）
   5 = 完成页数少于页面集合（此时不发布）
   6 = 发布前置条件不满足：目标已存在且未加 --replace-dir / 目标不是完整有效的本工具结果包 /
-      既有 .prev.<pid> 未被人工处理 / 发布瞬间被其他进程抢占 / 替换过程中目标被调换
+      既有 `<out>.prev` 未被人工处理 / 发布瞬间被其他进程抢占 / 替换过程中目标被调换
   7 = 产物校验失败、发布失败已回滚、或回滚本身失败（消息会给出 prev 目录路径）
 """
 from __future__ import annotations
@@ -225,7 +229,11 @@ def verify_bundle(staging_dir, names):
             problems.append("空文件 %s" % p)
             continue
         try:
-            Image.open(p).verify()
+            with Image.open(p) as im:
+                if im.format != "PNG":
+                    problems.append("%s 实际格式是 %s，不是 PNG" % (p, im.format))
+                    continue
+                im.verify()
         except Exception as exc:
             problems.append("无法解码 %s: %s" % (p, exc))
     md = os.path.join(staging_dir, "PIXEL_DIFF.md")
@@ -239,16 +247,17 @@ def bundle_problem(path):
     """判断 path 是否是一个**完整、类型正确**的本工具结果包。
 
     返回问题描述字符串；返回 None 表示通过。这里刻意不是「条目名在白名单内」，
-    而是逐项验证存在性、类型（真实目录/普通文件，不跟随符号链接）、非空、可解码：
+    而是逐项验证存在性、类型（真实目录/普通文件，不跟随符号链接）、非空、
+    **真实图像格式**（`Image.format == "PNG"`，扩展名不算证据）：
 
       <bundle>/PIXEL_DIFF.md   必须是普通文件且非空
       <bundle>/diff/           必须是真实目录（非符号链接）且非空
-      <bundle>/diff/*.png      必须全部是普通文件、命名 diff_*.png、非空、可解码
+      <bundle>/diff/*.png      必须全部是普通文件、命名 diff_*.png、非空、解码格式确为 PNG
       <bundle>/                除上述两项外不得有第三条目
 
-    为什么必须这么严：加上 `--replace-dir` 后，通过校验的旧目录会被**删除**。
+    为什么必须这么严：加上 `--replace-dir` 后，校验结论会被当作「处理该目录的依据」。
     若只检查「没有多余条目」，那么空目录、只有报告没有图、只有图没有报告、
-    以及 `diff` 是个普通文件这类残缺包都会被当成合法旧包，进而被误删。
+    `diff` 是个普通文件、以及 JPEG 改名成 .png 的伪装文件，都会被当成合法旧包。
     """
     try:
         st = os.lstat(path)
@@ -300,7 +309,10 @@ def bundle_problem(path):
         if est.st_size == 0:
             return "diff/%s 为空" % n
         try:
-            Image.open(p).verify()
+            with Image.open(p) as im:
+                if im.format != "PNG":
+                    return "diff/%s 实际格式是 %s，不是 PNG" % (n, im.format)
+                im.verify()
         except Exception as exc:
             return "diff/%s 无法解码：%s" % (n, exc)
     return None
@@ -329,7 +341,7 @@ def _restore(prev, out_dir):
 
 
 def publish_bundle(out_dir, staging_dir, replace_dir):
-    """把整个 staging 目录作为一个原子单元发布到 out_dir，返回 out_dir。
+    """把整个 staging 目录作为一个原子单元发布到 out_dir。
 
     原子单元是**目录**而不是目录里的文件：`PIXEL_DIFF.md` 与 `diff/` 在同一个
     目录里，一次 rename 同时就位，因此没有「图已发布、报告仍是旧版」的中间态，
@@ -338,13 +350,18 @@ def publish_bundle(out_dir, staging_dir, replace_dir):
     目标不存在时，这次 rename 本身就是存在性检查（不依赖先 check 后 rename），
     因此并发抢占只会让 rename 失败，不会静默覆盖。
 
-    替换路径（replace_dir=True）的三道防线：
+    替换路径（replace_dir=True）的约定：
       1. 旧目录必须通过 `bundle_problem()` 的完整校验（残缺包一律拒绝）；
-      2. 既有 `.prev.<pid>` 不自动删除——它可能是失败替换后唯一的旧证据，
-         遇到就拒绝并给出人工处理方式；
+      2. 既有 `<out>.prev` 不覆盖、不删除：存在即拒绝并给出处理方式；
       3. 移走旧目录后**复核身份**（设备号 + inode + 再验一次包），
-         若在「检查」与「rename」之间被其他进程调换，则把移走的目录改回原位并拒绝，
-         绝不删除一个没被验证过的目录。
+         若在「检查」与「rename」之间被其他进程调换，则把它改回原位并拒绝；
+      4. **本函数不删除旧包**：成功后 `<out>.prev` 原样保留，清理权交给人。
+         原因：验证与删除之间，`prev` 路径的对象可被改名/替换/改写，
+         `st_dev + st_ino` 只证明目录身份、不证明内容未变；在删除前再查一次
+         仍是同一个 TOCTOU 结构。放弃删除权后，「删除只作用于被验证过的目录」
+         不再是承诺问题——本函数没有删除旧包的动作。
+
+    返回 `(out_dir, prev_or_None)`；`prev_or_None` 是保留下来的旧包路径（如有）。
     """
     prev = None
     if os.path.lexists(out_dir):
@@ -354,22 +371,22 @@ def publish_bundle(out_dir, staging_dir, replace_dir):
                 "发布目标不是完整有效的本工具结果包，拒绝发布：%s\n"
                 "  问题：%s\n"
                 "  合法结果包应为 <out>/PIXEL_DIFF.md + <out>/diff/diff_*.png。\n"
-                "  请改 --out 指向新目录，或人工确认后清理该目录。" % (out_dir, problem))
+                "  请改 --out 指向新目录，或人工确认后处理该目录。" % (out_dir, problem))
         if not replace_dir:
             raise PublishError(
                 "发布目标已存在且是完整结果包：%s\n"
                 "  整组发布不覆盖已有证据，默认拒绝。确认要替换请加 --replace-dir。" % out_dir)
-        prev = out_dir + ".prev.%d" % os.getpid()
+
+        prev = out_dir + ".prev"  # 稳定名字：不用 pid，便于人发现与清理
         if os.path.lexists(prev):
             raise PublishError(
-                "上一次运行的备份目录仍存在，拒绝自动删除：%s\n"
-                "  它可能是上次替换失败后**唯一的**旧证据，脚本不替你判断它能否丢弃。\n"
-                "  确认可丢弃后手工删除，或先改名再重试：\n"
-                "    mv \"%s\" \"%s.discard\"\n"
-                "  然后重新运行。" % (prev, prev, prev))
+                "上一次替换保留的旧包仍在，拒绝覆盖或删除：%s\n"
+                "  本工具不删除旧证据，也不覆盖它。请先确认该目录内容，再自行处理：\n"
+                "    mv \"%s\" \"%s.discard.$(date +%%Y%%m%%d%%H%%M%%S)\"\n"
+                "  或确认可丢弃后删除它，然后重新运行。" % (prev, prev, prev))
 
         ident_before = _ident(out_dir)
-        os.rename(out_dir, prev)  # 旧整组移开，保留到新目录就位为止
+        os.rename(out_dir, prev)  # 旧整组移开（改名本身即「prev 必须不存在」的检查）
         swapped = _ident(prev) != ident_before or bundle_problem(prev) is not None
         if swapped:
             # 移走的不是刚验证过的那个目录：把它放回去，拒绝发布，不删除任何内容
@@ -389,7 +406,7 @@ def publish_bundle(out_dir, staging_dir, replace_dir):
         os.rename(staging_dir, out_dir)  # 对目标的唯一一次 rename
     except OSError:
         if prev:
-            _restore(prev, out_dir)
+            _restore(prev, out_dir)  # 回滚：旧包改回原位
             raise
         if os.path.lexists(out_dir):
             raise PublishError(
@@ -397,9 +414,8 @@ def publish_bundle(out_dir, staging_dir, replace_dir):
                 "  本次结果未发布（暂存目录会被删除），未覆盖对方内容。" % out_dir)
         raise
 
-    if prev:
-        _rmtree(prev)  # 新目录已就位，且 prev 已复核为验证过的旧包，此时才删除
-    return out_dir
+    # 注意：此处**不做** _rmtree(prev)。旧包原样保留，由人决定何时清理。
+    return out_dir, prev
 
 
 
@@ -638,12 +654,16 @@ def main(argv=None):
 
         # 校验 → 一次 rename 发布整个目录
         verify_bundle(staging, [r["name"] for r in results])
-        bundle = publish_bundle(out_abs, staging, args.replace_dir)
+        bundle, kept_prev = publish_bundle(out_abs, staging, args.replace_dir)
 
         print("written: %s" % os.path.join(bundle, "PIXEL_DIFF.md"))
         print("images:  %s" % os.path.join(bundle, "diff"))
         print("pages=%d  strict=%s  set_check=PASS  size_check=PASS  publish=PASS" %
               (len(results), format(ts, ",")))
+        if kept_prev:
+            print("NOTICE: 旧结果包已原样保留在 %s" % kept_prev)
+            print("        本工具不删除旧证据（验证与删除之间无法排除第三方替换）。")
+            print("        确认后可自行处理：mv \"%s\" \"%s.discard\"" % (kept_prev, kept_prev))
         return 0
     except RollbackError as exc:
         sys.stderr.write("ERROR: %s\n" % exc)

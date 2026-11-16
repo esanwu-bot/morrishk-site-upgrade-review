@@ -12,10 +12,10 @@
 | 项目 | morrishk.net 老站升级（电子元器件 B2B 独立站） |
 | 仓库 | https://github.com/esanwu-bot/morrishk-site-upgrade-review |
 | Branch | `main` |
-| 送审版本 | tag **`v1.5.5-review`**（`v1.4-review` / `v1.5-review` / `v1.5.1-review` / `v1.5.2-review` / `v1.5.3-review` / `v1.5.4-review` 保留未覆盖） |
+| 送审版本 | tag **`v1.5.6-review`**（`v1.4-review` / `v1.5-review` / `v1.5.1-review` / `v1.5.2-review` / `v1.5.3-review` / `v1.5.4-review` / `v1.5.5-review` 保留未覆盖） |
 | 并行送审包 | **`08_php84_compatibility/`**（PHP 8.4 兼容性评估），独立工作流、各自冻结。**本文件不转述其版本号**——版本以该包 `README.md` 头部与远程 tag 系列 `php84-v1.2.x-review` 为准 |
 | 交付日期 | 2026-11-16 |
-| 文档版本 | 商务方案 客户版 v1.1（rev.3） ／ 技术方案 技术版 v1.2（rev.3） ／ **原型 v1.5.5-prototype** ／ **Design System v1.0** |
+| 文档版本 | 商务方案 客户版 v1.1（rev.3） ／ 技术方案 技术版 v1.2（rev.3） ／ **原型 v1.5.6-prototype** ／ **Design System v1.0** |
 | 数据基线 | 2024-11-30 导出，静态终态（不随线上变化） |
 | 签名状态 | 本仓库的 commit 与 tag **均未做 Git 签名**（unsigned / 非 GPG 验证）。可用于确认版本内容与父子关系，**不可**作为经过签名的发布物 |
 
@@ -37,7 +37,7 @@ git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git ref
 也可直接打开下列直链绕过仓库首页缓存：
 
 - 提交历史：https://github.com/esanwu-bot/morrishk-site-upgrade-review/commits/main
-- 标签 `v1.5.5-review`：https://github.com/esanwu-bot/morrishk-site-upgrade-review/releases/tag/v1.5.5-review
+- 标签 `v1.5.6-review`：https://github.com/esanwu-bot/morrishk-site-upgrade-review/releases/tag/v1.5.6-review
 
 若仓库首页显示的提交数或 README 版本文字与上述 SHA 不符，属于页面缓存，请以 `git ls-remote` 的结果为准。
 
@@ -48,6 +48,7 @@ git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git ref
 ```
 .
 ├── README.md
+├── .gitignore                     忽略 `*.prev/`（pixel_diff 替换时保留的旧包，待人工清理）
 ├── 00_project_baseline/          项目与现状基线
 │   ├── project_scope.md              项目范围（逐字抽取自商务方案第一章）
 │   ├── existing_system_baseline.md   现有系统技术基线（逐字抽取自技术方案第 1 章）
@@ -85,8 +86,8 @@ git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git ref
 │   ├── check_tokens.py             Token 合规扫描 → 生成 07_prototypes/TOKEN_AUDIT.md
 │   ├── pixel_diff.py               同视口逐像素差分 → 生成 pixel_diff/ 结果目录（报告 + 差异图）
 │   ├── css_value_diff.py           两版 CSS 逐条取值比对 → 生成 CSS_VALUE_DIFF.md
-│   └── selftest.py                 三个工具的回归自测（88 项断言，退出码 0/1）
-└── 07_prototypes/                新版原型 + Design System（本轮 v1.5.5）
+│   └── selftest.py                 三个工具的回归自测（101 项断言，退出码 0/1）
+└── 07_prototypes/                新版原型 + Design System（本轮 v1.5.6）
     ├── DESIGN.md                     ★ Morris Design System v1.0（唯一视觉权威）
     ├── README.md                     原型说明、标注系统、已知缺口
     ├── TOKEN_AUDIT.md                ★ Token 使用检查报告（脚本生成，可重跑）
@@ -665,6 +666,9 @@ R3 的「工具层可靠性」按本轮实现可以关闭，但**关闭与否由
 | 替换过程中目标被另一进程调换（在「校验」与 `rename` 之间换入冒名目录） | `PublishError`；冒名目录被放回原位、未被删除；原旧包仍完好；不留 `.prev` |
 | 回滚时目标被抢占（回滚 rename 失败） | `RollbackError`；旧包完好保留在 `prev`；抢占者内容未被删除 |
 
+> **注**：8.11 里「绝不删除未验证过的目录」这一表述已在 **8.12 变为更强的事实——本工具不删除旧包**。
+> `.prev` 的行为也从「带 pid 的名字 + 拒绝」改为「稳定名 `<out>.prev` + 拒绝并保留」。
+
 **如实保留的两条契约边界**（与 8.10 一致，未因本轮修补而变化）：
 
 1. 正常发布路径下，若目标被并发抢先建成**空目录**，POSIX 允许 `rename` 覆盖它（无内容可丢）；
@@ -680,20 +684,58 @@ R3 的「工具层可靠性」按本轮实现可以关闭，但**关闭与否由
 **版本锚点说明**：本轮起 `main` 会继续被 08 并行包推进，`v1.5.5-review` 是有意冻结的原型版本，
 tag 不随 `main` 移动。核验请比对 tag 解引用目标，而不是「tag 是否等于 main 的 HEAD」。
 
+### 8.12 R3 收口：放弃「验证后自动删除」，旧包清理权交给人（v1.5.6）
+
+第三轮复核（针对 v1.5.5）指出一个更窄但更硬的问题，成立：`bundle_problem()` 与 `_rmtree(prev)`
+之间，`prev` 路径对应的对象仍可能被第三方改名、替换，或目录内文件被改写；`st_dev + st_ino`
+只证明目录身份、不证明内容在验证后未变。**在删除前再加一次 `lstat`/校验仍是同一个 TOCTOU 结构。**
+
+因此本轮不选「加检查」，而选「**取消删除权**」：
+
+| 编号 | 问题 | 处置 |
+|---|---|---|
+| R3-10 | 验证通过 → 发布新包 → 第三方调换/改写 `prev` → `_rmtree(prev)` 删的可能不是验证过的那个 | **本工具不再删除旧包**。成功后旧包原样保留在 `<out>.prev`，`publish_bundle()` 返回该路径并在 stdout 打印 `NOTICE` 与清理建议。README 不再声称「删除只作用于被验证过的目录」——现在**没有删除动作**，该承诺变成结构事实 |
+| — | `<out>.prev.<pid>` 靠 pid 区分遗留物，pid 复用/人工不清理都会误导 | 改为**稳定名 `<out>.prev`**：存在即拒绝（退出 6），既不覆盖也不删除，消息给出 `mv … .discard` 的处理方式 |
+| R3-11 | 扩展名 `.png` 不等于真是 PNG，JPEG 改名可通过 | `bundle_problem()` 与 `verify_bundle()` 都增加 `Image.format == "PNG"` 检查；新增负向用例「JPEG 冒充 .png」 |
+| R3-12 | R3-8 的断言只证明路径存在，没证明内容未变 | 改为**逐字节快照比对**：`hijacked` 里的原旧包、放回的冒名目录都与运行前快照全等 |
+
+**新增测试（101 项，原 88 项）**：
+
+| 场景 | 断言 |
+|---|---|
+| 替换成功后 | `.prev` 保留且与旧包**逐字节一致**；`publish_bundle()` 返回该路径；`bundle_problem(out)` 通过 |
+| 本进程是否删过 `.prev` | 用 `shutil.rmtree` 监视器记录所有被删路径，断言 `.prev` **从未出现**（`removed == []`） |
+| `.prev` 未清理时再次替换 | 退出 6；`.prev` 未被覆盖/删除；当前结果包字节未变 |
+| 新包就位后，第三方把 `.prev` 换成冒名目录 | 冒名目录**内容逐字节完好**；原旧包在第三方改名处也完好；新包正常 |
+| JPEG 内容改名 `diff_x.png` | 带 `--replace-dir` 仍退出 6，目录未被改动 |
+
+**故障场景归并**：101 项断言对应 **16 类**故障场景（缺页 / 仅多页 / 缺页+多页 / 尺寸不符 /
+目标已是完整包 / 残缺包 7 种 / 既有 `.prev` / 发布瞬间被抢占 / 替换中被调换 / 安装 rename 失败回滚 /
+回滚自身失败 / 回滚时目标被抢占 / 正常单次 rename + 报告可复现 / `.prev` 未清理再替换 /
+发布后第三方替换 `.prev` / 本进程从不删除 `.prev`）。
+
+**代价（明确写出，不含糊）**：写回已有结果目录后必须**人工清理** `.prev`，否则下一次替换会被拒绝。
+仓库为此加了 `.gitignore`（`*.prev/`），使「旧包留存」不污染 `git status`；这是有意的操作代价，
+换取「工具链上不存在删除历史证据的代码路径」。
+
+**仍然保留的边界**（与 8.10/8.11 一致）：正常发布路径下目标被并发建成**空目录**时 POSIX 允许
+`rename` 覆盖（无内容可丢）；`--replace-dir` 是两次 `rename`，中间目标短暂缺失，崩溃留下
+`<out>.prev` 而目标缺失，属人工可恢复状态。
+
 ## 九、版本与校验
 
 **文件数量口径**（四个数字含义不同，勿混用）：
 
 | 口径 | 数量 | 说明 |
 |---|---|---|
-| 仓库纳入版本控制的文件总数 | **65** | 含 `.gitattributes`、三份 `SHA256SUMS.txt`、`07_prototypes/` 下 40 个文件、`tools/` 下 4 个脚本（`08_php84_compatibility/` 另计 24 个，自带清单） |
-| 根清单 `06_evidence/hashes/SHA256SUMS.txt` 覆盖数 | **64** | 除自身以外的全部文件 |
+| 仓库纳入版本控制的文件总数 | **66** | 含 `.gitattributes`、`.gitignore`、三份 `SHA256SUMS.txt`、`07_prototypes/` 下 40 个文件、`tools/` 下 4 个脚本（`08_php84_compatibility/` 另计 24 个，自带清单） |
+| 根清单 `06_evidence/hashes/SHA256SUMS.txt` 覆盖数 | **65** | 除自身以外的全部文件 |
 | `07_prototypes/SHA256SUMS.txt` 覆盖数 | **39** | 该目录内除自身以外的全部文件（含 `reference/prototype_shots/`） |
 | `07_prototypes/` 文件总数 | **40** | 39 个交付文件 + 1 个哈希清单 |
 | `reference/prototype_shots/SHA256SUMS.txt` 覆盖数 | **17** | 截图、差分证据与 `pixel_diff/` 内的报告和差异图，独立成清单 |
 
 ```bash
-# 1) 校验全仓库（在仓库根目录，应输出 64 行 OK）
+# 1) 校验全仓库（在仓库根目录，应输出 65 行 OK）
 sha256sum -c 06_evidence/hashes/SHA256SUMS.txt
 
 # 2) 单独校验原型目录（在 07_prototypes/ 下，应输出 39 行 OK）
@@ -720,7 +762,7 @@ python tools/css_value_diff.py \
   --tokens 07_prototypes/assets/tokens.css \
   --out /tmp/pd_check/CSS_VALUE_DIFF.md
 
-# 5c) 跑工具回归自测（88 项断言，含 R1 覆盖 / R2 边界 / R3 负向用例、并发与回滚故障注入、报告可复现性）
+# 5c) 跑工具回归自测（101 项断言，含 R1 覆盖 / R2 边界 / R3 负向用例、并发与回滚故障注入、报告可复现性）
 python tools/selftest.py
 
 # 6) 查看本仓库全部提交与送审 tag
@@ -730,7 +772,7 @@ git tag -n
 
 **三个脚本都有非零退出码，可直接接 CI**：`check_tokens.py` 有 FAIL 退出 1；
 `pixel_diff.py` —— 集合不一致 3、尺寸不符或差分失败 4、完成页数不足 5、
-**发布目标已存在 / 目标不是完整有效结果包 / 既有 `.prev` 未人工处理 / 发布瞬间被抢占 /
+**发布目标已存在 / 目标不是完整有效结果包 / 既有 `<out>.prev` 未人工处理 / 发布瞬间被抢占 /
 替换中被调换 6**、**产物校验失败、发布失败已回滚、回滚本身失败 7**；
 `css_value_diff.py` 分类合计与真实变更数不一致退出 3。「脚本跑完没报错」不等于「通过」，
 必须同时看退出码与报告里的判定行。
