@@ -69,7 +69,7 @@
 | 2 | `runtime_upgrade_plan.md` 头部仍写"批准范围：仅批准盘点、评估、Staging 试验、回滚设计"，可能被单读时理解为"允许在生产服务器建测试站点" | 文首增补 staging 定义：**指独立于生产服务器的测试主机或独立容器，不包括在生产服务器上创建的 staging 站点**；并绑定主报告 §7.4 的 R-1～R-7 |
 | 3 | `yii_extension_audit.md` §6 仍写"真正的结论必须来自 staging 运行" | 同上增补定义，并注明该句中的 staging 指独立环境，**不构成**在生产服务器建测试站点的许可 |
 
-版本引用同步：`php_compatibility.md`、`runtime_upgrade_plan.md`、`yii_extension_audit.md`、`prod_baseline.md` 的"唯一有效裁定依据"已从 v1.2.4 统一升到 **v1.2.5**。
+版本引用同步：`php_compatibility.md`、`runtime_upgrade_plan.md`、`yii_extension_audit.md`、`prod_baseline.md` 的"唯一有效裁定依据"已从 v1.2.4 统一升到 **v1.2.5**；主报告第 850 行结论段标记同步为"**报告结论（v1.2.5；技术结论与 v1.2.4 一致）**"（此项由评审在 v1.2.5 复核时指出，属同一版内的标记补正）。
 
 > 说明：本版把主报告版本号推到 v1.2.5，是为了让"文档版本 ↔ tag ↔ main 的 08 包内容"保持一一对应（评审自己核验时用的就是这条性质）。
 > **`php84-v1.2.4-review` 不移动、不删除**，仍冻结在 `50c8d98`；v1.2.5 与它的差异仅为上述三处 + 版本栏。
