@@ -35,12 +35,23 @@
      rename 到已存在目录一律失败。要做到「连空目录也不替换」需要
      `renameat2(RENAME_NOREPLACE)`，仅 Linux 可用，本项目在 Windows 上开发与
      复现，不引入平台分支，故保留此已披露边界。
-  4. 目标已存在（且确属本工具产物）时默认拒绝并退出 6；加 `--replace-dir` 才替换：
-     旧目录整组 rename 到 `<out>.prev.<pid>`，新目录再 rename 就位，第二步失败则
-     改名回滚。这套替换是**两次 rename**，中间有一瞬目标不存在，但不出现新旧混合；
+  4. 目标已存在时，先做**完整性校验**（`bundle_problem()`）：必须是「PIXEL_DIFF.md
+     为普通文件且非空 + diff/ 为真实目录且非空 + diff/ 下全是可解码的 diff_*.png +
+     无第三条目」。空目录、只有报告、只有图、`diff` 是普通文件、报告为空、
+     diff 里有杂项，一律拒绝（退出 6）——因为通过校验的旧目录随后会被**删除**，
+     只检查「条目名在白名单内」会把残缺包也删掉。
+  5. 校验通过后默认仍拒绝并退出 6；加 `--replace-dir` 才替换。替换路径：
+       a. 既有 `<out>.prev.<pid>` **不自动删除**（它可能是上次失败替换后唯一的旧证据），
+          遇到即拒绝并给出人工处理方式；
+       b. 旧目录整组 rename 到 `<out>.prev.<pid>`；
+       c. **复核身份**：设备号 + inode 必须与校验时一致，且 prev 要再过一次
+          `bundle_problem()`。若在「校验」与「rename」之间被其他进程调换，
+          就把移走的目录改名回原位并拒绝——绝不删除未验证过的目录；
+       d. 新目录 rename 就位，成功后此时才删除 prev；第二/三步失败则改名回滚。
+     这套替换是**两次 rename**，中间有一瞬目标不存在，但不出现新旧混合；
      进程恰在此刻被杀死会留下 `<out>.prev.<pid>`（完整旧证据）而目标缺失，
      属可人工恢复状态，错误消息里给出恢复命令。
-  5. 任何失败只删除本次 staging 目录，历史证据不被触碰。
+  6. 任何失败只删除本次 staging 目录，历史证据不被触碰。
 
 退出码：
   0 = 集合一致、尺寸一致、全部页面完成差分、发布成功
@@ -48,7 +59,8 @@
   3 = 两版页面集合不一致（缺页 / 多页）
   4 = 尺寸不一致或单页差分失败（此时不发布）
   5 = 完成页数少于页面集合（此时不发布）
-  6 = 发布目标已存在且未指定 --replace-dir，或目标不是本工具产物，或发布瞬间被抢占
+  6 = 发布前置条件不满足：目标已存在且未加 --replace-dir / 目标不是完整有效的本工具结果包 /
+      既有 .prev.<pid> 未被人工处理 / 发布瞬间被其他进程抢占 / 替换过程中目标被调换
   7 = 产物校验失败、发布失败已回滚、或回滚本身失败（消息会给出 prev 目录路径）
 """
 from __future__ import annotations
@@ -57,6 +69,7 @@ import argparse
 import io
 import os
 import shutil
+import stat
 import sys
 import time
 
@@ -222,16 +235,81 @@ def verify_bundle(staging_dir, names):
         raise PublishError("产物校验失败：" + "；".join(problems))
 
 
-def is_bundle_dir(path):
-    """目标目录是否只含本工具的产物（diff/ 与 PIXEL_DIFF.md）。
+def bundle_problem(path):
+    """判断 path 是否是一个**完整、类型正确**的本工具结果包。
 
-    这条护栏防止把 --out 指到「不只属于本工具」的目录（例如上一版的
-    prototype_shots/，里面还有 v1.4/ v1.5.1/ CSS_VALUE_DIFF.md 等），
-    避免 --replace-dir 把别人的证据整组搬走。
+    返回问题描述字符串；返回 None 表示通过。这里刻意不是「条目名在白名单内」，
+    而是逐项验证存在性、类型（真实目录/普通文件，不跟随符号链接）、非空、可解码：
+
+      <bundle>/PIXEL_DIFF.md   必须是普通文件且非空
+      <bundle>/diff/           必须是真实目录（非符号链接）且非空
+      <bundle>/diff/*.png      必须全部是普通文件、命名 diff_*.png、非空、可解码
+      <bundle>/                除上述两项外不得有第三条目
+
+    为什么必须这么严：加上 `--replace-dir` 后，通过校验的旧目录会被**删除**。
+    若只检查「没有多余条目」，那么空目录、只有报告没有图、只有图没有报告、
+    以及 `diff` 是个普通文件这类残缺包都会被当成合法旧包，进而被误删。
     """
-    if not os.path.isdir(path):
-        return False
-    return set(os.listdir(path)) <= BUNDLE_ENTRIES
+    try:
+        st = os.lstat(path)
+    except OSError as exc:
+        return "无法读取目标：%s" % exc
+    if stat.S_ISLNK(st.st_mode):
+        return "目标是符号链接，拒绝（不跟随链接）"
+    if not stat.S_ISDIR(st.st_mode):
+        return "目标不是目录"
+
+    entries = set(os.listdir(path))
+    missing = BUNDLE_ENTRIES - entries
+    extra = entries - BUNDLE_ENTRIES
+    if missing:
+        return "缺少必需条目：%s" % "、".join(sorted(missing))
+    if extra:
+        return "含本工具产物以外的条目：%s" % "、".join(sorted(extra))
+
+    md = os.path.join(path, "PIXEL_DIFF.md")
+    try:
+        mst = os.lstat(md)
+    except OSError as exc:
+        return "无法读取 PIXEL_DIFF.md：%s" % exc
+    if not stat.S_ISREG(mst.st_mode):
+        return "PIXEL_DIFF.md 不是普通文件"
+    if mst.st_size == 0:
+        return "PIXEL_DIFF.md 为空"
+
+    diff_dir = os.path.join(path, "diff")
+    try:
+        dst = os.lstat(diff_dir)
+    except OSError as exc:
+        return "无法读取 diff/：%s" % exc
+    if stat.S_ISLNK(dst.st_mode) or not stat.S_ISDIR(dst.st_mode):
+        return "diff 不是真实目录"
+    names = sorted(os.listdir(diff_dir))
+    if not names:
+        return "diff/ 为空"
+    for n in names:
+        p = os.path.join(diff_dir, n)
+        try:
+            est = os.lstat(p)
+        except OSError as exc:
+            return "无法读取 diff/%s：%s" % (n, exc)
+        if stat.S_ISLNK(est.st_mode) or not stat.S_ISREG(est.st_mode):
+            return "diff/%s 不是普通文件" % n
+        if not n.startswith("diff_") or not n.lower().endswith(".png"):
+            return "diff/%s 命名不符合 diff_*.png" % n
+        if est.st_size == 0:
+            return "diff/%s 为空" % n
+        try:
+            Image.open(p).verify()
+        except Exception as exc:
+            return "diff/%s 无法解码：%s" % (n, exc)
+    return None
+
+
+def _ident(path):
+    """目录身份（设备号 + inode / 文件索引），用于判断「移走的确实是刚验证过的那个」。"""
+    st = os.lstat(path)
+    return (st.st_dev, st.st_ino)
 
 
 def _rmtree(path):
@@ -259,23 +337,53 @@ def publish_bundle(out_dir, staging_dir, replace_dir):
 
     目标不存在时，这次 rename 本身就是存在性检查（不依赖先 check 后 rename），
     因此并发抢占只会让 rename 失败，不会静默覆盖。
+
+    替换路径（replace_dir=True）的三道防线：
+      1. 旧目录必须通过 `bundle_problem()` 的完整校验（残缺包一律拒绝）；
+      2. 既有 `.prev.<pid>` 不自动删除——它可能是失败替换后唯一的旧证据，
+         遇到就拒绝并给出人工处理方式；
+      3. 移走旧目录后**复核身份**（设备号 + inode + 再验一次包），
+         若在「检查」与「rename」之间被其他进程调换，则把移走的目录改回原位并拒绝，
+         绝不删除一个没被验证过的目录。
     """
     prev = None
     if os.path.lexists(out_dir):
-        if not is_bundle_dir(out_dir):
+        problem = bundle_problem(out_dir)
+        if problem:
             raise PublishError(
-                "发布目标不是本工具独占的结果目录（含额外内容），拒绝发布：%s\n"
-                "  已存在条目：%s\n"
-                "  请把 --out 指到一个只含 PIXEL_DIFF.md 与 diff/ 的目录（或新建目录）。"
-                % (out_dir, ", ".join(sorted(os.listdir(out_dir))) or "（空）"))
+                "发布目标不是完整有效的本工具结果包，拒绝发布：%s\n"
+                "  问题：%s\n"
+                "  合法结果包应为 <out>/PIXEL_DIFF.md + <out>/diff/diff_*.png。\n"
+                "  请改 --out 指向新目录，或人工确认后清理该目录。" % (out_dir, problem))
         if not replace_dir:
             raise PublishError(
-                "发布目标已存在：%s\n"
+                "发布目标已存在且是完整结果包：%s\n"
                 "  整组发布不覆盖已有证据，默认拒绝。确认要替换请加 --replace-dir。" % out_dir)
         prev = out_dir + ".prev.%d" % os.getpid()
         if os.path.lexists(prev):
-            _rmtree(prev)  # 上一次同 pid 崩溃遗留，作用域仅本进程命名空间
+            raise PublishError(
+                "上一次运行的备份目录仍存在，拒绝自动删除：%s\n"
+                "  它可能是上次替换失败后**唯一的**旧证据，脚本不替你判断它能否丢弃。\n"
+                "  确认可丢弃后手工删除，或先改名再重试：\n"
+                "    mv \"%s\" \"%s.discard\"\n"
+                "  然后重新运行。" % (prev, prev, prev))
+
+        ident_before = _ident(out_dir)
         os.rename(out_dir, prev)  # 旧整组移开，保留到新目录就位为止
+        swapped = _ident(prev) != ident_before or bundle_problem(prev) is not None
+        if swapped:
+            # 移走的不是刚验证过的那个目录：把它放回去，拒绝发布，不删除任何内容
+            try:
+                os.rename(prev, out_dir)
+            except OSError as exc:
+                raise RollbackError(
+                    "替换过程中目标目录被其他进程调换，且把当前内容放回原位也失败。\n"
+                    "  内容仍完整保留在：%s\n"
+                    "  恢复命令：mv \"%s\" \"%s\"" % (prev, prev, out_dir)) from exc
+            raise PublishError(
+                "替换过程中目标目录被其他进程调换：%s\n"
+                "  已将当时移走的目录放回原位并拒绝发布，未删除任何内容。\n"
+                "  请确认无并发写入后重试。" % out_dir)
 
     try:
         os.rename(staging_dir, out_dir)  # 对目标的唯一一次 rename
@@ -290,7 +398,7 @@ def publish_bundle(out_dir, staging_dir, replace_dir):
         raise
 
     if prev:
-        _rmtree(prev)  # 新目录已就位，旧整组此时才删除
+        _rmtree(prev)  # 新目录已就位，且 prev 已复核为验证过的旧包，此时才删除
     return out_dir
 
 

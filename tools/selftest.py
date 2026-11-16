@@ -182,6 +182,21 @@ def _make_staging(parent, name, pages=2):
     return st
 
 
+def _mk(root, spec):
+    """按 {相对路径: 内容} 造目录树；内容为 None 时写一张 8x8 PNG。"""
+    os.makedirs(root, exist_ok=True)
+    for rel, data in spec.items():
+        full = os.path.join(root, rel.replace("/", os.sep))
+        parent = os.path.dirname(full)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+        if data is None:
+            _img(full, (8, 8), "red")
+        else:
+            with open(full, "wb") as f:
+                f.write(data)
+
+
 @contextlib.contextmanager
 def patched_rename(fn):
     """替换 os.rename，用于注入并发/失败，退出时恢复。"""
@@ -413,6 +428,106 @@ def test_r3():
         src_txt = io.open(os.path.join(HERE, "pixel_diff.py"), encoding="utf-8").read()
         check("R3", "R3-5 源码中已无单文件 os.replace 提交点", "os.replace(" not in src_txt,
               "仍存在 os.replace(" if "os.replace(" in src_txt else "未出现")
+
+        # ---------------- 第二轮补测（评审要求四项） ----------------
+
+        # R3-6：残缺包 + --replace-dir 必须仍被识别为非法旧包（不能只靠默认拒绝兜住）
+        incomplete = [
+            ("空目录", lambda d: os.makedirs(d)),
+            ("只有报告、没有 diff/", lambda d: _mk(d, {"PIXEL_DIFF.md": b"# stub\n"})),
+            ("只有 diff/、没有报告", lambda d: _mk(d, {"diff/diff_p0.png": None})),
+            ("diff 是普通文件", lambda d: _mk(d, {"PIXEL_DIFF.md": b"# stub\n", "diff": b"x"})),
+            ("报告是空文件", lambda d: _mk(d, {"PIXEL_DIFF.md": b"", "diff/diff_p0.png": None})),
+            ("diff 内含非 png 条目", lambda d: _mk(d, {"PIXEL_DIFF.md": b"# stub\n",
+                                                       "diff/other.txt": b"x"})),
+        ]
+        for idx, (label, build) in enumerate(incomplete):
+            d = os.path.join(base, "bad_%d" % idx)
+            build(d)
+            snapshot = _snapshot(d)
+            rc, log = _run_pd(full, full, d, replace=True)
+            after = _snapshot(d)
+            check("R3", "R3-6 残缺包(%s) + --replace-dir -> 退出 6" % label, rc == 6, "rc=%d" % rc)
+            check("R3", "R3-6 残缺包(%s) 未被删除/改动" % label,
+                  set(snapshot) == set(after) and snapshot == after,
+                  "%d 个文件" % len(after))
+
+        # R3-7：既有 .prev.<pid> 不得被自动删除（它可能是唯一的旧证据）
+        pre_out = os.path.join(base, "pre_out")
+        os.rename(_make_staging(base, "pre_seed"), pre_out)
+        prev_dir = pre_out + ".prev.%d" % os.getpid()
+        _mk(prev_dir, {"OLD_EVIDENCE.txt": b"only copy\n"})
+        pre_before = _snapshot(pre_out)
+        prev_before = _snapshot(prev_dir)
+        st_pre = _make_staging(base, "pre_new")
+        # 进程内调用：`.prev.<pid>` 用的是当前进程 PID，CLI 子进程 PID 不同
+        err7 = [None]
+        try:
+            pd.publish_bundle(pre_out, st_pre, True)
+        except pd.PublishError as exc:
+            err7[0] = exc
+        rc, log = (6 if isinstance(err7[0], pd.PublishError) else 0), str(err7[0])
+        check("R3", "R3-7 既有 .prev -> 退出 6", rc == 6, "rc=%d" % rc)
+        check("R3", "R3-7 既有 .prev 未被删除", _snapshot(prev_dir) == prev_before,
+              "%d 个文件" % len(_snapshot(prev_dir)))
+        check("R3", "R3-7 旧包未被改动", _snapshot(pre_out) == pre_before)
+        check("R3", "R3-7 提示里给出 .prev 路径", prev_dir in log, "日志含 prev 路径")
+        shutil.rmtree(prev_dir, ignore_errors=True)
+
+        # R3-8：--replace-dir 过程中目标被其他进程调换 —— 不得删除未验证的目录
+        swap_out = os.path.join(base, "swap_out")
+        os.rename(_make_staging(base, "swap_seed"), swap_out)
+        st_swap = _make_staging(base, "swap_new")
+        hijacked = os.path.join(base, "hijacked_away")
+
+        def swap_target(src, dst):
+            if dst.endswith(".prev.%d" % os.getpid()):
+                # 「检查之后、rename 之前」把 out_dir 换成另一个目录
+                os.rename(swap_out, hijacked)
+                _mk(swap_out, {"IMPOSTOR.txt": b"not ours\n"})
+            return real_rename(src, dst)
+
+        err8 = [None]
+        with patched_rename(swap_target) as real_rename:
+            try:
+                pd.publish_bundle(swap_out, st_swap, True)
+            except pd.PublishError as exc:
+                err8[0] = exc
+        check("R3", "R3-8 替换时目标被调换 -> PublishError（退出 6）",
+              isinstance(err8[0], pd.PublishError), "%r" % err8[0])
+        check("R3", "R3-8 冒名目录已放回原位，未被删除",
+              os.path.exists(os.path.join(swap_out, "IMPOSTOR.txt")), str(os.listdir(swap_out)))
+        check("R3", "R3-8 原旧包未被删除（仍在被调换处）", os.path.isdir(hijacked))
+        check("R3", "R3-8 未留下 .prev", not os.path.exists(swap_out + ".prev.%d" % os.getpid()))
+
+        # R3-9：回滚时目标又被其他进程抢占 -> RollbackError，旧证据留在 prev
+        rb_out = os.path.join(base, "rb_out")
+        os.rename(_make_staging(base, "rb_seed"), rb_out)
+        rb_before = _snapshot(rb_out)
+        st_rb = _make_staging(base, "rb_new")
+        seq3 = {"n": 0}
+
+        def fail_then_occupy(src, dst):
+            seq3["n"] += 1
+            if seq3["n"] == 2:  # staging -> out 失败
+                raise OSError("injected: install failed")
+            if seq3["n"] == 3:  # 回滚 prev -> out 之前，目标被占
+                _mk(rb_out, {"OTHER.txt": b"taken\n"})
+            return real_rename(src, dst)
+
+        err9 = [None]
+        with patched_rename(fail_then_occupy) as real_rename:
+            try:
+                pd.publish_bundle(rb_out, st_rb, True)
+            except pd.RollbackError as exc:
+                err9[0] = exc
+        rb_prev = rb_out + ".prev.%d" % os.getpid()
+        check("R3", "R3-9 回滚时目标被抢占 -> RollbackError",
+              isinstance(err9[0], pd.RollbackError), "%r" % err9[0])
+        check("R3", "R3-9 旧包完好保留在 prev", _snapshot(rb_prev) == rb_before,
+              "%d 个文件" % len(_snapshot(rb_prev)))
+        check("R3", "R3-9 抢占者内容未被删除",
+              os.path.exists(os.path.join(rb_out, "OTHER.txt")), str(os.listdir(rb_out)))
     finally:
         shutil.rmtree(base, ignore_errors=True)
 

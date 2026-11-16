@@ -12,10 +12,10 @@
 | 项目 | morrishk.net 老站升级（电子元器件 B2B 独立站） |
 | 仓库 | https://github.com/esanwu-bot/morrishk-site-upgrade-review |
 | Branch | `main` |
-| 送审版本 | tag **`v1.5.4-review`**（`v1.4-review` / `v1.5-review` / `v1.5.1-review` / `v1.5.2-review` / `v1.5.3-review` 保留未覆盖） |
+| 送审版本 | tag **`v1.5.5-review`**（`v1.4-review` / `v1.5-review` / `v1.5.1-review` / `v1.5.2-review` / `v1.5.3-review` / `v1.5.4-review` 保留未覆盖） |
 | 并行送审包 | **`08_php84_compatibility/`**（PHP 8.4 兼容性评估），独立工作流、各自冻结。**本文件不转述其版本号**——版本以该包 `README.md` 头部与远程 tag 系列 `php84-v1.2.x-review` 为准 |
 | 交付日期 | 2026-11-16 |
-| 文档版本 | 商务方案 客户版 v1.1（rev.3） ／ 技术方案 技术版 v1.2（rev.3） ／ **原型 v1.5.4-prototype** ／ **Design System v1.0** |
+| 文档版本 | 商务方案 客户版 v1.1（rev.3） ／ 技术方案 技术版 v1.2（rev.3） ／ **原型 v1.5.5-prototype** ／ **Design System v1.0** |
 | 数据基线 | 2024-11-30 导出，静态终态（不随线上变化） |
 | 签名状态 | 本仓库的 commit 与 tag **均未做 Git 签名**（unsigned / 非 GPG 验证）。可用于确认版本内容与父子关系，**不可**作为经过签名的发布物 |
 
@@ -37,7 +37,7 @@ git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git ref
 也可直接打开下列直链绕过仓库首页缓存：
 
 - 提交历史：https://github.com/esanwu-bot/morrishk-site-upgrade-review/commits/main
-- 标签 `v1.5.4-review`：https://github.com/esanwu-bot/morrishk-site-upgrade-review/releases/tag/v1.5.4-review
+- 标签 `v1.5.5-review`：https://github.com/esanwu-bot/morrishk-site-upgrade-review/releases/tag/v1.5.5-review
 
 若仓库首页显示的提交数或 README 版本文字与上述 SHA 不符，属于页面缓存，请以 `git ls-remote` 的结果为准。
 
@@ -85,8 +85,8 @@ git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git ref
 │   ├── check_tokens.py             Token 合规扫描 → 生成 07_prototypes/TOKEN_AUDIT.md
 │   ├── pixel_diff.py               同视口逐像素差分 → 生成 pixel_diff/ 结果目录（报告 + 差异图）
 │   ├── css_value_diff.py           两版 CSS 逐条取值比对 → 生成 CSS_VALUE_DIFF.md
-│   └── selftest.py                 三个工具的回归自测（47 项断言，退出码 0/1）
-└── 07_prototypes/                新版原型 + Design System（本轮 v1.5.4）
+│   └── selftest.py                 三个工具的回归自测（88 项断言，退出码 0/1）
+└── 07_prototypes/                新版原型 + Design System（本轮 v1.5.5）
     ├── DESIGN.md                     ★ Morris Design System v1.0（唯一视觉权威）
     ├── README.md                     原型说明、标注系统、已知缺口
     ├── TOKEN_AUDIT.md                ★ Token 使用检查报告（脚本生成，可重跑）
@@ -557,11 +557,10 @@ git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git ref
 | 发布失败只删本次暂存，不清理历史 | 报告替换是提交点；它失败则新 `diff/` 删除、旧目录 rename 回原位。`finally` 只删本次 `.runs/<id>` |
 
 **一处精确披露（避免把「不清理历史」说过头）**：`--replace-dir` 路径下，若存在**同名、同 pid** 的上次崩溃遗留
-`diff.prev.<pid>`，会先被删除再继续（`tools/pixel_diff.py` 第 226–227 行）。它的作用域只在本进程命名空间内，
-不会触碰 `diff/`、`PIXEL_DIFF.md` 或任何其他历史文件；但严格说它确实是「删除了一次非本次运行产生的目录」，
-在此如实列出，不并入「只删本次暂存」的说法。
+`diff.prev.<pid>`，v1.5.3 会先删除再继续。该行为**已被认定不安全**（pid 相同不证明该目录可删），
+v1.5.5 起改为「遇到即拒绝、提示人工处理」，见 8.11。本节保留为历史记录。
 
-**回归断言（47 项，原 43 项 + R3 新增 4 项）**：
+**回归断言（v1.5.3 时为 47 项；现为 88 项，见 8.11）**：
 
 | 断言 | 结果 |
 |---|---|
@@ -645,6 +644,42 @@ R3 的「工具层可靠性」按本轮实现可以关闭，但**关闭与否由
 修正时该包已推进到 v1.2.3 —— 说明「在根 README 里转述并行包的版本号」本身是会反复过期的做法，
 因此本轮不再把它的版本号写进本文件，改为指向该包 README 与 tag 系列，从源头消除这类不一致。
 
+### 8.11 R3 最小修补：完整包校验、`.prev` 不再自动删除、替换竞态复核（v1.5.5）
+
+第三轮复核（针对 v1.5.4）接受「整组目录发布」的架构方向，但指出三处实现缺口，全部成立，本轮最小修补，
+不动其他工具、不改视觉差分数字、不重扫业务代码。
+
+| 编号 | 指出的问题 | 本轮处置 |
+|---|---|---|
+| R3-6 | `is_bundle_dir()` 用 `set(os.listdir(path)) <= BUNDLE_ENTRIES`，只证明「没有多余条目」，不证明是**完整合法的包**。空目录、只有报告、只有图、错误类型条目都会被当成合法旧包，加 `--replace-dir` 后可能被删除 | 改为 `bundle_problem()`：逐项验证 `PIXEL_DIFF.md` 是普通文件且非空、`diff/` 是真实目录（非符号链接）且非空、`diff/` 下全部是普通文件且命名 `diff_*.png` 且非空且可解码、不得有第三条目。任一不满足即拒绝、退出 6 |
+| R3-7 | `.prev.<pid>` 存在时自动 `_rmtree`，但 pid 相同不证明该目录可删——它可能是上次失败替换后**唯一**的旧证据 | 改为「遇到即拒绝、退出 6」，消息给出路径与 `mv "<prev>" "<prev>.discard"` 的人工处理方式。脚本不再替人判断该目录能否丢弃 |
+| R3-8 | 替换路径仍是「先校验目录内容、再 rename 到 prev」，两步之间目标可能被调换，导致被移走/删除的不是刚校验过的那个目录 | 移走后**复核身份**：设备号 + inode 必须与校验时一致，且 `prev` 要再过一次 `bundle_problem()`。不一致即把移走的目录改名回原位并拒绝，绝不删除未验证的目录 |
+| R3-9 | 未覆盖「回滚时目标又被其他进程占用」 | 补测：回滚的 rename 失败 → `RollbackError`，旧包完整保留在 `prev`，抢占者内容不被删除 |
+
+**新增测试（88 项，原 65 项）**：
+
+| 场景 | 断言 |
+|---|---|
+| 残缺包 6 种：空目录 / 只有报告 / 只有图 / `diff` 是普通文件 / 报告为空 / `diff` 内有杂项 | 带 `--replace-dir` 仍退出 6，且目录内文件字节与条目集合未变（逐字节比对） |
+| 既有 `.prev.<pid>` 且其中存有「唯一旧证据」 | 退出 6；`.prev` 未被删除、旧包未被改动；消息给出 `.prev` 路径 |
+| 替换过程中目标被另一进程调换（在「校验」与 `rename` 之间换入冒名目录） | `PublishError`；冒名目录被放回原位、未被删除；原旧包仍完好；不留 `.prev` |
+| 回滚时目标被抢占（回滚 rename 失败） | `RollbackError`；旧包完好保留在 `prev`；抢占者内容未被删除 |
+
+**如实保留的两条契约边界**（与 8.10 一致，未因本轮修补而变化）：
+
+1. 正常发布路径下，若目标被并发抢先建成**空目录**，POSIX 允许 `rename` 覆盖它（无内容可丢）；
+   Windows 上则失败。彻底消除需 `renameat2(RENAME_NOREPLACE)`，仅 Linux。
+2. `--replace-dir` 的替换是两次 `rename`，中间目标短暂缺失；崩溃留下完整的 `<out>.prev.<pid>`
+   而目标缺失，属可人工恢复状态。
+
+**测试数量与故障场景的区别**（沿用你的口径）：88 项是断言数，不是 88 个独立故障场景。
+按故障场景归并是 **13 类**：缺页 / 仅多页 / 缺页+多页 / 尺寸不符 / 目标已是完整包（默认拒绝）/
+残缺包 6 种 / 既有 `.prev` / 发布瞬间被抢占 / 替换中被调换 / 安装 rename 失败回滚 /
+回滚自身失败 / 回滚时目标被抢占 / 正常单次 rename + 报告字节可复现。
+
+**版本锚点说明**：本轮起 `main` 会继续被 08 并行包推进，`v1.5.5-review` 是有意冻结的原型版本，
+tag 不随 `main` 移动。核验请比对 tag 解引用目标，而不是「tag 是否等于 main 的 HEAD」。
+
 ## 九、版本与校验
 
 **文件数量口径**（四个数字含义不同，勿混用）：
@@ -685,7 +720,7 @@ python tools/css_value_diff.py \
   --tokens 07_prototypes/assets/tokens.css \
   --out /tmp/pd_check/CSS_VALUE_DIFF.md
 
-# 5c) 跑工具回归自测（65 项断言，含 R1 覆盖 / R2 边界 / R3 负向用例、并发与回滚故障注入、报告可复现性）
+# 5c) 跑工具回归自测（88 项断言，含 R1 覆盖 / R2 边界 / R3 负向用例、并发与回滚故障注入、报告可复现性）
 python tools/selftest.py
 
 # 6) 查看本仓库全部提交与送审 tag
@@ -695,8 +730,8 @@ git tag -n
 
 **三个脚本都有非零退出码，可直接接 CI**：`check_tokens.py` 有 FAIL 退出 1；
 `pixel_diff.py` —— 集合不一致 3、尺寸不符或差分失败 4、完成页数不足 5、
-**发布目标已存在 / 目标不是本工具产物 / 发布瞬间被并发抢占 6**、
-**产物校验失败、发布失败已回滚、回滚本身失败 7**；
+**发布目标已存在 / 目标不是完整有效结果包 / 既有 `.prev` 未人工处理 / 发布瞬间被抢占 /
+替换中被调换 6**、**产物校验失败、发布失败已回滚、回滚本身失败 7**；
 `css_value_diff.py` 分类合计与真实变更数不一致退出 3。「脚本跑完没报错」不等于「通过」，
 必须同时看退出码与报告里的判定行。
 
