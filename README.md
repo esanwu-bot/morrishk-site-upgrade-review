@@ -548,6 +548,11 @@ git ls-remote https://github.com/esanwu-bot/morrishk-site-upgrade-review.git ref
 | 目标必须预先不存在 + 目录级原子 rename | `diff/` 已存在时**默认拒绝并退出 6**；加 `--replace-dir` 才替换，旧目录先 rename 到 `diff.prev.<pid>`，新目录发布成功后才删除旧目录 |
 | 发布失败只删本次暂存，不清理历史 | 报告替换是提交点；它失败则新 `diff/` 删除、旧目录 rename 回原位。`finally` 只删本次 `.runs/<id>` |
 
+**一处精确披露（避免把「不清理历史」说过头）**：`--replace-dir` 路径下，若存在**同名、同 pid** 的上次崩溃遗留
+`diff.prev.<pid>`，会先被删除再继续（`tools/pixel_diff.py` 第 226–227 行）。它的作用域只在本进程命名空间内，
+不会触碰 `diff/`、`PIXEL_DIFF.md` 或任何其他历史文件；但严格说它确实是「删除了一次非本次运行产生的目录」，
+在此如实列出，不并入「只删本次暂存」的说法。
+
 **回归断言（47 项，原 43 项 + R3 新增 4 项）**：
 
 | 断言 | 结果 |
