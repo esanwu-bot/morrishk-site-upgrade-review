@@ -3,11 +3,11 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
-| 版本 | v1.14（第十四轮：B5 `REC_PENDING_UNKNOWN` 独立恢复通道、N-12n 崩溃场景拆分） |
+| 版本 | v1.15（第十五轮：B5 恢复通道结果状态处理、观察字段职责、N-12n 恢复通道崩溃测试） |
 | 日期 | 2026-11-17 |
-| 修订 | v1.14 只补 B5 恢复通道与测试描述；A3/A4、B1–B4 保持关闭，R5、R2–R4/R6 与总体架构不动 |
+| 修订 | v1.15 只补 B5 结果状态与测试；A3/A4、B1–B4、恢复通道预算保持不变，R5、R2–R4/R6 与总体架构不动 |
 | 性质 | 架构与实施设计；**不是**生产实现、不是部署、不是数据迁移 |
-| 状态 | 送 Reviewer 定向复核；v1.13 契约冻结与 Stage A 均未批准 |
+| 状态 | 送 Reviewer 定向复核；v1.14 契约冻结与 Stage A 均未批准 |
 | 目标产物 | `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md` |
 | 上游依据 | ① Ds Bit 仓库 `E:\workspace\icpdf-extractor`（HEAD `600439a5eee69fb3a1cec2715e37080e48ca9840`）② `lake/` Stage B 单件血缘 Demo ③ Morrishk 技术方案 v1.2 §7「Ds Bit 参数化」④ 已批准的 DuckDB + S3 兼容对象存储离线架构方向 |
 | 全量口径 | 去重 PDF **568,830** 份（约 56.9 万；任务书中的「56.8 万」是 56.883 万截断后的写法，两者同源） |
@@ -50,7 +50,7 @@
 ## 3. 复核路径（10–15 分钟）
 
 1. 读主文档 **§2**：`CONFIRMED / PROPOSED / OPEN` 三类清单与证据位置。
-2. 读 **§0.15 + §5.2.5**：v1.14 的 `REC_PENDING_UNKNOWN` 独立恢复通道与 N-12n 崩溃拆分。
+2. 读 **§0.16 + §5.2.5**：v1.15 的恢复通道结果状态、`last_observed_receipt_state` 与 N-12n 恢复崩溃测试。
 3. 读 **§5.6 + §7.2**：v1.1 对 R2 的两级 Manifest 与三级行数对账。
 4. 读 **§10.2**：v1.1 对 R3 的样本池 P/Q 与五类失败率分母。
 5. 读 **§5.4.1**：v1.1 对 R4 的 `reproducibility_key` v2 字段表。
@@ -215,6 +215,15 @@ sha256sum -c SHA256SUMS.txt
 | B5-R6-2 | 恢复通道预算/窗口/退出 | `recovery_attempts` ≤10、300 s、`reserved<20`；耗尽 observation-only；重启不重置 |
 | B5-R6-3 | N-12n 崩溃描述 | 拆为「响应未返回」与「RR2 未提交」两行 |
 | 测试 | episode 0 用满/超时 | N-12l/N-12n 增恢复通道与耗尽断言 |
+
+### 3.15 第十五轮复核响应（v1.15）
+
+| 编号 | Reviewer 问题 | v1.15 处置 |
+|---|---|---|
+| B5-R7-1 | 恢复 GET 的 ABSENT/UNKNOWN 行为 | 补结果矩阵：两者保持 `REC_PENDING_UNKNOWN` 并继续 |
+| B5-R7-2 | `rec_state` 与观察状态混用 | `rec_state` 保持 `unknown`；新增 `last_observed_receipt_state` 记录观察 |
+| B5-R7-3 | 恢复通道崩溃测试 | N-12n 增四个场景：预留后、GET 未返回、RR2 未提交、连续重启 |
+| B5-R7-4 | N-12l 旧口径 | 替换为独立恢复通道口径（不占 episode；10 次 / 300 s / reserved 20） |
 
 ---
 

@@ -516,7 +516,7 @@ DELETE FROM commits WHERE task_id = 'T';
 |---|---|
 | `WRITTEN` | 直接成功，无第二次 PUT |
 | `CONFLICT` | 隔离 |
-| `UNKNOWN` | `REC_PENDING_UNKNOWN`；不重跑 REC；普通 GET 计数；WRITTEN 可成功；20 次后 observation；3600 s 隔离 |
+| `UNKNOWN` | `REC_PENDING_UNKNOWN`；不重跑 REC；后续 GET 使用**独立恢复通道**（不增加 `episode_attempts`）；受 `recovery_attempts≤10`、300 s、`reserved<20` 约束；耗尽后 observation-only；3600 s 未决隔离 |
 | `ABSENT` 且条件满足 | 第二次 PUT → episode 1；上限 `min(10,20-reserved)` |
 | 重启 | `rec_attempted=true`，不重复 REC |
 | 崩溃点 1：`in_flight` 已提交、GET 前崩溃 | 重启见 `rec_state='in_flight'` → 按 `unknown` 恢复；REC GET 实际次数 = 0；`verify_attempts_reserved=1`、`verify_attempts_total=0`；进入 `REC_PENDING_UNKNOWN`，不重发 |
@@ -529,6 +529,11 @@ DELETE FROM commits WHERE task_id = 'T';
 | episode 0 已超 60 s | REC UNKNOWN 后恢复通道仍可执行（不受 episode 60 s 窗口约束） |
 | 恢复通道预算 | `recovery_attempts<10`、`recovery_window_s<300`、`reserved<20`；任一耗尽 → observation-only |
 | 恢复通道重启 | `recovery_attempts/recovery_started_at` 持久化，重启不重置、不新增通道 |
+| 恢复 GET 观察 `WRITTEN` | `last_observed_receipt_state='written'`；`rec_state` 仍为 `unknown`；转 `SUCCEEDED` |
+| 恢复 GET 观察 `CONFLICT` | `last_observed_receipt_state='conflict'`；`rec_state` 仍为 `unknown`；转 `QUARANTINED` |
+| 恢复 GET 观察 `ABSENT` | `last_observed_receipt_state='absent'`；`rec_state` 仍为 `unknown`；保持 `REC_PENDING_UNKNOWN`，剩余预算内可继续 |
+| 恢复 GET 观察 `UNKNOWN` | `last_observed_receipt_state='unknown'`；`rec_state` 仍为 `unknown`；保持状态，剩余预算内可继续 |
+| 字段职责 | `rec_state` 是 REC 原始结果权威；`last_observed_receipt_state` 只记最新观察，不参与准入 |
 
 ##### N-12m SQLite 预算语义实际执行验证（B1/B5）
 
@@ -560,6 +565,10 @@ DELETE FROM commits WHERE task_id = 'T';
 | REC 对照 | REC 预留（发 `in_flight`） | 只 `reserved+1`，`episode_attempts` 不变；不受 10 次 / 60 s 约束，仅受 `reserved<20` |
 | 恢复通道 | REC UNKNOWN 后预留 | `reserved+1`、`recovery_attempts+1`；`episode_no/episode_attempts/episode_started_at` 不变；受 10 次 / 300 s / `reserved<20` 约束 |
 | 恢复通道耗尽 | `recovery_attempts=10` 或 300 s 到期 | 不再发 GET，仅 observation-only；`total ≤ reserved` 保持 |
+| 恢复通道预留后、GET 前崩溃 | 恢复预留事务 COMMIT 后关闭连接 | `reserved`/`recovery_attempts` 已 +1、`total` 不变；episode 字段不变；预算不返还 |
+| 恢复 GET 已发出、响应未返回 | 发出恢复 GET 后、响应前关闭连接 | `reserved`/`recovery_attempts` 保留；`total` 不变；不重发该次 |
+| 恢复 GET 响应已返回、RR2 未提交 | 响应已收到但结果事务未提交时关闭连接 | `reserved`/`recovery_attempts` 保留；`total` 不增；`last_observed_receipt_state` 未更新 |
+| 恢复通道连续重启 | 上述崩溃后重启 3 次 | `recovery_attempts`/`recovery_started_at` 不重置；不重新获得预算 |
 
 > 这是测试设计；执行需临时 SQLite（或协调器实现），不进入生产库。
 

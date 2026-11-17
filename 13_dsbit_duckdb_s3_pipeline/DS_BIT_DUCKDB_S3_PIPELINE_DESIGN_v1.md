@@ -3,9 +3,9 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
-| 文档版本 | v1.13（第十三轮：B5 REC 与 episode 预算关系、`verify_attempts_total` 术语统一） |
+| 文档版本 | v1.15（第十五轮：B5 恢复通道结果状态处理、观察字段职责、N-12n 恢复通道崩溃测试） |
 | 日期 | 2026-11-17 |
-| 修订 | v1.13 只补 B5 的计数口径与差异断言；A3/A4、B1、B2–B4 保持关闭，R5、R2–R4/R6 与总体架构不动 |
+| 修订 | v1.15 只补 B5 结果状态与测试；A3/A4、B1–B4、恢复通道预算保持不变，R5、R2–R4/R6 与总体架构不动 |
 | 性质 | 架构与实施设计（DESIGN ONLY） |
 | 实现状态 | **未实现**；本文件不含生产代码、不含部署、不含数据迁移 |
 | 基线仓库 | `E:\workspace\icpdf-extractor` |
@@ -216,6 +216,17 @@
 | **测试** | episode 0 用满/超时后的恢复通道 | N-12l 增「episode 0 已 10 次」「已超 60 s」「恢复通道预算/重启」；N-12n 增恢复通道与耗尽断言 | 矩阵 N-12l/N-12n |
 
 > v1.14 不重新打开 A3/A4、B1、B2–B4、R5、R2–R4/R6 与总体架构；不改生产代码。
+
+### 0.16 第十五轮复核修订（v1.14 → v1.15）
+
+| 编号 | Reviewer 要求 | v1.15 处置 | 位置 |
+|---|---|---|---|
+| **B5-R7-1** | 恢复 GET 的 `ABSENT` / `UNKNOWN` 结果未定义 | 补结果矩阵：`WRITTEN→SUCCEEDED`、`CONFLICT→QUARANTINED`、`ABSENT/UNKNOWN→保持 REC_PENDING_UNKNOWN` 并在剩余恢复预算内继续 | §5.2.5.2.1 |
+| **B5-R7-2** | `rec_state` 与最新观察状态混用 | 明确 `rec_state` 是 REC 一次性原始结果的权威字段，保持 `unknown`；恢复 GET 的观察写入 `last_observed_receipt_state`，不覆盖 `rec_state`；恢复通道准入仍用 `rec_state='unknown'` | §5.2.5.2.1；附件 §9.2/§9.9 |
+| **B5-R7-3** | N-12n 缺恢复通道自身崩溃测试 | 新增恢复通道四个场景：预留后、GET 未返回、响应已返回 RR2 未提交、连续重启 | 矩阵 N-12n |
+| **B5-R7-4** | N-12l 旧口径 | 将「普通 GET 计数」替换为独立恢复通道口径（不占 episode；10 次 / 300 s / reserved 20） | 矩阵 N-12l |
+
+> v1.15 不重做恢复通道预算，不重新引入 episode 计数，不重开 B1–B4。
 
 ---
 
@@ -936,6 +947,7 @@ write_receipt(commit):
 | `verify_attempts_total` | **结果已持久化**的 GET 次数（审计口径；恒 ≤ `verify_attempts_reserved`） |
 | `recovery_attempts` | `REC_PENDING_UNKNOWN` 恢复通道已用 GET 次数（≤10） |
 | `recovery_started_at` | 恢复通道起点（300 s 截止） |
+| `last_observed_receipt_state` | 最近一次恢复/观察 GET 的结果；**不覆盖** `rec_state` |
 | `pending_since` | 首次进入 pending 的时间；3600 s 生命周期上限 |
 
 规则：
@@ -999,7 +1011,16 @@ write_receipt(commit):
   -- changes() = 1 才发 GET；changes() = 0 → 恢复通道或总预算耗尽，不发 GET
   COMMIT;
   ```
-- **结果**：GET 返回后 `verify_attempts_total += 1` 并持久化观察结果；观察到 `WRITTEN` → `SUCCEEDED`，`CONFLICT` → `QUARANTINED`；
+- **结果处理（v1.15 补全）**：GET 返回后 `verify_attempts_total += 1`，把最新观察写入 `last_observed_receipt_state`；`rec_state` **保持 `unknown` 不变**：
+
+| 恢复 GET 观察 | `last_observed_receipt_state` | `rec_state` | 状态与后续 |
+|---|---|---|---|
+| `WRITTEN` | `written` | `unknown`（不变） | 转 `SUCCEEDED`，停止恢复 GET |
+| `CONFLICT` | `conflict` | `unknown`（不变） | 转 `QUARANTINED`，停止恢复 GET |
+| `ABSENT` | `absent` | `unknown`（不变） | 保持 `REC_PENDING_UNKNOWN`；在剩余 `recovery_attempts` / 300 s / `reserved<20` 内可继续 GET |
+| `UNKNOWN` | `unknown` | `unknown`（不变） | 保持 `REC_PENDING_UNKNOWN`；在剩余预算内可继续 GET |
+
+- **字段职责**：`rec_state` 是 REC 一次性原始结果的权威记录（保持 `unknown`），用于恢复通道准入（`rec_state='unknown'`）；`last_observed_receipt_state` 只记录最近一次观察，不参与准入，也不改写 `rec_state`；
 - **退出条件**：
   - 恢复通道 10 次用完、300 s 到期，或 `reserved=20` → **observation-only**（不发新 GET、不改状态、不提升成功）；
   - `pending_since` 超过 3600 s → `QUARANTINED(receipt_absent_timeout)`；
@@ -1057,7 +1078,7 @@ write_receipt(commit):
 - observation 只更新 `last_observed_receipt_state`；若观察到 `WRITTEN`，只告警并提示人工执行一次受审计的 `manual_verify`；
 - `manual_verify` 不计入自动预算，但必须记录操作者、时间与结果；不得由定时任务自动触发。
 
-**预算持久化**：`commits` 行记录 `episode_no`、`episode_attempts`、`episode_started_at`、`recovery_attempts`、`recovery_started_at`、`verify_attempts_reserved`、`verify_attempts_total`、`put_attempts`、`pending_since`、`next_retry_at`、`rec_attempted`、`rec_state`、`rec_at`；重启不重置。
+**预算持久化**：`commits` 行记录 `episode_no`、`episode_attempts`、`episode_started_at`、`recovery_attempts`、`recovery_started_at`、`last_observed_receipt_state`、`verify_attempts_reserved`、`verify_attempts_total`、`put_attempts`、`pending_since`、`next_retry_at`、`rec_attempted`、`rec_state`、`rec_at`；重启不重置。
 
 **PUT 200 后回读 404 的默认行为**：
 

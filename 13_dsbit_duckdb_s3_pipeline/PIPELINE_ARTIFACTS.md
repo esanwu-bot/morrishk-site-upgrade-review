@@ -724,6 +724,7 @@ CREATE TABLE commits (
   episode_started_at TEXT,
   recovery_attempts INTEGER NOT NULL DEFAULT 0,  -- REC_PENDING_UNKNOWN 恢复通道（≤10）
   recovery_started_at TEXT,                       -- 恢复通道 300 s 窗口起点
+  last_observed_receipt_state TEXT,               -- 最近观察结果（不覆盖 rec_state）
   pending_since TEXT,
   next_retry_at TEXT,
   rec_attempted INTEGER NOT NULL DEFAULT 0,       -- 执行 REC GET 前先置 1（B5）
@@ -921,7 +922,7 @@ UPDATE commits
 COMMIT;
 ```
 
-不修改 `episode_no/episode_attempts/episode_started_at`；`recovery_attempts=10`、300 s 到期或 `reserved=20` → observation-only；`pending_since` 3600 s → 隔离；重启恢复通道计数，不重置。
+不修改 `episode_no/episode_attempts/episode_started_at`；结果处理：`WRITTEN→SUCCEEDED`、`CONFLICT→QUARANTINED`、`ABSENT/UNKNOWN→保持 REC_PENDING_UNKNOWN` 并在剩余预算内继续。观察结果写入 `last_observed_receipt_state`，**不覆盖 `rec_state`**（准入仍用 `rec_state='unknown'`）。`recovery_attempts=10`、300 s 到期或 `reserved=20` → observation-only；`pending_since` 3600 s → 隔离；重启恢复通道计数，不重置。
 
 **REC（B5）**：episode 0 结束后允许一次 1 次 GET 的**重写资格检查**；独立预留：消耗 1 次 `verify_attempts_reserved`，**不增加 `episode_attempts`**、不受 10 次 / 60 s 窗口约束，只检查 `reserved < 20`；**执行顺序**：① SQLite 提交 `rec_attempted=1, rec_state='in_flight', rec_at=now, verify_attempts_reserved+=1` → ② 单次 GET → ③ 提交 `written|absent|conflict|unknown` 且 `verify_attempts_total+=1`；`WRITTEN` 直接成功、`CONFLICT` 隔离、`ABSENT` 且条件全满足才第二次 PUT、`UNKNOWN` 进入 `REC_PENDING_UNKNOWN`（不重跑 REC；恢复通道 GET 按 `recovery_attempts` 独立预留，10 次 / 300 s / reserved 20 后 observation，3600 s 隔离）；`rec_state='in_flight'` 时崩溃一律按 `unknown` 恢复、不重发（reserved 已消耗、total 不增加）；`rec_attempted/rec_state/rec_at` 持久化，重启不重复。`REC_PENDING_UNKNOWN` 是 `COMMITTED_PENDING_RECEIPT` 的内部子状态，`tasks.state` 不变。
 

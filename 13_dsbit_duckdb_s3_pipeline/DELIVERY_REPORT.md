@@ -4,10 +4,10 @@
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
 | 交付日期 | 2026-11-17 |
-| 版本 | **v1.14**（第十四轮：B5 `REC_PENDING_UNKNOWN` 独立恢复通道、N-12n 崩溃场景拆分） |
+| 版本 | **v1.15**（第十五轮：B5 恢复通道结果状态处理、观察字段职责、N-12n 恢复通道崩溃测试） |
 | 性质 | 设计送审（DESIGN ONLY） |
 | 主文档 | `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md` |
-| Reviewer 结论（第十四轮） | v1.13 核心 PASS；REC UNKNOWN 后 GET 归属与 N-12n 描述待复核；B1–B4 沿用 PASS；契约冻结与 Stage A 仍不批准 |
+| Reviewer 结论（第十五轮） | v1.14 恢复通道方向 PASS；结果状态与 N-12n 恢复通道测试待复核；B1–B4 沿用 PASS；契约冻结与 Stage A 仍不批准 |
 | v1.0 提交 | 设计 `a62c70d644ced735ccfe079b086aca744f142f93`；报告 `ce6ba2db2839cb49a69702d3251482c4b58ba633` |
 | v1.1 设计修订提交 | `f8b8085fa12d57050e176bc8517a5a4856eaceef` |
 | v1.1 报告与校验清单 | `cdc61147387801c1b758deae89bb871467ef92d7` |
@@ -36,7 +36,9 @@
 | v1.13 设计修订提交 | `07c066b9cc1a11337e54e106c27f86fd3039a222` |
 | v1.13 报告与校验清单 | `e5637fcbab80245440a528712cb23c33fdd959f9` |
 | v1.14 设计修订提交 | `6b9c27e1fc9242a79b1f833eb29ec805e26185f9` |
-| v1.14 报告与校验清单 | 紧随 v1.14 设计提交（SHA 见 `git log`） |
+| v1.14 报告与校验清单 | `34558d5e994d63dae6fd35b271028c0dcb3439f2` |
+| v1.15 设计修订提交 | `（提交后回填）` |
+| v1.15 报告与校验清单 | 紧随 v1.15 设计提交（SHA 见 `git log`） |
 | Ds Bit 基线 | `600439a5eee69fb3a1cec2715e37080e48ca9840`（分支 `backup/full-local-20261114`） |
 | 送审仓库任务启动基线 | `0fa9d34` |
 | 送审仓库设计提交直接父提交（v1.0） | `fc4bcc5` |
@@ -268,15 +270,26 @@ v1.1–v1.11 的 Session A 提交只修改上述 `13_` 目录内的文件；**�
 
 > 本轮仍为设计层修订：未改生产代码、未重跑 Ds Bit 测试、未做真实对象存储验证。
 
+### 4.15 第十五轮 B5（v1.15）
+
+| 编号 | Reviewer 要求 | v1.15 处置 | 复核位置 |
+|---|---|---|---|
+| **B5-R7-1** | 恢复 GET 的 `ABSENT` / `UNKNOWN` 行为 | 补结果矩阵：`WRITTEN→SUCCEEDED`、`CONFLICT→QUARANTINED`、`ABSENT/UNKNOWN→保持 REC_PENDING_UNKNOWN` 并在剩余预算内继续 | 主文档 §5.2.5.2.1；附件 §9.9 |
+| **B5-R7-2** | `rec_state` 与最新观察混用 | `rec_state` 保持 REC 原始结果 `unknown`，用于通道准入；新增 `last_observed_receipt_state` 记录最新观察，不覆盖 `rec_state` | 主文档 §5.2.5.2.1；附件 §9.2/§9.9 |
+| **B5-R7-3** | N-12n 缺恢复通道崩溃测试 | 新增四场景：预留后、GET 未返回、响应已返回 RR2 未提交、连续重启 | 矩阵 N-12n |
+| **B5-R7-4** | N-12l 旧口径 | 删除「普通 GET 计数」，改为独立恢复通道口径（不占 episode；10 次 / 300 s / reserved 20） | 矩阵 N-12l |
+
+> 本轮仍为设计层修订：未改生产代码、未重跑 Ds Bit 测试、未做真实对象存储验证。
+
 ---
 
-## 5. 关键架构决策（v1.14）
+## 5. 关键架构决策（v1.15）
 
 1. 批量路径仍是「本地处理 → 大批 Parquet → 上传 → 批量查询」；
 2. DuckDB 仍只做分析查询，单写快照，不是队列/锁/事实源；
 3. 任务分配为**单写协调器 + `lease_generation` + COMMIT 事务**；发租约前先持久化 watermark；
 4. **成功提交点**不是 manifest，而是「协调器 commit 记录 + receipt 一致」；
-5. receipt 四态 + `episode_no≤1` + 一次性 REC；无 CAS 仅首次串行创建、永不重写；**episode 普通 GET** 先预留 `reserved` + `episode_attempts` 并 COMMIT 再执行；**REC** 独立预留，只加 `reserved`、不加 `episode_attempts`；**`REC_PENDING_UNKNOWN`** 使用独立恢复通道（`recovery_attempts` ≤10、`recovery_window_s`=300、`reserved<20`），不占 episode；`in_flight` 崩溃按 `unknown` 恢复；20 次上限按 `reserved`，`total` 只记结果已持久化的 GET；
+5. receipt 四态 + `episode_no≤1` + 一次性 REC；无 CAS 仅首次串行创建、永不重写；**episode 普通 GET** 先预留 `reserved` + `episode_attempts` 并 COMMIT 再执行；**REC** 独立预留，只加 `reserved`、不加 `episode_attempts`；**`REC_PENDING_UNKNOWN`** 使用独立恢复通道（`recovery_attempts` ≤10、`recovery_window_s`=300、`reserved<20`），不占 episode；`rec_state` 保持 `unknown`，最新观察写入 `last_observed_receipt_state`；`ABSENT/UNKNOWN` 保持状态并继续，`WRITTEN/CONFLICT` 分别转 `SUCCEEDED/QUARANTINED`；`in_flight` 崩溃按 `unknown` 恢复；20 次上限按 `reserved`，`total` 只记结果已持久化的 GET；
 6. orphan 事件分 `storage_atomic/coordinator_serialized` 两种模式，总 PUT 次数分别为 ≤3/≤2（含首次），预算持久化在 `events` 行（合法 INSERT + 同事务原子 +1、只减不增、回读不计、`put_started_at`/`last_put_reserved_at` 仅为预留时间）；L3 需 `commit-receipt/v2` 的 `token_key_id`、key registry（`active/verify_only/revoked`）、token 账本、严格相等 generation；
 7. Run Manifest 与 Batch/Partition Manifest 分离，Catalog 只按 part_manifest 计总行数；
 8. `reproducibility_key` v2；`task_id` = `<batch_id>:<sha256(source_sha256 + requested_mpn)>`；
@@ -555,6 +568,22 @@ R1-3 的修订仍需 Reviewer 定向复核；OD-01/OD-02/OD-03/OD-05/OD-19 仍�
 | 契约冻结 / Stage A / 基准 / 试跑 / 生产 | **不批准** |
 
 > v1.14 只改 `13_` 内的 B5 恢复通道与 N-12n 描述；未改生产代码、未重跑 Ds Bit 测试。
+
+### 9.15 第十五轮（v1.14）
+
+| 项 | 结论 |
+|---|---|
+| Git 提交链与 Session A 边界 | PASS |
+| B5-R6-1 episode 归属 | PASS（可关闭） |
+| B5-R6-2 恢复通道预算/窗口 | 核心 PASS；结果状态 v1.15 已补全 |
+| B5-R6-3 N-12n 普通 GET 崩溃拆分 | PASS |
+| 恢复通道自身崩溃测试 | v1.15 已补四个场景 |
+| N-12l 旧口径 | v1.15 已替换 |
+| R1–R3 总体 | **OPEN**（等待 v1.15 定向复核） |
+| v1.15 状态 | 待 Reviewer 定向复核 |
+| 契约冻结 / Stage A / 基准 / 试跑 / 生产 | **不批准** |
+
+> v1.15 只改 `13_` 内的 B5 结果状态、观察字段与测试；未改生产代码、未重跑 Ds Bit 测试。
 
 ---
 
