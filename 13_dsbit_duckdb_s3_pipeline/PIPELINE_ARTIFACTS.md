@@ -723,6 +723,10 @@ CREATE TABLE commits (
   episode_started_at TEXT,
   pending_since TEXT,
   next_retry_at TEXT,
+  rec_attempted INTEGER NOT NULL DEFAULT 0,
+  rec_state TEXT,                                 -- written|conflict|absent|unknown
+  rec_at TEXT,
+  token_key_id TEXT NOT NULL,
   recovered_from_receipt INTEGER NOT NULL DEFAULT 0,
   receipt_error TEXT,
   receipt_written_at TEXT
@@ -826,15 +830,18 @@ C: 200 {token: 同一 token}（幂等，不产生第二条 commit）
 
 ```json
 {
-  "schema": "lakehouse/commit-receipt/v1",
+  "schema": "lakehouse/commit-receipt/v2",
   "task_id": "...",
   "generation": 1,
   "token": "...",
+  "token_key_id": "k1",
   "manifest_sha256": "...",
   "run_id": "...",
   "committed_at": "..."
 }
 ```
+
+> v2 必填 `token_key_id`；`receipt_sha256` 覆盖含该字段的规范字节。v1（无 key id）仅在显式配置 `legacy_receipt_key_id` 时允许 L3。
 
 `commits` 行在事务内记录 `receipt_sha256`（期望字节的 SHA-256），因此期望字节可精确重建。
 
@@ -874,7 +881,7 @@ write_receipt(commit):
 
 **episode 状态机（A5/B5）**：`episode_no ∈ {0,1}`；普通 30 s reconcile **延续当前 episode**（不重置次数/截止）；只有第二次 PUT 后允许 `0→1`；重启恢复原 episode，不自动新增；`verify_attempts_total` 上限 20；`pending_since` 3600 s 生命周期上限。
 
-**REC（B5）**：episode 0 结束后允许一次 1 次 GET 的**重写资格检查**；计入 `verify_attempts_total`，不占 episode 1 的 10 次；`WRITTEN` 直接成功、`CONFLICT` 隔离、`UNKNOWN` 不再重试 REC、`ABSENT` 且条件全满足才第二次 PUT；episode 1 上限 = `min(10, 20-total)`。总量耗尽后仅允许不计数的 observation-only GET（不提升成功），人工 `manual_verify` 需审计。
+**REC（B5）**：episode 0 结束后允许一次 1 次 GET 的**重写资格检查**；计入 `verify_attempts_total`，不占 episode 1 的 10 次；`WRITTEN` 直接成功、`CONFLICT` 隔离、`ABSENT` 且条件全满足才第二次 PUT、`UNKNOWN` 进入 `REC_PENDING_UNKNOWN`（不重跑 REC，普通 GET 计数，20 次后 observation，3600 s 隔离）；`rec_attempted/rec_state/rec_at` 持久化，重启不重复。
 
 **无 CAS 的退化（A6）**：仅允许**首次创建**走「GET 404 → 串行 PUT → 回读」，标记 `receipt_write_mode=serialized_no_cas`；**永不重写**；未知结果只读；OD-19 未批准时禁止写入。
 

@@ -458,6 +458,59 @@ DELETE FROM commits WHERE task_id = 'T';
 | 存储门禁 | 未通过 C1/C2 时事件标记 `event_dedup=coordinator_serialized`；不得声称 `storage_atomic` |
 | 超时 | PUT 超时 → 只 GET 回读；一致成功、不同冲突；不盲目覆盖 |
 
+##### N-12h1 事件写入 `storage_atomic`（B1）
+
+| 项 | 内容 |
+|---|---|
+| 前提 | 存储通过 C1/C2，`event_dedup=storage_atomic` |
+| 断言 | 首次用 `If-None-Match: *`；总 PUT 次数 ≤3（含首次）；412/409 后 GET 比较；超时只回读；仍 ABSENT → `unresolved`，不写入 |
+
+##### N-12h2 事件写入 `coordinator_serialized`（B1）
+
+| 项 | 内容 |
+|---|---|
+| 前提 | 存储未通过 C1/C2 |
+| 断言 | 使用普通 PUT；总 PUT 次数 ≤2（含首次）；不得标记 `storage_atomic`；超时回读；仍 ABSENT → `unresolved` |
+
+##### N-12i Token key 生命周期（B2）
+
+| 场景 | 预期 |
+|---|---|
+| 当前 active key | L3 通过 |
+| 轮换后旧 key（verify_only） | 旧 receipt 仍可验证 |
+| 未知 key_id | L3 禁止，隔离 |
+| revoked key | L3 禁止，告警 |
+| v1 receipt 无 key_id | 未配置 `legacy_receipt_key_id` → `LEGACY_RECEIPT_NO_KEY_ID` 隔离；配置后才允许 |
+
+##### N-12j Watermark 顺序（B3）
+
+| 场景 | 预期 |
+|---|---|
+| watermark 写成功、SQLite 前崩溃 | 重启 SQLite = max(SQLite, watermark)；不发低 generation 租约 |
+| watermark 回读失败 | 不发租约 |
+| receipt.generation < watermark | 隔离 |
+| receipt.generation > watermark | 隔离 |
+| receipt.generation == watermark | 允许 L3 |
+
+##### N-12k Token Ledger（B4）
+
+| 场景 | 预期 |
+|---|---|
+| 账本 412 且字段不同 | `TOKEN_LEDGER_CONFLICT`，隔离 |
+| 账本 PUT 超时但实际已写 | 回读一致 → 成功 |
+| 账本持续 pending | 不阻断本次成功；L3 禁止；reconciler 持续补写 |
+| 账本 pending 后重启 | 继续补写，不丢任务 |
+
+##### N-12l REC 状态机（B5）
+
+| REC 结果 | 预期 |
+|---|---|
+| `WRITTEN` | 直接成功，无第二次 PUT |
+| `CONFLICT` | 隔离 |
+| `UNKNOWN` | `REC_PENDING_UNKNOWN`；不重跑 REC；普通 GET 计数；WRITTEN 可成功；20 次后 observation；3600 s 隔离 |
+| `ABSENT` 且条件满足 | 第二次 PUT → episode 1；上限 `min(10,20-total)` |
+| 重启 | `rec_attempted=true`，不重复 REC |
+
 ### N-13 任务重试产生重复结果
 
 | 项 | 内容 |

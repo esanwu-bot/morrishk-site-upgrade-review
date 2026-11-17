@@ -3,9 +3,9 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
-| 文档版本 | v1.8（第八轮：B1 事件写入模式；B2 密钥版本；B3 generation 严格相等；B4 token 账本顺序；B5 重写资格检查） |
+| 文档版本 | v1.9（第九轮：B1 尝试次数；B2 Receipt Schema/key 生命周期；B5 REC UNKNOWN；B1–B5 负向测试） |
 | 日期 | 2026-11-17 |
-| 修订 | v1.8 只补 B1–B5；A3/A4 保持关闭，R5、R2–R4/R6 与总体架构不动 |
+| 修订 | v1.9 只补 B1/B2/B5 与测试矩阵；A3/A4 保持关闭，R5、R2–R4/R6 与总体架构不动 |
 | 性质 | 架构与实施设计（DESIGN ONLY） |
 | 实现状态 | **未实现**；本文件不含生产代码、不含部署、不含数据迁移 |
 | 基线仓库 | `E:\workspace\icpdf-extractor` |
@@ -141,6 +141,21 @@
 | — | A3/A4 已 PASS；只改 `13_` | A3/A4 不再改；R5/R2–R4/R6 未改 | — |
 
 > v1.8 仍不改变三层架构、DuckDB 边界、R5 身份模型与协调器单写者模型。
+
+### 0.10 第九轮复核修订（v1.8 → v1.9）
+
+| 编号 | Reviewer 要求 | v1.9 处置 | 位置 |
+|---|---|---|---|
+| **B1-1** | `≤3`/`≤2` 是重试还是总尝试 | 明确为**总 PUT 次数**（含首次）；重试次数 = 总次数 − 1；`put_attempts` 持久化 | §5.2.5.5.3 |
+| **B1-2** | 两种模式缺独立负向测试 | 新增 N-12h1（atomic）与 N-12h2（serialized），分别断言 PUT 类型、次数、超时回读、unresolved | 矩阵 |
+| **B2-1** | Receipt Schema 缺 `token_key_id` | 升级 `lakehouse/commit-receipt/v2`，`token_key_id` 必填；SHA-256 覆盖含该字段的规范字节 | §5.2.5.1 |
+| **B2-2** | 旧 v1 Receipt 兼容 | v1 Receipt 仅在显式配置 `legacy_receipt_key_id` 时允许 L3；否则 L3 禁止；不做静默兼容 | §5.2.5.5.1 |
+| **B2-3** | key registry 生命周期 | 定义 `active` / `verify_only` / `revoked` 三态；revoked key 不用于 L3；registry 版本化保留 | §5.2.5.5.1 |
+| **B5-1** | REC `UNKNOWN` 后状态不清 | 新增 `REC_PENDING_UNKNOWN`；不再重跑 REC；允许计入预算的普通 verification GET，可提升成功；预算耗尽转 observation；3600 s → 隔离；持久化 `rec_attempted/rec_state/rec_at` | §5.2.5.2.1 |
+| **B5-2** | REC 重启重复 | `rec_attempted=true` 持久化，重启不重跑；仅在 L1 恢复时保留 | §5.2.5.2.1 |
+| **测试** | B1–B5 负向测试矩阵 | 新增 N-12h（B1）、N-12i（B2）、N-12j（B3）、N-12k（B4）、N-12l（B5） | 矩阵 |
+
+> v1.9 仍不改变三层架构、DuckDB 边界、R5 身份模型与协调器单写者模型；A3/A4 不再改。
 
 ---
 
@@ -767,15 +782,20 @@ success = commit 记录存在
 
 ```json
 {
-  "schema": "lakehouse/commit-receipt/v1",
+  "schema": "lakehouse/commit-receipt/v2",
   "task_id": "...",
   "generation": 1,
   "token": "...",
+  "token_key_id": "k1",
   "manifest_sha256": "...",
   "run_id": "...",
   "committed_at": "..."
 }
 ```
+
+- `token_key_id` 为 **v2 必填字段**；
+- `receipt_sha256` 按包含 `token_key_id` 的规范字节计算（键排序、UTF-8、无 BOM、LF、无多余空白）；
+- v1 Receipt（无 `token_key_id`）不再作为新写入格式；旧 v1 的兼容见 §5.2.5.5.1。
 
 - `committed_at`、`token`、`manifest_sha256`、`run_id` 在 COMMIT 事务内已持久化，因此期望字节**可精确重建**；
 - commit 行额外记录 `receipt_sha256`（期望字节的 SHA-256），用于快速比较与审计。
@@ -858,8 +878,8 @@ write_receipt(commit):
 1. **普通 30 s reconcile 延续当前 episode**：不重置 `episode_attempts` / `episode_started_at`，只继续用剩余次数与剩余时间；
 2. 当前 episode 达到 10 次或 60 s 后**结束**，任务保持 `pending`；`next_retry_at` 供观测，但 **不会自动开启新 episode**；
 3. 仅当满足 §5.2.5.2.1 的全部重写条件并执行**第二次 PUT** 后，才允许 `episode_no: 0 → 1`；它是**最后一个** episode；
-4. 协调器重启：从 SQLite 恢复 `episode_no` / `episode_attempts` / `episode_started_at` / `verify_attempts_total`；**恢复原 episode，不自动新增**；无法恢复时保持 `pending`，走 L1/L2/L3，不通过重启获得新预算；
-5. `verify_attempts_total` 既作审计计数，也作总量上限（20）；达到后只允许回读直到 `pending_max_s`，不再新 episode；
+4. 协调器重启：从 SQLite 恢复 `episode_no` / `episode_attempts` / `episode_started_at` / `verify_attempts_total` / `rec_attempted` / `rec_state`；**恢复原 episode，不自动新增**；无法恢复时保持 `pending`，走 L1/L2/L3，不通过重启获得新预算；
+5. `verify_attempts_total` 既作审计计数，也作总量上限（20）；达到后只允许 **observation-only GET**（见下），不再新 episode；
 6. `pending_since` 的 3600 s 是 commit 生命周期预算，不因 episode 或重启重置。
 
 **重写资格检查 REC（B5）**：
@@ -867,11 +887,24 @@ write_receipt(commit):
 - episode 0 结束且冷却期满足后，允许**一次且仅一次** REC；
 - REC = **1 次 GET**，用于确认当前仍为 `ABSENT`；
 - REC 的 GET **计入** `verify_attempts_total`，但**不占用** episode 1 的 10 次额度；
-- REC 结果：
-  - `WRITTEN` → 直接 `written`，不 PUT；
-  - `CONFLICT` → 隔离；
-  - `UNKNOWN` → 保持 pending，**REC 已消耗，不再重试 REC**；
-  - `ABSENT` + 全部重写条件满足 → 执行第二次 PUT → `episode_no=1`；
+- 持久化字段：`rec_attempted`、`rec_state`、`rec_at`；重启后 `rec_attempted=true` 时**不得再次执行 REC**（L1 恢复保留该值）；
+- REC 结果与后续状态：
+
+| REC 结果 | `rec_state` | 后续 |
+|---|---|---|
+| `WRITTEN` | `written` | 直接 `SUCCEEDED`，不 PUT |
+| `CONFLICT` | `conflict` | `QUARANTINED` |
+| `ABSENT` | `absent` | 全部重写条件满足 → 第二次 PUT → `episode_no=1`；否则 pending |
+| `UNKNOWN` | `unknown` | 进入 `REC_PENDING_UNKNOWN`（见下） |
+
+**`REC_PENDING_UNKNOWN` 状态（B5）**：
+
+- 不重跑 REC；不开 episode 1；
+- 允许**普通 verification GET**（计入 `verify_attempts_total`），可因观察到 `WRITTEN` 而转为 `SUCCEEDED`，观察到 `CONFLICT` 转 `QUARANTINED`；
+- 达到 20 次后转 **observation-only**（不计数、不改状态、不提升成功）；
+- `pending_since` 超过 3600 s → `QUARANTINED(receipt_absent_timeout)`；
+- 重启后保持该状态，不重新获得预算。
+
 - episode 1 的有效上限 = `min(10, 20 - verify_attempts_total)`；
 - episode 1 结束后不再允许新 episode；普通 reconcile 与重启都不能创造新 episode。
 
@@ -881,7 +914,7 @@ write_receipt(commit):
 - observation 只更新 `last_observed_receipt_state`；若观察到 `WRITTEN`，只告警并提示人工执行一次受审计的 `manual_verify`；
 - `manual_verify` 不计入自动预算，但必须记录操作者、时间与结果；不得由定时任务自动触发。
 
-**预算持久化**：`commits` 行记录 `episode_no`、`episode_attempts`、`episode_started_at`、`verify_attempts_total`、`put_attempts`、`pending_since`、`next_retry_at`；重启不重置。
+**预算持久化**：`commits` 行记录 `episode_no`、`episode_attempts`、`episode_started_at`、`verify_attempts_total`、`put_attempts`、`pending_since`、`next_retry_at`、`rec_attempted`、`rec_state`、`rec_at`；重启不重置。
 
 **PUT 200 后回读 404 的默认行为**：
 
@@ -988,7 +1021,17 @@ token = hex( HMAC-SHA256(key[receipt.token_key_id],
 
 - receipt 与 token 账本均记录 `token_key_id`（例如 `k1`、`k2`）；
 - `coordinator_secret` 按 key id 管理；轮换时新 commit 用新 key，**历史 key 必须受控保留**用于验证旧 receipt；
-- L3 按 receipt 的 `token_key_id` 选密钥；key id 未知或密钥不可得 → **L3 禁止**，保持 `QUARANTINED`；
+- **key registry**：`control/coordinator/key_registry.json`（版本化、单写者、写后回读），每个 key 有 `state`：
+
+| state | 用途 |
+|---|---|
+| `active` | 签发新 token；可用于 L3 |
+| `verify_only` | 仅验证历史 receipt；可用于 L3 |
+| `revoked` | 不得用于 L3；出现即告警并审计 |
+
+- 轮换：新 key `active`，旧 key 转 `verify_only`；泄露/失效 → `revoked`，并保留 registry 历史；
+- L3 按 receipt 的 `token_key_id` 选密钥；key id 未知、密钥不可得或状态为 `revoked` → **L3 禁止**，保持 `QUARANTINED`；
+- **旧 v1 Receipt（无 `token_key_id`）**：只有当运维显式配置 `legacy_receipt_key_id` 时才允许 L3，并使用该 key 验签；未配置 → `LEGACY_RECEIPT_NO_KEY_ID` 隔离；**不做静默默认**。
 - token 账本对象：`control/coordinator/tokens/<token>.json`，内容 `{task_id, generation, manifest_sha256, run_id, token_key_id}`。
 
 **Commit → 账本 → receipt 的顺序（B4）**：
@@ -1036,10 +1079,10 @@ event_id = sha256(f"{batch_id}|{task_id}|receipt_without_commit|{receipt_sha256}
 - **存储能力门禁（A1/B1）**：只有目标存储通过 C1/C2 时，才允许 `event_dedup=storage_atomic`；未通过或未验证时只能 `event_dedup=coordinator_serialized`；MinIO 结果不能替代最终存储；
 - **模式 A：`storage_atomic`**：
   - GET → 404 → `PUT If-None-Match: *` → 回读；
-  - 200/412/409/超时 → 一律回读：同字节 → 成功；不同 → `EVENT_CONFLICT`；404 → 退避后条件重试，**≤3 次**；仍 404 → `event_state=unresolved`（quarantine 保留，告警），不宣称事件已写；
+  - 200/412/409/超时 → 一律回读：同字节 → 成功；不同 → `EVENT_CONFLICT`；404 → 退避后条件重试；**总 PUT 次数 ≤3（含首次，即最多 2 次重试）**；仍 404 → `event_state=unresolved`（quarantine 保留，告警），不宣称事件已写；
 - **模式 B：`coordinator_serialized`**（无 CAS 能力）：
   - 单协调器串行写入；GET → 404 → **普通 PUT（同字节）** → 回读；
-  - 超时 → GET 回读：同字节 → 成功；不同 → 冲突；404 → 退避后重试普通 PUT，**≤2 次**；仍 404 → `unresolved`；
+  - 超时 → GET 回读：同字节 → 成功；不同 → 冲突；404 → 退避后重试普通 PUT；**总 PUT 次数 ≤2（含首次，即最多 1 次重试）**；仍 404 → `unresolved`；
   - **不得宣称存储层原子去重**；若存在第二个协调器，本模式不成立（不属于支持场景）；
 - 两种模式都必须使用固定字段与稳定字节；`first_seen_at` 来自 quarantine，不使用当前时间；
 - SQLite `events` 表增加 `UNIQUE(event_id)`，写入用 `INSERT OR IGNORE`；

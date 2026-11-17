@@ -3,11 +3,11 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
-| 版本 | v1.8（第八轮：B1 事件写入模式；B2 密钥版本；B3 generation 严格相等；B4 token 账本顺序；B5 重写资格检查） |
+| 版本 | v1.9（第九轮：B1 尝试次数；B2 Receipt Schema/key 生命周期；B5 REC UNKNOWN；B1–B5 负向测试） |
 | 日期 | 2026-11-17 |
-| 修订 | v1.8 只补 B1–B5；A3/A4 保持关闭，R5、R2–R4/R6 与总体架构不动 |
+| 修订 | v1.9 只补 B1/B2/B5 与测试矩阵；A3/A4 保持关闭，R5、R2–R4/R6 与总体架构不动 |
 | 性质 | 架构与实施设计；**不是**生产实现、不是部署、不是数据迁移 |
-| 状态 | 送 Reviewer 定向复核；v1.7 契约冻结与 Stage A 均未批准 |
+| 状态 | 送 Reviewer 定向复核；v1.8 契约冻结与 Stage A 均未批准 |
 | 目标产物 | `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md` |
 | 上游依据 | ① Ds Bit 仓库 `E:\workspace\icpdf-extractor`（HEAD `600439a5eee69fb3a1cec2715e37080e48ca9840`）② `lake/` Stage B 单件血缘 Demo ③ Morrishk 技术方案 v1.2 §7「Ds Bit 参数化」④ 已批准的 DuckDB + S3 兼容对象存储离线架构方向 |
 | 全量口径 | 去重 PDF **568,830** 份（约 56.9 万；任务书中的「56.8 万」是 56.883 万截断后的写法，两者同源） |
@@ -50,7 +50,7 @@
 ## 3. 复核路径（10–15 分钟）
 
 1. 读主文档 **§2**：`CONFIRMED / PROPOSED / OPEN` 三类清单与证据位置。
-2. 读 **§0.9 + §5.2.5**：v1.8 的事件两种模式、token key 版本、watermark 顺序与 REC。
+2. 读 **§0.10 + §5.2.5**：v1.9 的尝试次数、Receipt v2/key registry、REC UNKNOWN。
 3. 读 **§5.6 + §7.2**：v1.1 对 R2 的两级 Manifest 与三级行数对账。
 4. 读 **§10.2**：v1.1 对 R3 的样本池 P/Q 与五类失败率分母。
 5. 读 **§5.4.1**：v1.1 对 R4 的 `reproducibility_key` v2 字段表。
@@ -151,6 +151,19 @@ sha256sum -c SHA256SUMS.txt
 | B3 | generation 严格相等/顺序 | L3 改为 `generation == watermark`；发租约顺序固定为 watermark→回读→SQLite→返回 |
 | B4 | token 账本顺序/失败/冲突 | commit → 账本条件写 → receipt；冲突隔离；账本失败不阻断成功但阻断 L3 |
 | B5 | episode 0 后重写路径 | 引入一次 REC（1 GET，计入总量）；episode 1 上限 `min(10,20-total)`；耗尽后仅 observation，不提升成功 |
+
+### 3.9 第九轮复核响应（v1.9）
+
+| 编号 | Reviewer 问题 | v1.9 处置 |
+|---|---|---|
+| B1-1 | 次数口径 | 明确为总 PUT 次数（含首次）：atomic ≤3、serialized ≤2 |
+| B1-2 | 双模式测试缺失 | 新增 N-12h1/N-12h2，分别断言 PUT 类型、次数、超时、unresolved |
+| B2-1 | Schema 缺 key id | Receipt 升级 v2，`token_key_id` 必填；SHA 覆盖含该字段字节 |
+| B2-2 | v1 兼容 | 仅显式 `legacy_receipt_key_id` 时允许；否则 `LEGACY_RECEIPT_NO_KEY_ID` 隔离 |
+| B2-3 | key 生命周期 | `active/verify_only/revoked` 三态 registry；revoked 禁止 L3 |
+| B5-1 | REC UNKNOWN | 新增 `REC_PENDING_UNKNOWN`；不重跑 REC；普通 GET 计数；20 次后 observation；3600 s 隔离 |
+| B5-2 | REC 重启 | `rec_attempted/rec_state/rec_at` 持久化，重启不重复 |
+| 测试 | B1–B5 矩阵 | 新增 N-12h/i/j/k/l |
 
 ---
 

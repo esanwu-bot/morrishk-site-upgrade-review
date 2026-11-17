@@ -4,10 +4,10 @@
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
 | 交付日期 | 2026-11-17 |
-| 版本 | **v1.8**（第八轮：B1 事件写入模式；B2 密钥版本；B3 generation 严格相等；B4 token 账本顺序；B5 重写资格检查） |
+| 版本 | **v1.9**（第九轮：B1 尝试次数；B2 Receipt Schema/key 生命周期；B5 REC UNKNOWN；B1–B5 负向测试） |
 | 性质 | 设计送审（DESIGN ONLY） |
 | 主文档 | `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md` |
-| Reviewer 结论（第八轮） | 待复核：B1–B5 最小修订；A3/A4 可关闭；契约冻结与 Stage A 仍不批准 |
+| Reviewer 结论（第九轮） | 待复核：B1/B2/B5 与测试矩阵；A3/A4 保持 PASS；契约冻结与 Stage A 仍不批准 |
 | v1.0 提交 | 设计 `a62c70d644ced735ccfe079b086aca744f142f93`；报告 `ce6ba2db2839cb49a69702d3251482c4b58ba633` |
 | v1.1 设计修订提交 | `f8b8085fa12d57050e176bc8517a5a4856eaceef` |
 | v1.1 报告与校验清单 | `cdc61147387801c1b758deae89bb871467ef92d7` |
@@ -24,7 +24,9 @@
 | v1.7 设计修订提交 | `01c95754b13cf2ada6cb29fe2ee76065006ea465` |
 | v1.7 报告与校验清单 | `8c45f63bd61a9a8edfc284989e8f52c6d1365754` |
 | v1.8 设计修订提交 | `59eff5b6dd39ede7cf5353fc4fc150c8f5869046` |
-| v1.8 报告与校验清单 | 紧随 `59eff5b` 的报告提交（SHA 见 `git log`） |
+| v1.8 报告与校验清单 | `5fa7c5ca7acb4a2780811de03b50a7e6b8f30fa5` |
+| v1.9 设计修订提交 | `（提交后回填）` |
+| v1.9 报告与校验清单 | 紧随 v1.9 设计提交（SHA 见 `git log`） |
 | Ds Bit 基线 | `600439a5eee69fb3a1cec2715e37080e48ca9840`（分支 `backup/full-local-20261114`） |
 | 送审仓库任务启动基线 | `0fa9d34` |
 | 送审仓库设计提交直接父提交（v1.0） | `fc4bcc5` |
@@ -177,16 +179,31 @@ v1.1/v1.2 只修改上述 `13_` 目录内的文件；**未修改**：
 | **B4** | token 账本顺序/失败/冲突 | commit → 账本 → receipt；冲突隔离；失败不阻断成功但阻断 L3 | 主文档 §5.2.5.5.1 |
 | **B5** | episode 0 后重写路径 | 一次 REC（1 GET，计入总量）；episode 1 上限 `min(10,20-total)`；耗尽后仅 observation | 主文档 §5.2.5.2.1；附件 §9.9 |
 
+### 4.9 第九轮 B1/B2/B5（v1.9）
+
+| 编号 | Reviewer 要求 | v1.9 处置 | 复核位置 |
+|---|---|---|---|
+| **B1-1** | `≤3`/`≤2` 是重试次数还是总尝试次数 | 统一改为**总 PUT 次数（含首次）**：`storage_atomic` 总 PUT ≤3（最多 2 次重试）；`coordinator_serialized` 总 PUT ≤2（最多 1 次重试）；预算按总次数持久化 | 主文档 §5.2.5.5.3；附件 §9.10 |
+| **B1-2** | 两模式缺独立负向测试 | 新增 N-12h1（atomic：条件 PUT/总次数≤3/超时回读/unresolved）与 N-12h2（serialized：普通 PUT/总次数≤2/不得标 atomic） | 矩阵 N-12h1/N-12h2 |
+| **B2-1** | Receipt Schema 缺 `token_key_id` | 规范 Schema 升级为 `lakehouse/commit-receipt/v2`，`token_key_id` **必填**；`receipt_sha256` 覆盖该字段规范字节 | 主文档 §5.2.5.1 |
+| **B2-2** | 旧 v1 Receipt 的 L3 兼容 | 旧 v1 无 key_id：仅在配置显式 `legacy_receipt_key_id` 时允许 L3，否则 `LEGACY_RECEIPT_NO_KEY_ID` 隔离；不静默改写 v1 字段契约 | 主文档 §5.2.5.5.1；矩阵 N-12i |
+| **B2-3** | key 生命周期 | key registry 三态 `active / verify_only / revoked`；revoked 不参与签发与验签；新增 N-12i 覆盖轮换/未知/不可用 | 主文档 §5.2.5.5.1 |
+| **B5-1** | REC `UNKNOWN` 后允许什么 | 新增 `REC_PENDING_UNKNOWN`：不重跑 REC、不开 episode 1；普通 GET 计数继续、成功仍有效；总量 20 后 observation-only；3600 s 未决 `QUARANTINED`；观察到 WRITTEN 只告警 | 主文档 §5.2.5.2.1；附件 §9.9；矩阵 N-12l |
+| **B5-2** | REC 状态持久化 | `commits` 持久化 `rec_attempted/rec_state/rec_at`；重启后不再触发一次性 REC | 主文档 §5.2.5.2.1；附件 §9.2 |
+| **测试** | B1–B5 负向设计 | 新增 N-12h1/h2、N-12i（key）、N-12j（watermark）、N-12k（token 账本）、N-12l（REC） | 矩阵 |
+
+> 本轮仍为设计层修订：未改代码、未重跑测试、未做真实存储验证。
+
 ---
 
-## 5. 关键架构决策（v1.8）
+## 5. 关键架构决策（v1.9）
 
 1. 批量路径仍是「本地处理 → 大批 Parquet → 上传 → 批量查询」；
 2. DuckDB 仍只做分析查询，单写快照，不是队列/锁/事实源；
 3. 任务分配为**单写协调器 + `lease_generation` + COMMIT 事务**；发租约前先持久化 watermark；
 4. **成功提交点**不是 manifest，而是「协调器 commit 记录 + receipt 一致」；
-5. receipt 四态 + `episode_no≤1` + 一次性 REC；无 CAS 仅首次串行创建、永不重写；总量 20 后仅 observation；
-6. orphan 事件分 `storage_atomic/coordinator_serialized` 两种模式；L3 需 key-version HMAC、token 账本、严格相等 generation；
+5. receipt 四态 + `episode_no≤1` + 一次性 REC；无 CAS 仅首次串行创建、永不重写；REC `UNKNOWN` 进入 `REC_PENDING_UNKNOWN`（不重跑、不开 episode 1）；总量 20 后仅 observation；
+6. orphan 事件分 `storage_atomic/coordinator_serialized` 两种模式，总 PUT 次数分别为 ≤3/≤2（含首次）；L3 需 `commit-receipt/v2` 的 `token_key_id`、key registry（`active/verify_only/revoked`）、token 账本、严格相等 generation；
 7. Run Manifest 与 Batch/Partition Manifest 分离，Catalog 只按 part_manifest 计总行数；
 8. `reproducibility_key` v2；`task_id` = `<batch_id>:<sha256(source_sha256 + requested_mpn)>`；
 9. Stage A 必须在最终选型存储上通过 C1–C10。
@@ -339,6 +356,24 @@ R1-3 的修订仍需 Reviewer 定向复核；OD-01/OD-02/OD-03/OD-05/OD-19 仍�
 | 契约冻结 / Stage A / 基准 / 试跑 / 生产 | **不批准** |
 
 > v1.8 只改 `13_` 内的 B1–B5；R5、R2/R3/R4/R6 与总体架构未改。
+
+### 9.9 第九轮（v1.8）
+
+| 项 | 结论 |
+|---|---|
+| 提交范围与目录边界 | PASS |
+| A3 / A4 | PASS（保持） |
+| B1 事件双模式 | PARTIAL（v1.9 已补尝试次数口径与 N-12h1/h2） |
+| B2 HMAC 密钥版本 | REVISE（v1.9 已改 Receipt v2 + v1 兼容 + key registry） |
+| B3 generation / watermark | PASS（保持） |
+| B4 Token Ledger | PASS WITH CLARIFICATION（v1.9 已补 N-12k） |
+| B5 REC / episode | PARTIAL（v1.9 已补 `REC_PENDING_UNKNOWN` 与持久化字段） |
+| R1-3 总体 | **OPEN** |
+| v1.9 状态 | 待 Reviewer 定向复核 |
+| 契约冻结 / Stage A / 基准 / 试跑 / 生产 | **不批准** |
+
+> v1.9 只改 `13_` 内的 B1/B2/B5 与对应测试设计；A3/A4、R5、R2–R4/R6 与总体架构未改。
+> 代码未改、测试未重跑，历史基线仍为 `893 passed / 1 failed / 2 xfailed`。
 
 ---
 
