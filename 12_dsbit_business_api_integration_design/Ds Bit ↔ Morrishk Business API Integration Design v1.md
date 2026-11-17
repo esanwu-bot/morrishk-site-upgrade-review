@@ -3,9 +3,9 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-INT-001 |
-| 版本 | v1.2（按 Reviewer 二次复核意见修订，未冻结） |
+| 版本 | v1.2.1（R5 60 秒边界修订，未冻结） |
 | 日期 | 2026-11-17 |
-| 修订记录 | v1.0 首版送审（`0fa9d34`）；v1.1 处理 R1–R8 与基线说明（`fc4bcc5`）；v1.2 收口 R3/R4/R5/R6/R8，见 §1.4、§1.5 |
+| 修订记录 | v1.0 首版送审（`0fa9d34`）；v1.1 处理 R1–R8 与基线说明（`fc4bcc5`）；v1.2 收口 R3/R4/R5/R6/R8；v1.2.1 修正 R5 的 60 秒边界（OA-07 / OA-13 / OA-13a），见 §1.5 |
 | 范围 | 架构与接口契约设计；不含生产实现、生产部署、生产凭证 |
 | 上游依据 | 本任务书；`09_current_state_inventory/`；`02_technical_design/morrishk_technical_plan_v1.2.md`；`platform/docs/phase1/03-api-contract.yaml`；`mysql_schema_audit/`；Ds Bit 项目仓库（`E:\workspace\icpdf-extractor`，含前台 `workbench/`）与本地 Stub 源码 |
 | 下游用途 | Phase 0 契约冻结输入；Phase 1/2 开发依据；Reviewer 独立复核对象 |
@@ -100,7 +100,7 @@
 |---|---|---|
 | R3 | 跨类型 ULID 重复 | 为 `prd_` 与 `chg_` 重新分配独立 ULID；同一资源跨示例保持一致；跨类型重复归零。见 §5.3 与全部示例 |
 | R4 | `internal_only` 契约不完整 | 明确 Query 参数 `?internal_only=true`；必须同时具备 `product.category.read` 与 `product.publish.read`；缺任一 scope 返回 403；普通客户端不得借参数绕过门禁；成功响应含 `data.internal_only=true`；只返回当前有效 `APPROVED`/`PROPOSED` 边。见 §4.4 规则 4、§7.4、§8.3、§8.4、§12.3、EX-07c |
-| R5 | 撤销时间语义矛盾 | 统一为"撤销后最迟 60 秒全体 Resource Server 拒绝"；提前失效仅属优化，不承诺无条件立即生效；OA-13 改为传播延迟上限测试并覆盖 0/59/60/61 秒。见 §4.3、§11.1、§12.1 |
+| R5 | 撤销时间语义矛盾 | 统一为"撤销后第 60 秒起（含 60 秒）全体 Resource Server 必须拒绝"；0–59 秒允许 200 或 401；提前失效仅属优化；OA-13/OA-13a 覆盖 0/59/60/61 秒与多 RS 一致性。见 §4.3、§11.1、§12.1 |
 | R6 | Token 示例仍用 Body 传 secret | EX-01 与 EX-02a 改为 `client_secret_basic`；staging/生产示例不把 `client_secret` 放入表单体；`client_secret_post` 仅作 stub/受控内网例外。见 EX-01、EX-02a、§11.5 |
 | R8 | 分类节点生命周期未收口 | 明确历史边永不物理删除、被引用节点不得物理删除、`410` 仅表示 API 退役、保留 tombstone、ID 永不复用。见 §7.2.4、§7.5.6、§7.6、§12.3 |
 
@@ -378,9 +378,10 @@ v1 采用 **opaque Token**，不使用 JWT：
 - `access_token` 为 256 位密码学随机数，Base64URL 编码；不含任何可解析声明。
 - 服务端在 `oauth_access_token` 表中保存：`token_hash`（SHA-256，不存明文）、`client_id`、`scope`、`iat`、`exp`、`jti`、`aud`、`revoked_at`。
 - Resource Server 每次请求按 `token_hash` 查表并校验 `exp` / `revoked_at`；允许最长 60 秒的进程内缓存。
-- **撤销传播语义（统一口径）**：撤销后**最迟 60 秒**，全体 Resource Server 必须拒绝该 Token；
-  这是契约上限，不承诺无条件立即生效。若通过主动失效通知（如缓存删除或消息广播）提前生效，
-  属于实现优化，不得写进对外 SLA，也不得替代 60 秒上限的兜底校验。
+- **撤销传播语义（统一口径）**：撤销后**第 60 秒起（含 60 秒）**，全体 Resource Server 必须拒绝该 Token；
+  第 0–59 秒内允许仍接受（缓存尚未失效）或提前拒绝，二者都合规。这是契约上限，不承诺无条件立即生效。
+  若通过主动失效通知（如缓存删除或消息广播）提前生效，属于实现优化，不得写进对外 SLA，
+  也不得替代 60 秒上限的兜底校验。
 - 撤销通过 `revoked_at` 与上述传播机制生效，不需要维护 JWT 黑名单，也不引入 JWKS 与密钥轮换。
 - v1 **不**支持 JWT / JWKS；若未来需要无状态校验，在 v2 单独设计签名算法、`kid` 轮换与撤销名单（`FUTURE`）。
 
@@ -436,6 +437,9 @@ grant_type=client_credentials
 **客户端认证方式（回应 R6）**：
 
 - 首选 `client_secret_basic`（HTTP Basic）；`client_id` / `client_secret` 不放进表单体。
+- Basic 凭据构造遵循 RFC 6749 §2.3.1：`client_id` 与 `client_secret` 先分别做
+  `application/x-www-form-urlencoded` 编码，再用 `:` 拼接并 Base64 编码；
+  不得直接对原始字符串拼接后编码。
 - `client_secret_post`（表单体传凭据）仅允许在 `stub` 模式或明确受控的内网环境使用。
 - **同一次请求不得同时使用两种认证方式**；同时出现时返回 `400 invalid_request`。
 - 认证失败不区分"client 不存在"与"secret 错误"，统一 `401 invalid_client`。
@@ -1954,13 +1958,14 @@ Morrishk 侧 `yii dsbit/health` 只检查 Token 获取与一个轻量端点。
 | OA-04 | scope 超授权 | 请求未注册 scope | 同上 | 400 `invalid_scope`（RFC 6749 §5.2） | NONE | 是 |
 | OA-05 | Token 过期 | 短 TTL | 过期后调用 API | 401 `TOKEN_EXPIRED`；客户端刷新一次成功 | NONE | 是 |
 | OA-06 | 已撤销 Token | 撤销 | 调用 API | 401 `INVALID_TOKEN` | NONE | 是 |
-| OA-07 | 客户端禁用 | 禁用 | 获取 Token | 401；已有 Token 被拒 | NONE | 是 |
+| OA-07 | 客户端禁用 | 禁用 | 获取 Token + 使用旧 Token | 新 Token 签发立即 401；已签发 Token 最迟 60 秒内全部 401 | NONE | 是 |
 | OA-08 | 并发获取 Token | 10 并发 | 同时请求 | 只签发少量 Token；无风暴；无错误 | NONE | 是 |
 | OA-09 | 日志脱敏 | 正常调用 | 检查日志 | 无 secret/token | NONE | 是 |
 | OA-10 | Stub 隔离 | `mode=real` 指向 stub | 启动 | 拒绝启动/拒绝响应 | NONE | 是 |
 | OA-11 | 认证方式混用 | 同时带 Basic 与 body secret | 同上 | 400 `invalid_request`；不签发 | NONE | 是 |
 | OA-12 | opaque Token 校验 | 任意修改 1 字节 | 调用 API | 401 `INVALID_TOKEN` | NONE | 是 |
-| OA-13 | 撤销传播延迟上限 | 服务端 `revoked_at` | 分别在 0 / 59 / 60 / 61 秒调用 | 0–60 秒：允许 200 或 401（优化可提前生效）；>60 秒（含 61 秒）：必须 401 `INVALID_TOKEN`；全体 RS 均满足 | NONE | 是 |
+| OA-13 | 撤销传播延迟上限 | 服务端 `revoked_at` | 分别在 0 / 59 / 60 / 61 秒调用 | 0–59 秒：允许 200 或 401（优化可提前生效）；**60 秒及以后：必须 401 `INVALID_TOKEN`**；全体 RS 均满足 | NONE | 是 |
+| OA-13a | 多 RS 撤销一致性 | 2 个以上 RS 均缓存旧 Token | 撤销后第 60 秒分别请求 | 所有 RS 全部返回 401；不得出现任一 RS 仍接受 | NONE | 是 |
 | OA-14 | Basic 认证成功 | 仅 `Authorization: Basic`，Body 无 secret | POST `/oauth/token` | 200；服务端不从 Body 读取凭据 | NONE | 是 |
 | OA-15 | Stub 认证例外 | `client_secret_post` | stub 模式允许并标记；real 模式拒绝 | real 模式返回 400/401；日志标记 stub | NONE | 是 |
 

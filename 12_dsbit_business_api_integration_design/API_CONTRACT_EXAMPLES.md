@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-INT-001-EX |
-| 版本 | v1.2（收口 R3/R4/R5/R6/R8；未冻结；全部为构造样例） |
+| 版本 | v1.2.1（R5 60 秒边界修订；未冻结；全部为构造样例） |
 | 日期 | 2026-11-17 |
 | 关联文档 | `Ds Bit ↔ Morrishk Business API Integration Design v1.md`（主文档） |
 | 状态 | 全部 `PROPOSED` / 构造示例 |
@@ -101,6 +101,8 @@ X-Request-Id: req_01J8Z9K2V3ABCDEFGHJKMNPQRT
 - 响应必须 `Cache-Control: no-store`，避免中间层缓存 Token。
 - `scope` 为服务端实际授予值，可能小于请求值；客户端必须以返回值为准。
 - 本示例使用 `client_secret_basic`；staging 与生产示例**不得**把 `client_secret` 放入表单体。
+- Basic 凭据按 RFC 6749 §2.3.1 构造：`client_id` 与 `client_secret` 先分别做
+  `application/x-www-form-urlencoded` 编码，再用 `:` 拼接并 Base64；不得直接拼接原始字符串。
 - `client_secret_post`（表单体传凭据）只允许出现在 stub 模式或受控内网的**例外示例**中，
   且必须显式标注；同一次请求不得同时使用两种认证方式。
 
