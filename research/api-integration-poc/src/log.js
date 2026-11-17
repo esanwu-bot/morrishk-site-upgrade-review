@@ -1,4 +1,4 @@
-import { redact } from './redact.js';
+import { redact, redactString } from './redact.js';
 
 const LEVELS = { debug: 10, info: 20, warn: 30, error: 40, silent: 100 };
 
@@ -9,7 +9,7 @@ export function createLogger(level = 'info', sink = console) {
     const line = {
       ts: new Date().toISOString(),
       level: lvl,
-      message,
+      message: redactString(message),
       ...(fields ? redact(fields) : {})
     };
     const text = JSON.stringify(line);

@@ -1,4 +1,5 @@
 import { PocError, ErrorCode } from './errors.js';
+import { maskProfileKey, maskTarget } from './redact.js';
 
 // 占位值不是账号身份；真实发布必须能唯一落到某个账号/组织/Profile。
 const PLACEHOLDER_ACCOUNTS = new Set(['default', 'all', '*', 'any', 'profile']);
@@ -17,7 +18,7 @@ export function requireExplicitTarget({ provider, platform, account }) {
   if (PLACEHOLDER_ACCOUNTS.has(String(account).trim().toLowerCase())) {
     throw new PocError(
       ErrorCode.POLICY_BLOCKED,
-      `account=${account} 是占位值，不是真实账号身份，禁止真实发布`
+      `account=${maskProfileKey(account)} 是占位值，不是真实账号身份，禁止真实发布`
     );
   }
   return `${provider}:${platform}:${account}`;
@@ -29,13 +30,13 @@ function assertTargetShape(targets) {
     if (parts.length !== 3 || parts.some((part) => !part)) {
       throw new PocError(
         ErrorCode.POLICY_BLOCKED,
-        `发布目标格式必须是 provider:platform:account，当前为 ${target}`
+        `发布目标格式必须是 provider:platform:account，当前为 ${maskTarget(target)}`
       );
     }
     if (PLACEHOLDER_ACCOUNTS.has(parts[2].toLowerCase())) {
       throw new PocError(
         ErrorCode.POLICY_BLOCKED,
-        `account=${parts[2]} 是占位值，不是真实账号身份，禁止真实发布`
+        `account=${maskProfileKey(parts[2])} 是占位值，不是真实账号身份，禁止真实发布`
       );
     }
   }
@@ -61,8 +62,8 @@ function assertLinkedInAuthorBinding(targets, authorUrn) {
   if (mismatched.length) {
     throw new PocError(
       ErrorCode.POLICY_BLOCKED,
-      `白名单目标与最终 authorUrn 不匹配：${mismatched.join(', ')} ≠ ${authorUrn}`,
-      { details: { targets, authorUrn } }
+      `白名单目标与最终 authorUrn 不匹配：${mismatched.map(maskTarget).join(', ')} ≠ ${authorUrn}`,
+      { details: { targets: targets.map(maskTarget), authorUrn } }
     );
   }
 }
@@ -101,8 +102,8 @@ export function assertPublishAllowed(config, { confirmPublish = false, targets =
   if (rejected.length) {
     throw new PocError(
       ErrorCode.POLICY_BLOCKED,
-      `发布目标不在白名单：${rejected.join(', ')}`,
-      { details: { targets, allowlist } }
+      `发布目标不在白名单：${rejected.map(maskTarget).join(', ')}`,
+      { details: { targets: targets.map(maskTarget), allowlist: allowlist.map(maskTarget) } }
     );
   }
   return { allowed: true, real: true, targets };

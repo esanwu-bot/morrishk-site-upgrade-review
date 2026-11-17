@@ -1,6 +1,6 @@
 # Morrishk 社媒 / 视频 / GA4 API 预研 Demo
 
-> 文档版本 V1.1（按 Reviewer 复核意见修订）：补齐 GA4 真实响应结构、Mux 真实字段名、Ayrshare 供应商幂等、日志 URL 脱敏、LinkedIn 个人/组织身份分离与真实发布安全开关。
+> 文档版本 V1.3：补齐 GA4 真实响应结构、Mux 真实字段名、Ayrshare 供应商幂等、日志 URL 脱敏、LinkedIn 个人/组织身份分离与真实发布安全开关；Ayrshare Profile-Key 按敏感凭据处理，输出与证据只显示脱敏标识。
 
 本目录是 Morrishk 全球 B2B 独立站升级项目的**技术预研**产物，用于回答「社媒发布、视频托管、GA4 数据接入分别应该怎么接」以及验证关键链路的可行性。
 
@@ -107,7 +107,7 @@ npm run demo:ga4-mp   # 05 Measurement Protocol
    ```
 
 6. LinkedIn 组织身份需在 `.env` 中提供 `LINKEDIN_AUTHOR_URN`（推荐）或 `LINKEDIN_ORGANIZATION_ID`。二者都为空且设置 `LINKEDIN_ORG_ADMIN_DISCOVERY=true` 时，才会申请 `rw_organization_admin` 并调用 `GET /rest/organizationAcls` 枚举；缺少该 scope 或枚举为空均报 `BLOCKED_PERMISSION`，不会降级为个人身份发帖。发布 scope `w_organization_social` 与组织发现 scope 是两套权限。
-7. Ayrshare 真实发布必须显式提供 Profile Key；Demo 会在 POST `/api/post` 之前用带 `Profile-Key` 的 `GET /api/user` 确认该 Profile 已关联目标平台，无法确认则拒绝，不发送发布请求。
+7. Ayrshare 真实发布必须显式提供 Profile Key；Demo 会在 POST `/api/post` 之前用带 `Profile-Key` 的 `GET /api/user` 确认该 Profile 已关联目标平台，无法确认则拒绝，不发送发布请求。Profile Key 是凭据：控制台输出、错误消息与 Demo 证据只显示 `***`，真实值仅用于请求头和白名单绑定。
 
 **建议的首次真实验证顺序**（未获授权前不得执行）：GA4 只读报表 → Mux 测试环境上传 → YouTube 私密上传 → FB/IG 草稿或仅自己可见 → LinkedIn 测试组织页 → 最后才考虑公开发布。
 
@@ -125,7 +125,7 @@ npm run demo:ga4-mp   # 05 Measurement Protocol
 | `NOT_TESTED` | 未验证（含未实现的能力） |
 | `POLICY_BLOCKED` | 被本项目的安全开关主动拦截 |
 
-本轮运行结果：自动化测试 **115/115** 通过（约 5.4 s）；5 个 Demo 全部跑通 Mock 链路；真实接口全部 `BLOCKED_CREDENTIAL` / `BLOCKED_PERMISSION`。逐项记录见 [`docs/DEMO_EVIDENCE.md`](docs/DEMO_EVIDENCE.md)。
+本轮运行结果：自动化测试 **125/125** 通过（约 7.1 s）；5 个 Demo 全部跑通 Mock 链路；真实接口全部 `BLOCKED_CREDENTIAL` / `BLOCKED_PERMISSION`。逐项记录见 [`docs/DEMO_EVIDENCE.md`](docs/DEMO_EVIDENCE.md)。
 
 ---
 
@@ -145,7 +145,8 @@ npm run demo:ga4-mp   # 05 Measurement Protocol
 
 - 凭证只从环境变量 / 本地 `.env` 读取；`.env`、`.env.*`、`.tokens/` 均被 `.gitignore` 排除。
 - 本地 token 文件以 0600 权限写入（Windows 上忽略 chmod 失败）；Demo 01 结束时会主动删除。
-- 日志与错误信息统一走 `redact.js`：字段名（token / secret / api key / authorization / cookie 等）、`Bearer` 头、JWT、长十六进制串、URL 查询参数均脱敏。
+- 日志与错误信息统一走 `redact.js`：字段名（token / secret / api key / profile key / authorization / cookie 等）、`Bearer` 头、JWT、长十六进制串、URL 查询参数均脱敏；`target` 与 `publishAllowlist` 的 account 段统一显示为 `***`。
+- Ayrshare Profile-Key 不写入普通日志或运行证据；错误消息、错误详情和返回结果只包含脱敏标识，请求头与白名单匹配仍使用真实值。
 - 所有出站请求带 `x-request-id`；HTTP 层统一处理超时、429 / 5xx 重试与 `Retry-After`。
 - 发布走 `publish-guard.js` 四重条件（总开关 + 人工确认 + 目标白名单 + 显式单一目标）；幂等键防止重复提交；发布类 POST 默认不自动重试；真实发布默认禁止。
 - GA4 Measurement Protocol 真实写入使用独立开关 `ALLOW_REAL_MP`，不会被发布授权连带放行。

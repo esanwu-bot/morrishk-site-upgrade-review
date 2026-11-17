@@ -54,6 +54,19 @@ test('MP 成功请求日志中的 api_secret 不出现', async () => {
   }
 });
 
+test('普通日志中的 Profile-Key 字段、target 与消息均脱敏', () => {
+  const { logger, text } = captureLogger();
+  logger.info('profileKey=TEST_PROFILE_SECRET_123', {
+    profileKey: 'TEST_PROFILE_SECRET_123',
+    target: 'ayrshare:linkedin:TEST_PROFILE_SECRET_123',
+    publishAllowlist: ['ayrshare:linkedin:TEST_PROFILE_SECRET_123']
+  });
+  const logs = text();
+  assert.ok(!logs.includes('TEST_PROFILE_SECRET_123'));
+  assert.match(logs, /"profileKey":"\*\*\*"/);
+  assert.match(logs, /ayrshare:linkedin:\*\*\*/);
+});
+
 test('HTTP 错误详情 URL 对查询参数脱敏', async () => {
   const srv = await startServer((req, res) => {
     res.statusCode = 500;

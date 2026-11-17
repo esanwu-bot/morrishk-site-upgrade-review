@@ -2,7 +2,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| 文档版本 | V1.2（按 Reviewer 166e542 P1 补充复核意见修订） |
+| 文档版本 | V1.3（补充 Ayrshare Profile-Key 输出脱敏证据） |
 | 记录日期 | 2026-11-17 |
 | 代码位置 | `research/api-integration-poc/` |
 | 运行环境 | Windows 10 (19045) x64；Node.js `v24.21.0`；npm `11.19.0` |
@@ -15,6 +15,8 @@
 > 基于本地 fixture 的解析测试（GA4 / Mux / LinkedIn ACL）同样只记为 `PASS_MOCK`；**fixture 通过不得标记为 `PASS_REAL_API`**。
 > 本轮没有向任何真实社媒账号发布内容、没有投放广告、没有触发真实营销活动。
 > 所有真实接口调用均因缺少凭证而未执行，状态为 `BLOCKED_CREDENTIAL`。
+>
+> **V1.3 修订**：Ayrshare `Profile-Key` 按敏感凭据处理。成功路径测试使用固定测试密钥 `TEST_PROFILE_SECRET_123`，以 `mode=real` 的 Provider 连接本地 Mock Server，验证 stdout/stderr、错误消息与返回结果均不出现完整密钥，同时请求头仍携带真实值；该结果仍记为 `PASS_MOCK`，不是 `PASS_REAL_API`。
 
 ---
 
@@ -30,14 +32,14 @@ npm test
 结果（Node 内置 test runner）：
 
 ```
-ℹ tests 115
+ℹ tests 125
 ℹ suites 0
-ℹ pass 115
+ℹ pass 125
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 5371.4164
+ℹ duration_ms 7090.5384
 ```
 
 覆盖范围：
@@ -54,11 +56,12 @@ npm test
 | `test/ayrshare-idempotency.test.mjs` | 5 | `idempotencyKey` 进入请求体、供应商幂等元数据、本地去重与冲突、超时只发送一次、5xx 不重试、Mock 不声称已发送 |
 | `test/ga4-fixture.test.mjs` | 6 | `accountSummaries` 真实结构扁平化、`nextPageToken` 多页、`runReport` 请求体与响应结构、**分页达到上限显式失败**、上限内正常结束、Mock/Real 字段一致性 |
 | `test/mux-fixture.test.mjs` | 2 | `new_asset_settings.playback_policies` 字段名、snake_case 归一化（`asset_id` / `playback_ids` / `aspect_ratio`）、Mock/Real 核心字段一致 |
-| `test/log-redaction.test.mjs` | 2 | MP 真实 `api_secret` 不出现在日志、错误详情中的 URL 查询参数被脱敏 |
+| `test/log-redaction.test.mjs` | 3 | MP 真实 `api_secret` 不出现在日志、错误详情中的 URL 查询参数被脱敏、**普通日志中的 Profile-Key/target/白名单字段被脱敏** |
 | `test/providers.test.mjs` | 18 | Ayrshare / Mux / GA4 / MP 的 Mock 正常流与错误流、真实模式缺凭证 |
 | `test/publish-guard.test.mjs` | 13 | mock 放行、真实模式总开关 + 人工确认、目标白名单、显式目标、**占位 account 拒绝**、**LinkedIn authorUrn 绑定/不匹配**、目标格式、MP 独立开关、状态标签不可互换 |
 | `test/real-safety.test.mjs` | 7 | Demo 02 Mock 只输出 `PASS_MOCK`；Real 不传参数 / 只传部分参数 / 显式 `default` / 白名单不匹配 / Ayrshare 无法解析 Profile 五类拒绝均断言 Mock Server 的发布请求为 **0**；Demo 05 未确认拒绝 MP 写入 |
-| `test/redact.test.mjs` | 6 | 字段名脱敏、Bearer/JWT/长十六进制、URL 参数、非法 URL、深度截断、原始类型 |
+| `test/redact.test.mjs` | 9 | 字段名脱敏、Bearer/JWT/长十六进制、URL 参数、非法 URL、深度截断、原始类型、**Profile-Key/target/白名单字段脱敏** |
+| `test/profile-key-redaction.test.mjs` | 6 | 固定测试密钥 `TEST_PROFILE_SECRET_123`：Ayrshare 真实模式成功路径、预检失败、白名单不匹配、目标绑定错误、平台未关联、平台多账号；每个场景断言 stdout/stderr 无完整密钥、请求头保留真实值、发布请求数与原有策略一致（成功 1 次，拒绝 0 次） |
 
 ---
 
@@ -146,7 +149,7 @@ npm run demo:all
 
 ---
 
-## 3. P1 复核修复的证据（含 V1.2 补充）
+## 3. P1 复核修复的证据（含 V1.2 / V1.3 补充）
 
 | 复核项 | 修复内容 | 代码位置 | 测试证据 |
 |---|---|---|---|
@@ -159,6 +162,7 @@ npm run demo:all
 | **P1-1 目标绑定（V1.2）** | 三参数显式、占位值拒绝、LinkedIn 白名单与最终 authorUrn 绑定、Ayrshare Profile-Key 预检、全部校验先于请求 | `src/publish-guard.js`、`demo/02-social-publish.mjs`、`src/providers/social/ayrshare.js`、`src/providers/social/linkedin.js` | `test/publish-guard.test.mjs`（13 项）、`test/real-safety.test.mjs`（7 项，计数 Server 断言 0 发布）、`test/ayrshare-target.test.mjs`（7 项） |
 | **P1-2 LinkedIn ACL（V1.2）** | `/rest/organizationAcls` + `X-Restli-Protocol-Version` / `LinkedIn-Version`；发布 scope 与 `rw_organization_admin` 分离；无权限在请求前拒绝；403 归类 `BLOCKED_PERMISSION` | `src/providers/social/linkedin.js`、`src/config.js`、`src/factory.js` | `test/linkedin-identity.test.mjs`（8 项）、`test/oauth-linkedin.test.mjs`（10 项）、`test/fixtures/linkedin-acls.json` |
 | **P2 GA4 分页上限（V1.2）** | 达到 `maxPages` 仍有 `nextPageToken` 时抛 `PLATFORM_ERROR`（`retryable=false`），不静默截断 | `src/providers/analytics/ga4.js` | `test/ga4-fixture.test.mjs`（6 项） |
+| **P1 Profile-Key 输出脱敏（V1.3）** | `target` / `profileKey` / `publishAllowlist` 及其拼接字符串统一脱敏；Ayrshare 成功结果只回显 `***`；错误消息与 details 不含完整 Profile-Key；请求头与白名单匹配仍使用真实值 | `src/redact.js`、`src/log.js`、`src/publish-guard.js`、`src/providers/social/ayrshare.js`、`demo/02-social-publish.mjs` | `test/profile-key-redaction.test.mjs`（6 项，含 0/1 次发布请求计数）、`test/redact.test.mjs`（9 项）、`test/log-redaction.test.mjs`（3 项）、`test/ayrshare-target.test.mjs`（7 项） |
 
 ---
 

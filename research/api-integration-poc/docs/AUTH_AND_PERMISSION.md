@@ -2,10 +2,12 @@
 
 | 项目 | 内容 |
 |---|---|
-| 文档版本 | V1.2（按 Reviewer 166e542 P1 补充复核意见修订） |
+| 文档版本 | V1.3（补充 Ayrshare Profile-Key 输出脱敏） |
 | 日期 | 2026-11-17 |
 | 适用范围 | 社媒发布、视频上传、GA4 读取（预研） |
 | 依据 | `API_RESEARCH.md` 来源清单 [S1]–[S65] |
+
+**V1.3 修订说明**：将 Ayrshare `Profile-Key` 明确按凭据管理；`target`、`profileKey`、`publishAllowlist` 及其拼接字符串一律脱敏，错误消息与控制台证据只允许出现 `***`，真实值仅保留在请求头与内部绑定判断中。
 
 **V1.1 修订说明**：补充 OAuth `state` 的强制校验与重放防护、LinkedIn 个人身份与组织身份的分离（`organizationId` / `authorUrn`）、发布目标白名单、Measurement Protocol 独立开关，以及「本地幂等」与「供应商幂等」的区别。所有修订均未使用真实凭证。
 
@@ -124,7 +126,7 @@
 **规则**
 
 1. 任何真实 token 不得进入 Git；`.env.example` 只放变量名与占位符。
-2. 日志统一脱敏：`access_token`、`refresh_token`、`client_secret`、`api_secret`、`Authorization` 头一律替换为 `***`。
+2. 日志统一脱敏：`access_token`、`refresh_token`、`client_secret`、`api_secret`、`Profile-Key`、`Authorization` 头一律替换为 `***`；`target` / `publishAllowlist` 中的 account 段同样只显示 `***`。
 3. Demo 的 token 存储文件权限在类 Unix 系统上设为 `0600`；Windows 下依赖用户目录隔离。
 4. 发布类操作默认关闭真实通道，必须同时满足：`ALLOW_REAL_PUBLISH=true` + CLI `--confirm-publish` + 发布目标命中 `PUBLISH_TARGET_ALLOWLIST` + 显式指定单一目标（`provider:platform:account`）。
 5. GA4 Measurement Protocol 真实写入使用独立开关：`ALLOW_REAL_MP=true` + CLI `--confirm-mp`，与社媒发布开关互不连带。
@@ -136,6 +138,7 @@
    - 全部白名单与绑定校验都在**发出任何发布请求之前**完成。
 8. **LinkedIn 目标与最终 authorUrn 绑定**：白名单目标 `linkedin:linkedin:{组织数字ID}` 必须与最终 `urn:li:organization:{组织数字ID}` 一致；缺失或不匹配即拒绝，不做隐式解析。
 9. **Ayrshare Profile 绑定**：真实发布时 `Profile-Key` 放在请求头（`Authorization: Bearer <API_KEY>` + `Profile-Key: <key>`）；POST `/api/post` 之前先用 `GET /api/user`（带同一 `Profile-Key`）确认该 Profile 已关联目标平台。若无法确认 Profile、目标平台未关联，或目标平台存在多个账号（无法唯一确定），直接拒绝，不发送发布请求。
+10. **Profile-Key 输出脱敏（V1.3）**：`Profile-Key` 是代表指定 User Profile 执行 API 操作的凭据，不得写入普通日志、异常消息、错误详情或 Demo 证据。对外只允许返回 `***` 或 `provider:platform:***`；真实值仅用于请求头、白名单匹配与绑定判断，脱敏不得改变目标绑定结果。
 
 ---
 

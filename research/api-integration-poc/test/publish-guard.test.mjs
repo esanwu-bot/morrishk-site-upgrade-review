@@ -55,13 +55,15 @@ test('真实模式未指定目标时拒绝（禁止默认多平台）', async ()
   );
 });
 
-test('目标不在白名单时拒绝并回显目标', async () => {
+test('目标不在白名单时拒绝并回显脱敏目标', async () => {
   await assert.rejects(
     async () => assertPublishAllowed(allowedConfig, { confirmPublish: true, targets: ['ayrshare:facebook:other-page'] }),
     (err) =>
       err.code === ErrorCode.POLICY_BLOCKED &&
       /不在白名单/.test(err.message) &&
-      err.details.targets[0] === 'ayrshare:facebook:other-page'
+      err.message.includes('ayrshare:facebook:***') &&
+      err.details.targets[0] === 'ayrshare:facebook:***' &&
+      err.details.allowlist[0] === 'ayrshare:linkedin:***'
   );
 });
 

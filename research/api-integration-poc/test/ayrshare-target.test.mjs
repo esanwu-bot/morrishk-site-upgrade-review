@@ -167,8 +167,9 @@ test('Profile 与平台一致时，POST 携带 Profile-Key 并返回绑定目标
       idempotencyKey: 'fixture-idem-1'
     });
     assert.equal(result.id, 'fixture-post-1');
-    assert.equal(result.profileKey, 'profile-abc');
-    assert.deepEqual(result.target, { profileKey: 'profile-abc', platform: 'linkedin' });
+    // 返回值可能写入 Demo 证据：Profile-Key 只以脱敏标识回显
+    assert.equal(result.profileKey, '***');
+    assert.deepEqual(result.target, { profileKey: '***', platform: 'linkedin' });
     assert.equal(result.preflight.verified, true);
     assert.deepEqual(result.preflight.platforms, ['linkedin', 'facebook']);
 

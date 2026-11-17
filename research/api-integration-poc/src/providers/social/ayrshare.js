@@ -1,6 +1,7 @@
 import { SocialProvider } from './provider.js';
 import { PocError, ErrorCode, blockedCredential } from '../../errors.js';
 import { request, jsonHeaders } from '../../http.js';
+import { maskProfileKey } from '../../redact.js';
 
 // platform 只是渠道，不是账号身份；这些占位值不得作为真实目标。
 const PLACEHOLDER_PROFILES = new Set(['default', 'all', '*', 'any', 'profile']);
@@ -80,7 +81,7 @@ export class AyrshareProvider extends SocialProvider {
     if (PLACEHOLDER_PROFILES.has(key.toLowerCase())) {
       throw new PocError(
         ErrorCode.POLICY_BLOCKED,
-        `account=${key} 是占位值，不是真实 Ayrshare Profile，禁止真实发布`
+        `account=${maskProfileKey(key)} 是占位值，不是真实 Ayrshare Profile，禁止真实发布`
       );
     }
     return key;
@@ -92,7 +93,7 @@ export class AyrshareProvider extends SocialProvider {
       throw new PocError(ErrorCode.BAD_REQUEST, 'Ayrshare 目标必须指定 platform');
     }
     if (this.mode === 'mock') {
-      return { profileKey: key, platform, platforms: [platform], mode: 'mock' };
+      return { profileKey: maskProfileKey(key), platform, platforms: [platform], mode: 'mock' };
     }
     if (this.missingConfig().length) throw blockedCredential('ayrshare', this.missingConfig());
 
@@ -115,25 +116,25 @@ export class AyrshareProvider extends SocialProvider {
       throw new PocError(
         ErrorCode.BLOCKED_PERMISSION,
         'Ayrshare 无法从 /api/user 确认该 Profile 的已关联平台，拒绝真实发布',
-        { provider: 'ayrshare', details: { profileKey: key } }
+        { provider: 'ayrshare', details: { profileKey: maskProfileKey(key) } }
       );
     }
     const matches = platforms.filter((item) => item === platform).length;
     if (matches === 0) {
       throw new PocError(
         ErrorCode.BLOCKED_PERMISSION,
-        `Ayrshare Profile ${key} 未关联平台 ${platform}，拒绝真实发布`,
-        { provider: 'ayrshare', details: { profileKey: key, platform, platforms } }
+        `Ayrshare Profile ${maskProfileKey(key)} 未关联平台 ${platform}，拒绝真实发布`,
+        { provider: 'ayrshare', details: { profileKey: maskProfileKey(key), platform, platforms } }
       );
     }
     if (matches > 1) {
       throw new PocError(
         ErrorCode.BLOCKED_PERMISSION,
-        `Ayrshare Profile ${key} 在平台 ${platform} 有多个已关联账号，无法确认唯一目标，拒绝真实发布`,
-        { provider: 'ayrshare', details: { profileKey: key, platform, platforms } }
+        `Ayrshare Profile ${maskProfileKey(key)} 在平台 ${platform} 有多个已关联账号，无法确认唯一目标，拒绝真实发布`,
+        { provider: 'ayrshare', details: { profileKey: maskProfileKey(key), platform, platforms } }
       );
     }
-    return { profileKey: key, platform, platforms, source: '/api/user' };
+    return { profileKey: maskProfileKey(key), platform, platforms, source: '/api/user' };
   }
 
   async publish({ text, platforms = ['linkedin'], mediaUrls = [], scheduleDate, idempotencyKey, profileKey }) {
@@ -197,8 +198,9 @@ export class AyrshareProvider extends SocialProvider {
       ...res.body,
       mode: 'real',
       idempotencyKey: idempotencyKey || null,
-      profileKey: key,
-      target: { profileKey: key, platform: platforms[0] },
+      // 返回值可能进入 Demo 证据：只回显脱敏标识；真实 key 仅用于请求头与绑定判断。
+      profileKey: maskProfileKey(key),
+      target: { profileKey: maskProfileKey(key), platform: platforms[0] },
       preflight: { verified: true, source: target.source, platforms: target.platforms },
       idempotency: {
         key: idempotencyKey || null,

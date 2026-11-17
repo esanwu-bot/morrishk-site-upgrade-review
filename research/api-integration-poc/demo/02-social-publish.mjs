@@ -4,6 +4,7 @@ import { createProviders } from '../src/factory.js';
 import { MemoryIdempotencyStore } from '../src/idempotency.js';
 import { assertPublishAllowed, requireExplicitTarget, statusLabel } from '../src/publish-guard.js';
 import { PocError, ErrorCode } from '../src/errors.js';
+import { maskProfileKey, maskTarget, redactSecrets } from '../src/redact.js';
 
 loadEnv();
 const config = loadConfig();
@@ -26,9 +27,16 @@ function readArg(name) {
   return null;
 }
 
+// Ayrshare 的 account 是 Profile-Key（凭据），任何输出都必须按敏感值兜底替换。
+function sensitiveValues() {
+  if (readArg('provider') !== 'ayrshare') return [];
+  return [readArg('account')].filter(Boolean);
+}
+
 function record(step, status, detail) {
-  results.push({ step, status, detail });
-  console.log(`[${status}] ${step}${detail ? ` - ${detail}` : ''}`);
+  const safeDetail = redactSecrets(detail, sensitiveValues());
+  results.push({ step, status, detail: safeDetail });
+  console.log(`[${status}] ${step}${safeDetail ? ` - ${safeDetail}` : ''}`);
 }
 
 function recordError(step, err) {
@@ -138,7 +146,7 @@ async function runSingleRealPublish() {
     targets: [target],
     authorUrn
   });
-  record('真实发布目标', 'INFO', `${target}${authorUrn ? `，author=${authorUrn}` : ''}，单平台单次`);
+  record('真实发布目标', 'INFO', `${maskTarget(target)}${authorUrn ? `，author=${authorUrn}` : ''}，单平台单次`);
 
   // 4. 发布：一次、一个目标、一个平台
   if (provider === 'ayrshare') {
@@ -148,7 +156,7 @@ async function runSingleRealPublish() {
       profileKey: account,
       idempotencyKey: `poc-real-${Date.now()}`
     });
-    record('真实发布', statusLabel(guard.real, true), `id=${res.id}, status=${res.status}, profile=${res.profileKey}`);
+    record('真实发布', statusLabel(guard.real, true), `id=${res.id}, status=${res.status}, profile=${maskProfileKey(res.profileKey)}`);
   } else if (provider === 'linkedin') {
     const res = await social.linkedin.publish({ text, authorUrn });
     record('真实发布', statusLabel(guard.real, true), `id=${res.id}, author=${res.authorUrn}`);
