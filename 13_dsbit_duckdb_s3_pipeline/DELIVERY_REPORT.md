@@ -4,10 +4,10 @@
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
 | 交付日期 | 2026-11-17 |
-| 版本 | **v1.6**（第六轮：R1-3e 状态互斥/事件原子/恢复路径；R1-3f 预算周期；R1-3g 测试断言） |
+| 版本 | **v1.7**（第七轮：A1 事件门禁/稳定字节；A2 token/generation 权威；A3 恢复统一；A4 附件同步；A5 episode 状态机；A6 条件写统一） |
 | 性质 | 设计送审（DESIGN ONLY） |
 | 主文档 | `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md` |
-| Reviewer 结论（第六轮） | 待复核：R1-3e/f/g 三组未闭合项；契约冻结与 Stage A 仍不批准 |
+| Reviewer 结论（第七轮） | 待复核：A1–A6 最小修订；契约冻结与 Stage A 仍不批准 |
 | v1.0 提交 | 设计 `a62c70d644ced735ccfe079b086aca744f142f93`；报告 `ce6ba2db2839cb49a69702d3251482c4b58ba633` |
 | v1.1 设计修订提交 | `f8b8085fa12d57050e176bc8517a5a4856eaceef` |
 | v1.1 报告与校验清单 | `cdc61147387801c1b758deae89bb871467ef92d7` |
@@ -20,7 +20,9 @@
 | v1.5 设计修订提交 | `a7fc084b0daf0f9e798dc2e171c5960926008e7f` |
 | v1.5 报告与校验清单 | `10f36064e448dc75df1d7f38c005e88384d9a7dd` |
 | v1.6 设计修订提交 | `19505459d975c1315a07dae91032b136d23f8b08` |
-| v1.6 报告与校验清单 | 紧随 `1950545` 的报告提交（SHA 见 `git log`） |
+| v1.6 报告与校验清单 | `696f2ab4b9f9f852e502490ea84a5f38cae7f652` |
+| v1.7 设计修订提交 | `（提交后回填）` |
+| v1.7 报告与校验清单 | 紧随 v1.7 设计提交（SHA 见 `git log`） |
 | Ds Bit 基线 | `600439a5eee69fb3a1cec2715e37080e48ca9840`（分支 `backup/full-local-20261114`） |
 | 送审仓库任务启动基线 | `0fa9d34` |
 | 送审仓库设计提交直接父提交（v1.0） | `fc4bcc5` |
@@ -152,16 +154,27 @@ v1.1/v1.2 只修改上述 `13_` 目录内的文件；**未修改**：
 | **R1-3f-1/2** | 预算周期/第二次 PUT | episode 定义；单 episode 10 次/60 s；第二次 PUT 后新 episode；总量持久化不重置 | 主文档 §5.2.5.2.1；附件 §9.9；N-12f5 |
 | **R1-3g-1/2/3** | A8/A9/哈希 | A8 允许 batch-prefix list；远端哈希落盘计算；A9 提供 404/空桶/DB 不存在证明 | 矩阵 N-12g3/N-12g4 |
 
+### 4.7 第七轮 A1–A6（v1.7）
+
+| 编号 | Reviewer 要求 | v1.7 处置 | 复核位置 |
+|---|---|---|---|
+| **A1** | 事件门禁/超时/稳定字节 | `storage_atomic` 需 C1/C2；否则 `coordinator_serialized`；事件体固定字段、无动态时间；超时只回读 | 主文档 §5.2.5.5.3；N-12g5 |
+| **A2** | token/generation 权威 | token = 确定性 HMAC + 全局 token 账本；generation = 每批次 watermark；缺失禁止 L3 | 主文档 §5.2.5.5.1 |
+| **A3** | 恢复口径统一 | §5.2.5.4 改为引用 L1/L2/L3，删除「自动重建」 | 主文档 §5.2.5.4 |
+| **A4** | 附件扫描范围 | §9.10 改为 OPEN ∪ CLOSING；标题与伪代码同步 | `PIPELINE_ARTIFACTS.md` §9.10 |
+| **A5** | episode 生命周期 | `episode_no≤1`；普通 reconcile 延续；重启恢复；总量上限 20 | 主文档 §5.2.5.2.1；附件 §9.9 |
+| **A6** | 条件写统一/A9 | 无 CAS 仅首次串行创建、永不重写；A9 补 `-wal`/`-shm` 与「空桶 ≠ 桶已删除」 | 主文档 §5.2.5.1；矩阵 N-12g3 |
+
 ---
 
-## 5. 关键架构决策（v1.6）
+## 5. 关键架构决策（v1.7）
 
 1. 批量路径仍是「本地处理 → 大批 Parquet → 上传 → 批量查询」；
 2. DuckDB 仍只做分析查询，单写快照，不是队列/锁/事实源；
 3. 任务分配为**单写协调器 + `lease_generation` + COMMIT 事务**；**租约到期即失效**；
 4. **成功提交点**不是 manifest，而是「协调器 commit 记录 + receipt 一致」；
-5. receipt 四态 + **episode 预算**（10 次/60 s，总量持久化、重启不重置）；PUT 200 后默认只回读，重写需 C1/C2、冷却、预算且仍 ABSENT；
-6. orphan 扫描按**互斥批次状态**（OPEN/CLOSING/CLOSED），只保证已登记批次的已知任务；事件**一事件一对象**、`event_id` 幂等；SQLite 丢失按 L1/L2/L3 恢复；
+5. receipt 四态 + `episode_no≤1` 状态机；普通 reconcile 延续 episode；无 CAS 仅首次串行创建、永不重写；
+6. orphan 扫描按互斥批次状态（OPEN ∪ CLOSING）；事件分 `storage_atomic/coordinator_serialized`，稳定字节；L3 需 token 账本 + generation watermark；
 7. Run Manifest 与 Batch/Partition Manifest 分离，Catalog 只按 part_manifest 计总行数；
 8. `reproducibility_key` v2；`task_id` = `<batch_id>:<sha256(source_sha256 + requested_mpn)>`；
 9. Stage A 必须在最终选型存储上通过 C1–C10。
@@ -290,6 +303,19 @@ R1-3 的修订仍需 Reviewer 定向复核；OD-01/OD-02/OD-03/OD-05/OD-19 仍�
 | Stage A / 1000 份 / 3–5 万 / 生产 | **不批准** |
 
 > v1.6 只改 `13_` 内的 R1-3e/f/g；R5、R2/R3/R4/R6 与总体架构未改。真实存储实测仍未进行。
+
+### 9.7 第七轮（v1.6）
+
+| 项 | 结论 |
+|---|---|
+| R1-3e-1a 状态互斥 | PASS（v1.6 已关闭） |
+| R1-3e-1b/c/d | PARTIAL（v1.7 已补 A1/A2/A4） |
+| R1-3f | PARTIAL（v1.7 已补 A5） |
+| R1-3g | PARTIAL（v1.7 已补 A6 与 A9 断言） |
+| v1.7 状态 | 待 Reviewer 定向复核 |
+| 契约冻结 / Stage A / 基准 / 试跑 / 生产 | **不批准** |
+
+> v1.7 只改 `13_` 内的 A1–A6；R5、R2/R3/R4/R6 与总体架构未改。
 
 ---
 

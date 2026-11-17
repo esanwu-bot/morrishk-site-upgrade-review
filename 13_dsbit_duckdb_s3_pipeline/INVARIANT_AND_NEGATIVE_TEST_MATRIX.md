@@ -436,7 +436,7 @@ DELETE FROM commits WHERE task_id = 'T';
 | A6 | reconcile 期间对 receipt 键的 PUT 计数 = **0** |
 | A7 | Catalog/Eval 不包含该 run；正常任务 T2（commit + receipt 一致）仍为 `SUCCEEDED` 且可消费 |
 | A8 | list 调用按前缀统计：允许 `control/batches/` 有界 list（次数 ≤ batch_count + 1）；**禁止**全桶 list；**禁止** `control/tasks/` 前缀 list（次数 = 0） |
-| A9 | 清理有效证明：`head-bucket` 返回 404/NoSuchBucket；`aws s3 ls s3://$S3_BUCKET` 为空或 NoSuchBucket；`test ! -f "$COORD_DB"` 成立；临时目录不存在；记录每条命令的退出码 |
+| A9 | 清理有效证明：`head-bucket` 返回 404/NoSuchBucket（桶已删除）；若桶仍存在则 `ls` 对象数 = 0（空桶 ≠ 桶已删除，两者分别记录）；`test ! -e "$COORD_DB"`、`! -e "$COORD_DB-wal"`、`! -e "$COORD_DB-shm"` 均成立；临时目录不存在；记录每条命令退出码 |
 
 **清理**：删除临时桶与临时 SQLite；不触碰 `runs/`、`lake/`。
 
@@ -447,6 +447,16 @@ DELETE FROM commits WHERE task_id = 'T';
 | 注入 | 预置 receipt、删除 commit 行后重启协调器；**不调用** `POST /v1/reconcile`，也不调用 `GET /v1/receipt` |
 | 预期 | 仅由**启动扫描**发现并隔离；执行与 N-12g3 相同的动作 |
 | 断言 | A1–A9 同样成立；启动扫描计数器 +1；`/v1/reconcile` 调用计数 = 0；`control/batches/` list 恰好 1 次（起始重建索引），`control/tasks/` list = 0，全桶 list = 0 |
+
+##### N-12g5 事件对象稳定字节与冲突（A1）
+
+| 项 | 内容 |
+|---|---|
+| 注入 | 同一 orphan 被扫描两次；另构造同一 `event_id` 但字节不同的事件体 |
+| 预期 | 第一次写入 `coordinator/<event_id>.json`；第二次 GET 字节一致 → 幂等成功；字节不同 → `EVENT_CONFLICT`，原对象不变 |
+| 稳定字节 | 重放两次生成的事件体字节完全相同（`first_seen_at` 取自 quarantine，不使用当前时间） |
+| 存储门禁 | 未通过 C1/C2 时事件标记 `event_dedup=coordinator_serialized`；不得声称 `storage_atomic` |
+| 超时 | PUT 超时 → 只 GET 回读；一致成功、不同冲突；不盲目覆盖 |
 
 ### N-13 任务重试产生重复结果
 

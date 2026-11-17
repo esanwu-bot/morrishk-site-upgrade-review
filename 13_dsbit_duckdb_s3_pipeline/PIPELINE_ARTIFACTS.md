@@ -872,7 +872,9 @@ write_receipt(commit):
 | `receipt_reput_cooldown_s` | 60 |
 | `receipt_pending_max_s` | 3600 → `QUARANTINED(receipt_absent_timeout)` |
 
-**episode**：一次 `write_receipt()` 调用内的 verification；第二次 PUT 后开启新 episode（重新 10 次/60 s），但 `put_attempts` / `verify_attempts_total` / `pending_since` 累计且重启不重置。
+**episode 状态机（A5）**：`episode_no ∈ {0,1}`；普通 30 s reconcile **延续当前 episode**（不重置次数/截止）；只有第二次 PUT 后允许 `0→1`；重启恢复原 episode，不自动新增；`verify_attempts_total` 上限 20；`pending_since` 3600 s 生命周期上限。
+
+**无 CAS 的退化（A6）**：仅允许**首次创建**走「GET 404 → 串行 PUT → 回读」，标记 `receipt_write_mode=serialized_no_cas`；**永不重写**；未知结果只读；OD-19 未批准时禁止写入。
 
 **PUT 200 后回读 404**：默认只回读，不立即重写。仅当「首次 PUT 200 ∧ 存储通过 C1/C2 ∧ 冷却期已过 ∧ `put_attempts<2` ∧ 仍 ABSENT」全部满足时，允许**一次**条件重写；第二次 PUT 后再开新 episode，仍 ABSENT 则 pending、不再 PUT；不支持条件写时禁止重写。
 
@@ -893,7 +895,7 @@ write_receipt(commit):
 3. 任何写入/恢复都必须回读校验，不能以「请求返回 200」代替内容验证；
 4. token 在 COMMIT 事务内固定，恢复不重发。
 
-### 9.10 Orphan Receipt 扫描（v1.4，R1-3e）
+### 9.10 Orphan Receipt 扫描（v1.7，R1-3e）
 
 **定义**：`committed.json` 存在，但 `commits` 表无对应行（或无法对应）。
 
@@ -933,20 +935,22 @@ event_id = sha256(f"{batch_id}|{task_id}|receipt_without_commit|{receipt_sha256}
 **有界扫描**（不 list 全桶）：
 
 ```text
-for batch in open_batches:
+for batch in (OPEN ∪ CLOSING):          # 由 plan/close/closed 标记互斥判定
     for task_id in read_jsonl(control/batches/<batch>/tasks.jsonl):
         commit = SELECT * FROM commits WHERE task_id=?
         receipt = HEAD/GET control/tasks/<task_id>/committed.json
         if not commit and receipt.exists:
             quarantine(task_id, receipt)
+# CLOSED 批次不进入自动扫描；仅 POST /v1/audit 人工触发
 ```
 
-| 路径 | 触发 |
+| 路径 | 范围 / 频率 |
 |---|---|
-| 启动扫描 | 协调器启动时，仅 open 批次 |
-| 定时扫描 | 每 10 min |
+| 启动扫描 | OPEN ∪ CLOSING 的 `tasks.jsonl`；每次协调器启动 |
+| 定时扫描 | 同上；每 10 min |
 | 按需扫描 | `POST /v1/reconcile`；`GET /v1/receipt/<task_id>` 时若发现无 commit 也记录 |
 | 提交路径 | COMMIT 前若 receipt 已存在但 commit 缺失 → 立即隔离，不提交 |
+| 人工审计 | `POST /v1/audit?batch_id=...`（含 CLOSED 批次） |
 
 **隔离记录** `control/coordinator/<batch_id>/quarantine/<task_id>.json`：
 

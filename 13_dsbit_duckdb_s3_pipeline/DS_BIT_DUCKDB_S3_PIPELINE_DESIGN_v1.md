@@ -3,9 +3,9 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
-| 文档版本 | v1.6（第六轮：R1-3e 状态互斥/事件原子/恢复路径；R1-3f 预算周期；R1-3g 测试断言） |
+| 文档版本 | v1.7（第七轮：A1 事件门禁/稳定字节；A2 token/generation 权威；A3 恢复统一；A4 附件同步；A5 episode 状态机；A6 条件写规则统一） |
 | 日期 | 2026-11-17 |
-| 修订 | v1.6 只补 R1-3e/f/g 未闭合项：批次状态互斥、事件对象原子去重、Receipt 精确恢复、verification 预算周期、A8/A9 测试断言；R5 与其他架构不动 |
+| 修订 | v1.7 只补 A1–A6 最小修订；R5、R2–R4/R6 与总体架构不动 |
 | 性质 | 架构与实施设计（DESIGN ONLY） |
 | 实现状态 | **未实现**；本文件不含生产代码、不含部署、不含数据迁移 |
 | 基线仓库 | `E:\workspace\icpdf-extractor` |
@@ -115,6 +115,19 @@
 | — | 只改 `13_` | 遵守 | — |
 
 > v1.6 仍不改变 R5、R2/R3/R4/R6、DuckDB + S3 总体架构与协调器单写者模型。
+
+### 0.8 第七轮复核修订（v1.6 → v1.7）
+
+| 编号 | Reviewer 要求 | v1.7 处置 | 位置 |
+|---|---|---|---|
+| **A1** | 事件条件写需存储能力门禁、超时回读、稳定字节 | 事件写入分 `storage_atomic` / `coordinator_serialized` 两档；能力未验证时不得声称存储层去重；超时只回读；事件体去掉动态时间戳，`first_seen_at` 来自 quarantine，保证重放字节一致 | §5.2.5.5.3 |
+| **A2** | L3 token 唯一性与 generation 权威来源 | token 改为**确定性 HMAC** + 全局 token index 对象；generation 权威为**每批次 watermark** 对象；缺失/不一致则 L3 禁止 | §5.2.5.5.1、§5.2.5.5.4 |
+| **A3** | §5.2.5.4 与 L1/L2/L3 统一 | 删除「自动重建已提交集合」；改为明确引用 L1/L2/L3 | §5.2.5.4 |
+| **A4** | 附件扫描范围与旧版本描述 | 附件 §9.10 改为 OPEN ∪ CLOSING；标题与伪代码同步 v1.7 | 附件 §9.10 |
+| **A5** | episode 生命周期持久化，防止每次 reconcile 重置 | 持久化 `episode_no`（≤2）；普通 reconcile 延续当前 episode；仅第二次 PUT 开启最终 episode；重启恢复原 episode，不自动新增；`verify_attempts_total` 总量上限 20 | §5.2.5.2.1 |
+| **A6** | 条件写规则统一；A9 附属文件清理 | 统一为：无 CAS 时**首次创建**可选串行退化、**永不重写**；未知结果只读；A9 补 `-wal`/`-shm` 与「空桶 ≠ 桶已删除」 | §5.2.5.1、矩阵 N-12g3 |
+
+> v1.7 仍不改变 R5、R2/R3/R4/R6、三层架构与协调器单写者模型；仅补 A1–A6。
 
 ---
 
@@ -789,7 +802,7 @@ write_receipt(commit):
 
 1. 协调器**不得**对已存在的 receipt 执行覆盖写；发现不同内容即 `conflict`，原字节保持不变；
 2. 比较以 `receipt_sha256` 为准，必要时逐字节比对；不接受「时间戳相近」「大小相同」等等价判断；
-3. 若目标存储不支持 `If-None-Match`（OD-19），仍必须先 GET 再写，且协调器保持单写者；写后回读校验不可省略；
+3. 若目标存储不支持 `If-None-Match`（OD-19）：**仅允许首次创建**走「GET 404 → 串行 PUT → 回读」的退化路径，且必须记录 `receipt_write_mode=serialized_no_cas`；**永不重写**；任何未知结果只读回验证，不盲目 PUT；OD-19 未批准时禁止写入，保持 `pending`；
 4. 其他角色（Worker、分析节点）**没有** receipt 写权限（OD-16）。
 
 #### 5.2.5.2 写入超时的判定（R1-3b）
@@ -815,15 +828,26 @@ write_receipt(commit):
 | `receipt_reconcile_interval_s` | 30 | 后台 reconciler |
 | `receipt_pending_max_s` | 3600 | 从 `pending_since` 起算，超过 → `QUARANTINED` |
 
-**episode 定义（R1-3f-1）**：
+**episode 状态机（R1-3f-1，A5）**：
 
-- 一个 episode = 一次 `write_receipt()` 调用内的 verification 过程；
-- `episode_started_at` 在调用开始时写入；`episode_attempts` 每次 GET 递增；
-- 达到 10 次或 60 s，本 episode 结束；不影响其他 episode；
-- **第二次 PUT 后开启新 episode**（重新获得 10 次 / 60 s），但 `put_attempts` 仍累计、封顶 2；
-- 协调器重启后允许开启新 episode，但 `verify_attempts_total`、`put_attempts`、`pending_since` **从 SQLite 读取，不重置**。
+| 字段 | 含义 |
+|---|---|
+| `episode_no` | 0 = 首次 commit 后的 verification；1 = 第二次 PUT 后的最终 verification；**不允许 >1** |
+| `episode_attempts` | 当前 episode 已用 GET 次数（≤10） |
+| `episode_started_at` | 当前 episode 起点（60 s 截止） |
+| `verify_attempts_total` | 全生命周期累计 GET 次数，**上限 20**（2 × 10） |
+| `pending_since` | 首次进入 pending 的时间；3600 s 生命周期上限 |
 
-**预算持久化**：`commits` 行记录 `put_attempts`、`verify_attempts_total`、`episode_attempts`、`episode_started_at`、`pending_since`、`next_retry_at`；重启不重置。
+规则：
+
+1. **普通 30 s reconcile 延续当前 episode**：不重置 `episode_attempts` / `episode_started_at`，只继续用剩余次数与剩余时间；
+2. 当前 episode 达到 10 次或 60 s 后**结束**，任务保持 `pending`；`next_retry_at` 供观测，但 **不会自动开启新 episode**；
+3. 仅当满足 §5.2.5.2.1 的全部重写条件并执行**第二次 PUT** 后，才允许 `episode_no: 0 → 1`；它是**最后一个** episode；
+4. 协调器重启：从 SQLite 恢复 `episode_no` / `episode_attempts` / `episode_started_at` / `verify_attempts_total`；**恢复原 episode，不自动新增**；无法恢复时保持 `pending`，走 L1/L2/L3，不通过重启获得新预算；
+5. `verify_attempts_total` 既作审计计数，也作总量上限（20）；达到后只允许回读直到 `pending_max_s`，不再新 episode；
+6. `pending_since` 的 3600 s 是 commit 生命周期预算，不因 episode 或重启重置。
+
+**预算持久化**：`commits` 行记录 `episode_no`、`episode_attempts`、`episode_started_at`、`verify_attempts_total`、`put_attempts`、`pending_since`、`next_retry_at`；重启不重置。
 
 **PUT 200 后回读 404 的默认行为**：
 
@@ -879,7 +903,7 @@ written --(缺失/内容变化，审计)--> QUARANTINED
 |---|---|
 | 协调器进程崩溃 | Worker 心跳失败 → 租约到期 → 任务暂停；不产生成功标记 |
 | 协调器重启 | 从 SQLite + 快照恢复；过期租约按 §5.2.4 处理；`pending` receipt 补写 |
-| SQLite 丢失 | 从 receipt + 事件日志重建「已提交」集合；**没有 commit 的 receipt 视为 orphan，隔离**；无法判定的任务 `QUARANTINED`，不猜 |
+| SQLite 丢失 | **按 §5.2.5.5.1 的 L1/L2/L3 处理**：L1 备份恢复；无备份时**不自动重建** commit（L2 隔离）；只有人工审批后才允许 L3 重建。不得把「receipt + 事件」自动视为已提交集合 |
 | 协调器状态不确定 | **关闭当前批次**，用未完成任务生成新的 recovery 批次（新 `batch_id`）；旧批次只读，不再发租约 |
 
 - 恢复批次中的 `task_id` 带新 `batch_id`，不会与旧批次状态文件冲突；
@@ -918,8 +942,29 @@ written --(缺失/内容变化，审计)--> QUARANTINED
 2. `task_id` 在对应批次的 `tasks.jsonl` 中；
 3. receipt 的 `input_key` / `requested_mpn` 与任务记录一致；
 4. `manifest_sha256` 指向的 Run Manifest 存在，且其 `task_id` / `run_id` / `source_sha256` 与 receipt 一致；
-5. `token` 非空且未被其他 commit 使用；
-6. `generation` 不小于任务已知 generation。
+5. `token` 必须等于**确定性 HMAC** 重算值，且在 token index 中未被其他 task 占用；
+6. `generation` 不小于该批次 **generation watermark** 中记录的该 task 值。
+
+**Token 定义与唯一性（A2）**：
+
+```text
+token = hex( HMAC-SHA256(coordinator_secret, f"{task_id}|{generation}|{manifest_sha256}|{run_id}") )
+```
+
+- token 由 commit 元组确定性派生，不随机；同一元组重算必得同一 token；
+- 协调器在 commit 时写 `control/coordinator/tokens/<token>.json`（内容：`task_id, generation, manifest_sha256, run_id`），作为**全局 token 账本**；
+- L3 校验：重算 token 必须等于 receipt.token；GET token 账本：
+  - 不存在 → **无法证明唯一性 → L3 禁止**（保持隔离）；
+  - 存在且 `task_id`/`generation`/`manifest_sha256` 一致 → 通过；
+  - 存在但指向其他任务或字段不一致 → `QUARANTINED`；
+- token 账本写入失败不影响 commit 本身，但会使 L3 恢复被阻断，直到账本补齐。
+
+**Generation 权威（A2）**：
+
+- 每个批次维护 `control/coordinator/<batch_id>/generation_watermark.json`，记录 `task_id → 最大已发 generation`；
+- 协调器在每次发租约/过期递增 generation 后更新该对象（单写者；写后回读校验）；
+- L3 要求 `receipt.generation >= watermark[task_id]`；
+- watermark 缺失、损坏或与 receipt 无法对应 → **L3 禁止**，保持 `QUARANTINED`，不自行推断。
 
 校验通过后：插入 commit，标记 `recovered_from_receipt=true`、`recovered_by`、`recovered_at`，`receipt_state='written'`，写事件 `COMMIT_RECOVERED_FROM_RECEIPT`。任一项失败 → 保持 `QUARANTINED`，**不得强制**。
 
@@ -944,14 +989,19 @@ event_id = sha256(f"{batch_id}|{task_id}|receipt_without_commit|{receipt_sha256}
 ```
 
 - **事件对象**：`control/events/<batch_id>/coordinator/<event_id>.json`（一事件一对象），`event_id` 即对象键；
-- 去重原子性：同一 `event_id` 的写入使用 `If-None-Match: *`；已存在且字节一致 → 幂等成功；已存在且字节不同 → `EVENT_CONFLICT`（隔离），不覆盖；
+- **稳定字节（A1）**：事件体固定字段 `{schema, event_id, batch_id, task_id, reason, receipt_sha256, first_seen_at, detector}`；`first_seen_at` 取自 quarantine 首次记录，**不使用当前时间**；同一 `event_id` 重放必须生成完全相同的字节；
+- **存储能力门禁（A1）**：
+  - 只有目标存储通过 C1/C2 时，才允许标记 `event_dedup=storage_atomic`；
+  - 未通过或未验证时，只能标记 `event_dedup=coordinator_serialized`（单写者 + GET 比较），**不得声称存储层原子去重**；MinIO 结果不能替代最终存储；
+- **写入规则（A1）**：先 GET；404 → `PUT If-None-Match: *`；200 且字节一致 → 幂等成功；200 且字节不同 → `EVENT_CONFLICT`（隔离，不覆盖）；
+- **超时/5xx（A1）**：视为结果未知；先 GET 回读，字节一致 → 成功；404 → 退避后条件重试；不同 → 冲突；**未回读前禁止盲目覆盖**；
 - SQLite `events` 表增加 `UNIQUE(event_id)`，写入用 `INSERT OR IGNORE`；
 - 放弃「整文件 JSONL 覆盖写」：对象存储 PUT 是整对象替换，无法保证并发/重放下的原子去重；
 - quarantine 记录以 `task_id` 为键，写前先 GET 比较：
   - 不存在 → 写；
   - 同 `reason` 且同 `receipt_sha256` → 只更新 `last_seen_at`；
   - `receipt_sha256` 变化 → 新 `event_id`，记录 `first_receipt_sha256` / `last_receipt_sha256` / `receipt_changed=true`，仍为 `QUARANTINED`；
-- 执行顺序：① 写 quarantine（幂等）→ ② 条件写事件对象（`event_id` 去重）→ ③ SQLite 事务更新任务状态；任一步崩溃后重放，事件对象仍恰好一个。
+- 执行顺序：① 写/更新 quarantine（幂等，确定 `first_seen_at`）→ ② 条件写事件对象（稳定字节、`event_id` 去重）→ ③ SQLite 事务更新任务状态；任一步崩溃后重放，事件对象仍恰好一个。
 
 **发现路径（有界，不 list 全桶）**：
 
