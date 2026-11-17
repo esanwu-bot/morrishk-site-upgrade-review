@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-INT-001-EX |
-| 版本 | v1.2.1（R5 60 秒边界修订；未冻结；全部为构造样例） |
+| 版本 | v1.2.2（同步主文档版本号；未冻结；全部为构造样例） |
 | 日期 | 2026-11-17 |
 | 关联文档 | `Ds Bit ↔ Morrishk Business API Integration Design v1.md`（主文档） |
 | 状态 | 全部 `PROPOSED` / 构造示例 |

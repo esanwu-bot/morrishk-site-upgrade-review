@@ -3,9 +3,9 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-INT-001 |
-| 版本 | v1.2.1（R5 60 秒边界修订，未冻结） |
+| 版本 | v1.2.2（修正 §1.1 冻结状态表述，未冻结） |
 | 日期 | 2026-11-17 |
-| 修订记录 | v1.0 首版送审（`0fa9d34`）；v1.1 处理 R1–R8 与基线说明（`fc4bcc5`）；v1.2 收口 R3/R4/R5/R6/R8；v1.2.1 修正 R5 的 60 秒边界（OA-07 / OA-13 / OA-13a），见 §1.5 |
+| 修订记录 | v1.0 首版送审（`0fa9d34`）；v1.1 处理 R1–R8 与基线说明（`fc4bcc5`）；v1.2 收口 R3/R4/R5/R6/R8；v1.2.1 修正 R5 的 60 秒边界（OA-07 / OA-13 / OA-13a）；v1.2.2 修正 §1.1 冻结状态表述 |
 | 范围 | 架构与接口契约设计；不含生产实现、生产部署、生产凭证 |
 | 上游依据 | 本任务书；`09_current_state_inventory/`；`02_technical_design/morrishk_technical_plan_v1.2.md`；`platform/docs/phase1/03-api-contract.yaml`；`mysql_schema_audit/`；Ds Bit 项目仓库（`E:\workspace\icpdf-extractor`，含前台 `workbench/`）与本地 Stub 源码 |
 | 下游用途 | Phase 0 契约冻结输入；Phase 1/2 开发依据；Reviewer 独立复核对象 |
@@ -20,7 +20,8 @@
 
 ### 1.1 结论先行
 
-1. **可以现在冻结契约，但不能现在宣称"已接通"。**
+1. **当前可以继续完善契约设计，但尚不具备契约冻结条件，更不能宣称已经接通。**
+   Phase 0 阻断事项完成裁定、证据基线重新核实并形成冻结记录后，方可批准契约冻结。
    Ds Bit 目前**没有**生产级 Business API、没有 OAuth2 实现、没有分类服务、没有参数落库。
    Ds Bit 项目仓库是 `E:\workspace\icpdf-extractor`（Git 仓库），其中：
    - `workbench/` 是 **Ds Bit 前台**（`index.html` 为 "Ds Bit - Parser Lab (Parser-only)"；`workbench/b2b/qa_console.html` 为本地回放校对台）；
