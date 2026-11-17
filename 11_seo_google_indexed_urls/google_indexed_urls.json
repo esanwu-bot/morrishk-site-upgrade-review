@@ -1,0 +1,701 @@
+{
+  "query_keyword": "site:https://www.morrishk.net/",
+  "query_url": "https://www.google.com.hk/search?q=site%3Ahttps%3A%2F%2Fwww.morrishk.net%2F&newwindow=1",
+  "mode": "browser_capture",
+  "started_at": "2026-11-17T10:13:41+08:00",
+  "finished_at": "2026-11-17T10:17:25+08:00",
+  "requested_max_pages": 6,
+  "pages_fetched": 6,
+  "per_page": [
+    {
+      "page_number": 1,
+      "visible_results": 10
+    },
+    {
+      "page_number": 2,
+      "visible_results": 10
+    },
+    {
+      "page_number": 3,
+      "visible_results": 10
+    },
+    {
+      "page_number": 4,
+      "visible_results": 8
+    },
+    {
+      "page_number": 5,
+      "visible_results": 0
+    },
+    {
+      "page_number": 6,
+      "visible_results": 0
+    }
+  ],
+  "raw_result_count": 38,
+  "deduped_url_count": 28,
+  "allowed_hosts": [
+    "www.morrishk.net",
+    "morrishk.net"
+  ],
+  "urls": [
+    {
+      "url": "https://www.morrishk.net/sub-categories/c-636-730/pmic-gate-drivers-integrated-circuits.html?page=22",
+      "dedupe_key": "https://www.morrishk.net/sub-categories/c-636-730/pmic-gate-drivers-integrated-circuits.html?page=22",
+      "title": "PMIC - Gate Drivers | Integrated Circuits | IR2128S | morrishk.net",
+      "snippet": "By Category · Clock/Timing - IC Batteries · Memory - Batteries · Embedded - FPGAs (Field Programmable Gate Array) with Microcontrollers · Interface - Direct Digital ...Read more",
+      "pages": [
+        1,
+        3
+      ],
+      "occurrences": 2,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESoQEBxCJF187jvvGUW8KxBDCEitcirJyLIU8p4676nBSj7d2HlTaGj_DpFPkNYvSDQAnVjh2SPSfNxFZgZ-g95zszz083J7Fl0F-y0GD3bSwmk6PH4Ps7E7Rm9ubx4SGD9UuPYH4x9mh8UEdD1giSrLLssfVOx6vSz81wVMh3-gGmy0CWDPt_JMzmeuFkXdiV-0poLSEpge1qDGUrtT_NRp18Wg&gsessionid=REDACTED",
+        "https://www.google.com.hk/goto?url=CAESoQEBxCJF19V-9oYfBNIf-OkAYvrq-BXtPmph9WbUJaNSn8Vwf1Cz-Ys_CPwKAs5DqBCg_7GkUws20pWHUgmgod0Oexj-hzTxzQxnedizFwkY1IdUVpLyScjDoIw-7zVlqSLJublB2UOwLLasRd_XANpO5aaVnr6P86TwU8dCmq5Qskj7pNbHDyyq9fcsZHrewiklezkzZt7BVh0sZu8xeKVsTg&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-636-730/pmic-gate-drivers-integrated-circuits.html?page=22",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "https://www.morrishk.net/sub-categories/c-636-730/pmic-gate-drivers-integrated-circuits.html?page=25",
+      "dedupe_key": "https://www.morrishk.net/sub-categories/c-636-730/pmic-gate-drivers-integrated-circuits.html?page=25",
+      "title": "PMIC - Gate Drivers | Integrated Circuits | IR2105STR | morrishk.net",
+      "snippet": "By Category · Clock/Timing - IC Batteries · Memory - Batteries · Embedded - FPGAs (Field Programmable Gate Array) with Microcontrollers · Interface - Direct Digital ...Read more",
+      "pages": [
+        1,
+        3
+      ],
+      "occurrences": 2,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESoQEBxCJF10kmfMxsvFu6xa3eKIOky-Rs_bRn-PakbbvJjPmBAXOo2fG66s_CsVcZM9vHQYFnVRFYunboWvZr2AZoM3CcePr7SDl9iymOdWB5yriUz9BRTkTanIOELejZANaSwRiy6ged3jtUq7vj28pB3Y4RIZPdm1qu9_RVjnM9EV2kwBRIiMadyZjlUx3uZbjDIoVFmjVarHOiC_1yIlFqLQ&gsessionid=REDACTED",
+        "https://www.google.com.hk/goto?url=CAESoQEBxCJF13jokbXLbotcwsK9scDWDqGcxtz8IPogZwOyiAGRhXcZoym7AWBABz-wggcksfL0cPkTqqwHKEfVyKdv1u7mcLlmUBME1KlsPflY7LD-nBTGFAMHDqObb6XpBKpO-25QsonZA7nfItUtRsfwTcMRoOdCoP2Q3T2WA6KRpVhtcte9R6JbZ5EIEqKVel5rYjQlgVLrS-v6RD6lbv3dxQ&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-636-730/pmic-gate-drivers-integrated-circuits.html?page=25",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "https://www.morrishk.net/sub-categories/c-776-731/logic-counters-dividers-integrated-circuits.html?page=10",
+      "dedupe_key": "https://www.morrishk.net/sub-categories/c-776-731/logic-counters-dividers-integrated-circuits.html?page=10",
+      "title": "Logic - Counters, Dividers | Integrated Circuits | SN74HC4060PWR | morrishk.net",
+      "snippet": "By Category · Clock/Timing - IC Batteries · Memory - Batteries · Embedded - FPGAs (Field Programmable Gate Array) with Microcontrollers · Interface - Direct Digital ...Read more",
+      "pages": [
+        1,
+        3
+      ],
+      "occurrences": 2,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESpwEBxCJF14FHDGohGYhARVso1oMEohftN3xEHx0zDNHxFywJhAYAsTwPT3VN_EU033P7qtN3SEidYvOfiYaoY05CVoptq2eXjIYm17Jr5hlW0rne0hG-ThAI_Qn6iReBtUAlRGlJsw8LDovnfoK9UXFKN2jSo_LWmnPNFLG-L0dzMFAUFN6nGaTUHEz-CEWHGvbEnsb1M-I_7ARVErdTEs_lPG547HaPEw&gsessionid=REDACTED",
+        "https://www.google.com.hk/goto?url=CAESpwEBxCJF15j0Qweq19xexW6_HQyuHyJXld1sRM3ZF0DqrfaUU99cGhQcLrGfbORW1lphyHXMOR6fVWPPhYqs6occmxQNJJYZEofk1zcJwHdVK3L3d853Xt4Mmry-x0afnbg_hxdhdJNOlS9iKr9AZW6ri5ksn9nrWonO460OxB4sBs3clPFkv7ziLi4_eW3CmiQXDyRE7VEIvhp8CgfukNCCzhQVBnO4Pw&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-776-731/logic-counters-dividers-integrated-circuits.html?page=10",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "https://www.morrishk.net/sub-categories/c-349-707/logic-fifos-memory-integrated-circuits.html?page=4",
+      "dedupe_key": "https://www.morrishk.net/sub-categories/c-349-707/logic-fifos-memory-integrated-circuits.html?page=4",
+      "title": "Logic - FIFOs Memory | Integrated Circuits | CY7C4241V-25AXCT | morrishk.net",
+      "snippet": "Logic - FIFOs Memory, Integrated Circuits, CY7C4241V-25AXCT, 105 items Product, morrishk.net.",
+      "pages": [
+        1,
+        3
+      ],
+      "occurrences": 2,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESoQEBxCJF17UHnG89cxIiDg0VM4QO9rLlyg9d0MrNYIxTyToqSZOEIYic4bdRAeHG1jihoxBojoy0Pi-3ld5kxs2Wke7_ay2-fXS-CwaLTgLK7XLF-_p8r5VIF6qjg1A-_Oy6QvxbgVU6T-O3N4vS_i34pfxtPQJ_nspRQJWNMK-TxDl19K5LNIpuRybSwlWsH09o6ILush1dLt03Sfirb_hXuA&gsessionid=REDACTED",
+        "https://www.google.com.hk/goto?url=CAESoQEBxCJF12cG3UNSyqAMI4eUQGuT_HOgytAjuiJk7eu0pDtUOXWipFEsoeK2d7pgyTzG7WYsxnBs3gSfq2pdp_ehGsoWxI3rb2kshM0zWW6NvC_R0DiYfb1e3I2ztAFxqWjzEkAxx6dvgElAEfTa1dn6cd8PmrlwxfBJo8dYQxRXuNDKTmie3m4PbXSkrNrkm-FyrRvrujiB3XvkUcqHwpIpjA&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-349-707/logic-fifos-memory-integrated-circuits.html?page=4",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "https://www.morrishk.net/sub-categories/c-349-707/logic-fifos-memory-integrated-circuits.html?page=2",
+      "dedupe_key": "https://www.morrishk.net/sub-categories/c-349-707/logic-fifos-memory-integrated-circuits.html?page=2",
+      "title": "Logic - FIFOs Memory | Integrated Circuits | CY7C4251V-15AXC | morrishk.net",
+      "snippet": "Logic - FIFOs Memory, Integrated Circuits, CY7C4251V-15AXC, 105 items Product, morrishk.net.",
+      "pages": [
+        1,
+        3
+      ],
+      "occurrences": 2,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESoQEBxCJF17kKb42s6IDuEW7ppcrvx8z-1P88K1LmMnxNG-2L8f_YOLZ5DCk6DiqtJR26WhSsfyA925DeRFts5gufB80HKY2iaLIJfhBMrbJ-inRRutfSjDf6Mit_gKzPurLoBVbdJNeiFw6LtFjCUdZrkQ1LhVjXXmE3cTZdcuWNjEo1cdiZE9wlopKMcUMbNovd1cKpiyy1RDZXdo0nQJyUwQ&gsessionid=REDACTED",
+        "https://www.google.com.hk/goto?url=CAESoQEBxCJF1zHpKCIMtjMYqrjYwPGsJXq_OA7Q_OFJruD9rJPVeNRqTFcN_v5BElQe18FzuPYNas_51iZH61LgfxwyA7w3FaCUe9GzXdSyvvf2nNzWrDE6MIHlu0eQVEa8WumnGNQen3YU8O6OFIPL6L2QOfUJxOzbZ1OunJ7gF6IYLJqE2jaGSg_tBKPdvgLanJto_KWMb4crFn88-xt0XdMk8w&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-349-707/logic-fifos-memory-integrated-circuits.html?page=2",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "https://www.morrishk.net/sub-categories/c-0-118/fiber-optics-transceiver-modules-optoelectronics.html?page=33",
+      "dedupe_key": "https://www.morrishk.net/sub-categories/c-0-118/fiber-optics-transceiver-modules-optoelectronics.html?page=33",
+      "title": "Fiber Optics - Transceiver Modules | Optoelectronics | FTLX3971DTC20 | morrishk.net",
+      "snippet": "HeNe Laser Module Accessories · HeNe Laser Modules · LED Lighting Kits · Display, Monitor - LCD Driver/Controller · Electroluminescent · Display Bezels, Lenses.Read more",
+      "pages": [
+        1,
+        4
+      ],
+      "occurrences": 2,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESqgEBxCJF1wD_HqqJH5O-tYh4xOj_3DQd7facD_ec-AdHHlebsIvTBdHGG4aqFwRtf2bkZH9C6TdWlwfmKYyOJ2Hgnu1ljdi49tn8_FQyke50eZ9UacHPa1o5jAmBZ7KysOmaleOF9esMOgvCBos_5S7hNpYxWBTzTpb05hZ9vbVPw1BVwjsTkssUkDWfsWDWiQzVyDOIg7bsT4FzjmU68le_VC_5Id7RitjRGg&gsessionid=REDACTED",
+        "https://www.google.com.hk/goto?url=CAESqgEBxCJF1wfor840Wluqas_G0yD2ESlFB3Kxr_lc5K5NY1Et8Gqo1fnFSU1edOc4Ocf87koTilz-mkPY_CTkzSPBiTQw4H_kcwdr_UT53evxpYXQ6r8u8gvzwY0lJEqjWuGwnGKti70KfXvQ9RZXWcVeZLKMgQ2Dtsu5eSq078tHzjjbfxoQfdkb1US9Cumk0Y0u_ayX5qtgXcEBPWEX21BI7XJOJVFWwYWSZA&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-0-118/fiber-optics-transceiver-modules-optoelectronics.html?page=33",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "https://www.morrishk.net/sub-categories/c-428-696/embedded-fpgas-field-programmable-gate-array-integrated-circuits.html",
+      "dedupe_key": "https://www.morrishk.net/sub-categories/c-428-696/embedded-fpgas-field-programmable-gate-array-integrated-circuits.html",
+      "title": "Embedded - FPGAs (Field Programmable Gate Array) | Integrated Circuits | T8Q144C3 | morrishk.net",
+      "snippet": "Embedded - FPGAs (Field Programmable Gate Array), Integrated Circuits, T8Q144C3, 46 items Product, morrishk.net.",
+      "pages": [
+        1,
+        4
+      ],
+      "occurrences": 2,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAEStAEBxCJF1yhTf9o8miO2i_lI1XBvEvha49Nda6PrqaZNFLzZSvsmMI2e7nTnCZ4oogvyVYFwpKg66fCKyUBV05PXH8ahhDPTBOHw6gG6ZnTkkZCQFs-1woqLiRqB1tXnHMDElh45sr8WLQqhUYRs-ZzZhnMsarFEoPJ-O_3UBMpNwi6G62rAIveDeKcIPyCGtggWF5tyW7GbfHKO-cOobbhSNXxzqt5NyH50FMfEgKW06UMaJdw&gsessionid=REDACTED",
+        "https://www.google.com.hk/goto?url=CAEStAEBxCJF12CTK6wjLZPpEF13FYIG4OzgmpfZff0cvccmVEM5GDta6YrI4YnPtOLPCr7njmaan3RITKq5U27oJ7lkw3k9pGPLciFEix3J3KI1e7qOWv-k4_6n9JEpmICnKItqoGJg_I1j6RlAF_uAR158baDL8SwDyu5-L6DN5AWH7sk86n0iEJ9mFvrZjJIkilsmd4CSJNtJOM6ySJ4MbxdhOQfngjQiOsiLcsxeMIlexIsBnhg&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-428-696/embedded-fpgas-field-programmable-gate-array-integrated-circuits.html",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "http://www.morrishk.net/sub-categories/c-962-96/display-modules-led-dot-matrix-and-cluster-optoelectronics.html",
+      "dedupe_key": "http://www.morrishk.net/sub-categories/c-962-96/display-modules-led-dot-matrix-and-cluster-optoelectronics.html",
+      "title": "Display Modules - LED Dot Matrix and Cluster | Optoelectronics | DLG1414 | morrishk.net",
+      "snippet": "Display Modules - LED Dot Matrix and Cluster, Optoelectronics, DLG1414, 65 items Product, morrishk.net.",
+      "pages": [
+        1,
+        4
+      ],
+      "occurrences": 2,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESrAEBxCJF150DmFuBZsOKOxzZyHKBvDeeuCWcqwQNJhaZ6-aPaLTXUHxt_WCPQrXjNiJoJt4ReAnT0jNCvQB9u4JMAztD1BA-FvH0w-EYjALEcsRd-0unjlrwdJf3kc3DYXONFiTgdwkiXmFgHCDPPU3y7Tzao3qOBug5tHqj_sQ2pTORV1y9mlXTaiRM3wCSHvHfUcxFbIHt78Eb1hMGrAmx8Juys55hnNPs3NjH&gsessionid=REDACTED",
+        "https://www.google.com.hk/goto?url=CAESrAEBxCJF19QWg5eeAxxB5m1OfSUG_h7mEmyE6-tXp3Z9d_9cc-_DQc0SeT3xy2zl7CK7bSeSVJU2KyAxqf5wdFvDw3tgsnGYJtcFSpRRedhIfGeY7xwz5GXwu6EjVb9fx4gkuRCG5KnF9-8GKaQDLmQGY4kxXXiIcSRd2GdhbK0gaMw9J3vUwiZJUh_nehGL2crpt0D17H5175DvH_VQGwnOdHYBFQ-l42GSbX5j&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-962-96/display-modules-led-dot-matrix-and-cluster-optoelectronics.html",
+      "redirect_chain": [
+        {
+          "status": 301,
+          "location": "https://www.morrishk.net/sub-categories/c-962-96/display-modules-led-dot-matrix-and-cluster-optoelectronics.html"
+        }
+      ],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "http://www.morrishk.net/sub-categories/c-0-724/data-acquisition-analog-front-end-afe-integrated-circuits.html",
+      "dedupe_key": "http://www.morrishk.net/sub-categories/c-0-724/data-acquisition-analog-front-end-afe-integrated-circuits.html",
+      "title": "Data Acquisition - Analog Front End (AFE) | Integrated Circuits | LMP91000SD/NOPB | morrishk.net",
+      "snippet": "Data Acquisition - Analog Front End (AFE), Integrated Circuits, LMP91000SD/NOPB, 715 items Product, morrishk.net.",
+      "pages": [
+        1,
+        4
+      ],
+      "occurrences": 2,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESqgEBxCJF1zNe4nbmEG2lyvOrATISVNFJSjS3XlmmpWMf3EdDJc-CvA8KvF7FeS6t-Muy8vhzV6YaP2KtP8NfNBavcVv9EyT80lGO_DjpX4BKHZwaxpYqX3beWx3e5iROJMQsW43YLGZd6xwUWJs_AcwcWwQ7RVEeshKiXQW0CjFbEx7Pj9arcUBSTfnuTpGBPAmvqBGpq5f8fkQF9shdTk1rlAX1XeRCprDbTw&gsessionid=REDACTED",
+        "https://www.google.com.hk/goto?url=CAESqgEBxCJF10gKC28SPWqDy3EdsRmaoZaaLfKdU8qki3xXgCzOpGTG-MmjMIyOfNJ0j8Cdr0c0_PtruXJQwwVahqXH0x4ZzEpeoE5NsMAgrl-HJXnvJsQ3OiZVOa1mtDLWbY2Ap2nLAw0yd_-n4gd5QieAWEw4zi_aWsOeLy7-wqPd9a1FAnmyypsp4RsmL917-fNTmTOKpwvTL30GYR2owvSOvyYKC42uHfJG4g&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-0-724/data-acquisition-analog-front-end-afe-integrated-circuits.html",
+      "redirect_chain": [
+        {
+          "status": 301,
+          "location": "https://www.morrishk.net/sub-categories/c-0-724/data-acquisition-analog-front-end-afe-integrated-circuits.html"
+        }
+      ],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "https://www.morrishk.net/sub-categories/c-636-726/pmic-power-distribution-switches-load-drivers-integrated-circuits.html?page=18",
+      "dedupe_key": "https://www.morrishk.net/sub-categories/c-636-726/pmic-power-distribution-switches-load-drivers-integrated-circuits.html?page=18",
+      "title": "PMIC - Power Distribution Switches, Load Drivers | Integrated Circuits | BTS5241LNTMA1 | morrishk.net",
+      "snippet": "PMIC - Power Distribution Switches, Load Drivers, Integrated Circuits, BTS5241LNTMA1, 573 items Product, morrishk.net.",
+      "pages": [
+        1,
+        4
+      ],
+      "occurrences": 2,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESvgEBxCJF16oimXZZiX4nrn6iv5o8QTOfSs9at-SKZ5_x9rMaDWD-9QauIoTmTvCEp9c36IGb4XT6XBC4SQpGGHC3t5zxTTcopr9plLfjKiTtFIKPBTy6PnEQFYdj0fDef_gXcRyKHQob_ngWZv3tFuCiqr8dk2_dFpeTAH8ijJ1IjxVxzO63K1N-n4svvI_5GftojxNkdmLnBHr3GocGFzCKGomDjlqsBmSOE_srsn8meNt7mzseL8TY1GIJf23n&gsessionid=REDACTED",
+        "https://www.google.com.hk/goto?url=CAESvgEBxCJF13LRfZrYvwBhi0pRF8cJ4qHROK2kutbO9b-wRAjq8Rt5cdRyK7kVmBtVf6PHU1kb9v5WGzdNgF8M3pwDHD2w6nR-BW0I1tQeANQ1SdG5w5y_ZWNYq4yZHrn7aTUwLyi_waqf5gQVXO437SM7jNymx6Iq2AGcJLestLxGnuIZVixIXIDdEBHCyF47wQ7ua1D9IKsHD5OwCWeAlYTmn8WJrLHN416UUauj5uDISaw0BfMvsMz0oG93UWyT&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-636-726/pmic-power-distribution-switches-load-drivers-integrated-circuits.html?page=18",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "https://www.morrishk.net/products/10047931/JA3102A-36-J2PC-R.html",
+      "dedupe_key": "https://www.morrishk.net/products/10047931/JA3102A-36-J2PC-R.html",
+      "title": "JA3102A-36-J2PC-R JAE Electronics |MORRISHK.NET",
+      "snippet": "Morris is an independent distributor of electronic components. We have reliable sources of electronic components, only sell new & original products and ...",
+      "pages": [
+        2
+      ],
+      "occurrences": 1,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESfgHEIkXXGnlg9AdgN3fhhFZy46w2Dd-bY0ZtFJui9QFJtS5Oc0SVCCWflXuisaUzF-F3mzgHuX0d1N73wA0L0ZIQo1Ia28KzQDdKLOmAezlTbr3qqOV-tycL6UOMpq7EoHjsaZdvpJ73FVqjvfjh9cNVQt3YaknYHIEkpidH2Q&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/products/10047931/JA3102A-36-J2PC-R.html",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "http://www.morrishk.net/sub-categories/c-0-531/force-sensors-sensors-transducers.html",
+      "dedupe_key": "http://www.morrishk.net/sub-categories/c-0-531/force-sensors-sensors-transducers.html",
+      "title": "Force Sensors | Sensors, Transducers | SEN-13329 | morrishk.net",
+      "snippet": "Particle, Dust Sensors · Magnetic Sensors - Compass, Magnetic Field (Modules) · Optical Sensors - Photo Detectors - CdS Cells · Shock Sensors · Motion Sensors - ...",
+      "pages": [
+        2
+      ],
+      "occurrences": 1,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESkgEBxCJF11dAp8nk7tOQW5AokuBwY7YCkT8H8KZH2Q2DLQlgdblM7EWqY9TYyJdUVlbdfraDxn5z8h73kR1TORBpHPSJ3w3qqStg0gEGZg1cgxctaDTEmZs_B3SiEtT456StQw4dxWl1_vpWry-62VVGq5OliCrad5jUtdEFKKCJmg82BbT9QAxIoEp7peKLDQ2s8g&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-0-531/force-sensors-sensors-transducers.html",
+      "redirect_chain": [
+        {
+          "status": 301,
+          "location": "https://www.morrishk.net/sub-categories/c-0-531/force-sensors-sensors-transducers.html"
+        }
+      ],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "https://www.morrishk.net/sub-categories/c-636-685/embedded-microcontrollers-integrated-circuits.html?page=13",
+      "dedupe_key": "https://www.morrishk.net/sub-categories/c-636-685/embedded-microcontrollers-integrated-circuits.html?page=13",
+      "title": "Embedded - Microcontrollers | Integrated Circuits | XC878CM16FFI5VACFXUMA1 | morrishk.net",
+      "snippet": "By Category · Clock/Timing - IC Batteries · Memory - Batteries · Embedded - FPGAs (Field Programmable Gate Array) with Microcontrollers · Interface - Direct Digital ...",
+      "pages": [
+        2
+      ],
+      "occurrences": 1,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESqQEBxCJF12DBpRiGzPA3iXgGADMSlYGQ-lZg-4GyUgAXrEcL0PHvMg2Uv7OJjnKR2L13bgoMdkFotCU-VS2fiVFBve6iAsoFoTnHxh9p8RqqCHi6SYD_KAE-z7snGSif5yoX8a7Ehdcd4Nb68fNluhI3SJabslFH1Oiy9gV9YCuhxsSNKqnf5b5iPse81907FYoJ-hfUoGsvG6Fo9MpqcjDXkJdwJ4uFl8wJ&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-636-685/embedded-microcontrollers-integrated-circuits.html?page=13",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "https://www.morrishk.net/sub-categories/c-636-685/embedded-microcontrollers-integrated-circuits.html?page=3",
+      "dedupe_key": "https://www.morrishk.net/sub-categories/c-636-685/embedded-microcontrollers-integrated-circuits.html?page=3",
+      "title": "Embedded - Microcontrollers | Integrated Circuits | XMmorrishk.net100Q024F0064ABXUMA1 | morrishk.net",
+      "snippet": "By Category · Clock/Timing - IC Batteries · Memory - Batteries · Embedded - FPGAs (Field Programmable Gate Array) with Microcontrollers · Interface - Direct Digital ...",
+      "pages": [
+        2
+      ],
+      "occurrences": 1,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESqAEBxCJF13aeOT1sfmWZUoPmL4dYPS9HL1ARMlIzGgJnJBK9yaATzkmBJdi-PBZmM2GF5Doua-QBdYV_GKFpy7tpSjbGuptPejVECOohyQK12PsjUxoeJeX993TUBVMpLglUiTdTf2wKvnxNN2CLPpAa8tILxdP3MBXKbZ0M4tPMJzOu9bbHD62nmnls9BnJMcwE7pqVR4kU0NTHEYCahz1kkcEd3CFrdGI&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-636-685/embedded-microcontrollers-integrated-circuits.html?page=3",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "http://www.morrishk.net/sub-categories/c-0-307/backplane-connectors-din-41612-connectors-interconnects.html",
+      "dedupe_key": "http://www.morrishk.net/sub-categories/c-0-307/backplane-connectors-din-41612-connectors-interconnects.html",
+      "title": "Backplane Connectors - DIN 41612 | Connectors, Interconnects | 86093967113755ELF | morrishk.net",
+      "snippet": "Memory Connectors - PC Cards - Adapters · Photovoltaic (Solar Panel) Connectors - Contacts · D-Sub, D-Shaped Connectors - Terminators · Terminals - Foil Connectors.",
+      "pages": [
+        2
+      ],
+      "occurrences": 1,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESqAEBxCJF1-oOy_TesVwmRSPMhXSS7ZUpBBQhGd3kggKsYhE0bGAIES_JMC1tkoun4PGbiP8HfeCMOQSo-wo8cbNjt-o0R6DTLJiEejwN4pMm-drIYVjQ88-IkCLuec8NY5cmVss2z-QXy5IhRA3-kOIfQoxqomj9TDMuOv3P0PJTP5HEEffXwYtX6CACVqoilc513rgdC8tdKRcIlN9bdOqGrtTVtrjralE&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-0-307/backplane-connectors-din-41612-connectors-interconnects.html",
+      "redirect_chain": [
+        {
+          "status": 301,
+          "location": "https://www.morrishk.net/sub-categories/c-0-307/backplane-connectors-din-41612-connectors-interconnects.html"
+        }
+      ],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "https://www.morrishk.net/sub-categories/c-636-685/embedded-microcontrollers-integrated-circuits.html?page=18",
+      "dedupe_key": "https://www.morrishk.net/sub-categories/c-636-685/embedded-microcontrollers-integrated-circuits.html?page=18",
+      "title": "Embedded - Microcontrollers | Integrated Circuits | XMC4700E196K1536AAXQMA1 | morrishk.net",
+      "snippet": "By Category · Clock/Timing - IC Batteries · Memory - Batteries · Embedded - FPGAs (Field Programmable Gate Array) with Microcontrollers · Interface - Direct Digital ...",
+      "pages": [
+        2
+      ],
+      "occurrences": 1,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESqQEBxCJF16d6_AhkVTs6SRba1J-wIktru0AAwmMvMoA1R-aJ8wnXgYm8Ckg2q5cCOX-7K_Jn_qyP_2YnNRIYyUzv_xKMzbfMone1RWrHFNSEl8jNNbjilX8eH1w31mklpZXMobuk_dDsXC4Os-xc_goK6JKWhXT-yP7BrBVHaLlB72sFUvys1qt5ZwLfgNlpwDpETv0Ac7kkJpuVlYWuN_Ubp6GJe7yA5VGh&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-636-685/embedded-microcontrollers-integrated-circuits.html?page=18",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "https://www.morrishk.net/sub-categories/c-819-685/embedded-microcontrollers-integrated-circuits.html?page=15",
+      "dedupe_key": "https://www.morrishk.net/sub-categories/c-819-685/embedded-microcontrollers-integrated-circuits.html?page=15",
+      "title": "Embedded - Microcontrollers | Integrated Circuits | MAXQ3210-EJX+ | morrishk.net",
+      "snippet": "By Category · Clock/Timing - IC Batteries · Memory - Batteries · Embedded - FPGAs (Field Programmable Gate Array) with Microcontrollers · Interface - Direct Digital ...",
+      "pages": [
+        2
+      ],
+      "occurrences": 1,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESqQEBxCJF1-fkWLIRVcaxmlrvyScqBkoqNkJNZ-N3J3TSZvYA0Rh-6ZVhu8M4cf9Dgx8Ry_1Cg-dHX5RsEb7LukAFtAUemuD2FkPKVcClGIFqEGiSD1W3jy6SxVYw18a-6ujkA2DuwMROFLsAo5bVLkEN46e1Cywig483rHk4qKneJXeRv-Gr_ZIMeocJ43E-ULq6p5xiGG4BjNda7g_qfdIVfY4U_vv7exyU&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-819-685/embedded-microcontrollers-integrated-circuits.html?page=15",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "https://www.morrishk.net/sub-categories/c-349-685/embedded-microcontrollers-integrated-circuits.html?page=21",
+      "dedupe_key": "https://www.morrishk.net/sub-categories/c-349-685/embedded-microcontrollers-integrated-circuits.html?page=21",
+      "title": "Embedded - Microcontrollers | Integrated Circuits | CP7417ATT | morrishk.net",
+      "snippet": "By Category · Clock/Timing - IC Batteries · Memory - Batteries · Embedded - FPGAs (Field Programmable Gate Array) with Microcontrollers · Interface - Direct Digital ...",
+      "pages": [
+        2
+      ],
+      "occurrences": 1,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESqQEBxCJF1337ENu7PA2yfi9SRl5w1KZAMKCHX8Y5gSqG74jCdXOniZi3E_-jPgPo5fWRMLWkICSNl6Uw8eDr_Ew3MomHk7HHWZnooUXTpyv3qQeBGYKIQSwq0RFZMiS7Ke_Qw5HdNnjfdZUsEW6ZuA5sDCQrfVjArYw-8V2eC7LobG5Bw9vlpKg7QExavVQHdUq3phk8AWStvSIlQRCIbbOP7qR59crzDSvH&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-349-685/embedded-microcontrollers-integrated-circuits.html?page=21",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "https://www.morrishk.net/sub-categories/c-636-730/pmic-gate-drivers-integrated-circuits.html?page=23",
+      "dedupe_key": "https://www.morrishk.net/sub-categories/c-636-730/pmic-gate-drivers-integrated-circuits.html?page=23",
+      "title": "PMIC - Gate Drivers | Integrated Circuits | IR2151S | morrishk.net",
+      "snippet": "By Category · Clock/Timing - IC Batteries · Memory - Batteries · Embedded - FPGAs (Field Programmable Gate Array) with Microcontrollers · Interface - Direct Digital ...",
+      "pages": [
+        2
+      ],
+      "occurrences": 1,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESoQEBxCJF1zlTjf6TaTTp_TaCSo6ZJxylx3PKMrKsOLwvuEm3m09zpbmMGfz9u8h9TjTzih7HTbYyIVd-sUUyyg4lqA0x8BmZ_yZJleYuA104bcTZRQ12YO38jENeU4iQX9D6VtySgf2185bwZVU6nwSvUbGfd4slXiSXH90jwWlQskeD9tTLm1SXKwBeXQROWBrLazxiZIJfrVBATxS14rkc8Q&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-636-730/pmic-gate-drivers-integrated-circuits.html?page=23",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "https://www.morrishk.net/sub-categories/c-636-730/pmic-gate-drivers-integrated-circuits.html?page=30",
+      "dedupe_key": "https://www.morrishk.net/sub-categories/c-636-730/pmic-gate-drivers-integrated-circuits.html?page=30",
+      "title": "PMIC - Gate Drivers | Integrated Circuits | IRS2336JTRPBF | morrishk.net",
+      "snippet": "By Category · Clock/Timing - IC Batteries · Memory - Batteries · Embedded - FPGAs (Field Programmable Gate Array) with Microcontrollers · Interface - Direct Digital ...",
+      "pages": [
+        2
+      ],
+      "occurrences": 1,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESoQEBxCJF1yJz08_99YYQ-oOh4NUtsGdjImKLN8cSGQTfYA8gSui244R2P6lWZ5fgIkdkbkGuSbNc0xKOAFSgG9bD1I7HZZHnJ48Itl8BM_UbIGbrL7_JYkMUDOP48QI_vn76wb8VXgciODQmkYihAV2YVD1qa3DlBT_0o3pUzvf4tx4UNsd9lDvzghwfTchn8Se3jOCXBl56-Pj9yjnI4_PTxQ&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-636-730/pmic-gate-drivers-integrated-circuits.html?page=30",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "https://www.morrishk.net/sub-categories/c-636-730/pmic-gate-drivers-integrated-circuits.html?page=29",
+      "dedupe_key": "https://www.morrishk.net/sub-categories/c-636-730/pmic-gate-drivers-integrated-circuits.html?page=29",
+      "title": "PMIC - Gate Drivers | Integrated Circuits | IR2113-1PBF | morrishk.net",
+      "snippet": "Clock/Timing - IC Batteries · Memory - Batteries · Embedded - FPGAs (Field Programmable Gate Array) with Microcontrollers · Interface - Direct Digital Synthesis ( ...",
+      "pages": [
+        3
+      ],
+      "occurrences": 1,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESoQEBxCJF17CP39ds6PZojU83I3w8-lXSGLblczLZh4qlFjj5sApZ8t4EkulCTHqi6zVAM1a7MQc7P0X3JEfZ92TLjHy_rPrqJ5gzeU-KYS4DRAuP9pAMlyB8mZPBKdFa1oVTicFpwbXCW57ZTmh7H2QGi_Lb5ZBfjkxOi_K1cBV5cN2e0oiGQnNX59q-mn1UQmq2VvwliJfJhI29AKYs_uExrw&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-636-730/pmic-gate-drivers-integrated-circuits.html?page=29",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "https://www.morrishk.net/sub-categories/c-0-707/logic-fifos-memory-integrated-circuits.html?page=45",
+      "dedupe_key": "https://www.morrishk.net/sub-categories/c-0-707/logic-fifos-memory-integrated-circuits.html?page=45",
+      "title": "Logic - FIFOs Memory | Integrated Circuits | CY7C4265V-15ASC | morrishk.net",
+      "snippet": "By Category · Clock/Timing - IC Batteries · Memory - Batteries · Embedded - FPGAs (Field Programmable Gate Array) with Microcontrollers · Interface - Direct Digital ...",
+      "pages": [
+        3
+      ],
+      "occurrences": 1,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESoAEBxCJF1895x6V-UL2vSx7YYfZWFtNRFdwMykPPHVUmZyUT7fbOR9j7B7tlLYCL0ew6L2dm3haFEGUkqIFQqVyyofGpvdffNOMbWjhoBntlefT37VYU9lPbROobVf9zLkUeh5RiKgYyJUbxlk90KkwoB8TRBYvjdk8Of3nImEiKwQGsUUsEENfPnSw0O7ehx1YKVYAEUU7dOgzKle4bzPJc&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-0-707/logic-fifos-memory-integrated-circuits.html?page=45",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "https://www.morrishk.net/sub-categories/c-0-118/fiber-optics-transceiver-modules-optoelectronics.html?page=34",
+      "dedupe_key": "https://www.morrishk.net/sub-categories/c-0-118/fiber-optics-transceiver-modules-optoelectronics.html?page=34",
+      "title": "Fiber Optics - Transceiver Modules | Optoelectronics | FTLX3971DTC42 | morrishk.net",
+      "snippet": "HeNe Laser Module Accessories · HeNe Laser Modules · LED Lighting Kits · Display, Monitor - LCD Driver/Controller · Electroluminescent · Display Bezels, Lenses.",
+      "pages": [
+        3
+      ],
+      "occurrences": 1,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESqgEBxCJF100vXrHrOkIPM3GftJXYKu98lRM0N2tbfEBGB1rmZz74W3LcEDPOkJsFoLhXRFySECRMCIMB2tvtUe3KytJlvU_ncwSKN1By3FMV-0xfbL0UxIrgrdcb2OmcOkdzFOinzddTPH8yWvuLXSBpTsVKTdLNyb94BueCOp119_jQ8i_y9WXwbIMQMCFtORsgp3TKSLDShYXHI-HPTiqhoDy_-yqTyWhZ2A&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-0-118/fiber-optics-transceiver-modules-optoelectronics.html?page=34",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "https://www.morrishk.net/sub-categories/c-0-118/fiber-optics-transceiver-modules-optoelectronics.html?page=40",
+      "dedupe_key": "https://www.morrishk.net/sub-categories/c-0-118/fiber-optics-transceiver-modules-optoelectronics.html?page=40",
+      "title": "Fiber Optics - Transceiver Modules | Optoelectronics | FTLX3871DCmorrishk.net9 | morrishk.net",
+      "snippet": "Fiber Optics - Transceiver Modules, Optoelectronics, FTLX3871DCmorrishk.net9, 1000 items Product, morrishk.net.",
+      "pages": [
+        3
+      ],
+      "occurrences": 1,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESqgEBxCJF112O1WqWpMrefW0E3e916W9T0_3um8FadYszLklhM8B-fm_sb7KSk49Lm2nuEfnVPun7a2Z3dSc_3hyVbWIg01v1qbgWfFGm9hshUTMC0pKX70jOmzye7SJSfCxW-SUvcNm8b5yAV6VsQNtrzCMAaDkYDYZqHR8NRSzabW1YF0TbYehUGoRLYoTkmhK9vBWePOJ9AcI-XhSHlfmJq7-tt2zbuj4QCQ&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-0-118/fiber-optics-transceiver-modules-optoelectronics.html?page=40",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "https://www.morrishk.net/sub-categories/c-0-707/logic-fifos-memory-integrated-circuits.html?page=47",
+      "dedupe_key": "https://www.morrishk.net/sub-categories/c-0-707/logic-fifos-memory-integrated-circuits.html?page=47",
+      "title": "Logic - FIFOs Memory | Integrated Circuits | 72V03L25J | morrishk.net",
+      "snippet": "By Category · Clock/Timing - IC Batteries · Memory - Batteries · Embedded - FPGAs (Field Programmable Gate Array) with Microcontrollers · Interface - Direct Digital ...",
+      "pages": [
+        3
+      ],
+      "occurrences": 1,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESoAEBxCJF1y2lB2lPpMO4VKDJI4mky4WfdfIYMpMQpHjPRJk_Kjx66IO-Hp1qcGwC7pfUK_g5lFhN9kvIoluv24iMsbKHgS3XrbIlJI-aavPrqzmAffqkOy4AN-uvab6vUsbcGftCMqL9CGsuKOjyi0X6lwhroI63fSqP-Od2GEXQw8e-Z0MwzAmOieU3TnAbhJqi52Fym5mvQ2oJvvsvMGnx&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-0-707/logic-fifos-memory-integrated-circuits.html?page=47",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "https://www.morrishk.net/sub-categories/c-7-715/pmic-voltage-regulators-dc-dc-switching-controllers-integrated-circuits.html?page=7",
+      "dedupe_key": "https://www.morrishk.net/sub-categories/c-7-715/pmic-voltage-regulators-dc-dc-switching-controllers-integrated-circuits.html?page=7",
+      "title": "PMIC - Voltage Regulators - DC DC Switching Controllers | Integrated Circuits | S-8521B15MC-ATAT2G | morrishk.net",
+      "snippet": "PMIC - Voltage Regulators - DC DC Switching Controllers, Integrated Circuits, S-8521B15MC-ATAT2G, 1000 items Product, morrishk.net.",
+      "pages": [
+        4
+      ],
+      "occurrences": 1,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESwQEBxCJF188m5cHRnUda07OwDS4ZD47Lmo_vZyMmSV3xhujVgLoJy_7GN0fWCxWv5-DEG7En1L12njZRVxy3giv4lvRDSnbq1y3YAfCc-lVEEdc8CUPBZuO11ttyVBBjku8SWzP3-T9SqAvUMwcjljjGqTVdM5zTKOU1m8IsHwnYTCoBIxUav_NeeQcrYT0W6crvuOpm4A8pqz5UD5Gw0nfOnBYnPJ07zPLmi6iJRB6CKN5Y0dirNJm6NJwEa-zDNru-&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-7-715/pmic-voltage-regulators-dc-dc-switching-controllers-integrated-circuits.html?page=7",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "https://www.morrishk.net/sub-categories/c-7-715/pmic-voltage-regulators-dc-dc-switching-controllers-integrated-circuits.html?page=3",
+      "dedupe_key": "https://www.morrishk.net/sub-categories/c-7-715/pmic-voltage-regulators-dc-dc-switching-controllers-integrated-circuits.html?page=3",
+      "title": "PMIC - Voltage Regulators - DC DC Switching Controllers | Integrated Circuits | S-8520A30MC-AVPT2G | morrishk.net",
+      "snippet": "PMIC - Voltage Regulators - DC DC Switching Controllers, Integrated Circuits, S-8520A30MC-AVPT2G, 1000 items Product, morrishk.net.",
+      "pages": [
+        4
+      ],
+      "occurrences": 1,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESwQEBxCJF1-u2mCYLmI7qxKtcNFijoTMgdNS8cir74IDfQCU8bXvm2WzezXnVV7JhBvF9Lvf6YPRZ97XHVW_5U_ssBrTWqPRcUts965HAMVdmQ3Dp2W8QrrJlg75O2nwALtYz4w8yfnrJ0lsq9zjGerj6ZlyGZB-FeZwYscWkK9zGSB_2kVvJltAVIRLU4A6keFiUKB1sTWIQ76CuPuzqQ55WoKlWkl84ANnxwClY5fFZevdp0ZNIEfdeKNeO5fTyehHm&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/sub-categories/c-7-715/pmic-voltage-regulators-dc-dc-switching-controllers-integrated-circuits.html?page=3",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    },
+    {
+      "url": "https://www.morrishk.net/blog/details/The-Bourns-3224W-1-504E-A-Comprehensive-Overview-of-Trimmer-Resistors.html",
+      "dedupe_key": "https://www.morrishk.net/blog/details/The-Bourns-3224W-1-504E-A-Comprehensive-Overview-of-Trimmer-Resistors.html",
+      "title": "The Bourns 3224W-1-504E: A Comprehensive Overview of Trimmer Resistors | Blog & Articles",
+      "snippet": "2024年6月5日 — In the intricate world of electronic components, the Bourns 3224W-1-504E stands out as a highly reliable and versatile trimmer resistor.",
+      "pages": [
+        4
+      ],
+      "occurrences": 1,
+      "raw_urls": [
+        "https://www.google.com.hk/goto?url=CAESrQEBxCJF10K0quPvwkh3pIk9UYFW1eB-un4b8t0escNzI8TEi8pyD4DXx0DiVblkRXpDVZjZXlYdg5p5jdUJrm6rX5qyI-Z1DHGz5Ngag4Bsha7xiMeJ_5bsFgqMXQMfpFFYR9Cb57p8Rw4dJ4_8fRuDAQr7JClbCvy-YREWkSfXjirpnZ6ywA3xuBY6ysd2CaCYCHvMNMgjVZ2pYwYDGlyw8d1mSppeqZEdRQtR0g&gsessionid=REDACTED"
+      ],
+      "http_status": 200,
+      "final_url": "https://www.morrishk.net/blog/details/The-Bourns-3224W-1-504E-A-Comprehensive-Overview-of-Trimmer-Resistors.html",
+      "redirect_chain": [],
+      "content_type": "text/html; charset=UTF-8",
+      "canonical_url": "",
+      "robots_meta": "",
+      "x_robots_tag": "",
+      "check_status": "ok",
+      "error": ""
+    }
+  ],
+  "failures": [],
+  "warnings": []
+}
