@@ -7,8 +7,8 @@
 | 决策基线 | `esanwu-bot/morrishk-site-upgrade-review` `main@77137655ed24e3b370eb4fe5c75b68dd708fa9ec` |
 | 本交付父提交 | `edd2f99`（Session A 的 `13_` 回填提交，仅改 `13_`）；首版提交 `fb0189b` 的父提交为 `8c45f63`；未改写任何历史 |
 | 本轮批准 | IQ-01 / IQ-02 / IQ-13 裁定；Phase 1 UI 与 Mock 联调；**未**批准契约冻结与任何生产接入 |
-| 修订 | v1.2 增补契约候选测试与验收包（见 `ACCEPTANCE_PACKAGE.md`；测试总数 61，UI 资产与 `0474b19` 一致）；v1.1 按 Reviewer B1（候选冲突漏判）、B2（搜索非法输入）、B3（基线/问题编号）修订；`13_` 未修改 |
-| Reviewer 验收 | **PENDING**（本报告不构成自验收；Reviewer 未独立复跑 61/61 与 9 项冒烟） |
+| 修订 | v1.3 按 Reviewer B1 修正测试报告 scope 名称、按 B2 新增错误目录跨文档测试 10 项（测试总数 71），并在契约候选 §7.2 显式标注 409 为预留码；v1.2 增补契约候选测试与验收包（见 `ACCEPTANCE_PACKAGE.md`；UI 资产与 `0474b19` 一致）；v1.1 按 Reviewer B1（候选冲突漏判）、B2（搜索非法输入）、B3（基线/问题编号）修订；`13_` 未修改 |
+| Reviewer 验收 | **PENDING**（本报告不构成自验收；Reviewer 未独立复跑 71/71 与 9 项冒烟） |
 
 ---
 
@@ -110,7 +110,7 @@ node --test tests/mpn-normalizer.test.js tests/mock-api.test.js
 
 结果：`tests 42 / pass 42 / fail 0`，耗时 618.2903ms（Node v24.21.0）。
 
-> v1.2 增补 19 项契约候选测试后，当前全量为 `61 / 61`；详见 `ACCEPTANCE_PACKAGE.md` §9.1 与 `TEST_REPORT.md` §2。下方 9 项冒烟结果来自 `0474b19` 修订后的执行，本轮 UI 资产未改、未重跑。
+> v1.2 增补 19 项契约候选测试、v1.3 增补 10 项错误目录跨文档测试后，当前全量为 `71 / 71`；详见 `ACCEPTANCE_PACKAGE.md` §9.1 与 `TEST_REPORT.md` §2。下方 9 项冒烟结果来自 `0474b19` 修订后的执行，本轮 UI 资产未改、未重跑。
 
 浏览器冒烟（`python -m http.server 8777` + browser-use，修订后重新执行）：9 项全部通过，覆盖产品详情、
 归一化边界、冲突聚合（含 `brand_norms`）、待确认队列、字典内存编辑、两套分类、Mock API 非法输入与正常搜索、同步重试序列。

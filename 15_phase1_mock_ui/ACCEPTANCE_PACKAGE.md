@@ -3,10 +3,10 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-PHASE1-MOCK-ACC-001 |
-| 版本 | v1.0 |
+| 版本 | v1.1（按独立复核 B1/B2 修订：scope 名称、错误目录跨文档测试） |
 | 日期 | 2026-11-17 |
 | 验收对象 | `15_phase1_mock_ui/`（Mock UI 代码基线 `0474b19`） |
-| 本轮新增 | 契约候选一致性测试 19 项、Business API 契约候选稿、`14_` 签署登记与四项决策简报 |
+| 本轮新增 | 契约候选一致性测试 19 项 + 错误目录跨文档一致性测试 10 项、Business API 契约候选稿、`14_` 签署登记与四项决策简报 |
 | 结论状态 | **`PENDING_REVIEW`（待独立 Reviewer 复核；本包不自行授予 `PASS_MOCK`）** |
 | 契约候选 | `12_/API_CONTRACT_CANDIDATE_v1.md` + `contract/openapi.candidate.v1.json`，SHA-256 `fdeec48ecf44439776e61245ca7b98fc94f7ce0d481a7c9aea639900f1e71023` |
 | 性质 | 验收材料汇编；**不是**自验收结论、**不是**契约冻结、**不是**生产实现授权 |
@@ -22,7 +22,7 @@
 
 | 项 | 结果 |
 |---|---|
-| 单元/契约测试 | 61 / 61 通过（22 归一化 + 20 Mock API + 19 契约候选） |
+| 单元/契约测试 | 71 / 71 通过（22 归一化 + 20 Mock API + 19 契约候选 + 10 错误目录跨文档） |
 | 浏览器冒烟 | 9 / 9 通过（在 `0474b19` 修订后执行；本轮未改 UI 资产，未重新执行） |
 | 8 视图 | 全部存在并可切换；关键交互有冒烟记录 |
 | 文件哈希 | `15_`、`12_`、`14_` 三份 `SHA256SUMS.txt` 自校验通过 |
@@ -183,18 +183,20 @@ Mock 的错误包为 `{code, message, data, request_id, meta}`，与契约候选
 
 ```bash
 cd 15_phase1_mock_ui
-node --test tests/mpn-normalizer.test.js tests/mock-api.test.js tests/contract-candidate.test.js
+node --test tests/mpn-normalizer.test.js tests/mock-api.test.js tests/contract-candidate.test.js tests/contract-error-catalog.test.js
 ```
 
 ```text
-tests 61
-pass 61
+tests 71
+pass 71
 fail 0
 cancelled 0
 skipped 0
 todo 0
-duration_ms 956.3842
+duration_ms 1227.6269
 ```
+
+> 耗时为单次运行实测值，复跑会波动；判定只看 `pass/fail`。
 
 明细：
 
@@ -203,6 +205,7 @@ duration_ms 956.3842
 | `tests/mpn-normalizer.test.js` | 22 | SHA-256、UTF-8 长度、归一化、非法输入、键格式、B1 冲突边界 |
 | `tests/mock-api.test.js` | 20 | 200/403/410/404/422、B2 非法输入、分页、字典/分类、同步重试、撤回 |
 | `tests/contract-candidate.test.js` | 19 | 候选状态、端点清单、scope、错误目录、键格式、文档身份隔离、阻断项 |
+| `tests/contract-error-catalog.test.js` | 10 | Markdown 错误表 ↔ OpenAPI `ErrorMeta`/responses ↔ Mock 三元组；码值编码、可达性、409 保留项 |
 
 ### 9.2 浏览器冒烟（RUN，`0474b19` 修订后执行）
 
@@ -230,6 +233,7 @@ Reviewer 应在独立复核时重新执行，并以自己的观察为准。
 | 无外部网络依赖 | PASS（代码审阅） |
 | 契约候选 SHA-256 与文档一致 | PASS |
 | 契约状态为 `CANDIDATE_NOT_FROZEN` | PASS |
+| 错误码 Markdown ↔ OpenAPI ↔ Mock 三向一致 | PASS（`tests/contract-error-catalog.test.js` 10 项；409 为显式预留项） |
 | 三份 `SHA256SUMS.txt` 自校验 | PASS |
 
 ---
@@ -338,7 +342,7 @@ Phase 0 四项（IQ-05 / IQ-09 / IQ-15 / IQ-21）的决策材料见
 | 可选端点 | `/taxonomies/{id}/changes`、`/categories/{id}/ancestors`、`/categories/{id}/products` |
 | 鉴权 | `POST /oauth/token`（Client Credentials，opaque Token） |
 | 主要 Schema | `Product`、`Identity`、`Technical`、`CategoryNode`、`CategoryEdge`、`Taxonomy`、`ProductStatus`、`ErrorEnvelope` |
-| 错误码 | 20 个：40001/40002、40101/40102、40301/40302/40303、40401/40402/40403、40901、41001/41002、41301、42201/42202、42901、50001、50301/50302 |
+| 错误码 | 20 个：40001/40002、40101/40102、40301/40302/40303、40401/40402/40403、40901、41001/41002、41301、42201/42202、42901、50001、50301/50302；`40901` 为预留（v1 只读端点不触发） |
 | 响应包 | `{code, message, data, request_id, meta}`；错误 `meta` 含 `error_key` / `retryable` / `degraded_allowed` |
 | 版本机制 | `data_version`、`etag`、`taxonomy_version`；游标分页；`If-None-Match` → 304 |
 
@@ -400,7 +404,7 @@ Phase 0 四项（IQ-05 / IQ-09 / IQ-15 / IQ-21）的决策材料见
 请逐项勾选，并只在独立复跑后给出结论：
 
 - [ ] 确认验收基线：UI 资产与 `0474b19` 一致（`git diff 0474b19 -- 15_phase1_mock_ui/assets 15_phase1_mock_ui/data 15_phase1_mock_ui/index.html` 为空）
-- [ ] 运行 `node --test tests/mpn-normalizer.test.js tests/mock-api.test.js tests/contract-candidate.test.js`，核对 61/61
+- [ ] 运行 `node --test tests/mpn-normalizer.test.js tests/mock-api.test.js tests/contract-candidate.test.js tests/contract-error-catalog.test.js`，核对 71/71
 - [ ] 启动 `python -m http.server 8777 --bind 127.0.0.1`，按 §9.2 重跑 9 项冒烟
 - [ ] 抽查 8 视图：产品身份、归一化、冲突、字典、两套分类、映射、Mock API、同步
 - [ ] 确认字典与分类 Fixture 均标 `DEMO_FIXTURE`，且无正式数据写入

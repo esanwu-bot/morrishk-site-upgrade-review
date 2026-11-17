@@ -275,6 +275,10 @@ Base path：`/api/v1`。所有业务端点返回统一响应包；`POST /oauth/t
 **OAuth2 错误不使用该表**：Token 端点按 RFC 6749 返回 `invalid_request` / `invalid_client` /
 `invalid_scope`（400）/ `unsupported_grant_type`（400）。
 
+**保留码**：`409 / 40901 VERSION_CONFLICT` 在当前 v1 全部只读操作中**不会触发**（无 `If-Match` 写语义），
+随 `Idempotency-Key` 与写端点（§6.3 FUTURE、§7.8）一并预留；它是本表中唯一未被任何操作声明的状态。
+除该保留项外，表中每个 `error_key` 都至少被一个操作响应的 `responses` 声明。
+
 ### 7.3 响应包形状仍为 `OPEN`
 
 IQ-09 未裁定。本候选稿采用设计文档建议的现有包形状（选项 A），但：
