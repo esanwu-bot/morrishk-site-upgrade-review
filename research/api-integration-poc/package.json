@@ -1,0 +1,19 @@
+{
+  "name": "morrishk-api-integration-poc",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Morrishk 社媒 / 视频 / GA4 API 预研 Demo（Mock 优先，零运行时依赖）",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test",
+    "demo:social": "node demo/01-social-connect.mjs",
+    "demo:publish": "node demo/02-social-publish.mjs",
+    "demo:video": "node demo/03-video-upload.mjs",
+    "demo:ga4": "node demo/04-ga4-report.mjs",
+    "demo:ga4-mp": "node demo/05-ga4-measurement-protocol.mjs",
+    "demo:all": "node demo/run-all.mjs"
+  }
+}

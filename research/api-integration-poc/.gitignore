@@ -1,0 +1,8 @@
+# 本地凭证与运行产物
+.env
+.env.*
+!.env.example
+.tokens/
+*.log
+demo/out/
+node_modules/
