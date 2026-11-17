@@ -193,6 +193,45 @@ test("revocation is declared non-retryable and cache display is forbidden", () =
   assert.match(doc.components.responses.Gone.description, /forbids cache/i);
 });
 
+test("each business operation references the catalog component for its status", () => {
+  const mismatches = [];
+  let checked = 0;
+  for (const p of Object.keys(doc.paths)) {
+    for (const m of Object.keys(doc.paths[p])) {
+      if (m === "post" && p === "/oauth/token") continue;
+      const responses = doc.paths[p][m].responses;
+      for (const status of Object.keys(responses)) {
+        if (!Object.hasOwn(COMPONENT_BY_HTTP, status)) continue; // 200 / 304 are not errors
+        checked += 1;
+        const expected = "#/components/responses/" + COMPONENT_BY_HTTP[status];
+        const actual = responses[status].$ref;
+        if (actual !== expected) {
+          mismatches.push(m.toUpperCase() + " " + p + " " + status + ": " + actual + " != " + expected);
+        }
+      }
+    }
+  }
+  assert.deepEqual(mismatches, []);
+  assert.ok(checked >= 50, "expected at least 50 operation/status refs, saw " + checked);
+});
+
+test("OAuth token endpoint keeps RFC 6749 errors out of the business envelope", () => {
+  const token = doc.paths["/oauth/token"].post.responses;
+  for (const status of ["400", "401"]) {
+    assert.equal(token[status].$ref, undefined, status);
+    assert.equal(
+      token[status].content["application/json"].schema.$ref,
+      "#/components/schemas/OAuthError",
+      status
+    );
+  }
+  assert.equal(token["429"].$ref, "#/components/responses/RateLimited");
+  assert.equal(token["500"].$ref, "#/components/responses/InternalError");
+  for (const status of ["403", "404", "409", "410", "413", "422", "503"]) {
+    assert.equal(Object.hasOwn(token, status), false, "token must not reuse business status " + status);
+  }
+});
+
 test("mock API error triples match the catalog exactly", () => {
   const triples = parseMockTriples(fs.readFileSync(MOCK_API_JS, "utf8"));
   assert.ok(triples.length >= 10, "expected at least 10 distinct mock error triples");

@@ -40,7 +40,7 @@
 | `tests/mpn-normalizer.test.js` | 归一化与业务键单元测试（22 项） |
 | `tests/mock-api.test.js` | Mock API 与同步重试单元测试（20 项） |
 | `tests/contract-candidate.test.js` | 契约候选一致性测试（19 项，只读 `12_/contract/openapi.candidate.v1.json`） |
-| `tests/contract-error-catalog.test.js` | 错误目录跨文档一致性测试（10 项：Markdown 表 ↔ OpenAPI responses ↔ Mock 三元组） |
+| `tests/contract-error-catalog.test.js` | 错误目录跨文档一致性测试（12 项：Markdown 表 ↔ OpenAPI responses ↔ Mock 三元组、逐操作 `$ref`、OAuth 错误隔离） |
 | `ACCEPTANCE_PACKAGE.md` | Phase 1 验收包：8 视图、测试/冒烟/哈希、IQ 清单、契约候选与未获批准项 |
 | `TEST_REPORT.md` | 实际执行的测试与浏览器冒烟结果 |
 | `DELIVERY_REPORT.md` | 交付清单、Diff 摘要、未决项、禁止事项确认 |

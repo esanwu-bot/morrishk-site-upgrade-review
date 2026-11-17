@@ -5,8 +5,8 @@
 | 日期 | 2026-11-17 |
 | 环境 | Windows 10.0.19045 x64；Node.js v24.21.0；Python 3（仅静态文件服务器）；浏览器经 browser-use 驱动 |
 | 被测对象 | `15_phase1_mock_ui/` |
-| 结论 | 单元/契约测试 71/71 通过；浏览器冒烟 9 项全部通过；**未执行**任何生产接口、数据库或凭证操作 |
-| 修订 | v1.3：按 Reviewer B1 修正 scope 名称、按 B2 新增错误目录跨文档一致性测试 10 项（合计 71）；v1.2 新增契约候选一致性测试 19 项（合计 61）；v1.1 B1/B2 修订后重跑（新增 3 项候选冲突用例 + 4 项搜索非法输入用例）；本节结论由执行 Agent 运行得出，Reviewer 未独立复跑 |
+| 结论 | 单元/契约测试 73/73 通过；浏览器冒烟 9 项全部通过；**未执行**任何生产接口、数据库或凭证操作 |
+| 修订 | v1.4：补逐操作响应 `$ref` 断言与 OAuth RFC 错误隔离断言（合计 73），并修正 §7 复现命令；v1.3：按 Reviewer B1 修正 scope 名称、按 B2 新增错误目录跨文档一致性测试 10 项（合计 71）；v1.2 新增契约候选一致性测试 19 项（合计 61）；v1.1 B1/B2 修订后重跑（新增 3 项候选冲突用例 + 4 项搜索非法输入用例）；本节结论由执行 Agent 运行得出，Reviewer 未独立复跑 |
 
 ---
 
@@ -32,16 +32,16 @@ node --test tests/mpn-normalizer.test.js tests/mock-api.test.js tests/contract-c
 实际结果：
 
 ```text
-tests 71
-pass 71
+tests 73
+pass 73
 fail 0
 cancelled 0
 skipped 0
 todo 0
-duration_ms 1227.6269
+duration_ms ≈1.1e3（单次运行，随机器波动）
 ```
 
-> 耗时为单次运行实测值，复跑会波动；判定只看 `pass/fail`。
+> 耗时为单次运行记录值，复跑会波动；判定只看 `pass/fail`。
 
 ### 2.1 归一化与业务键（22 项）
 
@@ -126,7 +126,7 @@ duration_ms 1227.6269
 
 > 契约测试只验证**候选稿内部一致性**与“未冻结”声明，不验证生产 API 行为，也不构成契约冻结。
 
-### 2.4 错误目录跨文档一致性（10 项，Reviewer B2）
+### 2.4 错误目录跨文档一致性（12 项，Reviewer B2）
 
 被测对象（三者只读）：`12_/API_CONTRACT_CANDIDATE_v1.md` §7.2 表格、`12_/contract/openapi.candidate.v1.json`、
 `15_/assets/mock-api.js`。
@@ -142,6 +142,8 @@ duration_ms 1227.6269
 | 可达性 | 除保留项外，每条错误都被至少一个操作 `responses` 声明 | PASS |
 | 保留项显式化 | 未被任何操作声明的状态恰好是 `{409}`，且 §7.2 明写 `409 / 40901 VERSION_CONFLICT` 不触发 | PASS |
 | 撤回语义 | `41001 PRODUCT_RELEASE_REVOKED` 为 410、不可重试、`degraded_allowed=否`，组件描述含禁止缓存展示 | PASS |
+| 逐操作 `$ref` | 15 个业务操作当前共 95 处错误状态声明，`$ref` 全部指向 `#/components/responses/{Catalog 组件}`，无张冠李戴（如把 400 指到 Forbidden）；测试同时要求检查数 ≥ 50，避免空跑 | PASS |
+| OAuth 隔离 | Token 端点 400/401 为内联 `OAuthError`，429/500 复用组件，且不出现 403/404/409/410/413/422/503 | PASS |
 | Mock 对齐 | `mock-api.js` 中 10 组错误三元组 `(HTTP, code, key)` 全部与契约表逐项一致，无越界码 | PASS |
 
 > 该组测试只证明**候选稿 Markdown、OpenAPI 与 Mock 三者内部一致**；不证明生产实现行为，也不改变
@@ -219,7 +221,7 @@ python -m http.server 8777 --bind 127.0.0.1
 ```bash
 # 单元测试
 cd 15_phase1_mock_ui
-node --test tests/mpn-normalizer.test.js tests/mock-api.test.js tests/contract-candidate.test.js
+node --test tests/mpn-normalizer.test.js tests/mock-api.test.js tests/contract-candidate.test.js tests/contract-error-catalog.test.js
 
 # 浏览器
 python -m http.server 8777 --bind 127.0.0.1
