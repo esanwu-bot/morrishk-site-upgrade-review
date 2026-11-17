@@ -3,9 +3,9 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
-| 文档版本 | v1.5（第五轮：R1-3e 批次索引/覆盖/幂等；R1-3f 重写条件与预算；R1-3g 测试规范） |
+| 文档版本 | v1.6（第六轮：R1-3e 状态互斥/事件原子/恢复路径；R1-3f 预算周期；R1-3g 测试断言） |
 | 日期 | 2026-11-17 |
-| 修订 | v1.5 只补 R1-3e/f/g：批次索引权威来源、orphan 覆盖范围、事件幂等；PUT 200 后 404 的重写条件与任务级预算；N-12g3/g4 测试规范；R5 与其他架构不动 |
+| 修订 | v1.6 只补 R1-3e/f/g 未闭合项：批次状态互斥、事件对象原子去重、Receipt 精确恢复、verification 预算周期、A8/A9 测试断言；R5 与其他架构不动 |
 | 性质 | 架构与实施设计（DESIGN ONLY） |
 | 实现状态 | **未实现**；本文件不含生产代码、不含部署、不含数据迁移 |
 | 基线仓库 | `E:\workspace\icpdf-extractor` |
@@ -98,6 +98,23 @@
 | — | 只改 `13_`，不改 R5/R2/R3/R4/R6 | 遵守 | — |
 
 > v1.5 仍不改变三层架构、DuckDB 边界、R5 身份模型与 R2/R3/R4/R6 的已通过内容。
+
+### 0.7 第六轮复核修订（v1.5 → v1.6）
+
+| 编号 | Reviewer 要求 | v1.6 处置 | 位置 |
+|---|---|---|---|
+| **R1-3e-1a** | 批次状态定义互斥 | 改为互斥判定：OPEN = plan ∧ ¬close ∧ ¬closed；CLOSING = plan ∧ close ∧ ¬closed；CLOSED = plan ∧ closed；冲突标记 → `INVALID_BATCH` | §5.2.5.5.1 |
+| **R1-3e-1b** | 对象存储事件去重原子性 | 放弃「整文件 JSONL 覆盖写」，改为**一事件一对象** `control/events/<batch>/coordinator/<event_id>.json`；`event_id` 即键，条件写天然去重 | §5.2.5.5.3 |
+| **R1-3e-1c** | SQLite 丢失后的精确 Receipt 恢复 | 固定三级恢复：① 恢复 SQLite 备份；② 无备份 → 隔离；③ 人工审批后按 receipt 重建 commit，需逐项校验 manifest/task/input_key/token，记录 `recovered_from_receipt` | §5.2.5.5.4 |
+| **R1-3e-1d** | `PIPELINE_ARTIFACTS.md` 旧模型同步 | 同步附件 §9.2/§9.9/§9.10：状态互斥、事件对象、恢复路径、预算字段 | 附件 |
+| **R1-3f-1** | verification 预算周期边界 | 定义 episode：从一次 `write_receipt` 调用开始，`verify_deadline_s=60` / `verify_attempts=10` 为**单 episode**，总预算持久化、不重置 | §5.2.5.2.1 |
+| **R1-3f-2** | 第二次 PUT 后如何重新验证 | 第二次 PUT 后开启**新 episode**（重新 10 次/60 s），但 `put_attempts=2` 封顶；再次 ABSENT → pending，不再 PUT | §5.2.5.2.1 |
+| **R1-3g-1** | A8 与启动扫描 list 断言冲突 | A8 改为允许 `control/batches/` 有界 list（≤ batch_count+1），禁止全桶与 `control/tasks/` list；N-12g4 单独断言启动扫描的 batch-prefix list | 矩阵 N-12g3/N-12g4 |
+| **R1-3g-2** | 远端 Receipt 哈希校验 | 改用 `aws s3api get-object` 落盘后 `sha256sum | awk`，并校验 `ContentLength`/`ETag`；避免管道与换行 | 矩阵 N-12g3 |
+| **R1-3g-3** | A9 清理有效证明 | A9 改为：`head-bucket` 返回 404、`ls` 为空/NoSuchBucket、临时 DB/目录不存在、退出码记录 | 矩阵 N-12g3 |
+| — | 只改 `13_` | 遵守 | — |
+
+> v1.6 仍不改变 R5、R2/R3/R4/R6、DuckDB + S3 总体架构与协调器单写者模型。
 
 ---
 
@@ -791,27 +808,36 @@ write_receipt(commit):
 
 | 参数 | 值 | 作用域 |
 |---|---|---|
-| `receipt_verify_attempts_max` | 10 | 单次 verification 周期内 |
-| `receipt_verify_deadline_s` | 60 | 单次 verification 周期 |
+| `receipt_verify_attempts_max` | 10 | **单 episode** |
+| `receipt_verify_deadline_s` | 60 | **单 episode** |
 | `receipt_put_attempts_max` | **2** | 每个 commit 生命周期（首次 + 至多一次条件重写） |
 | `receipt_reput_cooldown_s` | 60 | 首次 PUT 200 且读回 ABSENT 后 |
 | `receipt_reconcile_interval_s` | 30 | 后台 reconciler |
-| `receipt_pending_max_s` | 3600 | 超过 → `QUARANTINED`（`receipt_absent_timeout`） |
+| `receipt_pending_max_s` | 3600 | 从 `pending_since` 起算，超过 → `QUARANTINED` |
 
-**预算持久化**：`commits` 行记录 `put_attempts`、`verify_attempts_total`、`verify_deadline_at`、`next_retry_at`；**重启不重置**，不因新的 reconciler 周期重新获得预算。
+**episode 定义（R1-3f-1）**：
+
+- 一个 episode = 一次 `write_receipt()` 调用内的 verification 过程；
+- `episode_started_at` 在调用开始时写入；`episode_attempts` 每次 GET 递增；
+- 达到 10 次或 60 s，本 episode 结束；不影响其他 episode；
+- **第二次 PUT 后开启新 episode**（重新获得 10 次 / 60 s），但 `put_attempts` 仍累计、封顶 2；
+- 协调器重启后允许开启新 episode，但 `verify_attempts_total`、`put_attempts`、`pending_since` **从 SQLite 读取，不重置**。
+
+**预算持久化**：`commits` 行记录 `put_attempts`、`verify_attempts_total`、`episode_attempts`、`episode_started_at`、`pending_since`、`next_retry_at`；重启不重置。
 
 **PUT 200 后回读 404 的默认行为**：
 
-1. **默认只回读，不立即重写**；在 `receipt_verify_deadline_s` 内继续回读；
+1. **默认只回读，不立即重写**；在当前 episode 内继续回读；
 2. 若在截止前变为 `WRITTEN` → `written`；
-3. 若截止后仍 `ABSENT`，且**同时满足**以下全部条件，才允许**一次**条件重写：
+3. 若本 episode 结束仍 `ABSENT`，且**同时满足**以下全部条件，才允许**一次**条件重写：
    - 首次 PUT 确实返回 200；
    - 目标存储已通过 C1/C2（条件写原子性已验证，OD-19 已关闭或明确支持）；
    - `receipt_reput_cooldown_s` 已过；
    - `put_attempts < receipt_put_attempts_max`；
    - 当前仍为 `ABSENT`（不是 `UNKNOWN`）；
-4. 任一条件不满足 → **不重写**，保持 `pending`，记录 `last_error=ABSENT` 并告警；
-5. 若目标存储**不支持条件写**：**禁止重写**；保持 `pending` + 告警；不得把「单写协调器 + GET 后 PUT」当作与条件写等价的安全保护。
+4. 第二次 PUT 后立即开启**新 episode**；若新 episode 仍为 `ABSENT` → 保持 `pending`，**不再 PUT**（`put_attempts=2` 封顶）；
+5. 任一条件不满足 → **不重写**，保持 `pending`，记录 `last_error=ABSENT` 并告警；
+6. 若目标存储**不支持条件写**：**禁止重写**；保持 `pending` + 告警；不得把「单写协调器 + GET 后 PUT」当作与条件写等价的安全保护。
 
 **可观测状态**：
 
@@ -819,10 +845,10 @@ write_receipt(commit):
 |---|---|
 | 回读成功 | `SUCCEEDED`（receipt written） |
 | 预算内仍不可见 | `COMMITTED_PENDING_RECEIPT`，`last_error=ABSENT`，`next_retry_at` 有值 |
-| 超过 `receipt_pending_max_s` | `QUARANTINED`，原因 `receipt_absent_timeout` |
+| `pending_since` 超过 3600 s | `QUARANTINED`，原因 `receipt_absent_timeout` |
 | 不同内容 | `QUARANTINED`，原因 `receipt_conflict` |
 
-> 60 秒不是「判定对象不存在」的物理事实，只是**单次 verification 的预算**；对象可能在之后可见，因此保持 pending 而不是成功或冲突。
+> 60 秒不是「判定对象不存在」的物理事实，只是**单 episode 的预算**；对象可能在之后可见，因此保持 pending 而不是成功或冲突。
 
 #### 5.2.5.3 PUT 成功、SQLite 未更新时崩溃（R1-3c）
 
@@ -868,21 +894,34 @@ written --(缺失/内容变化，审计)--> QUARANTINED
 
 | 项 | 定义 |
 |---|---|
-| 权威来源 | **对象存储**，不是 SQLite：`control/batches/<batch_id>/plan.json` + `closed.json` |
-| OPEN | `plan.json` 存在且 `closed.json` 不存在 |
-| CLOSING | `close.json` 已写（含未完成清单），尚未写 `closed.json` |
-| CLOSED | `closed.json` 存在 |
-| 转换 | 仅协调器写；每次转换写事件；状态变化在对象存储中可见 |
-| 内存索引 | 只是缓存；协调器重启/SQLite 丢失时，list `control/batches/` 前缀重建（批次数量级，不是对象量级） |
+| 权威来源 | **对象存储**，不是 SQLite：`control/batches/<batch_id>/plan.json` + `close.json` + `closed.json` |
+| OPEN | `plan.json` 存在 ∧ `close.json` 不存在 ∧ `closed.json` 不存在 |
+| CLOSING | `plan.json` 存在 ∧ `close.json` 存在 ∧ `closed.json` 不存在 |
+| CLOSED | `plan.json` 存在 ∧ `closed.json` 存在（`close.json` 可缺；缺失记 `closed_without_close` 异常） |
+| INVALID_BATCH | `plan.json` 缺失或不可解析；或标记无法判定 |
+| 互斥性 | 以上四种按 `CLOSED > CLOSING > OPEN` 优先级判定，结果唯一；不存在“既是 OPEN 又是 CLOSING” |
+| 转换 | 仅协调器写；OPEN→CLOSING 写 `close.json`；CLOSING→CLOSED 写 `closed.json`；每次转换写事件 |
+| 内存索引 | 只是缓存；协调器重启/SQLite 丢失时，list `control/batches/` 前缀重建（批次数量级） |
 | 清单缺失/损坏 | 批次标 `INVALID_BATCH`，不扫描，告警；不猜测 task 列表 |
 
-**SQLite 丢失后的恢复顺序**：
+**SQLite 丢失后的精确恢复路径（R1-3e-1c）**：
 
-1. list `control/batches/` 得到批次前缀；
-2. 读每个 `plan.json` / `closed.json`，重建 OPEN/CLOSED 集合；
-3. 只对 OPEN/CLOSING 批次扫描 `tasks.jsonl`；
-4. 读 `control/tasks/*/committed.json` 与 SQLite 备份（如有）重建 commit 集合；
-5. 无法判定的任务 `QUARANTINED`。
+| 级别 | 条件 | 动作 |
+|---|---|---|
+| **L1 备份恢复** | 有可用 SQLite 备份 | 恢复备份 → 重放 `committed.json` 与事件 → 不一致项按 §5.2.5.5 隔离 |
+| **L2 隔离** | 无备份，receipt 存在但无 commit | 按 orphan 处理：`QUARANTINED` + quarantine 记录；**不自动补 commit** |
+| **L3 人工恢复** | 无备份，且运维决定采纳 receipt | 逐项校验后，由审批命令重建 commit（见下） |
+
+**L3 人工恢复的逐项校验（全部通过才允许）**：
+
+1. receipt schema 合法、字节哈希与 `receipt_sha256` 可重算；
+2. `task_id` 在对应批次的 `tasks.jsonl` 中；
+3. receipt 的 `input_key` / `requested_mpn` 与任务记录一致；
+4. `manifest_sha256` 指向的 Run Manifest 存在，且其 `task_id` / `run_id` / `source_sha256` 与 receipt 一致；
+5. `token` 非空且未被其他 commit 使用；
+6. `generation` 不小于任务已知 generation。
+
+校验通过后：插入 commit，标记 `recovered_from_receipt=true`、`recovered_by`、`recovered_at`，`receipt_state='written'`，写事件 `COMMIT_RECOVERED_FROM_RECEIPT`。任一项失败 → 保持 `QUARANTINED`，**不得强制**。
 
 #### 5.2.5.5.2 覆盖范围与承诺（R1-3e-2）
 
@@ -904,13 +943,15 @@ written --(缺失/内容变化，审计)--> QUARANTINED
 event_id = sha256(f"{batch_id}|{task_id}|receipt_without_commit|{receipt_sha256}")
 ```
 
-- 事件追加到 `control/events/<batch_id>/coordinator.jsonl`，按 `event_id` 去重；
+- **事件对象**：`control/events/<batch_id>/coordinator/<event_id>.json`（一事件一对象），`event_id` 即对象键；
+- 去重原子性：同一 `event_id` 的写入使用 `If-None-Match: *`；已存在且字节一致 → 幂等成功；已存在且字节不同 → `EVENT_CONFLICT`（隔离），不覆盖；
 - SQLite `events` 表增加 `UNIQUE(event_id)`，写入用 `INSERT OR IGNORE`；
+- 放弃「整文件 JSONL 覆盖写」：对象存储 PUT 是整对象替换，无法保证并发/重放下的原子去重；
 - quarantine 记录以 `task_id` 为键，写前先 GET 比较：
   - 不存在 → 写；
   - 同 `reason` 且同 `receipt_sha256` → 只更新 `last_seen_at`；
   - `receipt_sha256` 变化 → 新 `event_id`，记录 `first_receipt_sha256` / `last_receipt_sha256` / `receipt_changed=true`，仍为 `QUARANTINED`；
-- 执行顺序：① 写/更新 quarantine（幂等）→ ② append 事件（`event_id` 去重）→ ③ SQLite 事务更新任务状态；任一步崩溃后重放，事件仍恰好一条。
+- 执行顺序：① 写 quarantine（幂等）→ ② 条件写事件对象（`event_id` 去重）→ ③ SQLite 事务更新任务状态；任一步崩溃后重放，事件对象仍恰好一个。
 
 **发现路径（有界，不 list 全桶）**：
 

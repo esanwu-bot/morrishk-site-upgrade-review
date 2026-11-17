@@ -37,9 +37,12 @@ s3://<bucket>/dsbit-lake/v1/
 ├─ control/
 │  ├─ ingest/<batch_id>/ingest.jsonl            # 每次输入一条，不可变
 │  ├─ batches/<batch_id>/tasks.jsonl            # 去重后的任务清单
-│  ├─ batches/<batch_id>/plan.json              # 批次元数据（样本池、协调器 epoch、指纹）
+│  ├─ batches/<batch_id>/plan.json              # OPEN：批次元数据
+│  ├─ batches/<batch_id>/close.json             # CLOSING：未完成清单
+│  ├─ batches/<batch_id>/closed.json            # CLOSED：终态标记
 │  ├─ coordinator/<batch_id>/state-<seq>.json   # 协调器检查点（单写）
 │  ├─ events/<batch_id>/<worker_id>.jsonl       # Worker 事件（追加，定期上传）
+│  ├─ events/<batch_id>/coordinator/<event_id>.json  # 协调器事件（一事件一对象）
 │  ├─ tasks/<task_id>/final.json                # 终态（协调器确认）
 │  ├─ tasks/<task_id>/committed.json            # receipt（协调器写；generation + token）
 │  ├─ deadletter/<batch_id>/<task_id>.json
@@ -716,8 +719,11 @@ CREATE TABLE commits (
   receipt_attempts INTEGER NOT NULL DEFAULT 0,
   put_attempts INTEGER NOT NULL DEFAULT 0,        -- 任务级 PUT 预算（≤2）
   verify_attempts_total INTEGER NOT NULL DEFAULT 0,
-  verify_deadline_at TEXT,
+  episode_attempts INTEGER NOT NULL DEFAULT 0,    -- 单 episode
+  episode_started_at TEXT,
+  pending_since TEXT,
   next_retry_at TEXT,
+  recovered_from_receipt INTEGER NOT NULL DEFAULT 0,
   receipt_error TEXT,
   receipt_written_at TEXT
 );
@@ -860,13 +866,15 @@ write_receipt(commit):
 
 | 参数 | 值 |
 |---|---|
-| `receipt_verify_attempts_max` | 10 / 次 verification |
-| `receipt_verify_deadline_s` | 60 |
+| `receipt_verify_attempts_max` | 10 / **episode** |
+| `receipt_verify_deadline_s` | 60 / **episode** |
 | `receipt_put_attempts_max` | 2（首次 + 至多一次条件重写） |
 | `receipt_reput_cooldown_s` | 60 |
 | `receipt_pending_max_s` | 3600 → `QUARANTINED(receipt_absent_timeout)` |
 
-**PUT 200 后回读 404**：默认只回读，不立即重写。仅当「首次 PUT 200 ∧ 存储通过 C1/C2 ∧ 冷却期已过 ∧ `put_attempts<2` ∧ 仍 ABSENT」全部满足时，允许**一次**条件重写；不支持条件写时禁止重写，保持 pending + 告警。
+**episode**：一次 `write_receipt()` 调用内的 verification；第二次 PUT 后开启新 episode（重新 10 次/60 s），但 `put_attempts` / `verify_attempts_total` / `pending_since` 累计且重启不重置。
+
+**PUT 200 后回读 404**：默认只回读，不立即重写。仅当「首次 PUT 200 ∧ 存储通过 C1/C2 ∧ 冷却期已过 ∧ `put_attempts<2` ∧ 仍 ABSENT」全部满足时，允许**一次**条件重写；第二次 PUT 后再开新 episode，仍 ABSENT 则 pending、不再 PUT；不支持条件写时禁止重写。
 
 | 边界 | 行为 |
 |---|---|
@@ -891,14 +899,22 @@ write_receipt(commit):
 
 **批次索引（R1-3e-1）**：权威来源是对象存储，不是 SQLite。
 
-| 状态 | 标记 |
+| 状态 | 判定（互斥） |
 |---|---|
-| OPEN | `control/batches/<batch_id>/plan.json` 存在，`closed.json` 不存在 |
-| CLOSING | `close.json` 已写（含未完成清单），`closed.json` 未写 |
-| CLOSED | `closed.json` 存在 |
+| OPEN | `plan.json` 存在 ∧ `close.json` 不存在 ∧ `closed.json` 不存在 |
+| CLOSING | `plan.json` 存在 ∧ `close.json` 存在 ∧ `closed.json` 不存在 |
+| CLOSED | `plan.json` 存在 ∧ `closed.json` 存在（`close.json` 可缺，记异常） |
+| INVALID_BATCH | `plan.json` 缺失/不可解析 |
 
+- 优先级 `CLOSED > CLOSING > OPEN`，结果唯一；
 - 内存索引只作缓存；SQLite 丢失时 list `control/batches/`（批次数量级）重建；
 - 清单缺失/损坏 → `INVALID_BATCH`，不扫描、告警。
+
+**SQLite 丢失恢复（R1-3e-1c）**：
+
+1. **L1**：有备份 → 恢复 → 重放 receipt/事件 → 不一致隔离；
+2. **L2**：无备份 → receipt 有 commit 无 → orphan 隔离，不自动补 commit；
+3. **L3**：人工审批后按 receipt 重建 commit，必须逐项校验 receipt schema/hash、task 在清单、input_key/MPN 一致、manifest 存在且 `task_id/run_id/source_sha` 一致、token 未复用、generation 不倒退；通过后记 `recovered_from_receipt=true`，失败保持隔离。
 
 **覆盖范围（R1-3e-2）**：自动保证仅限「已登记批次 + 清单可读」的 `tasks.jsonl` task_id；CLOSED 批次、未登记 task_id、丢失清单、全桶 orphan 不在自动保证内。CLOSED 批次可用 `POST /v1/audit?batch_id=...` 人工审计。
 
@@ -908,9 +924,10 @@ write_receipt(commit):
 event_id = sha256(f"{batch_id}|{task_id}|receipt_without_commit|{receipt_sha256}")
 ```
 
-- 对象存储事件日志按 `event_id` 去重；
+- **事件对象**：`control/events/<batch>/coordinator/<event_id>.json`（一事件一对象）；`event_id` 即键，`If-None-Match: *` 条件写；
+- 已存在且字节一致 → 幂等成功；已存在且字节不同 → `EVENT_CONFLICT`，隔离不覆盖；
 - SQLite `events.event_id` UNIQUE + `INSERT OR IGNORE`；
-- 顺序：quarantine（幂等）→ 事件（去重）→ 状态更新；任一步崩溃可重放，事件恰好一条；
+- **不再使用整文件 JSONL**（PUT 是整对象替换，无法原子去重）；
 - receipt_sha 变化 → 新 event_id，记录 `first_receipt_sha256` / `last_receipt_sha256` / `receipt_changed=true`。
 
 **有界扫描**（不 list 全桶）：

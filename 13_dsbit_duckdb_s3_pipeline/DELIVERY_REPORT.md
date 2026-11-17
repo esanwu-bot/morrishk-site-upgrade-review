@@ -4,10 +4,10 @@
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
 | 交付日期 | 2026-11-17 |
-| 版本 | **v1.5**（第五轮：R1-3e 批次索引/覆盖/幂等；R1-3f 重写条件与预算；R1-3g 测试规范） |
+| 版本 | **v1.6**（第六轮：R1-3e 状态互斥/事件原子/恢复路径；R1-3f 预算周期；R1-3g 测试断言） |
 | 性质 | 设计送审（DESIGN ONLY） |
 | 主文档 | `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md` |
-| Reviewer 结论（第五轮） | 待复核：R1-3e/f/g 三组补充；契约冻结与 Stage A 仍不批准 |
+| Reviewer 结论（第六轮） | 待复核：R1-3e/f/g 三组未闭合项；契约冻结与 Stage A 仍不批准 |
 | v1.0 提交 | 设计 `a62c70d644ced735ccfe079b086aca744f142f93`；报告 `ce6ba2db2839cb49a69702d3251482c4b58ba633` |
 | v1.1 设计修订提交 | `f8b8085fa12d57050e176bc8517a5a4856eaceef` |
 | v1.1 报告与校验清单 | `cdc61147387801c1b758deae89bb871467ef92d7` |
@@ -18,7 +18,9 @@
 | v1.4 设计修订提交 | `8d6760538655121dde369f8618e9a9d4010ce0a5` |
 | v1.4 报告与校验清单 | `dc0239cd29ca72055d4d8dc466f9b706d4f3a19e` |
 | v1.5 设计修订提交 | `a7fc084b0daf0f9e798dc2e171c5960926008e7f` |
-| v1.5 报告与校验清单 | 紧随 `a7fc084` 的报告提交（SHA 见 `git log`） |
+| v1.5 报告与校验清单 | `10f36064e448dc75df1d7f38c005e88384d9a7dd` |
+| v1.6 设计修订提交 | `（提交后回填）` |
+| v1.6 报告与校验清单 | 紧随 v1.6 设计提交（SHA 见 `git log`） |
 | Ds Bit 基线 | `600439a5eee69fb3a1cec2715e37080e48ca9840`（分支 `backup/full-local-20261114`） |
 | 送审仓库任务启动基线 | `0fa9d34` |
 | 送审仓库设计提交直接父提交（v1.0） | `fc4bcc5` |
@@ -139,16 +141,27 @@ v1.1/v1.2 只修改上述 `13_` 目录内的文件；**未修改**：
 | **R1-3g-1** | SHA 命令歧义 | `sha256sum | awk '{print $1}'`；对远端原始字节计算 | 矩阵 N-12g3 |
 | **R1-3g-2** | 测试前提与独立路径 | 补批次 OPEN、任务在清单、原状态、不删 receipt、重复 reconcile、清理；N-12g4 不调用 reconcile | 矩阵 N-12g3/N-12g4 |
 
+### 4.6 第六轮 R1-3e/f/g（v1.6）
+
+| 编号 | Reviewer 要求 | v1.6 处置 | 复核位置 |
+|---|---|---|---|
+| **R1-3e-1a** | 批次状态互斥 | OPEN/CLOSING/CLOSED 改为互斥判定；CLOSED 优先；冲突 → `INVALID_BATCH` | 主文档 §5.2.5.5.1；附件 §9.10 |
+| **R1-3e-1b** | 事件去重原子性 | 一事件一对象 `coordinator/<event_id>.json`；条件写去重；放弃整文件 JSONL | 主文档 §5.2.5.5.3；附件 §9.10 |
+| **R1-3e-1c** | SQLite 丢失精确恢复 | L1 备份 → L2 隔离 → L3 人工审批重建 commit（6 项校验 + `recovered_from_receipt`） | 主文档 §5.2.5.5.1；附件 §9.10 |
+| **R1-3e-1d** | 附件旧模型 | 附件 §9.2/§9.9/§9.10 已同步 | `PIPELINE_ARTIFACTS.md` |
+| **R1-3f-1/2** | 预算周期/第二次 PUT | episode 定义；单 episode 10 次/60 s；第二次 PUT 后新 episode；总量持久化不重置 | 主文档 §5.2.5.2.1；附件 §9.9；N-12f5 |
+| **R1-3g-1/2/3** | A8/A9/哈希 | A8 允许 batch-prefix list；远端哈希落盘计算；A9 提供 404/空桶/DB 不存在证明 | 矩阵 N-12g3/N-12g4 |
+
 ---
 
-## 5. 关键架构决策（v1.5）
+## 5. 关键架构决策（v1.6）
 
 1. 批量路径仍是「本地处理 → 大批 Parquet → 上传 → 批量查询」；
 2. DuckDB 仍只做分析查询，单写快照，不是队列/锁/事实源；
 3. 任务分配为**单写协调器 + `lease_generation` + COMMIT 事务**；**租约到期即失效**；
 4. **成功提交点**不是 manifest，而是「协调器 commit 记录 + receipt 一致」；
-5. receipt 四态；404=`ABSENT` 不算冲突；**PUT 200 后默认只回读**，重写需 C1/C2、冷却、预算且仍 ABSENT；预算持久化、重启不重置；
-6. orphan 扫描以**对象存储批次索引**为准（`plan.json`/`closed.json`），只保证已登记批次的已知任务；事件按 `event_id` 幂等；
+5. receipt 四态 + **episode 预算**（10 次/60 s，总量持久化、重启不重置）；PUT 200 后默认只回读，重写需 C1/C2、冷却、预算且仍 ABSENT；
+6. orphan 扫描按**互斥批次状态**（OPEN/CLOSING/CLOSED），只保证已登记批次的已知任务；事件**一事件一对象**、`event_id` 幂等；SQLite 丢失按 L1/L2/L3 恢复；
 7. Run Manifest 与 Batch/Partition Manifest 分离，Catalog 只按 part_manifest 计总行数；
 8. `reproducibility_key` v2；`task_id` = `<batch_id>:<sha256(source_sha256 + requested_mpn)>`；
 9. Stage A 必须在最终选型存储上通过 C1–C10。
@@ -266,6 +279,17 @@ R1-3 的修订仍需 Reviewer 定向复核；OD-01/OD-02/OD-03/OD-05/OD-19 仍�
 | Stage A / 1000 份 / 3–5 万 / 生产 | **不批准** |
 
 > v1.5 只改 `13_` 内的 R1-3e/f/g；R5、R2/R3/R4/R6 与总体架构未改。
+
+### 9.6 第六轮（v1.5）
+
+| 项 | 结论 |
+|---|---|
+| R1-3e/f/g | PARTIAL（v1.6 已补未闭合项） |
+| v1.6 状态 | 待 Reviewer 定向复核 |
+| 契约冻结 | **不批准** |
+| Stage A / 1000 份 / 3–5 万 / 生产 | **不批准** |
+
+> v1.6 只改 `13_` 内的 R1-3e/f/g；R5、R2/R3/R4/R6 与总体架构未改。真实存储实测仍未进行。
 
 ---
 

@@ -354,10 +354,11 @@ v1.0 写「条件写/分片保证只有一个成功」不是证明。v1.1 拆成
 | 项 | 内容 |
 |---|---|
 | 注入 | PUT 返回 200，但第一次 GET 回读返回 404（模拟最终一致） |
-| 默认行为 | `verify_receipt` 判 `ABSENT`；**只回读，不立即重写**；在 60 s / 10 次预算内继续回读 |
+| 默认行为 | `verify_receipt` 判 `ABSENT`；**只回读，不立即重写**；当前 episode 内 10 次 / 60 s 继续回读 |
 | 可见后 | 回读 200 且字节一致 → `WRITTEN` → `written`；任务 `SUCCEEDED` |
 | 条件重写（仅特殊用例） | 仅当「首次 PUT 200 ∧ 存储通过 C1/C2 ∧ 冷却 60 s ∧ `put_attempts<2` ∧ 仍 ABSENT」全部满足，允许一次条件重写 |
-| 断言 | 默认路径 PUT 总次数 = 1；条件重写路径 ≤ 2；无 `conflict`；预算耗尽仍 404 → `pending` + 告警，不判冲突 |
+| 第二次 PUT 后 | 开启**新 episode**（重新 10 次 / 60 s），但 `put_attempts=2` 封顶；再次 ABSENT → pending，不再 PUT |
+| 断言 | 默认路径 PUT 次数 = 1；条件重写路径 ≤ 2；`verify_attempts_total` / `put_attempts` / `pending_since` 重启后不重置；无 `conflict`；预算耗尽仍 404 → `pending` + 告警，不判冲突 |
 | 反例 | 存储不支持条件写时：**不得重写**；PUT 次数 = 1；保持 `pending` |
 
 #### N-12g Receipt 冲突的四种边界（v1.4 修订，R1-3）
@@ -402,11 +403,16 @@ export COORD_DB=/tmp/coord-$(date +%s).db
 **步骤**
 
 1. 对任务 T 执行正常 COMMIT，等待 receipt `written`；
-2. 从远端 GET 原始 receipt 字节，记录：
+2. 从远端 GET 原始 receipt 字节（不要用管道），校验长度与哈希：
 
 ```bash
-SHA_BEFORE=$(curl -s "$RECEIPT_URL" | sha256sum | awk '{print $1}')
+aws s3api get-object --bucket "$S3_BUCKET" \
+  --key "control/tasks/T/committed.json" /tmp/receipt.bin > /tmp/head.json
+SHA_BEFORE=$(sha256sum /tmp/receipt.bin | awk '{print $1}')
+BYTES_BEFORE=$(wc -c < /tmp/receipt.bin)
 ```
+
+> `receipt_sha256` 比较的是**远端原始字节**的 SHA-256，不是本地文件名、不是重新序列化后的 JSON。
 
 3. 停止协调器；
 4. 删除 commit 行，保留 receipt：
@@ -423,14 +429,14 @@ DELETE FROM commits WHERE task_id = 'T';
 | # | 断言 |
 |---|---|
 | A1 | `SELECT count(*) FROM commits WHERE task_id='T'` = **0**（不自动补 commit） |
-| A2 | 远端 receipt 原始字节的 `sha256` == `SHA_BEFORE`（未被改写） |
-| A3 | `control/coordinator/B/quarantine/T.json` 存在；`reason=receipt_without_commit`；`receipt_sha256=SHA_BEFORE`；`first_receipt_sha256=SHA_BEFORE` |
+| A2 | 远端原始字节 `sha256` == `SHA_BEFORE`，且字节数 == `BYTES_BEFORE`（`ContentLength` 一致）；ETag 与操作前一致（若为标准 ETag） |
+| A3 | `control/coordinator/B/quarantine/T.json` 存在；`reason=receipt_without_commit`；`receipt_sha256=SHA_BEFORE`；`first_receipt_sha256=SHA_BEFORE`；`last_seen_at` 有值 |
 | A4 | 任务 T 从原 `SUCCEEDED` 可靠转为 `QUARANTINED`（若 tasks 表有 T）；`GET /v1/state/T` 一致 |
 | A5 | 事件 `ORPHAN_RECEIPT_DETECTED` 恰好 **1** 条；`event_id = sha256(batch|task|reason|receipt_sha)`；两次 reconcile 后仍为 1 条；第二次只更新 `last_seen_at` |
 | A6 | reconcile 期间对 receipt 键的 PUT 计数 = **0** |
 | A7 | Catalog/Eval 不包含该 run；正常任务 T2（commit + receipt 一致）仍为 `SUCCEEDED` 且可消费 |
-| A8 | 扫描只访问批次清单里的 task_id，不执行全桶 list（客户端 list 调用 = 0） |
-| A9 | 清理后临时桶与临时 SQLite 均不存在（`aws s3 ls` 404 / 文件不存在）；`runs/`、`lake/` 未被触碰 |
+| A8 | list 调用按前缀统计：允许 `control/batches/` 有界 list（次数 ≤ batch_count + 1）；**禁止**全桶 list；**禁止** `control/tasks/` 前缀 list（次数 = 0） |
+| A9 | 清理有效证明：`head-bucket` 返回 404/NoSuchBucket；`aws s3 ls s3://$S3_BUCKET` 为空或 NoSuchBucket；`test ! -f "$COORD_DB"` 成立；临时目录不存在；记录每条命令的退出码 |
 
 **清理**：删除临时桶与临时 SQLite；不触碰 `runs/`、`lake/`。
 
@@ -440,7 +446,7 @@ DELETE FROM commits WHERE task_id = 'T';
 |---|---|
 | 注入 | 预置 receipt、删除 commit 行后重启协调器；**不调用** `POST /v1/reconcile`，也不调用 `GET /v1/receipt` |
 | 预期 | 仅由**启动扫描**发现并隔离；执行与 N-12g3 相同的动作 |
-| 断言 | A1–A9 同样成立；启动扫描计数器 +1；`/v1/reconcile` 调用计数 = 0；扫描仅遍历 OPEN/CLOSING 批次清单，不做全桶 list |
+| 断言 | A1–A9 同样成立；启动扫描计数器 +1；`/v1/reconcile` 调用计数 = 0；`control/batches/` list 恰好 1 次（起始重建索引），`control/tasks/` list = 0，全桶 list = 0 |
 
 ### N-13 任务重试产生重复结果
 
