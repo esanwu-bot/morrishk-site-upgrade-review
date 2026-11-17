@@ -3,9 +3,9 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
-| 文档版本 | v1.3（第三轮：补齐 R1-3 receipt 冲突与崩溃边界） |
+| 文档版本 | v1.4（第四轮：R1-3 orphan receipt、回读 404、N-12g3 可执行化） |
 | 日期 | 2026-11-17 |
-| 修订 | v1.3 只补 R1-3：receipt 已存在的读-比较-不覆盖规则、写入超时核对、写成功但 SQLite 未更新时的恢复；R2–R6 与架构方向不动 |
+| 修订 | v1.4 只补 R1-3：orphan receipt 发现与隔离、PUT 后回读 404 统一处理、N-12g3 测试步骤与断言；R5 与其他架构决策不动 |
 | 性质 | 架构与实施设计（DESIGN ONLY） |
 | 实现状态 | **未实现**；本文件不含生产代码、不含部署、不含数据迁移 |
 | 基线仓库 | `E:\workspace\icpdf-extractor` |
@@ -72,6 +72,17 @@
 | — | R5 PASS，但 `canonical_json` 与 MPN 规范化留待实现阶段 | 本轮**不改 R5**；在 `OPEN_DECISIONS.md` 记录为实现阶段待定项，不改变已通过的身份模型 | OD-21（记录，不阻断） |
 
 > v1.3 不改变 R2/R3/R4/R5/R6 的已通过内容，不改变协调器单写者架构；只补 receipt 的读写与冲突协议。
+
+### 0.5 第四轮复核修订（v1.3 → v1.4）
+
+| 编号 | Reviewer 要求 | v1.4 处置 | 位置 |
+|---|---|---|---|
+| **R1-3e** | 补齐 orphan Receipt 的发现与隔离机制 | 新增 **按批次清单有界扫描**（不 list 全桶）+ 启动/定时/按需三种发现路径；orphan → `QUARANTINED` + quarantine 记录；不补 commit、不删 receipt、不参与 Eval/Catalog | §5.2.5.5、附件 §9.10 |
+| **R1-3f** | 统一 PUT 后回读 404 的处理 | 定义 `verify_receipt()` 四态 `WRITTEN/ABSENT/CONFLICT/UNKNOWN`；**404 不算冲突**；ABSENT 才允许条件重写；UNKNOWN 只重试回读、不写 | §5.2.5.1、§5.2.5.2、附件 §9.9 |
+| **R1-3g** | 补充 N-12g3 可执行测试步骤与断言 | 给出临时桶/临时 SQLite 的可执行步骤、SQL、HTTP 调用、字节哈希断言与清理；并补 N-12f5/N-12g4 | `INVARIANT_AND_NEGATIVE_TEST_MATRIX.md` |
+| — | 只改 `13_`，不改 R5 与其他架构决策 | 遵守：R5 文档未改；R2/R3/R4/R6 未改 | — |
+
+> v1.4 仍不改变协调器单写者、租约、两级 Manifest、DuckDB 边界等已评审内容。
 
 ---
 
@@ -712,25 +723,35 @@ success = commit 记录存在
 **写入算法（协调器唯一写者）**：
 
 ```text
+verify_receipt(expected) -> WRITTEN | ABSENT | CONFLICT | UNKNOWN
+  GET receipt:
+    200 且 bytes == expected        -> WRITTEN
+    200 且 bytes != expected        -> CONFLICT
+    404（重试 10 次 / 60 s 窗口）    -> ABSENT
+    403/5xx/超时（重试后仍失败）      -> UNKNOWN
+
 write_receipt(commit):
   expected = canonical_bytes(receipt_body(commit))
+  r = verify_receipt(expected)
 
-  1) GET control/tasks/<task_id>/committed.json
-     404        -> 转 2)
-     200        -> sha(bytes) == commit.receipt_sha256 ?
-                     是 -> mark_written()（不 PUT）
-                     否 -> mark_conflict()（不 PUT，保留原字节）
-     403/5xx/超时 -> 退避重试 GET；GET 未成功前不得盲目 PUT
+  WRITTEN  -> mark_written()（不 PUT）
+  CONFLICT -> mark_conflict()（不 PUT，保留原字节）
+  UNKNOWN  -> 保持 pending；只安排回读重试；**不 PUT**
 
-  2) PUT ... If-None-Match: *
-     200        -> 转 3)
-     412/409    -> 转 1)（已有对象，必须回读比较）
-     超时/5xx    -> 转 1)（写入结果未知，先核对）
-
-  3) GET 回读
-     bytes == expected -> mark_written()
-     bytes != expected -> mark_conflict()
+  ABSENT   -> PUT ... If-None-Match: *
+              200        -> verify_receipt：
+                              WRITTEN  -> mark_written()
+                              ABSENT   -> 保持 pending（最终一致）；退避后**条件重写**，有上限
+                              CONFLICT -> mark_conflict()
+                              UNKNOWN  -> 保持 pending
+              412/409    -> verify_receipt：
+                              WRITTEN  -> mark_written()
+                              CONFLICT -> mark_conflict()
+                              UNKNOWN  -> 保持 pending
+              超时/5xx    -> verify_receipt（不盲目重写）
 ```
+
+**404 的统一语义**：404 只表示「当前不可见」，**不等于冲突**，也不等于失败。只有 `ABSENT` 才允许再次条件写；`UNKNOWN` 只重试回读，绝不写。
 
 **硬性规则**：
 
@@ -742,11 +763,12 @@ write_receipt(commit):
 #### 5.2.5.2 写入超时的判定（R1-3b）
 
 - 超时视为「结果未知」，不视为失败；
-- 先 GET 回读：
-  - bytes == expected → 已写入，`written`；
-  - 404 → 写入未落地或尚不可见，退避后重试；超过 10 次仍 404 → 保持 `pending`，告警；
-  - bytes != expected → `conflict`；
-- **禁止**在未回读前重复 PUT，避免把「已成功」误判为失败后产生第二次写（即使内容相同，也会浪费请求并模糊审计）。
+- 用 `verify_receipt()` 判定：
+  - `WRITTEN` → 已写入，`written`；
+  - `ABSENT` → 写入未落地或尚不可见；退避后可**条件重写**（有上限）；超过上限保持 `pending`，告警；
+  - `CONFLICT` → `conflict`；
+  - `UNKNOWN` → 保持 `pending`，只重试回读，**不写**；
+- **禁止**在 `UNKNOWN` 状态重复 PUT；`ABSENT` 下的重写必须带 `If-None-Match: *` 并再次回读。
 
 #### 5.2.5.3 PUT 成功、SQLite 未更新时崩溃（R1-3c）
 
@@ -777,12 +799,66 @@ written --(缺失/内容变化，审计)--> QUARANTINED
 |---|---|
 | 协调器进程崩溃 | Worker 心跳失败 → 租约到期 → 任务暂停；不产生成功标记 |
 | 协调器重启 | 从 SQLite + 快照恢复；过期租约按 §5.2.4 处理；`pending` receipt 补写 |
-| SQLite 丢失 | 从 `committed.json` + 事件日志重建「已提交」集合；无法判定的任务 `QUARANTINED`，不猜 |
+| SQLite 丢失 | 从 receipt + 事件日志重建「已提交」集合；**没有 commit 的 receipt 视为 orphan，隔离**；无法判定的任务 `QUARANTINED`，不猜 |
 | 协调器状态不确定 | **关闭当前批次**，用未完成任务生成新的 recovery 批次（新 `batch_id`）；旧批次只读，不再发租约 |
 
 - 恢复批次中的 `task_id` 带新 `batch_id`，不会与旧批次状态文件冲突；
 - 旧 Worker 若仍在跑，只能写旧批次的 artifact/manifest，不影响新批次；
 - 两个批次的同一 PDF 可能各解析一次，但**可区分**（不同 `batch_id`/`run_id`），由 canonical 视图选择最早成功者。
+
+#### 5.2.5.5 Orphan Receipt 的发现与隔离（R1-3e）
+
+**定义**：receipt 存在，但协调器没有对应的 commit 记录（或 commit 与 receipt 无法对应）。
+
+**发现路径（有界，不 list 全桶）**：
+
+| 路径 | 范围 | 频率 |
+|---|---|---|
+| 启动扫描 | 仅当前 open 批次：读 `tasks.jsonl` 的 task_id 列表，逐个检查 | 每次协调器启动 |
+| 定时扫描 | 同上 | 每 10 min |
+| 按需扫描 | `POST /v1/reconcile` 或 `GET /v1/receipt/<task_id>` | 运维触发 |
+| 提交路径 | COMMIT 前发现 receipt 已存在但无 commit | 每次提交 |
+
+**判定**：对批次清单中的每个 `task_id`：
+
+```text
+commit = SELECT * FROM commits WHERE task_id = ?
+receipt_exists = HEAD/GET control/tasks/<task_id>/committed.json
+
+commit 存在 且 receipt 存在 -> 正常（校验 sha）
+commit 存在 且 receipt 不存在 -> pending（outbox 补写）
+commit 不存在 且 receipt 存在 -> **orphan**
+两者都不存在 -> 未提交（PENDING）
+```
+
+**隔离动作**：
+
+1. 不创建 commit、不删除 receipt、不覆盖 receipt；
+2. 写 `control/coordinator/<batch_id>/quarantine/<task_id>.json`：
+
+```json
+{
+  "schema": "lakehouse/quarantine/v1",
+  "task_id": "...",
+  "reason": "receipt_without_commit",
+  "detected_at": "...",
+  "last_seen_at": "...",
+  "receipt_key": "control/tasks/<task_id>/committed.json",
+  "receipt_sha256": "...",
+  "receipt_generation": 1,
+  "receipt_manifest_sha256": "...",
+  "receipt_run_id": "..."
+}
+```
+
+3. 若 `tasks` 表有该任务 → 状态置 `QUARANTINED`；若没有任务行 → 只写 quarantine 记录；
+4. 写事件 `ORPHAN_RECEIPT_DETECTED`；
+5. 该 task 的 run **不进入** Eval/Catalog（成功仍要求 commit + receipt 一致）；
+6. 重复发现只更新 `last_seen_at`，不重复告警风暴；首次 `detected_at` 不变。
+
+**恢复**：只能由人工决定——恢复 SQLite 备份、按 receipt 核对后人工补 commit（需审批并留痕），或放弃该批次。**系统不自动采纳 orphan receipt**。
+
+**范围限制**：只扫描批次清单内的 task_id，避免对 56 万对象做全桶 list；批次外对象的 orphan 检查只能按 task_id 按需进行。
 
 #### 5.2.6 为什么不用「确定性分片」或「S3 条件写抢占」
 
@@ -802,6 +878,7 @@ control/coordinator/<batch_id>/state-<seq>.json   # 协调器检查点（单写�
 control/events/<batch_id>/<worker_id>.jsonl       # Worker 追加事件，定期上传
 control/tasks/<task_id>/final.json                # 终态（协调器确认后写）
 control/tasks/<task_id>/committed.json            # receipt（协调器写；含 generation + token）
+control/coordinator/<batch_id>/quarantine/<task_id>.json  # orphan/冲突隔离记录
 ```
 
 - `ingest.jsonl`：`{ingest_id, batch_id, task_id, document_sha256, requested_mpn, source_uri, received_at, seq}`；
@@ -1473,8 +1550,8 @@ Q 单独抽样 50 份，不按页数分层；Q 中的 PDF 不进入「可解析�
 | N-12c | 协调器崩溃后重启 | 过期租约递增 generation 重派；已提交不重发；无重复成功 |
 | N-12d | 协调器不可达超过 TTL | Worker 停止任务；不产生成功 |
 | N-12e | 租约已到期，但 5 s 扫描尚未执行 | HEARTBEAT 与 COMMIT 均返回 409 `LEASE_EXPIRED`；不续期 |
-| N-12f | COMMIT 后 receipt 未写 / PUT 后状态未写 / 写超时但实际成功 | f1–f4：重启后回读补写；同内容只更新状态、不重复 PUT；同参数 COMMIT 返回同一 token |
-| N-12g | receipt 已存在但内容不同 / receipt 存在而 commit 缺失 | g1–g3：`QUARANTINED`；原字节不变；不 PUT、不覆盖、不猜测 |
+| N-12f | COMMIT 后 receipt 未写 / PUT 后状态未写 / 写超时 / PUT 后回读 404 | f1–f5：重启后回读补写；同内容只更新状态；`ABSENT` 才条件重写；`UNKNOWN` 不写 |
+| N-12g | receipt 已存在但内容不同 / receipt 存在而 commit 缺失 | g1–g4：`QUARANTINED`；原字节不变；不 PUT、不覆盖；orphan 有可执行测试 |
 | N-13 | 重试产生重复结果 | 多 `run_id`、多 `attempt`、多 `lease_generation`；canonical 唯一 |
 | N-14 | Eval 引用不存在的 Parse | `ManifestMissing`；退出码非 0 |
 | N-15 | Raw 对象被意外覆盖 | 条件写/版本化拒绝；校验发现篡改 |

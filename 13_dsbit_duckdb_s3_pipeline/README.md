@@ -3,11 +3,11 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
-| 版本 | v1.3（第三轮：补齐 R1-3 receipt 冲突与崩溃边界） |
+| 版本 | v1.4（第四轮：R1-3 orphan receipt、回读 404、N-12g3 可执行化） |
 | 日期 | 2026-11-17 |
-| 修订 | v1.3 补 receipt 的读-比较-不覆盖、写超时核对、PUT 后状态未写的恢复；R2–R6 与架构不动 |
+| 修订 | v1.4 补 orphan receipt 发现/隔离、`verify_receipt` 四态与 404 语义、N-12g3 可执行步骤；R5 与其他架构不动 |
 | 性质 | 架构与实施设计；**不是**生产实现、不是部署、不是数据迁移 |
-| 状态 | 送 Reviewer 定向复核；v1.2 契约冻结与 Stage A 均未批准 |
+| 状态 | 送 Reviewer 定向复核；v1.3 契约冻结与 Stage A 均未批准 |
 | 目标产物 | `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md` |
 | 上游依据 | ① Ds Bit 仓库 `E:\workspace\icpdf-extractor`（HEAD `600439a5eee69fb3a1cec2715e37080e48ca9840`）② `lake/` Stage B 单件血缘 Demo ③ Morrishk 技术方案 v1.2 §7「Ds Bit 参数化」④ 已批准的 DuckDB + S3 兼容对象存储离线架构方向 |
 | 全量口径 | 去重 PDF **568,830** 份（约 56.9 万；任务书中的「56.8 万」是 56.883 万截断后的写法，两者同源） |
@@ -50,7 +50,7 @@
 ## 3. 复核路径（10–15 分钟）
 
 1. 读主文档 **§2**：`CONFIRMED / PROPOSED / OPEN` 三类清单与证据位置。
-2. 读 **§0.4 + §5.2.5**：v1.3 对 R1-3 的 receipt 读-比较-写-回读、超时核对、崩溃恢复。
+2. 读 **§0.5 + §5.2.5**：v1.4 的 `verify_receipt` 四态、404 语义与 orphan receipt 隔离。
 3. 读 **§5.6 + §7.2**：v1.1 对 R2 的两级 Manifest 与三级行数对账。
 4. 读 **§10.2**：v1.1 对 R3 的样本池 P/Q 与五类失败率分母。
 5. 读 **§5.4.1**：v1.1 对 R4 的 `reproducibility_key` v2 字段表。
@@ -97,6 +97,14 @@ sha256sum -c SHA256SUMS.txt
 | R1-3d | N-12f/N-12g 覆盖不足 | 拆为 N-12f1–f4、N-12g1–g3 |
 | — | R5 的 canonical_json / MPN 规范化 | 本轮不改 R5；记录为 OD-21（实现前冻结） |
 
+### 3.4 第四轮复核响应（v1.4）
+
+| 编号 | Reviewer 要求 | v1.4 处置 |
+|---|---|---|
+| R1-3e | orphan Receipt 发现与隔离 | 启动/定时/按需/提交路径四路发现；仅按批次清单有界扫描；orphan → quarantine 记录 + `QUARANTINED`；不补 commit、不删/覆盖 receipt |
+| R1-3f | 统一 PUT 后回读 404 | `verify_receipt` 四态：`WRITTEN/ABSENT/CONFLICT/UNKNOWN`；404 = `ABSENT`，不算冲突；仅 ABSENT 可条件重写；UNKNOWN 只读不写 |
+| R1-3g | N-12g3 可执行化 | 临时 MinIO + 临时 SQLite 的步骤、SQL、HTTP、A1–A8 断言与清理；补 N-12f5/N-12g4 |
+
 ---
 
 ## 4. 本次实际执行与未执行的操作
@@ -134,7 +142,7 @@ sha256sum -c SHA256SUMS.txt
 2. **架构方向不变**：Raw（内容寻址、只读）/ Parse（run 级不可变、四指纹）/ Eval（Gold 版本化、评估器指纹）三层保留。
 3. **DuckDB 只做分析查询**：它不是队列、不是锁、不是多写并发数据库、不是事实源；`catalog.duckdb` 是可由对象存储重建的派生物。
 4. **批量路径采用「本地处理 → 大批 Parquet → 上传 → 批量查询」**：拒绝 DuckDB 直扫 56 万个小文件；同区对象存储才讨论直读。
-5. **任务分配（v1.3）**：单写协调器 + 租约代次 + 两阶段提交；**租约到期即失效**；receipt 由协调器**读-比较-条件写-回读**，已存在不同内容一律隔离，绝不覆盖。
+5. **任务分配（v1.4）**：单写协调器 + 租约代次 + 两阶段提交；**租约到期即失效**；receipt 用 `verify_receipt` 四态（`WRITTEN/ABSENT/CONFLICT/UNKNOWN`），**404 不算冲突**；orphan receipt 按批次清单有界扫描并隔离，不补 commit、不删/覆盖。
 6. **任务身份（v1.2）**：`input_key = sha256(source_sha256 + requested_mpn)`；同 PDF 同 MPN 只生成 1 个 task + 多条 ingest；同 PDF 不同 MPN 才是 2 个 task；`task_id` 是批次内身份。
 7. **数据契约**：Run Manifest 与 Batch/Partition Manifest 分离；`reproducibility_key` v2；Manifest 不含 token。
 8. **基准口径**：可解析池 950 + 预期拒绝池 50（含子类配额）；五类失败率各有分母；≤2% 只约束可解析池。

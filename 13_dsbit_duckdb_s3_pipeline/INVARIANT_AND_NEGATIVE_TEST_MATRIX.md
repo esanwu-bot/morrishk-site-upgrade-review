@@ -349,7 +349,16 @@ v1.0 写「条件写/分片保证只有一个成功」不是证明。v1.1 拆成
 | 预期 | 412 → GET 回读一致 → `written`，不覆盖 |
 | 断言 | 原 receipt 字节哈希不变；无覆盖写；任务 `SUCCEEDED` |
 
-#### N-12g Receipt 冲突的三种边界（v1.3 修订，R1-3）
+##### N-12f5 PUT 200 后回读 404（最终一致）
+
+| 项 | 内容 |
+|---|---|
+| 注入 | PUT 返回 200，但第一次 GET 回读返回 404（模拟对象存储最终一致） |
+| 预期 | `verify_receipt` 判为 `ABSENT`，不是 `CONFLICT`；保持 `pending`，退避后重试回读；可见后判 `WRITTEN` |
+| 断言 | 最终 `written`；PUT 总次数 ≤ 2（仅在 ABSENT 时条件重写）；无 `conflict`；任务 `SUCCEEDED` |
+| 反例 | 若 60 s 窗口内始终 404 → 保持 `pending` 并告警，**不得**判 `conflict` |
+
+#### N-12g Receipt 冲突的四种边界（v1.4 修订，R1-3）
 
 共同断言：不覆盖、不猜测、不自动补 commit；原对象字节哈希与操作前一致；进入 `QUARANTINED`。
 
@@ -369,13 +378,54 @@ v1.0 写「条件写/分片保证只有一个成功」不是证明。v1.1 拆成
 | 预期 | 同上 |
 | 断言 | 原 receipt 字节不变；PUT 计数 0；任务 `QUARANTINED` |
 
-##### N-12g3 receipt 存在但 commit 缺失
+##### N-12g3 receipt 存在但 commit 缺失（可执行步骤）
+
+> 本轮为设计；以下步骤在实现后可直接执行于临时 MinIO + 临时 SQLite，不触碰真实数据。
+
+**准备**
+
+```bash
+export S3_ENDPOINT=http://127.0.0.1:9000 S3_BUCKET=test-quarantine-$(date +%s)
+export COORD_DB=/tmp/coord-$(date +%s).db
+# 创建临时桶；启动协调器；建立批次 B 与任务 T（input_key）
+```
+
+**步骤**
+
+1. 对任务 T 执行正常 COMMIT，等待 receipt `written`；
+2. 记录 `SHA_BEFORE=$(sha256sum committed.json)`；
+3. 停止协调器；
+4. 删除 commit 行，保留 receipt：
+
+```sql
+DELETE FROM commits WHERE task_id = 'T';
+```
+
+5. 重启协调器，调用 `POST /v1/reconcile`；
+6. 执行断言。
+
+**断言**
+
+| # | 断言 |
+|---|---|
+| A1 | `SELECT count(*) FROM commits WHERE task_id='T'` = **0**（不自动补 commit） |
+| A2 | `sha256(committed.json)` == `SHA_BEFORE`（receipt 字节不变） |
+| A3 | `control/coordinator/B/quarantine/T.json` 存在；`reason=receipt_without_commit`；`receipt_sha256=SHA_BEFORE` |
+| A4 | `GET /v1/state/T` = `QUARANTINED`（若 tasks 表有 T） |
+| A5 | 事件中 `ORPHAN_RECEIPT_DETECTED` 恰好 1 条；重复 reconcile 只更新 `last_seen_at` |
+| A6 | reconcile 期间对 receipt 键的 PUT 计数 = **0** |
+| A7 | Catalog/Eval 不包含该 run；正常任务 T2（commit + receipt 一致）仍为 `SUCCEEDED` 且可消费 |
+| A8 | 扫描只访问批次清单里的 task_id，不执行全桶 list（客户端 list 调用 = 0） |
+
+**清理**：删除临时桶与临时 SQLite；不触碰 `runs/`、`lake/`。
+
+##### N-12g4 启动扫描发现 orphan
 
 | 项 | 内容 |
 |---|---|
-| 注入 | 保留 receipt，删除协调器 commit 行（模拟 SQLite 丢失后的残留） |
-| 预期 | `QUARANTINED`；不自动补 commit、不重写 receipt |
-| 断言 | 不新增 commit；receipt 字节不变；告警 |
+| 注入 | 预置 receipt、删除 commit 行后重启协调器，不手动调用 reconcile |
+| 预期 | 启动扫描（仅 open 批次）发现 orphan，执行与 N-12g3 相同的隔离动作 |
+| 断言 | A1–A8 同样成立；扫描耗时有上限（按 batch 清单，不做全桶 list） |
 
 ### N-13 任务重试产生重复结果
 

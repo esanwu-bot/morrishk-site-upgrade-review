@@ -828,24 +828,32 @@ C: 200 {token: 同一 token}（幂等，不产生第二条 commit）
 `commits` 行在事务内记录 `receipt_sha256`（期望字节的 SHA-256），因此期望字节可精确重建。
 
 ```text
+verify_receipt(expected) -> WRITTEN | ABSENT | CONFLICT | UNKNOWN
+  GET receipt:
+    200 且 bytes == expected  -> WRITTEN
+    200 且 bytes != expected  -> CONFLICT
+    404（10 次 / 60 s 窗口）   -> ABSENT
+    403/5xx/超时（重试后）      -> UNKNOWN
+
 write_receipt(commit):
   expected = canonical_bytes(receipt_body(commit))
-
-  1) GET receipt
-     404        -> 2)
-     200        -> sha(bytes) == commit.receipt_sha256 ? written : conflict
-     403/5xx/超时 -> 退避重试 GET；GET 成功前不得 PUT
-  2) PUT If-None-Match: *
-     200        -> 3)
-     412/409    -> 1)
-     超时/5xx    -> 1)        # 结果未知，先回读
-  3) GET 回读
-     bytes == expected -> written
-     bytes != expected -> conflict
+  r = verify_receipt(expected)
+  WRITTEN  -> written（不 PUT）
+  CONFLICT -> conflict（不 PUT）
+  UNKNOWN  -> pending（只回读重试，不写）
+  ABSENT   -> PUT If-None-Match: *
+              200/412/超时 -> verify_receipt：
+                  WRITTEN  -> written
+                  ABSENT   -> pending（可条件重写，有上限）
+                  CONFLICT -> conflict
+                  UNKNOWN  -> pending（不写）
 ```
+
+**404 统一语义**：404 = `ABSENT`（当前不可见），不是冲突、不是失败；只有 `ABSENT` 允许再次条件写，`UNKNOWN` 只读不写。
 
 | 边界 | 行为 |
 |---|---|
+| PUT 200 后回读 404 | `ABSENT`：保持 `pending`，退避后条件重写（有上限）；**不算冲突** |
 | receipt 已存在且内容一致 | 只更新 `receipt_state='written'`，**不 PUT** |
 | receipt 已存在但内容不同 | `conflict` → `QUARANTINED`；**不 PUT**，原字节不变 |
 | PUT 超时但实际成功 | 不做盲目重试；GET 回读一致 → `written` |
@@ -859,3 +867,52 @@ write_receipt(commit):
 2. 已存在的 receipt 永不覆盖；不同内容只能隔离；
 3. 任何写入/恢复都必须回读校验，不能以「请求返回 200」代替内容验证；
 4. token 在 COMMIT 事务内固定，恢复不重发。
+
+### 9.10 Orphan Receipt 扫描（v1.4，R1-3e）
+
+**定义**：`committed.json` 存在，但 `commits` 表无对应行（或无法对应）。
+
+**有界扫描**（不 list 全桶）：
+
+```text
+for batch in open_batches:
+    for task_id in read_jsonl(control/batches/<batch>/tasks.jsonl):
+        commit = SELECT * FROM commits WHERE task_id=?
+        receipt = HEAD/GET control/tasks/<task_id>/committed.json
+        if not commit and receipt.exists:
+            quarantine(task_id, receipt)
+```
+
+| 路径 | 触发 |
+|---|---|
+| 启动扫描 | 协调器启动时，仅 open 批次 |
+| 定时扫描 | 每 10 min |
+| 按需扫描 | `POST /v1/reconcile`；`GET /v1/receipt/<task_id>` 时若发现无 commit 也记录 |
+| 提交路径 | COMMIT 前若 receipt 已存在但 commit 缺失 → 立即隔离，不提交 |
+
+**隔离记录** `control/coordinator/<batch_id>/quarantine/<task_id>.json`：
+
+```json
+{
+  "schema": "lakehouse/quarantine/v1",
+  "task_id": "...",
+  "reason": "receipt_without_commit",
+  "detected_at": "...",
+  "last_seen_at": "...",
+  "receipt_key": "control/tasks/<task_id>/committed.json",
+  "receipt_sha256": "...",
+  "receipt_generation": 1,
+  "receipt_manifest_sha256": "...",
+  "receipt_run_id": "..."
+}
+```
+
+**动作**：
+
+1. 不创建 commit、不删除/覆盖 receipt；
+2. `tasks` 表有该任务 → `QUARANTINED`；没有 → 仅记录；
+3. 事件 `ORPHAN_RECEIPT_DETECTED`；
+4. Eval/Catalog 排除该 run（成功要求 commit + receipt 一致）；
+5. 重复出现只更新 `last_seen_at`。
+
+**不自动恢复**：只能人工恢复 SQLite 备份、审批后补 commit，或放弃批次。系统不把 orphan receipt 当作成功。

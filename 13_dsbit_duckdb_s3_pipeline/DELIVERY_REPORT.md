@@ -4,17 +4,19 @@
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
 | 交付日期 | 2026-11-17 |
-| 版本 | **v1.3**（第三轮：补齐 R1-3 receipt 冲突与崩溃边界） |
+| 版本 | **v1.4**（第四轮：R1-3 orphan receipt、回读 404、N-12g3 可执行化） |
 | 性质 | 设计送审（DESIGN ONLY） |
 | 主文档 | `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md` |
-| Reviewer 结论（第三轮） | 提交/远端 PASS；R5 PASS；R1-1/R1-2 PASS；**R1-3 仍需补强**；契约冻结与 Stage A 均不批准 |
+| Reviewer 结论（第四轮） | 待复核：R1-3 三项补充（orphan、404、N-12g3）；契约冻结与 Stage A 仍不批准 |
 | v1.0 提交 | 设计 `a62c70d644ced735ccfe079b086aca744f142f93`；报告 `ce6ba2db2839cb49a69702d3251482c4b58ba633` |
 | v1.1 设计修订提交 | `f8b8085fa12d57050e176bc8517a5a4856eaceef` |
 | v1.1 报告与校验清单 | `cdc61147387801c1b758deae89bb871467ef92d7` |
 | v1.2 设计修订提交 | `473497dd276e65cf9f6ca326bfddf9cb29865a39` |
 | v1.2 报告与校验清单 | `e9a56ca9b42db114b57a0fab62bcb258d7718ee4` |
 | v1.3 设计修订提交 | `7d00abee8edb6e238bd8f90f321afe7ba1dd058a` |
-| v1.3 报告与校验清单 | 紧随 `7d00abe` 的报告提交（SHA 见 `git log`） |
+| v1.3 报告与校验清单 | `4da074097354874b95278b3702e624864faf7335` |
+| v1.4 设计修订提交 | `（提交后回填）` |
+| v1.4 报告与校验清单 | 紧随 v1.4 设计提交（SHA 见 `git log`） |
 | Ds Bit 基线 | `600439a5eee69fb3a1cec2715e37080e48ca9840`（分支 `backup/full-local-20261114`） |
 | 送审仓库任务启动基线 | `0fa9d34` |
 | 送审仓库设计提交直接父提交（v1.0） | `fc4bcc5` |
@@ -104,15 +106,23 @@ v1.1/v1.2 只修改上述 `13_` 目录内的文件；**未修改**：
 | **R1-3d** | N-12f/N-12g 覆盖不足 | 拆为 N-12f1–f4（崩溃/状态未写/超时成功/412 同内容）与 N-12g1–g3（token 不同/manifest 不同/commit 缺失） | 矩阵 N-12f/N-12g |
 | — | R5 的 canonical_json / MPN 规范化 | 不改 R5；记录为 OD-21（实现前冻结） | `OPEN_DECISIONS.md` OD-21 |
 
+### 4.4 第四轮 R1-3（v1.4）
+
+| 编号 | Reviewer 要求 | v1.4 处置 | 复核位置 |
+|---|---|---|---|
+| **R1-3e** | orphan receipt 发现与隔离 | 启动/定时/按需/提交四路发现；仅按批次清单有界扫描；quarantine 记录 + `QUARANTINED`；不补 commit、不删/覆盖 receipt | 主文档 §5.2.5.5；附件 §9.10；N-12g4 |
+| **R1-3f** | 统一 PUT 后回读 404 | `verify_receipt` 四态；404=`ABSENT` 不算冲突；仅 ABSENT 可条件重写；UNKNOWN 只读不写 | 主文档 §5.2.5.1–.2；附件 §9.9；N-12f5 |
+| **R1-3g** | N-12g3 可执行化 | 临时 MinIO + 临时 SQLite 的步骤、SQL、HTTP、A1–A8 断言与清理 | 矩阵 N-12g3 |
+
 ---
 
-## 5. 关键架构决策（v1.3）
+## 5. 关键架构决策（v1.4）
 
 1. 批量路径仍是「本地处理 → 大批 Parquet → 上传 → 批量查询」；
 2. DuckDB 仍只做分析查询，单写快照，不是队列/锁/事实源；
 3. 任务分配为**单写协调器 + `lease_generation` + COMMIT 事务**；**租约到期即失效**；
 4. **成功提交点**不是 manifest，而是「协调器 commit 记录 + receipt 一致」；
-5. receipt 写入固定为 **GET → sha 比较 → 仅 404 条件写 → 回读**；已存在不同内容一律 `conflict`，绝不覆盖；超时不盲目重试；
+5. receipt 用 `verify_receipt` 四态；404=`ABSENT` 不算冲突；orphan receipt 按批次清单有界扫描并隔离，不补 commit、不删/覆盖；
 6. Run Manifest 与 Batch/Partition Manifest 分离，Catalog 只按 part_manifest 计总行数；
 7. `reproducibility_key` v2 覆盖所有影响结果的输入；
 8. `task_id` = `<batch_id>:<sha256(source_sha256 + requested_mpn)>`；同 PDF 同 MPN = 1 task + 多 ingest；
@@ -209,6 +219,17 @@ P1/P2 见 `OPEN_DECISIONS.md`。OD-16（权限/凭据）虽为 P2，但任何上
 
 本包**不批准**：设计冻结、Stage A 实现、1000 份基准、3–5 万试跑、任何生产操作。
 R1-3 的修订仍需 Reviewer 定向复核；OD-01/OD-02/OD-03/OD-05/OD-19 仍是实质性阻断项。
+
+### 9.4 第四轮（v1.3）
+
+| 项 | 结论 |
+|---|---|
+| R1-3 前序修订 | 方向认可，但 orphan / 404 / N-12g3 仍需补 |
+| v1.4 状态 | 三项已补，待 Reviewer 定向复核 |
+| 契约冻结 | **不批准** |
+| Stage A / 1000 份 / 3–5 万 / 生产 | **不批准** |
+
+> v1.4 只改 `13_` 内的 R1-3 相关章节；R5 与其他已通过项未改。
 
 ---
 
