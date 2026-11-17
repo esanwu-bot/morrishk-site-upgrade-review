@@ -718,7 +718,8 @@ CREATE TABLE commits (
   receipt_state TEXT NOT NULL DEFAULT 'pending',  -- pending|written|conflict
   receipt_attempts INTEGER NOT NULL DEFAULT 0,
   put_attempts INTEGER NOT NULL DEFAULT 0,        -- 任务级 PUT 预算（≤2）
-  verify_attempts_total INTEGER NOT NULL DEFAULT 0,
+  verify_attempts_reserved INTEGER NOT NULL DEFAULT 0, -- 已消耗预算（含 in_flight REC，上限 20）
+  verify_attempts_total INTEGER NOT NULL DEFAULT 0,    -- 实际完成的 GET 次数（审计）
   episode_attempts INTEGER NOT NULL DEFAULT 0,    -- 单 episode
   episode_started_at TEXT,
   pending_since TEXT,
@@ -747,7 +748,7 @@ CREATE TABLE events (
   put_attempts INTEGER NOT NULL DEFAULT 0,        -- 事件 PUT 预算（B1，只减不增）
   event_state TEXT NOT NULL DEFAULT 'pending',    -- pending|written|conflict|unresolved
   put_started_at TEXT,                            -- 首次占用预算时间
-  last_put_at TEXT                                -- 最近一次实际 PUT 时间
+  last_put_started_at TEXT                        -- 最近一次 PUT 的开始时间（不代表已完成）
 );
 ```
 
@@ -883,9 +884,9 @@ write_receipt(commit):
 | `receipt_reput_cooldown_s` | 60 |
 | `receipt_pending_max_s` | 3600 → `QUARANTINED(receipt_absent_timeout)` |
 
-**episode 状态机（A5/B5）**：`episode_no ∈ {0,1}`；普通 30 s reconcile **延续当前 episode**（不重置次数/截止）；只有第二次 PUT 后允许 `0→1`；重启恢复原 episode，不自动新增；`verify_attempts_total` 上限 20；`pending_since` 3600 s 生命周期上限。
+**episode 状态机（A5/B5）**：`episode_no ∈ {0,1}`；普通 30 s reconcile **延续当前 episode**（不重置次数/截止）；只有第二次 PUT 后允许 `0→1`；重启恢复原 episode，不自动新增；`verify_attempts_reserved` 上限 20（`verify_attempts_total` 为已完成 GET 的审计计数）；`pending_since` 3600 s 生命周期上限。
 
-**REC（B5）**：episode 0 结束后允许一次 1 次 GET 的**重写资格检查**；计入 `verify_attempts_total`，不占 episode 1 的 10 次；**执行顺序**：① SQLite 提交 `rec_attempted=1, rec_state='in_flight', rec_at=now, verify_attempts_total+=1` → ② 单次 GET → ③ 提交 `written|absent|conflict|unknown`；`WRITTEN` 直接成功、`CONFLICT` 隔离、`ABSENT` 且条件全满足才第二次 PUT、`UNKNOWN` 进入 `REC_PENDING_UNKNOWN`（不重跑 REC，普通 GET 计数，20 次后 observation，3600 s 隔离）；`rec_state='in_flight'` 时崩溃一律按 `unknown` 恢复、不重发；`rec_attempted/rec_state/rec_at` 持久化，重启不重复。`REC_PENDING_UNKNOWN` 是 `COMMITTED_PENDING_RECEIPT` 的内部子状态，`tasks.state` 不变。
+**REC（B5）**：episode 0 结束后允许一次 1 次 GET 的**重写资格检查**；消耗 1 次 `verify_attempts_reserved`，不占 episode 1 的 10 次；**执行顺序**：① SQLite 提交 `rec_attempted=1, rec_state='in_flight', rec_at=now, verify_attempts_reserved+=1` → ② 单次 GET → ③ 提交 `written|absent|conflict|unknown` 且 `verify_attempts_total+=1`；`WRITTEN` 直接成功、`CONFLICT` 隔离、`ABSENT` 且条件全满足才第二次 PUT、`UNKNOWN` 进入 `REC_PENDING_UNKNOWN`（不重跑 REC，普通 GET 完成后 reserved/total 各 +1，reserved 20 次后 observation，3600 s 隔离）；`rec_state='in_flight'` 时崩溃一律按 `unknown` 恢复、不重发（reserved 已消耗、total 不增加）；`rec_attempted/rec_state/rec_at` 持久化，重启不重复。`REC_PENDING_UNKNOWN` 是 `COMMITTED_PENDING_RECEIPT` 的内部子状态，`tasks.state` 不变。
 
 **无 CAS 的退化（A6）**：仅允许**首次创建**走「GET 404 → 串行 PUT → 回读」，标记 `receipt_write_mode=serialized_no_cas`；**永不重写**；未知结果只读；OD-19 未批准时禁止写入。
 
@@ -944,7 +945,7 @@ event_id = sha256(f"{batch_id}|{task_id}|receipt_without_commit|{receipt_sha256}
 - **事件对象**：`control/events/<batch>/coordinator/<event_id>.json`（一事件一对象）；`event_id` 即键，`If-None-Match: *` 条件写；
 - 已存在且字节一致 → 幂等成功；已存在且字节不同 → `EVENT_CONFLICT`，隔离不覆盖；
 - SQLite `events.event_id` UNIQUE + `INSERT OR IGNORE`；
-- **事件 PUT 预算（B1）**：预算记录在 `events` 行（`put_attempts/event_state/put_started_at/last_put_at`），与 `commits.put_attempts`（receipt）分离；首次 PUT 前先 `INSERT OR IGNORE` 事件行，再在同一事务执行 `UPDATE events SET put_attempts=put_attempts+1 WHERE event_id=? AND put_attempts < :max_puts`，仅 `changes()=1` 才发 PUT；上限 `storage_atomic=3` / `coordinator_serialized=2`（均含首次）；回读不计预算；重启按 `put_attempts` 续算，不退回、不重置；
+- **事件 PUT 预算（B1）**：预算记录在 `events` 行（`put_attempts/event_state/put_started_at/last_put_started_at`），与 `commits.put_attempts`（receipt）分离；首次 PUT 前在同一事务内先 `INSERT OR IGNORE INTO events(event_id,task_id,at,event_state,put_attempts) VALUES(:event_id,:task_id,:now,'pending',0)`，再执行 `UPDATE events SET put_attempts=put_attempts+1, put_started_at=COALESCE(put_started_at,:now), last_put_started_at=:now WHERE event_id=? AND put_attempts < :max_puts`，仅 `changes()=1` 才发 PUT，事务 COMMIT 成功后才发；上限 `storage_atomic=3` / `coordinator_serialized=2`（均含首次）；回读不计预算；重启按 `put_attempts` 续算，不退回、不重置；`last_put_started_at` 只代表 PUT 开始时间；
 - **不再使用整文件 JSONL**（PUT 是整对象替换，无法原子去重）；
 - receipt_sha 变化 → 新 event_id，记录 `first_receipt_sha256` / `last_receipt_sha256` / `receipt_changed=true`。
 

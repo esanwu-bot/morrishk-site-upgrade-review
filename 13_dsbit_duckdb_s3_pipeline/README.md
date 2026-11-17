@@ -3,11 +3,11 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
-| 版本 | v1.10（第十轮：B1 事件 PUT 预算持久化；B5 REC 先持久化 `in_flight` 再 GET） |
+| 版本 | v1.11（第十一轮：B1 INSERT SQL 与 `last_put_started_at`；B5 预留计数与实测计数分离） |
 | 日期 | 2026-11-17 |
-| 修订 | v1.10 只补 B1/B5 持久化与崩溃边界；A3/A4、B2–B4 保持关闭，R5、R2–R4/R6 与总体架构不动 |
+| 修订 | v1.11 只补 B1/B5 的 SQL 与计数语义；A3/A4、B2–B4 保持关闭，R5、R2–R4/R6 与总体架构不动 |
 | 性质 | 架构与实施设计；**不是**生产实现、不是部署、不是数据迁移 |
-| 状态 | 送 Reviewer 定向复核；v1.9 契约冻结与 Stage A 均未批准 |
+| 状态 | 送 Reviewer 定向复核；v1.10 契约冻结与 Stage A 均未批准 |
 | 目标产物 | `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md` |
 | 上游依据 | ① Ds Bit 仓库 `E:\workspace\icpdf-extractor`（HEAD `600439a5eee69fb3a1cec2715e37080e48ca9840`）② `lake/` Stage B 单件血缘 Demo ③ Morrishk 技术方案 v1.2 §7「Ds Bit 参数化」④ 已批准的 DuckDB + S3 兼容对象存储离线架构方向 |
 | 全量口径 | 去重 PDF **568,830** 份（约 56.9 万；任务书中的「56.8 万」是 56.883 万截断后的写法，两者同源） |
@@ -50,7 +50,7 @@
 ## 3. 复核路径（10–15 分钟）
 
 1. 读主文档 **§2**：`CONFIRMED / PROPOSED / OPEN` 三类清单与证据位置。
-2. 读 **§0.11 + §5.2.5**：v1.10 的 B1 事件 PUT 预算持久化、B5 REC `in_flight` 顺序。
+2. 读 **§0.12 + §5.2.5**：v1.11 的 B1 合法 SQL/事务边界、B5 预留与实测计数分离。
 3. 读 **§5.6 + §7.2**：v1.1 对 R2 的两级 Manifest 与三级行数对账。
 4. 读 **§10.2**：v1.1 对 R3 的样本池 P/Q 与五类失败率分母。
 5. 读 **§5.4.1**：v1.1 对 R4 的 `reproducibility_key` v2 字段表。
@@ -176,6 +176,17 @@ sha256sum -c SHA256SUMS.txt
 | B5-4 | 崩溃恢复/状态归属 | `in_flight` 崩溃按 `unknown` 恢复；`REC_PENDING_UNKNOWN` 为内部子状态，权威 `commits.rec_state` |
 | B5-5 | 崩溃点测试 | N-12l 增「GET 前崩溃」「结果未持久化崩溃」两项 |
 | — | B2 非阻断建议 | N-12i 增 legacy key 已 revoked/不可读仍拒绝 L3 |
+
+### 3.11 第十一轮复核响应（v1.11）
+
+| 编号 | Reviewer 问题 | v1.11 处置 |
+|---|---|---|
+| B1-R1 | INSERT 示例非法 | 改为列名 + `VALUES`；INSERT/UPDATE 同一事务，COMMIT 后才发 PUT |
+| B1-R2 | `last_put_at` 语义 | 重命名 `last_put_started_at`，明确为 PUT 开始时间 |
+| B5-R1 | 预留与实测计数混用 | `verify_attempts_reserved`（上限 20，含 `in_flight`）与 `verify_attempts_total`（已完成 GET）分离 |
+| B5-R2 | 断言口径 | N-12l 断言 `reserved=1,total=0`；新增 `total ≤ reserved` |
+| 测试 | SQLite 实际执行验证 | 新增 N-12m；本地临时 SQLite 已执行 SQL/事务语义验证（见交付报告 §7） |
+| 范围 | `edd2f99..HEAD` 表述 | 改为「本轮 Session A 提交未修改 `12_/14_/15_`」，`0474b19` 属 Session B |
 
 ---
 
