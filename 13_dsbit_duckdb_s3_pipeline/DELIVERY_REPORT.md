@@ -4,10 +4,10 @@
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
 | 交付日期 | 2026-11-17 |
-| 版本 | **v1.9**（第九轮：B1 尝试次数；B2 Receipt Schema/key 生命周期；B5 REC UNKNOWN；B1–B5 负向测试） |
+| 版本 | **v1.10**（第十轮：B1 事件 PUT 预算持久化；B5 REC 先持久化 `in_flight` 再 GET） |
 | 性质 | 设计送审（DESIGN ONLY） |
 | 主文档 | `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md` |
-| Reviewer 结论（第九轮） | 待复核：B1/B2/B5 与测试矩阵；A3/A4 保持 PASS；契约冻结与 Stage A 仍不批准 |
+| Reviewer 结论（第十轮） | v1.9 为 PASS WITH REQUIRED REVISIONS；B1/B5 待定向复核；B2–B4 沿用 PASS；契约冻结与 Stage A 仍不批准 |
 | v1.0 提交 | 设计 `a62c70d644ced735ccfe079b086aca744f142f93`；报告 `ce6ba2db2839cb49a69702d3251482c4b58ba633` |
 | v1.1 设计修订提交 | `f8b8085fa12d57050e176bc8517a5a4856eaceef` |
 | v1.1 报告与校验清单 | `cdc61147387801c1b758deae89bb871467ef92d7` |
@@ -26,7 +26,9 @@
 | v1.8 设计修订提交 | `59eff5b6dd39ede7cf5353fc4fc150c8f5869046` |
 | v1.8 报告与校验清单 | `5fa7c5ca7acb4a2780811de03b50a7e6b8f30fa5` |
 | v1.9 设计修订提交 | `0b50f38daa2f751458a0d77c5e58d022b097ec48` |
-| v1.9 报告与校验清单 | 紧随 v1.9 设计提交（SHA 见 `git log`） |
+| v1.9 报告与校验清单 | `edd2f9947f4101630966287886610b0b510ee98b` |
+| v1.10 设计修订提交 | `（提交后回填）` |
+| v1.10 报告与校验清单 | 紧随 v1.10 设计提交（SHA 见 `git log`） |
 | Ds Bit 基线 | `600439a5eee69fb3a1cec2715e37080e48ca9840`（分支 `backup/full-local-20261114`） |
 | 送审仓库任务启动基线 | `0fa9d34` |
 | 送审仓库设计提交直接父提交（v1.0） | `fc4bcc5` |
@@ -194,16 +196,30 @@ v1.1/v1.2 只修改上述 `13_` 目录内的文件；**未修改**：
 
 > 本轮仍为设计层修订：未改代码、未重跑测试、未做真实存储验证。
 
+### 4.10 第十轮 B1/B5（v1.10）
+
+| 编号 | Reviewer 要求 | v1.10 处置 | 复核位置 |
+|---|---|---|---|
+| **B1-3** | 事件 PUT 预算无持久化数据结构 | 预算归属 SQLite `events` 行：新增 `put_attempts`、`event_state`、`put_started_at`、`last_put_at`；明确与 `commits.put_attempts`（仅 receipt）分离 | 主文档 §5.2.5.5.3；附件 §9.2/§9.10 |
+| **B1-4** | PUT 前原子占预算 | 同事务 `UPDATE events SET put_attempts=put_attempts+1 WHERE event_id=? AND put_attempts < :max_puts`，仅 `changes()=1` 才发 PUT；预算只减不增，PUT 前崩溃不退回 | 主文档 §5.2.5.5.3 |
+| **B1-5** | 重启与回读边界 | 重启按 `put_attempts` 续算，终态不再 PUT；回读（成功/失败/超时/404）不计 PUT 预算；N-12h1/h2 增重启与回读断言 | 矩阵 N-12h1/N-12h2 |
+| **B5-3** | REC 一次性标记先于 GET | 顺序改为：① SQLite 提交 `rec_attempted=1, rec_state='in_flight', rec_at=now, verify_attempts_total+=1` → ② 单次 GET → ③ 提交结果 | 主文档 §5.2.5.2.1；附件 §9.9 |
+| **B5-4** | `in_flight` 崩溃恢复与状态归属 | `in_flight` 一律按 `unknown` 恢复、不重发；`REC_PENDING_UNKNOWN` 为 `COMMITTED_PENDING_RECEIPT` 内部子状态，权威字段 `commits.rec_state`，不新增 `tasks.state` | 主文档 §5.2.5.2.1；矩阵 N-12l |
+| **B5-5** | 两个崩溃点测试 | N-12l 增「`in_flight` 已提交、GET 前崩溃」与「GET 已返回、结果未持久化崩溃」 | 矩阵 N-12l |
+| — | B2 非阻断建议 | N-12i 增「legacy key 已 revoked/不可读仍拒绝 L3」 | 矩阵 N-12i |
+
+> 本轮仍为设计层修订：未改代码、未重跑测试、未做真实存储验证。
+
 ---
 
-## 5. 关键架构决策（v1.9）
+## 5. 关键架构决策（v1.10）
 
 1. 批量路径仍是「本地处理 → 大批 Parquet → 上传 → 批量查询」；
 2. DuckDB 仍只做分析查询，单写快照，不是队列/锁/事实源；
 3. 任务分配为**单写协调器 + `lease_generation` + COMMIT 事务**；发租约前先持久化 watermark；
 4. **成功提交点**不是 manifest，而是「协调器 commit 记录 + receipt 一致」；
-5. receipt 四态 + `episode_no≤1` + 一次性 REC；无 CAS 仅首次串行创建、永不重写；REC `UNKNOWN` 进入 `REC_PENDING_UNKNOWN`（不重跑、不开 episode 1）；总量 20 后仅 observation；
-6. orphan 事件分 `storage_atomic/coordinator_serialized` 两种模式，总 PUT 次数分别为 ≤3/≤2（含首次）；L3 需 `commit-receipt/v2` 的 `token_key_id`、key registry（`active/verify_only/revoked`）、token 账本、严格相等 generation；
+5. receipt 四态 + `episode_no≤1` + 一次性 REC；无 CAS 仅首次串行创建、永不重写；REC 先持久化 `in_flight` 再 GET，`in_flight` 崩溃按 `unknown` 恢复；`REC_PENDING_UNKNOWN` 是 `COMMITTED_PENDING_RECEIPT` 内部子状态（权威 `commits.rec_state`）；总量 20 后仅 observation；
+6. orphan 事件分 `storage_atomic/coordinator_serialized` 两种模式，总 PUT 次数分别为 ≤3/≤2（含首次），预算持久化在 `events` 行（PUT 前原子 +1、只减不增、回读不计）；L3 需 `commit-receipt/v2` 的 `token_key_id`、key registry（`active/verify_only/revoked`）、token 账本、严格相等 generation；
 7. Run Manifest 与 Batch/Partition Manifest 分离，Catalog 只按 part_manifest 计总行数；
 8. `reproducibility_key` v2；`task_id` = `<batch_id>:<sha256(source_sha256 + requested_mpn)>`；
 9. Stage A 必须在最终选型存储上通过 C1–C10。
@@ -373,6 +389,22 @@ R1-3 的修订仍需 Reviewer 定向复核；OD-01/OD-02/OD-03/OD-05/OD-19 仍�
 | 契约冻结 / Stage A / 基准 / 试跑 / 生产 | **不批准** |
 
 > v1.9 只改 `13_` 内的 B1/B2/B5 与对应测试设计；A3/A4、R5、R2–R4/R6 与总体架构未改。
+> 代码未改、测试未重跑，历史基线仍为 `893 passed / 1 failed / 2 xfailed`。
+
+### 9.10 第十轮（v1.9）
+
+| 项 | 结论 |
+|---|---|
+| Git 提交与 A/B 边界 | PASS |
+| B1 | PARTIAL（v1.10 已补事件 PUT 预算持久化、原子占用、重启与回读边界） |
+| B2 | PASS（设计层，保持） |
+| B3 / B4 | 沿用此前裁定 |
+| B5 | PARTIAL（v1.10 已改为先 `in_flight` 再 GET，并补两个崩溃点） |
+| R1-3 总体 | **OPEN** |
+| v1.10 状态 | 待 Reviewer 定向复核 |
+| 契约冻结 / Stage A / 基准 / 试跑 / 生产 | **不批准** |
+
+> v1.10 只改 `13_` 内的 B1/B5 与对应测试设计；A3/A4、B2–B4、R5、R2–R4/R6 与总体架构未改。
 > 代码未改、测试未重跑，历史基线仍为 `893 passed / 1 failed / 2 xfailed`。
 
 ---

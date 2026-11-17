@@ -3,9 +3,9 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
-| 文档版本 | v1.9（第九轮：B1 尝试次数；B2 Receipt Schema/key 生命周期；B5 REC UNKNOWN；B1–B5 负向测试） |
+| 文档版本 | v1.10（第十轮：B1 事件 PUT 预算持久化；B5 REC 先持久化 `in_flight` 再 GET） |
 | 日期 | 2026-11-17 |
-| 修订 | v1.9 只补 B1/B2/B5 与测试矩阵；A3/A4 保持关闭，R5、R2–R4/R6 与总体架构不动 |
+| 修订 | v1.10 只补 B1/B5 的持久化与崩溃边界；A3/A4、B2–B4 保持关闭，R5、R2–R4/R6 与总体架构不动 |
 | 性质 | 架构与实施设计（DESIGN ONLY） |
 | 实现状态 | **未实现**；本文件不含生产代码、不含部署、不含数据迁移 |
 | 基线仓库 | `E:\workspace\icpdf-extractor` |
@@ -156,6 +156,20 @@
 | **测试** | B1–B5 负向测试矩阵 | 新增 N-12h（B1）、N-12i（B2）、N-12j（B3）、N-12k（B4）、N-12l（B5） | 矩阵 |
 
 > v1.9 仍不改变三层架构、DuckDB 边界、R5 身份模型与协调器单写者模型；A3/A4 不再改。
+
+### 0.11 第十轮复核修订（v1.9 → v1.10）
+
+| 编号 | Reviewer 要求 | v1.10 处置 | 位置 |
+|---|---|---|---|
+| **B1-3** | 事件 PUT 预算无持久化数据结构 | 明确预算归属 SQLite `events` 行：新增 `put_attempts` / `event_state` / `put_started_at` / `last_put_at`；与 `commits.put_attempts`（仅 receipt）分离 | §5.2.5.5.3；附件 §9.2/§9.10 |
+| **B1-4** | 每次 PUT 前如何原子占预算 | PUT 前同事务 `UPDATE ... SET put_attempts=put_attempts+1 WHERE put_attempts < max`，仅 `changes()=1` 才发 PUT；预算只减不增，崩溃不退回 | §5.2.5.5.3 |
+| **B1-5** | 重启与回读的预算边界 | 重启按 `put_attempts` 续算；回读（成功/失败/超时）不计入 PUT 预算也不增计数；N-12h1/h2 增重启场景 | §5.2.5.5.3；矩阵 |
+| **B5-3** | REC 一次性标记必须先于 GET 持久化 | 执行顺序改为：`rec_attempted=1, rec_state='in_flight'` 先 COMMIT → 单次 GET → 持久化结果 | §5.2.5.2.1 |
+| **B5-4** | 崩溃恢复与状态归属 | `in_flight` 崩溃一律按 `UNKNOWN`；`REC_PENDING_UNKNOWN` 是 `COMMITTED_PENDING_RECEIPT` 的内部子状态，权威字段 `commits.rec_state`，不新增 `tasks.state` | §5.2.5.2.1 |
+| **B5-5** | 两个崩溃点测试 | N-12l 增「`in_flight` 已提交、GET 前崩溃」与「GET 已返回、结果未持久化崩溃」 | 矩阵 N-12l |
+| — | B2 非阻断建议 | N-12i 增「`legacy_receipt_key_id` 指向 `revoked` key」组合场景 | 矩阵 N-12i |
+
+> v1.10 不重新打开 A3/A4、B2、B3/B4、R5、R2–R4/R6 与总体架构。
 
 ---
 
@@ -878,7 +892,7 @@ write_receipt(commit):
 1. **普通 30 s reconcile 延续当前 episode**：不重置 `episode_attempts` / `episode_started_at`，只继续用剩余次数与剩余时间；
 2. 当前 episode 达到 10 次或 60 s 后**结束**，任务保持 `pending`；`next_retry_at` 供观测，但 **不会自动开启新 episode**；
 3. 仅当满足 §5.2.5.2.1 的全部重写条件并执行**第二次 PUT** 后，才允许 `episode_no: 0 → 1`；它是**最后一个** episode；
-4. 协调器重启：从 SQLite 恢复 `episode_no` / `episode_attempts` / `episode_started_at` / `verify_attempts_total` / `rec_attempted` / `rec_state`；**恢复原 episode，不自动新增**；无法恢复时保持 `pending`，走 L1/L2/L3，不通过重启获得新预算；
+4. 协调器重启：从 SQLite 恢复 `episode_no` / `episode_attempts` / `episode_started_at` / `verify_attempts_total` / `rec_attempted` / `rec_state`；`rec_state='in_flight'` 一律按 `unknown` 恢复且不重发 REC；**恢复原 episode，不自动新增**；无法恢复时保持 `pending`，走 L1/L2/L3，不通过重启获得新预算；
 5. `verify_attempts_total` 既作审计计数，也作总量上限（20）；达到后只允许 **observation-only GET**（见下），不再新 episode；
 6. `pending_since` 的 3600 s 是 commit 生命周期预算，不因 episode 或重启重置。
 
@@ -887,11 +901,22 @@ write_receipt(commit):
 - episode 0 结束且冷却期满足后，允许**一次且仅一次** REC；
 - REC = **1 次 GET**，用于确认当前仍为 `ABSENT`；
 - REC 的 GET **计入** `verify_attempts_total`，但**不占用** episode 1 的 10 次额度；
-- 持久化字段：`rec_attempted`、`rec_state`、`rec_at`；重启后 `rec_attempted=true` 时**不得再次执行 REC**（L1 恢复保留该值）；
+- 持久化字段：`rec_attempted`、`rec_state`、`rec_at`；`rec_state ∈ {in_flight, written, absent, conflict, unknown}`；
+- **执行顺序（v1.10/B5：先占用，后执行）**：
+  1. SQLite 事务：`rec_attempted=1`、`rec_state='in_flight'`、`rec_at=now`、`verify_attempts_total = verify_attempts_total + 1`，**COMMIT**；
+  2. 仅在第 1 步提交成功后，执行**一次** REC GET；
+  3. SQLite 事务：写入结果 `written|absent|conflict|unknown` 与新的 `rec_at`，**COMMIT**。
+- **崩溃恢复**：
+  - 第 1 步后、GET 前崩溃：重启见 `rec_state='in_flight'` → 一律按 `UNKNOWN` 处理（改写为 `unknown`），进入 `REC_PENDING_UNKNOWN`，**不得重发 REC**；
+  - GET 已发出、结果未持久化时崩溃：同样按 `in_flight → unknown` 处理，不重发、不重复计数；
+  - 第 3 步已提交：按持久化结果处理，不再重跑 REC；
+  - 重启后 `rec_attempted=1` 时**不得再次执行 REC**（L1 恢复保留该值）。
+- **状态归属**：`REC_PENDING_UNKNOWN` **不是** `tasks.state` 的新增枚举，而是 `COMMITTED_PENDING_RECEIPT` 的内部子状态；权威字段是 `commits.rec_state='unknown'`，`tasks.state` 仍保持 `COMMITTED_PENDING_RECEIPT`。`GET /v1/state/<task_id>` 同时返回 `tasks.state` 与 `commits.rec_state`，避免两套状态机。
 - REC 结果与后续状态：
 
 | REC 结果 | `rec_state` | 后续 |
 |---|---|---|
+| （执行前已持久化） | `in_flight` | 崩溃恢复按 `UNKNOWN`，不重发 REC |
 | `WRITTEN` | `written` | 直接 `SUCCEEDED`，不 PUT |
 | `CONFLICT` | `conflict` | `QUARANTINED` |
 | `ABSENT` | `absent` | 全部重写条件满足 → 第二次 PUT → `episode_no=1`；否则 pending |
@@ -1084,6 +1109,25 @@ event_id = sha256(f"{batch_id}|{task_id}|receipt_without_commit|{receipt_sha256}
   - 单协调器串行写入；GET → 404 → **普通 PUT（同字节）** → 回读；
   - 超时 → GET 回读：同字节 → 成功；不同 → 冲突；404 → 退避后重试普通 PUT；**总 PUT 次数 ≤2（含首次，即最多 1 次重试）**；仍 404 → `unresolved`；
   - **不得宣称存储层原子去重**；若存在第二个协调器，本模式不成立（不属于支持场景）；
+- **事件 PUT 预算持久化（v1.10/B1）**：
+  - **归属**：预算属于 SQLite `events` 表的**事件行**（`event_id` 唯一），字段为 `put_attempts` / `event_state` / `put_started_at` / `last_put_at`；**不使用** `commits.put_attempts`（后者只属于 receipt 写入预算）；
+  - **上限**：`max_puts = 3`（`storage_atomic`）/ `2`（`coordinator_serialized`），按事件的 `event_dedup` 模式固定，不随重启改变；
+  - **事件行先于 PUT 存在**：首次写入前先 `INSERT OR IGNORE INTO events(event_id, task_id, at, event_state='pending', put_attempts=0)`；预算占用与事件行创建在**同一事务**内，保证崩溃后仍能读到已占用次数；
+  - **原子占用（PUT 前）**：每次实际 PUT 前，必须在同一 SQLite 事务内执行
+    ```sql
+    UPDATE events
+       SET put_attempts = put_attempts + 1,
+           put_started_at = COALESCE(put_started_at, :now),
+           last_put_at = :now
+     WHERE event_id = :event_id
+       AND put_attempts < :max_puts;
+    -- changes() = 1 才允许发 PUT；changes() = 0 → 预算耗尽 → event_state='unresolved'
+    ```
+    预算**只减不增**：PUT 前崩溃被占用的次数不退回；
+  - **PUT 后 / 回读前崩溃**：重启只做 GET 回读，不新增 PUT、不增加 `put_attempts`；
+  - **回读不计预算**：GET 回读（成功、失败、超时、404 退避）不计入 `put_attempts`，也不改变剩余 PUT 次数；
+  - **重启恢复**：重启读取 `put_attempts` 与 `event_state` 继续；`event_state ∈ {written, conflict, unresolved}` 为终态，任何路径都不再发 PUT；
+  - **终态写入**：回读一致 → `written`；字节不同 → `conflict`；预算耗尽仍 404 → `unresolved`（quarantine 保留并告警）。
 - 两种模式都必须使用固定字段与稳定字节；`first_seen_at` 来自 quarantine，不使用当前时间；
 - SQLite `events` 表增加 `UNIQUE(event_id)`，写入用 `INSERT OR IGNORE`；
 - 放弃「整文件 JSONL 覆盖写」：对象存储 PUT 是整对象替换，无法保证并发/重放下的原子去重；
@@ -1091,7 +1135,7 @@ event_id = sha256(f"{batch_id}|{task_id}|receipt_without_commit|{receipt_sha256}
   - 不存在 → 写；
   - 同 `reason` 且同 `receipt_sha256` → 只更新 `last_seen_at`；
   - `receipt_sha256` 变化 → 新 `event_id`，记录 `first_receipt_sha256` / `last_receipt_sha256` / `receipt_changed=true`，仍为 `QUARANTINED`；
-- 执行顺序：① 写/更新 quarantine（幂等，确定 `first_seen_at`）→ ② 条件写事件对象（稳定字节、`event_id` 去重）→ ③ SQLite 事务更新任务状态；任一步崩溃后重放，事件对象仍恰好一个。
+- 执行顺序（v1.10）：① 写/更新 quarantine（幂等，确定 `first_seen_at`）→ ② SQLite 事务：`INSERT OR IGNORE` 事件行 + 原子占用一次 PUT 预算 → ③ 条件/普通 PUT 事件对象（稳定字节、`event_id` 去重）并回读 → ④ SQLite 事务：写 `event_state` 终态并更新任务状态；任一步崩溃后重放，事件对象仍恰好一个，且 PUT 总次数不超过上限。
 
 **发现路径（有界，不 list 全桶）**：
 

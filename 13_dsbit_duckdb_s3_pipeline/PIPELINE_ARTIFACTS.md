@@ -723,8 +723,8 @@ CREATE TABLE commits (
   episode_started_at TEXT,
   pending_since TEXT,
   next_retry_at TEXT,
-  rec_attempted INTEGER NOT NULL DEFAULT 0,
-  rec_state TEXT,                                 -- written|conflict|absent|unknown
+  rec_attempted INTEGER NOT NULL DEFAULT 0,       -- 执行 REC GET 前先置 1（B5）
+  rec_state TEXT,                                 -- in_flight|written|conflict|absent|unknown
   rec_at TEXT,
   token_key_id TEXT NOT NULL,
   recovered_from_receipt INTEGER NOT NULL DEFAULT 0,
@@ -743,7 +743,11 @@ CREATE TABLE events (
   at TEXT NOT NULL,
   worker_id TEXT,
   error_class TEXT,
-  receipt_state TEXT
+  receipt_state TEXT,
+  put_attempts INTEGER NOT NULL DEFAULT 0,        -- 事件 PUT 预算（B1，只减不增）
+  event_state TEXT NOT NULL DEFAULT 'pending',    -- pending|written|conflict|unresolved
+  put_started_at TEXT,                            -- 首次占用预算时间
+  last_put_at TEXT                                -- 最近一次实际 PUT 时间
 );
 ```
 
@@ -881,7 +885,7 @@ write_receipt(commit):
 
 **episode 状态机（A5/B5）**：`episode_no ∈ {0,1}`；普通 30 s reconcile **延续当前 episode**（不重置次数/截止）；只有第二次 PUT 后允许 `0→1`；重启恢复原 episode，不自动新增；`verify_attempts_total` 上限 20；`pending_since` 3600 s 生命周期上限。
 
-**REC（B5）**：episode 0 结束后允许一次 1 次 GET 的**重写资格检查**；计入 `verify_attempts_total`，不占 episode 1 的 10 次；`WRITTEN` 直接成功、`CONFLICT` 隔离、`ABSENT` 且条件全满足才第二次 PUT、`UNKNOWN` 进入 `REC_PENDING_UNKNOWN`（不重跑 REC，普通 GET 计数，20 次后 observation，3600 s 隔离）；`rec_attempted/rec_state/rec_at` 持久化，重启不重复。
+**REC（B5）**：episode 0 结束后允许一次 1 次 GET 的**重写资格检查**；计入 `verify_attempts_total`，不占 episode 1 的 10 次；**执行顺序**：① SQLite 提交 `rec_attempted=1, rec_state='in_flight', rec_at=now, verify_attempts_total+=1` → ② 单次 GET → ③ 提交 `written|absent|conflict|unknown`；`WRITTEN` 直接成功、`CONFLICT` 隔离、`ABSENT` 且条件全满足才第二次 PUT、`UNKNOWN` 进入 `REC_PENDING_UNKNOWN`（不重跑 REC，普通 GET 计数，20 次后 observation，3600 s 隔离）；`rec_state='in_flight'` 时崩溃一律按 `unknown` 恢复、不重发；`rec_attempted/rec_state/rec_at` 持久化，重启不重复。`REC_PENDING_UNKNOWN` 是 `COMMITTED_PENDING_RECEIPT` 的内部子状态，`tasks.state` 不变。
 
 **无 CAS 的退化（A6）**：仅允许**首次创建**走「GET 404 → 串行 PUT → 回读」，标记 `receipt_write_mode=serialized_no_cas`；**永不重写**；未知结果只读；OD-19 未批准时禁止写入。
 
@@ -940,6 +944,7 @@ event_id = sha256(f"{batch_id}|{task_id}|receipt_without_commit|{receipt_sha256}
 - **事件对象**：`control/events/<batch>/coordinator/<event_id>.json`（一事件一对象）；`event_id` 即键，`If-None-Match: *` 条件写；
 - 已存在且字节一致 → 幂等成功；已存在且字节不同 → `EVENT_CONFLICT`，隔离不覆盖；
 - SQLite `events.event_id` UNIQUE + `INSERT OR IGNORE`；
+- **事件 PUT 预算（B1）**：预算记录在 `events` 行（`put_attempts/event_state/put_started_at/last_put_at`），与 `commits.put_attempts`（receipt）分离；首次 PUT 前先 `INSERT OR IGNORE` 事件行，再在同一事务执行 `UPDATE events SET put_attempts=put_attempts+1 WHERE event_id=? AND put_attempts < :max_puts`，仅 `changes()=1` 才发 PUT；上限 `storage_atomic=3` / `coordinator_serialized=2`（均含首次）；回读不计预算；重启按 `put_attempts` 续算，不退回、不重置；
 - **不再使用整文件 JSONL**（PUT 是整对象替换，无法原子去重）；
 - receipt_sha 变化 → 新 event_id，记录 `first_receipt_sha256` / `last_receipt_sha256` / `receipt_changed=true`。
 

@@ -3,11 +3,11 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
-| 版本 | v1.9（第九轮：B1 尝试次数；B2 Receipt Schema/key 生命周期；B5 REC UNKNOWN；B1–B5 负向测试） |
+| 版本 | v1.10（第十轮：B1 事件 PUT 预算持久化；B5 REC 先持久化 `in_flight` 再 GET） |
 | 日期 | 2026-11-17 |
-| 修订 | v1.9 只补 B1/B2/B5 与测试矩阵；A3/A4 保持关闭，R5、R2–R4/R6 与总体架构不动 |
+| 修订 | v1.10 只补 B1/B5 持久化与崩溃边界；A3/A4、B2–B4 保持关闭，R5、R2–R4/R6 与总体架构不动 |
 | 性质 | 架构与实施设计；**不是**生产实现、不是部署、不是数据迁移 |
-| 状态 | 送 Reviewer 定向复核；v1.8 契约冻结与 Stage A 均未批准 |
+| 状态 | 送 Reviewer 定向复核；v1.9 契约冻结与 Stage A 均未批准 |
 | 目标产物 | `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md` |
 | 上游依据 | ① Ds Bit 仓库 `E:\workspace\icpdf-extractor`（HEAD `600439a5eee69fb3a1cec2715e37080e48ca9840`）② `lake/` Stage B 单件血缘 Demo ③ Morrishk 技术方案 v1.2 §7「Ds Bit 参数化」④ 已批准的 DuckDB + S3 兼容对象存储离线架构方向 |
 | 全量口径 | 去重 PDF **568,830** 份（约 56.9 万；任务书中的「56.8 万」是 56.883 万截断后的写法，两者同源） |
@@ -50,7 +50,7 @@
 ## 3. 复核路径（10–15 分钟）
 
 1. 读主文档 **§2**：`CONFIRMED / PROPOSED / OPEN` 三类清单与证据位置。
-2. 读 **§0.10 + §5.2.5**：v1.9 的尝试次数、Receipt v2/key registry、REC UNKNOWN。
+2. 读 **§0.11 + §5.2.5**：v1.10 的 B1 事件 PUT 预算持久化、B5 REC `in_flight` 顺序。
 3. 读 **§5.6 + §7.2**：v1.1 对 R2 的两级 Manifest 与三级行数对账。
 4. 读 **§10.2**：v1.1 对 R3 的样本池 P/Q 与五类失败率分母。
 5. 读 **§5.4.1**：v1.1 对 R4 的 `reproducibility_key` v2 字段表。
@@ -164,6 +164,18 @@ sha256sum -c SHA256SUMS.txt
 | B5-1 | REC UNKNOWN | 新增 `REC_PENDING_UNKNOWN`；不重跑 REC；普通 GET 计数；20 次后 observation；3600 s 隔离 |
 | B5-2 | REC 重启 | `rec_attempted/rec_state/rec_at` 持久化，重启不重复 |
 | 测试 | B1–B5 矩阵 | 新增 N-12h/i/j/k/l |
+
+### 3.10 第十轮复核响应（v1.10）
+
+| 编号 | Reviewer 问题 | v1.10 处置 |
+|---|---|---|
+| B1-3 | 事件 PUT 预算无持久化数据结构 | 预算归属 `events` 行：`put_attempts/event_state/put_started_at/last_put_at`；与 `commits.put_attempts` 分离 |
+| B1-4 | PUT 前如何原子占预算 | 同事务 `UPDATE ... WHERE put_attempts < max`，`changes()=1` 才 PUT；预算只减不增 |
+| B1-5 | 重启/回读边界 | 重启按 `put_attempts` 续算；回读不计 PUT 预算；N-12h1/h2 增重启与回读断言 |
+| B5-3 | REC 一次性标记顺序 | 先提交 `rec_attempted=1, rec_state='in_flight'`，再执行单次 GET，最后提交结果 |
+| B5-4 | 崩溃恢复/状态归属 | `in_flight` 崩溃按 `unknown` 恢复；`REC_PENDING_UNKNOWN` 为内部子状态，权威 `commits.rec_state` |
+| B5-5 | 崩溃点测试 | N-12l 增「GET 前崩溃」「结果未持久化崩溃」两项 |
+| — | B2 非阻断建议 | N-12i 增 legacy key 已 revoked/不可读仍拒绝 L3 |
 
 ---
 

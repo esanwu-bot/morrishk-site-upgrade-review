@@ -464,6 +464,9 @@ DELETE FROM commits WHERE task_id = 'T';
 |---|---|
 | 前提 | 存储通过 C1/C2，`event_dedup=storage_atomic` |
 | 断言 | 首次用 `If-None-Match: *`；总 PUT 次数 ≤3（含首次）；412/409 后 GET 比较；超时只回读；仍 ABSENT → `unresolved`，不写入 |
+| 预算持久化 | `events.put_attempts` 在每次 PUT 前原子 +1（`changes()=1` 才发 PUT）；`events.event_state ∈ {pending,written,conflict,unresolved}` |
+| 重启 | PUT 前崩溃：`put_attempts` 已占用不退回，重启后剩余次数 = 3 − `put_attempts`；PUT 后/回读前崩溃：重启只 GET 回读，不新增 PUT；总 PUT 次数仍 ≤3 |
+| 回读不计预算 | 回读成功/失败/超时/404 退避均不改变 `put_attempts`；仅实际 PUT 计数 |
 
 ##### N-12h2 事件写入 `coordinator_serialized`（B1）
 
@@ -471,6 +474,9 @@ DELETE FROM commits WHERE task_id = 'T';
 |---|---|
 | 前提 | 存储未通过 C1/C2 |
 | 断言 | 使用普通 PUT；总 PUT 次数 ≤2（含首次）；不得标记 `storage_atomic`；超时回读；仍 ABSENT → `unresolved` |
+| 预算持久化 | `events.put_attempts` 在每次 PUT 前原子 +1；上限 2；`events` 行与 `commits.put_attempts` 互不混用 |
+| 重启 | PUT 前崩溃不退回预算；重启后总 PUT 次数仍 ≤2；终态 `written/conflict/unresolved` 不再 PUT |
+| 回读不计预算 | 回读不增加 `put_attempts`，也不获得新的 PUT 次数 |
 
 ##### N-12i Token key 生命周期（B2）
 
@@ -481,6 +487,7 @@ DELETE FROM commits WHERE task_id = 'T';
 | 未知 key_id | L3 禁止，隔离 |
 | revoked key | L3 禁止，告警 |
 | v1 receipt 无 key_id | 未配置 `legacy_receipt_key_id` → `LEGACY_RECEIPT_NO_KEY_ID` 隔离；配置后才允许 |
+| legacy key 已 revoked 或不可读 | 即使配置 `legacy_receipt_key_id`，仍必须拒绝 L3 并告警 |
 
 ##### N-12j Watermark 顺序（B3）
 
@@ -510,6 +517,9 @@ DELETE FROM commits WHERE task_id = 'T';
 | `UNKNOWN` | `REC_PENDING_UNKNOWN`；不重跑 REC；普通 GET 计数；WRITTEN 可成功；20 次后 observation；3600 s 隔离 |
 | `ABSENT` 且条件满足 | 第二次 PUT → episode 1；上限 `min(10,20-total)` |
 | 重启 | `rec_attempted=true`，不重复 REC |
+| 崩溃点 1：`in_flight` 已提交、GET 前崩溃 | 重启见 `rec_state='in_flight'` → 按 `unknown` 恢复；REC GET 次数 = 0；`verify_attempts_total` 已在第 1 步 +1 且重启不再增加；进入 `REC_PENDING_UNKNOWN`，不重发 |
+| 崩溃点 2：GET 已返回、结果未持久化 | 重启按 `unknown` 恢复；不重发 REC；`verify_attempts_total` 已 +1 且不重复增加；`rec_at` 保留首次 |
+| 状态归属 | `tasks.state` 仍为 `COMMITTED_PENDING_RECEIPT`；`commits.rec_state='unknown'` 为权威；`GET /v1/state` 同时返回两者 |
 
 ### N-13 任务重试产生重复结果
 
