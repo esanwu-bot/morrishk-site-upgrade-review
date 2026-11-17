@@ -9,7 +9,8 @@
 | 主文档 | `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md` |
 | Reviewer 结论 | 提交完整性 PASS；架构方向 PASS；数据契约 REVISIONS REQUIRED；P0 OPEN；**Stage A 未批准** |
 | v1.0 提交 | 设计 `a62c70d644ced735ccfe079b086aca744f142f93`；报告 `ce6ba2db2839cb49a69702d3251482c4b58ba633` |
-| v1.1 提交 | 设计修订：`（提交后回填）`；报告与校验清单：`（随本次提交）` |
+| v1.1 设计修订提交 | `f8b8085fa12d57050e176bc8517a5a4856eaceef` |
+| v1.1 报告与校验清单 | 紧随 `f8b8085` 的报告提交（SHA 见 `git log`；不预先编造） |
 | Ds Bit 基线 | `600439a5eee69fb3a1cec2715e37080e48ca9840`（分支 `backup/full-local-20261114`） |
 | 送审仓库任务启动基线 | `0fa9d34` |
 | 送审仓库设计提交直接父提交（v1.0） | `fc4bcc5` |
