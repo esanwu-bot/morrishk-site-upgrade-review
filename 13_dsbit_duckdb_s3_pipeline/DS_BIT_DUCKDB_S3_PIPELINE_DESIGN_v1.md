@@ -3,9 +3,9 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
-| 文档版本 | v1.2（第二轮复核：R1 协议缺口、R5 身份规则；仍未冻结） |
+| 文档版本 | v1.3（第三轮：补齐 R1-3 receipt 冲突与崩溃边界） |
 | 日期 | 2026-11-17 |
-| 修订 | v1.2 闭合 R1（租约到期即失效、token 循环依赖、receipt 崩溃恢复）与 R5（重复输入身份）；R2/R3/R4/R6 不动 |
+| 修订 | v1.3 只补 R1-3：receipt 已存在的读-比较-不覆盖规则、写入超时核对、写成功但 SQLite 未更新时的恢复；R2–R6 与架构方向不动 |
 | 性质 | 架构与实施设计（DESIGN ONLY） |
 | 实现状态 | **未实现**；本文件不含生产代码、不含部署、不含数据迁移 |
 | 基线仓库 | `E:\workspace\icpdf-extractor` |
@@ -60,6 +60,18 @@
 | R2/R3/R4/R6 | PASS | 不修改；只补 R3 的 Q 子类配额与 R2 的同快照对账说明 | §10.2、§7.2 |
 
 > 第二轮复核的 R2/R3/R4/R6 已 PASS，本版不重写这些章节；只做必要的衔接修订。
+
+### 0.4 第三轮复核修订（v1.2 → v1.3）
+
+| 编号 | Reviewer 结论 | v1.3 处置 | 位置 |
+|---|---|---|---|
+| **R1-3a** | receipt 已存在时，协调器如何读取、比较、保证不覆盖 | 明确 **GET → 逐字节比较 → 仅在 404 时条件写 → 写后回读**；已有不同内容一律 `conflict`，不 PUT | §5.2.5.1、附件 §9.9 |
+| **R1-3b** | 写入超时但实际已成功，reconciler 如何区分「相同内容」与「冲突内容」 | 超时后**不做盲目重试 PUT**；先 GET 回读，字节一致视为已写入，不一致进入 `conflict` | §5.2.5.2、附件 §9.9 |
+| **R1-3c** | PUT 成功、`receipt_state='written'` 更新前崩溃 | 重启后 `pending` → GET 回读 → 字节一致则只更新状态，不重复写；不一致则隔离 | §5.2.5.3；N-12f |
+| **R1-3d** | N-12f/N-12g 需覆盖上述两种边界 | 拆为 N-12f1–f4、N-12g1–g3，含「PUT 成功但状态未写」「超时但实际成功」「412 已存在同内容」「已存在不同内容」「receipt 存在但 commit 缺失」 | `INVARIANT_AND_NEGATIVE_TEST_MATRIX.md` |
+| — | R5 PASS，但 `canonical_json` 与 MPN 规范化留待实现阶段 | 本轮**不改 R5**；在 `OPEN_DECISIONS.md` 记录为实现阶段待定项，不改变已通过的身份模型 | OD-21（记录，不阻断） |
+
+> v1.3 不改变 R2/R3/R4/R5/R6 的已通过内容，不改变协调器单写者架构；只补 receipt 的读写与冲突协议。
 
 ---
 
@@ -678,7 +690,88 @@ success = commit 记录存在
 
 **`GET /v1/receipt/<task_id>`** 返回 commit 记录的规范 receipt body，供人工/运维核对与补写；不返回其他任务的 token。
 
-**其他恢复场景**：
+#### 5.2.5.1 Receipt 的读取、比较与不可覆盖（R1-3a）
+
+**规范字节**：receipt body 使用 `canonical_json`（键排序、UTF-8、无 BOM、LF、无多余空白），字段固定为：
+
+```json
+{
+  "schema": "lakehouse/commit-receipt/v1",
+  "task_id": "...",
+  "generation": 1,
+  "token": "...",
+  "manifest_sha256": "...",
+  "run_id": "...",
+  "committed_at": "..."
+}
+```
+
+- `committed_at`、`token`、`manifest_sha256`、`run_id` 在 COMMIT 事务内已持久化，因此期望字节**可精确重建**；
+- commit 行额外记录 `receipt_sha256`（期望字节的 SHA-256），用于快速比较与审计。
+
+**写入算法（协调器唯一写者）**：
+
+```text
+write_receipt(commit):
+  expected = canonical_bytes(receipt_body(commit))
+
+  1) GET control/tasks/<task_id>/committed.json
+     404        -> 转 2)
+     200        -> sha(bytes) == commit.receipt_sha256 ?
+                     是 -> mark_written()（不 PUT）
+                     否 -> mark_conflict()（不 PUT，保留原字节）
+     403/5xx/超时 -> 退避重试 GET；GET 未成功前不得盲目 PUT
+
+  2) PUT ... If-None-Match: *
+     200        -> 转 3)
+     412/409    -> 转 1)（已有对象，必须回读比较）
+     超时/5xx    -> 转 1)（写入结果未知，先核对）
+
+  3) GET 回读
+     bytes == expected -> mark_written()
+     bytes != expected -> mark_conflict()
+```
+
+**硬性规则**：
+
+1. 协调器**不得**对已存在的 receipt 执行覆盖写；发现不同内容即 `conflict`，原字节保持不变；
+2. 比较以 `receipt_sha256` 为准，必要时逐字节比对；不接受「时间戳相近」「大小相同」等等价判断；
+3. 若目标存储不支持 `If-None-Match`（OD-19），仍必须先 GET 再写，且协调器保持单写者；写后回读校验不可省略；
+4. 其他角色（Worker、分析节点）**没有** receipt 写权限（OD-16）。
+
+#### 5.2.5.2 写入超时的判定（R1-3b）
+
+- 超时视为「结果未知」，不视为失败；
+- 先 GET 回读：
+  - bytes == expected → 已写入，`written`；
+  - 404 → 写入未落地或尚不可见，退避后重试；超过 10 次仍 404 → 保持 `pending`，告警；
+  - bytes != expected → `conflict`；
+- **禁止**在未回读前重复 PUT，避免把「已成功」误判为失败后产生第二次写（即使内容相同，也会浪费请求并模糊审计）。
+
+#### 5.2.5.3 PUT 成功、SQLite 未更新时崩溃（R1-3c）
+
+| 崩溃时点 | 恢复动作 |
+|---|---|
+| SQLite commit 已提交、PUT 未执行 | `pending` → GET 404 → PUT → 回读 → `written` |
+| PUT 已成功、`receipt_state='written'` 未提交 | `pending` → GET 200 且字节一致 → **只更新状态，不重复 PUT** |
+| PUT 超时但实际成功 | `pending` → GET 200 且字节一致 → `written`（同 N-12f3） |
+| PUT 返回 412（已有同内容） | `pending` → GET 200 且字节一致 → `written`（幂等） |
+| 回读内容不一致 | `conflict` → `QUARANTINED`，原字节不动 |
+
+- 重启时 `pending` 行全部走 `write_receipt`；`written` 行不重写；
+- 已 `written` 的 receipt 若在后续审计中**缺失**，标记 `QUARANTINED`，**不自动重写**（缺失本身是审计事件）；
+- 已 `written` 的 receipt 若内容变化，`QUARANTINED`，不覆盖；
+- 任何恢复都不重新签发 token；token 在 COMMIT 事务内已固定。
+
+**receipt 状态机**：
+
+```
+pending --(GET/PUT/回读一致)--> written
+pending --(已有不同内容/回读不一致)--> conflict --> QUARANTINED
+written --(缺失/内容变化，审计)--> QUARANTINED
+```
+
+#### 5.2.5.4 其他恢复场景
 
 | 场景 | 处置 |
 |---|---|
@@ -1380,8 +1473,8 @@ Q 单独抽样 50 份，不按页数分层；Q 中的 PDF 不进入「可解析�
 | N-12c | 协调器崩溃后重启 | 过期租约递增 generation 重派；已提交不重发；无重复成功 |
 | N-12d | 协调器不可达超过 TTL | Worker 停止任务；不产生成功 |
 | N-12e | 租约已到期，但 5 s 扫描尚未执行 | HEARTBEAT 与 COMMIT 均返回 409 `LEASE_EXPIRED`；不续期 |
-| N-12f | SQLite COMMIT 成功、receipt 写入前崩溃 | 重启后 reconciler 补写 receipt；同参数 COMMIT 返回同一 token；无双重状态 |
-| N-12g | commit 与 receipt 的 token/manifest 不一致 | `QUARANTINED`；不覆盖、不猜测 |
+| N-12f | COMMIT 后 receipt 未写 / PUT 后状态未写 / 写超时但实际成功 | f1–f4：重启后回读补写；同内容只更新状态、不重复 PUT；同参数 COMMIT 返回同一 token |
+| N-12g | receipt 已存在但内容不同 / receipt 存在而 commit 缺失 | g1–g3：`QUARANTINED`；原字节不变；不 PUT、不覆盖、不猜测 |
 | N-13 | 重试产生重复结果 | 多 `run_id`、多 `attempt`、多 `lease_generation`；canonical 唯一 |
 | N-14 | Eval 引用不存在的 Parse | `ManifestMissing`；退出码非 0 |
 | N-15 | Raw 对象被意外覆盖 | 条件写/版本化拒绝；校验发现篡改 |
@@ -1590,11 +1683,11 @@ D-01 ～ D-19（§3.4）。最关键的五个：
 | `lake/_s3_connectivity_test.py --local` | 103 ms，2896 行 |
 | 真实 S3 | 未测试（无凭据、无桶） |
 
-> v1.1/v1.2 只改设计文档，未改代码、未重跑上述测试；测试结果仍为 v1.0 同一基线快照的结果。
+> v1.1/v1.2/v1.3 只改设计文档，未改代码、未重跑上述测试；测试结果仍为 v1.0 同一基线快照的结果。
 
 ### 18.8 未解决问题
 
-见 `OPEN_DECISIONS.md`（20 项）。P0：
+见 `OPEN_DECISIONS.md`（21 项）。P0：
 
 - OD-01 对象存储选型/区域；
 - OD-02 `pipeline.py` 授权快照不一致；

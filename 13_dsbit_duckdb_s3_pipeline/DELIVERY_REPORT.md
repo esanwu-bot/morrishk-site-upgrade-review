@@ -4,15 +4,17 @@
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
 | 交付日期 | 2026-11-17 |
-| 版本 | **v1.2**（第二轮复核：R1 协议缺口、R5 身份规则） |
+| 版本 | **v1.3**（第三轮：补齐 R1-3 receipt 冲突与崩溃边界） |
 | 性质 | 设计送审（DESIGN ONLY） |
 | 主文档 | `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md` |
-| Reviewer 结论（第二轮） | 提交/远端 PASS；R2/R3/R4/R6 PASS；**R1/R5 仍需修订**；v1.1 契约冻结不批准；Stage A 不批准 |
+| Reviewer 结论（第三轮） | 提交/远端 PASS；R5 PASS；R1-1/R1-2 PASS；**R1-3 仍需补强**；契约冻结与 Stage A 均不批准 |
 | v1.0 提交 | 设计 `a62c70d644ced735ccfe079b086aca744f142f93`；报告 `ce6ba2db2839cb49a69702d3251482c4b58ba633` |
 | v1.1 设计修订提交 | `f8b8085fa12d57050e176bc8517a5a4856eaceef` |
-| v1.1 报告与校验清单 | `cdc61147387801c1b758deae89bb871467ef92d7`（已推送，远端 HEAD 曾为 cdc6114） |
+| v1.1 报告与校验清单 | `cdc61147387801c1b758deae89bb871467ef92d7` |
 | v1.2 设计修订提交 | `473497dd276e65cf9f6ca326bfddf9cb29865a39` |
-| v1.2 报告与校验清单 | 紧随 `473497d` 的报告提交（SHA 见 `git log`） |
+| v1.2 报告与校验清单 | `e9a56ca9b42db114b57a0fab62bcb258d7718ee4` |
+| v1.3 设计修订提交 | `（提交后回填）` |
+| v1.3 报告与校验清单 | 紧随 v1.3 设计提交（SHA 见 `git log`） |
 | Ds Bit 基线 | `600439a5eee69fb3a1cec2715e37080e48ca9840`（分支 `backup/full-local-20261114`） |
 | 送审仓库任务启动基线 | `0fa9d34` |
 | 送审仓库设计提交直接父提交（v1.0） | `fc4bcc5` |
@@ -92,15 +94,25 @@ v1.1/v1.2 只修改上述 `13_` 目录内的文件；**未修改**：
 
 > 以上是**设计层修订**，不代表 Reviewer 已认可；R1/R5 仍需定向复核。
 
+### 4.3 第三轮 R1-3（v1.3）
+
+| 编号 | Reviewer 问题 | v1.3 处置 | 复核位置 |
+|---|---|---|---|
+| **R1-3a** | receipt 已存在时如何读取/比较/不覆盖 | `GET → receipt_sha256 比较 → 仅 404 条件写 → 回读`；不同内容 `conflict`，不 PUT | 主文档 §5.2.5.1；附件 §9.9；N-12g1/g2 |
+| **R1-3b** | 写超时但实际成功如何区分 | 超时视为未知；先 GET 回读，一致即 `written`，不一致 `conflict`；未回读前禁止重复 PUT | 主文档 §5.2.5.2；N-12f3 |
+| **R1-3c** | PUT 成功、SQLite 状态未更新时崩溃 | 重启 `pending` → GET 回读一致 → 只更新状态，不重复 PUT | 主文档 §5.2.5.3；N-12f2 |
+| **R1-3d** | N-12f/N-12g 覆盖不足 | 拆为 N-12f1–f4（崩溃/状态未写/超时成功/412 同内容）与 N-12g1–g3（token 不同/manifest 不同/commit 缺失） | 矩阵 N-12f/N-12g |
+| — | R5 的 canonical_json / MPN 规范化 | 不改 R5；记录为 OD-21（实现前冻结） | `OPEN_DECISIONS.md` OD-21 |
+
 ---
 
-## 5. 关键架构决策（v1.2）
+## 5. 关键架构决策（v1.3）
 
 1. 批量路径仍是「本地处理 → 大批 Parquet → 上传 → 批量查询」；
 2. DuckDB 仍只做分析查询，单写快照，不是队列/锁/事实源；
-3. 任务分配为**单写协调器 + `lease_generation` + COMMIT 事务**；**租约到期即失效**，不依赖扫描；
+3. 任务分配为**单写协调器 + `lease_generation` + COMMIT 事务**；**租约到期即失效**；
 4. **成功提交点**不是 manifest，而是「协调器 commit 记录 + receipt 一致」；
-5. 协调器是 receipt 唯一写者；receipt outbox + reconciler 补写；同参数 COMMIT 幂等；
+5. receipt 写入固定为 **GET → sha 比较 → 仅 404 条件写 → 回读**；已存在不同内容一律 `conflict`，绝不覆盖；超时不盲目重试；
 6. Run Manifest 与 Batch/Partition Manifest 分离，Catalog 只按 part_manifest 计总行数；
 7. `reproducibility_key` v2 覆盖所有影响结果的输入；
 8. `task_id` = `<batch_id>:<sha256(source_sha256 + requested_mpn)>`；同 PDF 同 MPN = 1 task + 多 ingest；
@@ -182,8 +194,21 @@ P1/P2 见 `OPEN_DECISIONS.md`。OD-16（权限/凭据）虽为 P2，但任何上
 | Stage A | **不批准** |
 | 1000 份基准、3–5 万试跑 | **不批准** |
 
+### 9.3 第三轮（v1.2）
+
+| 项 | 结论 |
+|---|---|
+| Git 提交与远端一致性 | PASS |
+| R5 身份设计 | PASS |
+| R1-1 租约过期窗口 | PASS（设计层） |
+| R1-2 token 循环依赖 | PASS（设计层） |
+| R1-3 Receipt outbox | **仍需补强**（v1.3 已响应） |
+| R2 / R3 / R4 / R6 | 沿用此前 PASS，不代表本轮重跑 |
+| v1.2 契约冻结 | **不批准** |
+| Stage A / 1000 份 / 3–5 万 / 生产 | **不批准** |
+
 本包**不批准**：设计冻结、Stage A 实现、1000 份基准、3–5 万试跑、任何生产操作。
-R1/R5 的修订仍需 Reviewer 定向复核；OD-01/OD-05/OD-19 也不能以设计文字代替真实存储选型与测试。
+R1-3 的修订仍需 Reviewer 定向复核；OD-01/OD-02/OD-03/OD-05/OD-19 仍是实质性阻断项。
 
 ---
 

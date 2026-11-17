@@ -3,11 +3,11 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
-| 版本 | v1.2（第二轮复核：R1 协议缺口、R5 身份规则；仍未冻结） |
+| 版本 | v1.3（第三轮：补齐 R1-3 receipt 冲突与崩溃边界） |
 | 日期 | 2026-11-17 |
-| 修订 | v1.2 修复 R1-1 租约过期即失效、R1-2 token 循环依赖、R1-3 receipt 崩溃恢复、R5 重复输入身份；R2/R3/R4/R6 保持 PASS |
+| 修订 | v1.3 补 receipt 的读-比较-不覆盖、写超时核对、PUT 后状态未写的恢复；R2–R6 与架构不动 |
 | 性质 | 架构与实施设计；**不是**生产实现、不是部署、不是数据迁移 |
-| 状态 | 送 Reviewer 定向复核；v1.1 数据契约冻结与 Stage A 均未批准 |
+| 状态 | 送 Reviewer 定向复核；v1.2 契约冻结与 Stage A 均未批准 |
 | 目标产物 | `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md` |
 | 上游依据 | ① Ds Bit 仓库 `E:\workspace\icpdf-extractor`（HEAD `600439a5eee69fb3a1cec2715e37080e48ca9840`）② `lake/` Stage B 单件血缘 Demo ③ Morrishk 技术方案 v1.2 §7「Ds Bit 参数化」④ 已批准的 DuckDB + S3 兼容对象存储离线架构方向 |
 | 全量口径 | 去重 PDF **568,830** 份（约 56.9 万；任务书中的「56.8 万」是 56.883 万截断后的写法，两者同源） |
@@ -22,7 +22,7 @@
 | `PIPELINE_ARTIFACTS.md` | 对象存储目录、两级 Manifest、Parquet 分区、DuckDB SQL、Worker 状态机、协调器协议、重试策略 |
 | `INVARIANT_AND_NEGATIVE_TEST_MATRIX.md` | 13 条数据不变量 + 15 项必测 + 6 项回归负向测试（N-12 另有 a–g 子用例） |
 | `BENCHMARK_AND_COST_PLANS.md` | 单件 Demo / 1000 份基准 / 3–5 万试跑 / 成本估算方法 |
-| `OPEN_DECISIONS.md` | OD-01 ~ OD-20 未决事项、影响、选项、建议与决策人 |
+| `OPEN_DECISIONS.md` | OD-01 ~ OD-21 未决事项、影响、选项、建议与决策人 |
 | `README.md` | 本文件：基线、复核路径、未执行操作声明 |
 | `SHA256SUMS.txt` | 本目录文件的 SHA-256 校验清单 |
 
@@ -50,14 +50,14 @@
 ## 3. 复核路径（10–15 分钟）
 
 1. 读主文档 **§2**：`CONFIRMED / PROPOSED / OPEN` 三类清单与证据位置。
-2. 读 **§0.3 + §5.2**：v1.2 对 R1 的三项修复（过期即失效 / token 去循环 / receipt outbox）与 R5 的 input_key。
+2. 读 **§0.4 + §5.2.5**：v1.3 对 R1-3 的 receipt 读-比较-写-回读、超时核对、崩溃恢复。
 3. 读 **§5.6 + §7.2**：v1.1 对 R2 的两级 Manifest 与三级行数对账。
 4. 读 **§10.2**：v1.1 对 R3 的样本池 P/Q 与五类失败率分母。
 5. 读 **§5.4.1**：v1.1 对 R4 的 `reproducibility_key` v2 字段表。
 6. 读 **§10.1.1**：v1.1 对 R6 的真实对象存储一致性测试 C1–C10。
 7. 读 **§4–§7**：Raw / Parse / Eval 三层与 DuckDB 职责边界。
 8. 读 **§9 + `INVARIANT_AND_NEGATIVE_TEST_MATRIX.md`**：13 条不变量与负向测试（15 项必测 + 6 项回归）。
-9. 读 **`OPEN_DECISIONS.md`**：20 个未决项的阻断级别与决策人（P0：OD-01 / OD-02 / OD-03 / OD-05 / OD-19）。
+9. 读 **`OPEN_DECISIONS.md`**：21 个未决项的阻断级别与决策人（P0：OD-01 / OD-02 / OD-03 / OD-05 / OD-19）。
 10. 校验完整性：
 
 ```bash
@@ -86,6 +86,16 @@ sha256sum -c SHA256SUMS.txt
 | R1-2 | Manifest 的 token 与「先算 SHA 再提交」循环 | Manifest 删除 `commit_token`；token 只在 commit 记录与 receipt（N-12b） |
 | R1-3 | SQLite COMMIT 后 receipt 未写崩溃 | 协调器 receipt outbox + reconciler；COMMIT 幂等；不一致隔离（N-12f/N-12g） |
 | R5 | 同 PDF 重复输入 `task_id` 冲突 | `input_key = sha256(source+MPN)`；同 PDF 同 MPN = 1 task + 多 ingest；不同 MPN = 2 task（N-21） |
+
+### 3.3 第三轮复核响应（v1.3）
+
+| 编号 | Reviewer 问题 | v1.3 处置 |
+|---|---|---|
+| R1-3a | receipt 已存在时如何读取/比较/不覆盖 | GET → `receipt_sha256` 比较 → 仅 404 才条件写 → 回读；不同内容一律 `conflict`，不 PUT |
+| R1-3b | 写超时但实际成功如何区分 | 超时不盲目重试；先 GET 回读，一致即 `written`，不一致 `conflict` |
+| R1-3c | PUT 成功、SQLite 状态未更新时崩溃 | 重启 `pending` → GET 回读一致 → 只更新状态，不重复 PUT |
+| R1-3d | N-12f/N-12g 覆盖不足 | 拆为 N-12f1–f4、N-12g1–g3 |
+| — | R5 的 canonical_json / MPN 规范化 | 本轮不改 R5；记录为 OD-21（实现前冻结） |
 
 ---
 
@@ -124,7 +134,7 @@ sha256sum -c SHA256SUMS.txt
 2. **架构方向不变**：Raw（内容寻址、只读）/ Parse（run 级不可变、四指纹）/ Eval（Gold 版本化、评估器指纹）三层保留。
 3. **DuckDB 只做分析查询**：它不是队列、不是锁、不是多写并发数据库、不是事实源；`catalog.duckdb` 是可由对象存储重建的派生物。
 4. **批量路径采用「本地处理 → 大批 Parquet → 上传 → 批量查询」**：拒绝 DuckDB 直扫 56 万个小文件；同区对象存储才讨论直读。
-5. **任务分配（v1.2）**：单写协调器 + 租约代次（fencing）+ 两阶段提交；**租约到期即失效**，不依赖扫描；协调器是 receipt 唯一写者，outbox 补写。
+5. **任务分配（v1.3）**：单写协调器 + 租约代次 + 两阶段提交；**租约到期即失效**；receipt 由协调器**读-比较-条件写-回读**，已存在不同内容一律隔离，绝不覆盖。
 6. **任务身份（v1.2）**：`input_key = sha256(source_sha256 + requested_mpn)`；同 PDF 同 MPN 只生成 1 个 task + 多条 ingest；同 PDF 不同 MPN 才是 2 个 task；`task_id` 是批次内身份。
 7. **数据契约**：Run Manifest 与 Batch/Partition Manifest 分离；`reproducibility_key` v2；Manifest 不含 token。
 8. **基准口径**：可解析池 950 + 预期拒绝池 50（含子类配额）；五类失败率各有分母；≤2% 只约束可解析池。

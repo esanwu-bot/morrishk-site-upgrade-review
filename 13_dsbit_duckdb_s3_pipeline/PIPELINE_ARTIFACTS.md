@@ -711,6 +711,7 @@ CREATE TABLE commits (
   token TEXT NOT NULL,
   run_id TEXT NOT NULL,
   committed_at TEXT NOT NULL,
+  receipt_sha256 TEXT NOT NULL,                   -- 期望 receipt 字节的 SHA-256
   receipt_state TEXT NOT NULL DEFAULT 'pending',  -- pending|written|conflict
   receipt_attempts INTEGER NOT NULL DEFAULT 0,
   receipt_error TEXT,
@@ -807,3 +808,54 @@ C: 200 {token: 同一 token}（幂等，不产生第二条 commit）
 ```
 
 > 在 receipt 补齐前，Eval/Catalog 不消费该 run；任务状态为 `COMMITTED_PENDING_RECEIPT`，不是成功。
+
+### 9.9 Receipt 写入协议（v1.3，R1-3）
+
+**规范字节**：`canonical_json`（键排序、UTF-8、无 BOM、LF、无多余空白），字段：
+
+```json
+{
+  "schema": "lakehouse/commit-receipt/v1",
+  "task_id": "...",
+  "generation": 1,
+  "token": "...",
+  "manifest_sha256": "...",
+  "run_id": "...",
+  "committed_at": "..."
+}
+```
+
+`commits` 行在事务内记录 `receipt_sha256`（期望字节的 SHA-256），因此期望字节可精确重建。
+
+```text
+write_receipt(commit):
+  expected = canonical_bytes(receipt_body(commit))
+
+  1) GET receipt
+     404        -> 2)
+     200        -> sha(bytes) == commit.receipt_sha256 ? written : conflict
+     403/5xx/超时 -> 退避重试 GET；GET 成功前不得 PUT
+  2) PUT If-None-Match: *
+     200        -> 3)
+     412/409    -> 1)
+     超时/5xx    -> 1)        # 结果未知，先回读
+  3) GET 回读
+     bytes == expected -> written
+     bytes != expected -> conflict
+```
+
+| 边界 | 行为 |
+|---|---|
+| receipt 已存在且内容一致 | 只更新 `receipt_state='written'`，**不 PUT** |
+| receipt 已存在但内容不同 | `conflict` → `QUARANTINED`；**不 PUT**，原字节不变 |
+| PUT 超时但实际成功 | 不做盲目重试；GET 回读一致 → `written` |
+| PUT 成功、SQLite 状态未更新 | 重启 `pending` → GET 回读一致 → 只更新状态，不重复 PUT |
+| 已 `written` 的 receipt 缺失/变化 | `QUARANTINED`；不自动重写 |
+| receipt 存在但 commit 缺失 | `QUARANTINED`；不自动补 commit |
+
+**不变量**：
+
+1. 协调器是 receipt 唯一写者；其他角色无写权限（OD-16）；
+2. 已存在的 receipt 永不覆盖；不同内容只能隔离；
+3. 任何写入/恢复都必须回读校验，不能以「请求返回 200」代替内容验证；
+4. token 在 COMMIT 事务内固定，恢复不重发。

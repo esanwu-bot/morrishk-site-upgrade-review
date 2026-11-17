@@ -1,4 +1,4 @@
-# 未决事项（OD-01 ~ OD-20）
+# 未决事项（OD-01 ~ OD-21）
 
 | 级别 | 含义 |
 |---|---|
@@ -233,6 +233,18 @@
 | 决策人 | B + R |
 | 触发 | Stage A 实现前 |
 
+### OD-21 `input_key` 的规范化细节（v1.3 记录，P1）
+
+| 项 | 内容 |
+|---|---|
+| 问题 | `canonical_json` 的序列化规范，以及 `requested_mpn` 是否做大小写/空格/Unicode 规范化，尚未定义；不同 Worker 可能算出不同 `input_key` |
+| 影响 | 同 PDF 同 MPN 可能被拆成两个 task，或不同 MPN 被错误合并 |
+| 选项 | A. `input_key` 使用**规范化 MPN**（Unicode NFC、trim、合并空白、ASCII 大写），原始 MPN 另存展示字段；B. 直接使用原始字节；C. 仅 trim + NFC |
+| 建议 | **A**，并在 manifest/ingest 同时记录 `requested_mpn_raw` 与 `requested_mpn_normalized`，避免不可逆丢失 |
+| 决策人 | R + B |
+| 触发 | Stage A 实现前 |
+| 备注 | v1.3 **不改** R5 已通过的身份模型，只记录实现阶段必须冻结的规范化规则；本项不阻断设计复核，但阻断实现 |
+
 ---
 
 ## 汇总
@@ -259,6 +271,7 @@
 | OD-18 | 审核产能 | P2 | A | Stage C 前 |
 | OD-19 | 条件写 fallback | **P0** | R + B | Stage A 前 |
 | OD-20 | 协调器部署/重启 | P1 | B + R | Stage A 前 |
+| OD-21 | `input_key` 规范化细节 | P1（实现前冻结） | R + B | Stage A 实现前 |
 
 > 「P2 实现前」项（OD-16）虽为 P2，但在写任何上传代码前必须落地，否则会出现密钥落盘风险。
 > OD-05 与 OD-19 在 v1.1 上调/新增为 P0：它们是 Stage A 的前置验证条件，不能因原级别或「后续再测」而跳过。

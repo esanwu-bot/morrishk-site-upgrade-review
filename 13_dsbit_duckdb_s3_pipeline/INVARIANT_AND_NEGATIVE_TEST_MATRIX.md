@@ -313,25 +313,69 @@ v1.0 写「条件写/分片保证只有一个成功」不是证明。v1.1 拆成
 | 断言 | `expires_at` 不再延长；无 commit；无 receipt；任务回到可分配 |
 | 状态 | 设计 |
 
-#### N-12f SQLite COMMIT 成功、receipt 写入前崩溃（v1.2 新增，R1-3）
+#### N-12f Receipt 写入/恢复的四种边界（v1.3 修订，R1-3）
+
+共同断言：receipt 对象最终只有一份、字节与 commit 的期望字节一致；token 不重发；不允许重复 PUT 掩盖「已成功」。
+
+##### N-12f1 SQLite COMMIT 后、PUT 前崩溃
 
 | 项 | 内容 |
 |---|---|
-| 注入 | 协调器事务提交 commit 后立即 `kill -9`，`committed.json` 未写 |
-| 预期 | 重启后 reconciler 补写 receipt；任务 `COMMITTED_PENDING_RECEIPT → SUCCEEDED`；同参数 COMMIT 返回同一 token |
-| 自动重试 | 不适用（协调器恢复） |
-| 断言 | 只有一条 commit；receipt 的 token/manifest_sha 与 commit 一致；无「协调器成功、下游拒绝」状态 |
-| 状态 | 设计 |
+| 注入 | commit 事务提交后立即 `kill -9`，receipt 对象不存在 |
+| 预期 | 重启 `pending` → GET 404 → PUT → 回读一致 → `written` |
+| 断言 | 只有一条 commit；receipt 存在且字节一致；任务 `SUCCEEDED` |
 
-#### N-12g commit 与 receipt 不一致（v1.2 新增，R1-3）
+##### N-12f2 PUT 成功、`receipt_state='written'` 未更新时崩溃
 
 | 项 | 内容 |
 |---|---|
-| 注入 | 人为写入 token 或 manifest_sha 不同的 receipt；或 receipt 存在但 commit 缺失 |
-| 预期 | `QUARANTINED`；不覆盖、不猜测、不自动补 commit |
-| 自动重试 | 否 |
-| 断言 | 任务终态为 `QUARANTINED`；原 commit/receipt 字节不变；告警 |
-| 状态 | 设计 |
+| 注入 | PUT 返回 200 后、SQLite 更新前 `kill -9` |
+| 预期 | 重启 `pending` → GET 200 且 `sha == receipt_sha256` → **只更新状态，不 PUT** |
+| 断言 | PUT 调用计数不增加；receipt 字节不变；任务 `SUCCEEDED` |
+
+##### N-12f3 PUT 超时但实际已成功
+
+| 项 | 内容 |
+|---|---|
+| 注入 | 客户端收到超时，但服务端已写入 |
+| 预期 | 不做盲目重试；GET 回读一致 → `written` |
+| 断言 | PUT 总次数 = 1；无第二次写；任务 `SUCCEEDED` |
+
+##### N-12f4 PUT 返回 412，已有同内容 receipt
+
+| 项 | 内容 |
+|---|---|
+| 注入 | 先写入期望 receipt，再让协调器执行写入 |
+| 预期 | 412 → GET 回读一致 → `written`，不覆盖 |
+| 断言 | 原 receipt 字节哈希不变；无覆盖写；任务 `SUCCEEDED` |
+
+#### N-12g Receipt 冲突的三种边界（v1.3 修订，R1-3）
+
+共同断言：不覆盖、不猜测、不自动补 commit；原对象字节哈希与操作前一致；进入 `QUARANTINED`。
+
+##### N-12g1 receipt 已存在但 token 不同
+
+| 项 | 内容 |
+|---|---|
+| 注入 | 预置一个 token 不同的 receipt |
+| 预期 | GET 200 → sha 不等 → `conflict`；**不 PUT** |
+| 断言 | 原 receipt 字节不变；PUT 计数 0；任务 `QUARANTINED` |
+
+##### N-12g2 receipt 已存在但 `manifest_sha256` 不同
+
+| 项 | 内容 |
+|---|---|
+| 注入 | 预置一个 manifest_sha 不同的 receipt |
+| 预期 | 同上 |
+| 断言 | 原 receipt 字节不变；PUT 计数 0；任务 `QUARANTINED` |
+
+##### N-12g3 receipt 存在但 commit 缺失
+
+| 项 | 内容 |
+|---|---|
+| 注入 | 保留 receipt，删除协调器 commit 行（模拟 SQLite 丢失后的残留） |
+| 预期 | `QUARANTINED`；不自动补 commit、不重写 receipt |
+| 断言 | 不新增 commit；receipt 字节不变；告警 |
 
 ### N-13 任务重试产生重复结果
 
