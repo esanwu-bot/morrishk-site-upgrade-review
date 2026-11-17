@@ -3,12 +3,13 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-PHASE0-EVIDENCE-001 |
-| 版本 | v1.0（证据包，非裁定书） |
+| 版本 | v1.1（2026-11-17 回填 IQ-01 / IQ-02 / IQ-13 书面裁定；v1.0 证据内容保留） |
 | 日期 | 2026-11-17 |
 | 调查对象 | Ds Bit 仓库 `E:\workspace\icpdf-extractor`；Morrishk 旧站源码与 schema 审计；Morrishk 新平台 `E:\workspace\独立站\morries\platform` |
-| 关联文档 | `12_dsbit_business_api_integration_design/Ds Bit ↔ Morrishk Business API Integration Design v1.md`（v1.2.2）；`12_dsbit_business_api_integration_design/INTEGRATION_OPEN_QUESTIONS.md`（v1.2.2） |
-| 性质 | 只读调查、证据索引、选项与待裁定问题；**不含任何已批准决策** |
-| Open Questions 状态 | IQ-01..IQ-22 全部保持 `OPEN`，本包不修改原始台账 |
+| 关联文档 | `12_dsbit_business_api_integration_design/Ds Bit ↔ Morrishk Business API Integration Design v1.md`（v1.3）；`12_dsbit_business_api_integration_design/INTEGRATION_OPEN_QUESTIONS.md`（v1.3） |
+| 性质 | v1.0 为只读调查与待裁定问题；v1.1 追加书面裁定登记，**不改变原始证据与建议属性** |
+| 决策证据基线 | `esanwu-bot/morrishk-site-upgrade-review` `main@77137655ed24e3b370eb4fe5c75b68dd708fa9ec`（决策与方案证据基线，**不是** Ds Bit 生产源码权威） |
+| Open Questions 状态 | IQ-01 / IQ-02 / IQ-13 已 `DECIDED`；其余 19 项仍 `OPEN` |
 
 ---
 
@@ -125,8 +126,27 @@
 
 ## 6. 本包不构成
 
-- 不构成对任何分支、产品权威、分类权威、ID 规则或目标系统的批准。
+- 不构成对任何分支、产品权威、分类权威、ID 规则或目标系统的批准（v1.1 已登记的 3 项书面裁定除外，见 §7）。
 - 不构成契约冻结记录。
-- 不构成 Phase 1 或 Phase 2 的开工授权。
-- 不构成对 `12_` Open Questions 状态的修改；原始文档中 IQ-01..IQ-22 仍为 `OPEN`。
+- 不构成 Phase 2 或任何生产实现的开工授权。
+- 不构成对 `12_` Open Questions 未裁定项的修改；原始文档中除 IQ-01/02/13 外的 IQ 仍为 `OPEN`。
 - 文中「建议」一律是设计方分析意见，不是需求，也不是已批准决策。
+
+---
+
+## 7. v1.1 裁定回填（2026-11-17）
+
+本节只登记项目决策人书面裁定，不替决策人新增结论。
+
+| IQ | 裁定摘要 | 登记位置 |
+|---|---|---|
+| IQ-13 | 目标系统为 Morrishk **新平台业务数据库**；旧站不再作为目标；两侧自增 ID 均不得作跨系统产品身份，新平台内部 ID 仅作内部主键 | `DECISION_REGISTER.md` §2.3；`PHASE0_OPEN_QUESTIONS_MATRIX.md` IQ-13 |
+| IQ-01 | 废弃 `doc-id` 跨系统主键；`prod-{document_id}` 仅内部临时流转凭证；采用 `MPN + Brand`（唯一键 `(mpn_norm, brand_norm)`）与版本化 `MpnNormalizer`；Brand 缺失/冲突进入待确认 | `DECISION_REGISTER.md` §2.1；`IQ01_PRODUCT_IDENTITY_ADJUDICATION.md` §9 |
+| IQ-02 | 严格分离业务导航分类与技术参数分类；技术参数分类由 Ds Bit 管理、PM 提供首个真实种子与命名标准；Fixture 必须标记 `DEMO_FIXTURE` 且不得进入正式数据 | `DECISION_REGISTER.md` §2.2；`IQ02_TAXONOMY_AUTHORITY_ADJUDICATION.md` §9 |
+
+**边界说明：**
+
+1. 三项裁定均为**已登记**，但「签署」列与独立 Reviewer 验收仍为**待完成**；契约冻结仍为 **NO**。
+2. 原始证据结论、重复分析、选项与建议**未被删除或改写**；v1.0 的「全部 OPEN」「不含任何已批准决策」等表述是当时状态的如实记录。
+3. 本轮裁定不授权：Business API 契约冻结、生产 API 实现、OAuth2 生产凭证、生产数据库迁移/写入、DuckDB + S3 Stage A、批量解析运行。
+4. 决策依据是 `main@7713765` 的决策/方案证据基线，不是 Ds Bit 生产源码权威；Ds Bit 源码事实仍以 `DSBIT_AUTHORITY_BASELINE.md` 的分支与核验状态为准。

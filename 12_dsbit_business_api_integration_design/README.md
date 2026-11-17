@@ -3,11 +3,12 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-DSBIT-INT-001 |
-| 版本 | v1.2.2（修正 §1.1 冻结状态表述；仍未冻结） |
+| 版本 | v1.3（落地 IQ-01 / IQ-02 / IQ-13 书面裁定；契约仍未冻结） |
 | 日期 | 2026-11-17 |
-| 修订 | v1.1 处理 R1–R8 与基线说明（`fc4bcc5`）；v1.2 收口 R3/R4/R5/R6/R8（`3816c10`）；v1.2.1 修正 R5 的 60 秒边界（`60b46ba`）；v1.2.2 修正 §1.1 冻结状态表述 |
+| 修订 | v1.1 处理 R1–R8 与基线说明（`fc4bcc5`）；v1.2 收口 R3/R4/R5/R6/R8（`3816c10`）；v1.2.1 修正 R5 的 60 秒边界（`60b46ba`）；v1.2.2 修正 §1.1 冻结状态表述；v1.3 产品身份改为 `MPN + Brand`、目标改为新平台、业务导航与技术参数分类硬隔离 |
 | 性质 | 架构与接口契约设计；**不是**生产实现、不是部署、不是凭证签发 |
 | 状态 | 送 Reviewer 复核 |
+| 决策基线 | `esanwu-bot/morrishk-site-upgrade-review` `main@77137655ed24e3b370eb4fe5c75b68dd708fa9ec` |
 
 ---
 
@@ -16,7 +17,7 @@
 | 文件 | 说明 |
 |---|---|
 | `Ds Bit ↔ Morrishk Business API Integration Design v1.md` | 主设计文档（16 章 + 附录 A–D） |
-| `API_CONTRACT_EXAMPLES.md` | EX-01 ~ EX-22 请求/响应示例（含 EX-07b/EX-07c 补充；全部为构造样例） |
+| `API_CONTRACT_EXAMPLES.md` | EX-01 ~ EX-23 请求/响应示例（含 EX-07b/EX-07c 补充；全部为构造样例；产品身份为 `product_business_key`） |
 | `INTEGRATION_OPEN_QUESTIONS.md` | IQ-01 ~ IQ-22 未决问题、证据、选项、建议与裁定记录 |
 | `README.md` | 本文件：基线、文件清单、复核方法、未执行操作声明 |
 | `SHA256SUMS.txt` | 本目录文件的 SHA-256 校验清单 |
@@ -33,7 +34,7 @@
 | Morrishk 旧站（Yii2） | `E:\workspace\独立站\morries\newPlan\morrishk.net` | 非 Git 目录（源码快照）；PHP 7.4.33 / MySQL 5.6.50 |
 | Morrishk 新平台工程 | `E:\workspace\独立站\morries\platform` | 非 Git 目录；OpenAPI 3.1 + 迁移 + Next.js |
 | 数据库结构审计 | `E:\workspace\独立站\morries\mysql_schema_audit` | 2024-11-30 dump |
-| 本送审仓库 | `E:\workspace\独立站\morrishk-site-upgrade-review` | 分支 `main`，基线 `b55825c0162ccc678d01580337d0671fdfffa1c3` |
+| 本送审仓库 | `E:\workspace\独立站\morrishk-site-upgrade-review` | 分支 `main`，决策基线 `77137655ed24e3b370eb4fe5c75b68dd708fa9ec` |
 
 > 说明（按用户 2026-11-17 更正）：`E:\workspace\icpdf-extractor\workbench` 是 **Ds Bit 前台**，
 > `E:\workspace\icpdf-extractor` 是 **Ds Bit 项目仓库**。主设计文档 §1.1、§2.1、§2.2、§3.1 已按此口径修正。
@@ -65,9 +66,13 @@ Reviewer 指出：Ds Bit 证据取自本地分支 `backup/full-local-20261114` �
 2. Morrishk 当前**没有** Ds Bit 客户端、Token 存储、同步任务或映射表。
 3. 本设计把**产品分类 API 作为一等子系统**，并明确区分五类"分类"：
    技术分类体系、器件身份/产品族、文档类型、Morrishk 业务导航分类、SEO 落地页分类。
-4. 公开详情页**不实时依赖** Ds Bit；页面只读本地库与缓存。
-5. Ds Bit 的 `category_id` **不进入** Morrishk URL；映射变化**不自动**改写 URL 或生成 301。
-6. 业务 API 采用项目现有 `{code, message, data, request_id, meta}` 包；OAuth2 Token 端点例外，遵循 RFC 6749。
+   v1.3 起，**业务导航分类与技术参数分类硬隔离**：前者只用于前台展示/导航/URL，
+   后者由 Ds Bit 管理，初始种子与命名标准由 PM 提供；两套 ID 不得直接共享。
+4. **产品身份为 `MPN + Brand`**（唯一键 `(mpn_norm, brand_norm)`），跨系统使用
+   `product_business_key`；`prod-{document_id}` 仅作文档处理内部凭证，不作为产品主键。
+5. 公开详情页**不实时依赖** Ds Bit；页面只读本地库与缓存。
+6. Ds Bit 的 `category_id` **不进入** Morrishk URL；映射变化**不自动**改写 URL 或生成 301。
+7. 业务 API 采用项目现有 `{code, message, data, request_id, meta}` 包；OAuth2 Token 端点例外，遵循 RFC 6749。
 
 ---
 
@@ -81,7 +86,8 @@ Reviewer 可按以下顺序复核：
 4. **读 §10**：确认 URL 规则冻结、分类不参与 URL、不自动 301。
 5. **读附录 A**：`CONFIRMED` / `PROPOSED` / `OPEN` 三类清单。
 6. **读 `API_CONTRACT_EXAMPLES.md`**：示例均为构造样例，不得作为真实响应证据。
-7. **读 `INTEGRATION_OPEN_QUESTIONS.md`**：22 个 `OPEN` 项的阻断级别与决策人。
+7. **读 `INTEGRATION_OPEN_QUESTIONS.md`**：确认 IQ-01 / IQ-02 / IQ-13 已登记裁定，
+   其余 19 项的阻断级别与决策人。
 8. **校验文件完整性**：
 
 ```bash
@@ -119,9 +125,26 @@ sha256sum -c SHA256SUMS.txt
 ## 6. 交付物清单（供 Reviewer 勾选）
 
 - [ ] 主设计文档（16 章 + 附录 A–D）
-- [ ] API 示例（EX-01 ~ EX-22，含 EX-07b/EX-07c）
+- [ ] API 示例（EX-01 ~ EX-23，含 EX-07b/EX-07c）
 - [ ] 未决问题（IQ-01 ~ IQ-22）
 - [ ] `CONFIRMED` / `PROPOSED` / `OPEN` 三类清单（主文档附录 A）
 - [ ] 当前 vs 拟议差异表（主文档附录 C）
 - [ ] 明确声明未执行生产操作（主文档附录 D、本文件 §5）
 - [ ] SHA-256 校验清单（`SHA256SUMS.txt`）
+
+---
+
+## 7. 相关交付：Phase 1 Mock UI（独立目录）
+
+Phase 1 的交互界面与 Mock 联调交付在 `15_phase1_mock_ui/`，**不属于**本契约设计目录，
+也不构成契约冻结或生产实现。
+
+- 允许范围：产品身份与 MPN/Brand 展示、MPN 归一化预览、身份冲突与待确认队列、
+  技术参数字典管理、技术参数分类树、业务导航分类分离展示、技术参数与证据关联、
+  平台映射预览、Mock API（请求/响应/错误/分页）、Mock 同步与失败重试。
+- 数据边界：全部为 `DEMO_FIXTURE`，与正式字典、正式数据库隔离；不得作为 PM 真实种子，
+  不得把 Fixture 测试通过表述为真实数据验证通过。
+- 禁止事项：生产 Business API 实现或调用、生产 OAuth2 凭证、生产数据库迁移/写入、
+  真实产品发布或撤回、真实分类树初始化、擅自确定未确认的字典定义。
+- Mock 响应只体现契约方向，**不代表**生产 API 已实现或已接通。
+- 正式 `parameter_code`、定义、单位、数据类型与适用范围以 PM 提供的真实种子为准（IQ-02 裁定）。

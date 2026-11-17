@@ -3,9 +3,9 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-INT-001 |
-| 版本 | v1.2.2（修正 §1.1 冻结状态表述，未冻结） |
+| 版本 | v1.3（落地 IQ-01 / IQ-02 / IQ-13 书面裁定：MPN + Brand 身份、新平台目标、两套分类硬隔离；契约仍未冻结） |
 | 日期 | 2026-11-17 |
-| 修订记录 | v1.0 首版送审（`0fa9d34`）；v1.1 处理 R1–R8 与基线说明（`fc4bcc5`）；v1.2 收口 R3/R4/R5/R6/R8；v1.2.1 修正 R5 的 60 秒边界（OA-07 / OA-13 / OA-13a）；v1.2.2 修正 §1.1 冻结状态表述 |
+| 修订记录 | v1.0 首版送审（`0fa9d34`）；v1.1 处理 R1–R8 与基线说明（`fc4bcc5`）；v1.2 收口 R3/R4/R5/R6/R8；v1.2.1 修正 R5 的 60 秒边界（OA-07 / OA-13 / OA-13a）；v1.2.2 修正 §1.1 冻结状态表述；v1.3 落地 IQ-01/02/13 裁定（产品身份改为 `MPN + Brand`，目标改为新平台，业务导航与技术参数分类硬隔离） |
 | 范围 | 架构与接口契约设计；不含生产实现、生产部署、生产凭证 |
 | 上游依据 | 本任务书；`09_current_state_inventory/`；`02_technical_design/morrishk_technical_plan_v1.2.md`；`platform/docs/phase1/03-api-contract.yaml`；`mysql_schema_audit/`；Ds Bit 项目仓库（`E:\workspace\icpdf-extractor`，含前台 `workbench/`）与本地 Stub 源码 |
 | 下游用途 | Phase 0 契约冻结输入；Phase 1/2 开发依据；Reviewer 独立复核对象 |
@@ -22,6 +22,10 @@
 
 1. **当前可以继续完善契约设计，但尚不具备契约冻结条件，更不能宣称已经接通。**
    Phase 0 阻断事项完成裁定、证据基线重新核实并形成冻结记录后，方可批准契约冻结。
+   v1.3 已落地项目决策人 2026-11-17 对 IQ-01、IQ-02、IQ-13 的书面裁定：
+   产品身份改为 `MPN + Brand`（不再以 `doc-id` 或代理 ID 作为跨系统主键），
+   对接目标改为 Morrishk **新平台业务数据库**，业务导航分类与技术参数分类硬隔离。
+   但 IQ-05、IQ-09、IQ-15、IQ-21 仍 `OPEN`，契约**仍未冻结**。
    Ds Bit 目前**没有**生产级 Business API、没有 OAuth2 实现、没有分类服务、没有参数落库。
    Ds Bit 项目仓库是 `E:\workspace\icpdf-extractor`（Git 仓库），其中：
    - `workbench/` 是 **Ds Bit 前台**（`index.html` 为 "Ds Bit - Parser Lab (Parser-only)"；`workbench/b2b/qa_console.html` 为本地回放校对台）；
@@ -56,7 +60,7 @@
 │  - 前台 workbench（现状）    │        GET /api/v1/taxonomies/...          │
 │  - 解析引擎（确定性，现状）  │                                           │
 │  - 技术分类体系（新增）      │        GET /api/v1/products/...            │
-│  - 参数/证据/版本/发布状态   │        GET /api/v1/products/{id}/evidence  │
+│  - 参数/证据/版本/发布状态   │        GET /api/v1/products/{key}/evidence  │
 │  - 只读 Business API（新增） │                                           │
 └──────────────────────────────┘                                           │
                                                                            │
@@ -85,7 +89,7 @@
 | R1 | 410 降级策略自相矛盾 | 按 `error_key` 拆分：`PRODUCT_RELEASE_REVOKED` → `degraded_allowed=false`，立即停止展示；`CATEGORY_RETIRED` → `degraded_allowed=true`，保留旧分类页/历史映射，不新建归属。见 §4.7、§5.8、§8.3、§10.4、EX-10、EX-13 |
 | R2 | Scope 只允许读 `PUBLISHED`，但 DEPRECATED 又要求保留期内 200 | `product.category.read` 明确可读保留期内的 `DEPRECATED`（不含 `DRAFT`/`REVIEWED`）；保留期后 `410 CATEGORY_RETIRED`；`DEPRECATED` 永不可用于新归属。见 §4.4 规则 5、§7.5.6、§7.7 |
 | R3 | ULID 长度与示例 ID 不一致 | 统一为 `<type>_<26 字符 Crockford Base32 ULID>`，总长 ≤32；DB 列 `VARCHAR(32)`；全部示例 ID 重新校验。见 §5.3 |
-| R4 | 产品分类端点权限边界不完整 | 明确 `GET /products/{id}/categories` 需 `product.category.read` **且**产品 `RELEASE_APPROVED`；内部读取未发布边需 `product.publish.read` + `internal_only=true`（v1.2 进一步明确双 scope 与边过滤）。见 §4.4 规则 4、§7.4、EX-07 / EX-07b / EX-07c |
+| R4 | 产品分类端点权限边界不完整 | 明确 `GET /products/{product_business_key}/categories` 需 `product.category.read` **且**产品 `RELEASE_APPROVED`；内部读取未发布边需 `product.publish.read` + `internal_only=true`（v1.2 进一步明确双 scope 与边过滤）。见 §4.4 规则 4、§7.4、EX-07 / EX-07b / EX-07c |
 | R5 | OAuth2 Token 机制未定义 | v1 采用 **opaque Token**（256 位随机、服务端哈希存储、可撤回、≤60 秒缓存）；v1 不支持 JWT/JWKS。见 §4.3 |
 | R6 | `invalid_scope` 状态码不一致 | 按 RFC 6749 §5.2 统一为 `400`；首选 `client_secret_basic`；两种认证方式不得同时使用。见 §4.5、§12.1 |
 | R7 | 只读 API 中出现未定义的条件失败状态 | 删除该未定义状态；`If-None-Match` 命中一律 `304`，不返回独立错误码。见 §4.7、§5.8、§8.3 |
@@ -396,11 +400,11 @@ v1 采用 **opaque Token**，不使用 JWT：
 
 | Scope | 允许的 API | 数据权限 |
 |---|---|---|
-| `product.read` | `GET /products/{id}`、`GET /products/search` | 仅 `RELEASE_APPROVED` 产品的业务 DTO |
-| `product.category.read` | 全部 `/taxonomies/*`、`/categories/*`，以及 `GET /products/{id}/categories` | `PUBLISHED` 分类正常读取；`DEPRECATED` 分类在保留期内可读（含 `merged_into` / `split_into`）；`DRAFT` / `REVIEWED` 不可见；不含产品参数 |
-| `product.evidence.read` | `GET /products/{id}/evidence` | 证据引用与短原文；不含 PDF 二进制 |
-| `product.version.read` | `GET /products/{id}/versions`、`GET /taxonomies/{id}/version`、`/changes` | 版本号、变更记录、时间戳 |
-| `product.publish.read` | `GET /products/{id}/status`；`product.read` 的 `include_unreleased=true`；`GET /products/{id}/categories?internal_only=true` 读取未发布产品边（仍需 `product.category.read`） | 未发布产品的门禁状态与内部可见数据 |
+| `product.read` | `GET /products/{product_business_key}`、`GET /products/search` | 仅 `RELEASE_APPROVED` 产品的业务 DTO |
+| `product.category.read` | 全部 `/taxonomies/*`、`/categories/*`，以及 `GET /products/{product_business_key}/categories` | `PUBLISHED` 分类正常读取；`DEPRECATED` 分类在保留期内可读（含 `merged_into` / `split_into`）；`DRAFT` / `REVIEWED` 不可见；不含产品参数 |
+| `product.evidence.read` | `GET /products/{product_business_key}/evidence` | 证据引用与短原文；不含 PDF 二进制 |
+| `product.version.read` | `GET /products/{product_business_key}/versions`、`GET /taxonomies/{id}/version`、`/changes` | 版本号、变更记录、时间戳 |
+| `product.publish.read` | `GET /products/{product_business_key}/status`；`product.read` 的 `include_unreleased=true`；`GET /products/{product_business_key}/categories?internal_only=true` 读取未发布产品边（仍需 `product.category.read`） | 未发布产品的门禁状态与内部可见数据 |
 
 规则：
 
@@ -408,7 +412,7 @@ v1 采用 **opaque Token**，不使用 JWT：
 2. 默认最小授权：Morrishk 站点同步使用 `product.read product.category.read product.evidence.read product.version.read`；
    `product.publish.read` 仅授予内部审核/运维客户端。
 3. 缺失 scope 返回 `403 INSUFFICIENT_SCOPE`，不回退、不静默降级。
-4. **`GET /products/{id}/categories` 同时受产品发布门禁约束（回应 R4）**：
+4. **`GET /products/{product_business_key}/categories` 同时受产品发布门禁约束（回应 R4）**：
    - 普通客户端（仅有 `product.category.read`）只能读取 `RELEASE_APPROVED` 产品的 `APPROVED` 且当前有效的边；
    - 产品未发布时返回 `403 PRODUCT_NOT_RELEASED`，不得通过该端点绕过产品详情 API 的门禁；
    - 内部读取必须显式使用 Query 参数 `?internal_only=true`；
@@ -535,9 +539,10 @@ grant_type=client_credentials
 | 项 | 规范 |
 |---|---|
 | 字段名 | `snake_case` |
-| ID | 字符串；新资源使用 **`<type>_<ULID>`**：类型前缀 + 下划线 + 26 字符 Crockford Base32 ULID（大小写敏感，统一大写）；总长度 ≤ 32；不使用自增整数作为对外 ID |
-| ID 前缀 | `tax_` / `cat_` / `prd_` / `edg_` / `ev_` / `par_` / `doc_` / `rel_` / `apr_` / `chg_` / `req_`；前缀只用于可读性，**不参与**唯一性判断 |
-| 数据库长度 | 所有保存对外 ID 的列使用 `VARCHAR(32)`（不是 26），为前缀预留空间 |
+| ID | 字符串；除产品业务身份外，新资源使用 **`<type>_<ULID>`**：类型前缀 + 下划线 + 26 字符 Crockford Base32 ULID（大小写敏感，统一大写）；总长度 ≤ 32；不使用自增整数作为对外 ID |
+| 产品业务身份 | **`product_business_key`**：由 `(mpn_norm, brand_norm)` 确定性派生（见 §6.2.1），**不是** ULID，也不是任何系统的自增 ID；路由参数使用该键，不再使用 `prd_<ULID>` |
+| ID 前缀 | `tax_` / `cat_` / `edg_` / `ev_` / `par_` / `doc_` / `rel_` / `apr_` / `chg_` / `req_`；前缀只用于可读性，**不参与**唯一性判断。`prd_` **保留但不再分配**，历史示例中的 `prd_` 仅作旧版示例，v1.3 起不得新增 |
+| 数据库长度 | 所有保存对外 ID 的列使用 `VARCHAR(32)`（不是 26），为前缀预留空间；`product_business_key` 固定为 `CHAR(69)`（`pbk1_` + 64 位小写十六进制，纯 ASCII）；如未来改用可扩展编码，只能加宽到 `VARCHAR(72)`，不得缩短 |
 | 布尔 | `true` / `false`，不使用 0/1 |
 | 数值参数 | 以**字符串**返回 `value/min/typ/max`，避免浮点精度丢失；`unit` 单独字段 |
 | 空值 | 明确 `null` 或省略；不返回空字符串表示"未知" |
@@ -641,6 +646,8 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
 | 410 | 41001 | `PRODUCT_RELEASE_REVOKED` | 发布已撤回，必须停止展示 | 否 | **否**（不得继续用产品缓存） |
 | 410 | 41002 | `CATEGORY_RETIRED` | 分类已过保留期 | 否 | 是（保留旧分类页与历史映射） |
 | 413 | 41301 | `TREE_TOO_LARGE` | 树超出上限 | 否（改 flat） | 是 |
+| 422 | 42201 | `PRODUCT_IDENTITY_INCOMPLETE` | 精确查询缺少 `brand`，或 Brand 未确认 | 否 | 是 |
+| 422 | 42202 | `MPN_NORMALIZATION_CONFLICT` | 归一化冲突或结果落入多个候选身份 | 否 | 是 |
 | 429 | 42901 | `RATE_LIMITED` | 限流 | 是 | 是 |
 | 500 | 50001 | `INTERNAL_ERROR` | 内部错误 | 是 | 是 |
 | 503 | 50301 | `SERVICE_UNAVAILABLE` | 服务不可用 | 是 | 是 |
@@ -713,30 +720,89 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
 
 | 端点 | 版本 | 说明 |
 |---|---|---|
-| `GET /products/{product_id}` | `V1_REQUIRED` | 产品业务 DTO |
+| `GET /products/{product_business_key}` | `V1_REQUIRED` | 产品业务 DTO |
 | `GET /products/search` | `V1_REQUIRED` | 增量同步与 MPN 查找 |
-| `GET /products/{product_id}/status` | `V1_REQUIRED` | 三层门禁状态 |
-| `GET /products/{product_id}/versions` | `V1_REQUIRED` | 内容版本列表 |
-| `GET /products/{product_id}/evidence` | `V1_REQUIRED` | 证据引用 |
-| `GET /products/{product_id}/categories` | `V1_REQUIRED` | 产品分类归属（权威边） |
+| `GET /products/{product_business_key}/status` | `V1_REQUIRED` | 三层门禁状态 |
+| `GET /products/{product_business_key}/versions` | `V1_REQUIRED` | 内容版本列表 |
+| `GET /products/{product_business_key}/evidence` | `V1_REQUIRED` | 证据引用 |
+| `GET /products/{product_business_key}/categories` | `V1_REQUIRED` | 产品分类归属（权威边） |
 
-`GET /products/search` 同时承担 MPN 精确查找：`?mpn=LM358DR&mpn_match=exact`。
-不额外设计 `/products/by-mpn`，避免端点膨胀。
+`GET /products/search` 同时承担 MPN 精确查找：`?mpn=LM358DR&brand=Texas Instruments&mpn_match=exact`。
+不额外设计 `/products/by-mpn`，避免端点膨胀。**注意**：仅提供 MPN 不足以唯一定位产品；
+`v1` 的精确查询必须同时提供 `brand`，否则返回 `422 PRODUCT_IDENTITY_INCOMPLETE`（见 §6.2.2）。
+
+`{product_business_key}` 是派生业务键，**不是** Ds Bit 文档处理 ID，也**不是** Morrishk 内部自增主键。
+文档处理身份 `prod-{document_id}` 仅出现在 `documents` 元数据与内部审计中，不进入产品路由。
 
 ### 6.2 产品身份
 
-| 字段 | 说明 | 现状 |
+> 2026-11-17 IQ-01 裁定：跨系统产品业务身份为 **MPN + Brand**，唯一键 `(mpn_norm, brand_norm)`。
+> Ds Bit 的 `prod-{document_id}` 仅作文档处理/解析/流转的内部临时凭证，不进入本层身份。
+
+| 字段 | 说明 | 状态 |
 |---|---|---|
-| `product_id` | Ds Bit 全局稳定 ID（ULID） | `PROPOSED`；引擎现有 `Product.product_id` 是文档内 ID，需注册表映射（`OPEN` IQ-01） |
-| `mpn` | 原始型号，保留大小写 | `CONFIRMED` 引擎有 `requested_mpn`/`normalized_mpn` |
-| `mpn_norm` | 归一化型号（大写、去空白） | `PROPOSED` 对外字段；规则需与 Morrishk `MpnNormalizer` 对齐 |
-| `manufacturer` | 制造商 | `CONFIRMED` 引擎字段 |
+| `product_business_key` | 由 `(mpn_norm, brand_norm)` 确定性派生的业务键（§6.2.1） | `PROPOSED`（编码与哈希待评审冻结） |
+| `identity_state` | `CONFIRMED` / `PENDING_BRAND` / `PENDING_CONFLICT` / `INVALID` | `PROPOSED` |
+| `mpn_raw` | 原始型号，保留大小写、空白与原始字符 | `CONFIRMED` 引擎有 `requested_mpn` |
+| `mpn_norm` | 经 `MpnNormalizer` 归一后的型号 | `PROPOSED` 对外字段；引擎当前未真实归一 |
+| `brand_raw` | 原始品牌/厂商字符串 | `PROPOSED`；引擎 `manufacturer` 当前大量为空 |
+| `brand_norm` | 经 `MpnNormalizer` 归一后的品牌 | `PROPOSED` |
+| `normalizer_version` | 归一化规则版本（如 `MPN-NORM-v1`） | `PROPOSED` |
 | `package` | 封装 | `CONFIRMED` 引擎字段 |
-| `identity_scope` | `DEVICE/BOARD/ONBOARD_DEVICE/UNKNOWN` | `CONFIRMED` 引擎枚举 |
+| `identity_scope` | `DEVICE/BOARD/ONBOARD_DEVICE/UNKNOWN` | `CONFIRMED` 引擎枚举；是否入键 `OPEN` |
 | `product_type` | `IC/BOARD/MODULE/UNKNOWN` | `CONFIRMED` 引擎枚举 |
 | `identity_evidence` | 身份证据引用 | `CONFIRMED` 引擎字段；对外只返回引用 |
 
-**不得**把 `requested_mpn` 与 `normalized_mpn` 合并为一个字段。
+**不得**把 `mpn_raw` 与 `mpn_norm` 合并为一个字段，也不得把 `brand_raw` 与 `brand_norm` 合并。
+**不得**在不同模块各自实现 MPN 清洗；所有入口必须调用同一 `MpnNormalizer` 实现与同一版本。
+
+#### 6.2.1 `MpnNormalizer` 与 `product_business_key`（`PROPOSED`，实现前须冻结）
+
+`MpnNormalizer` 是版本化纯函数，输入 `mpn_raw` / `brand_raw`，输出归一值与状态。
+v1 候选规则集 `MPN-NORM-v1` 如下；正式发布前须经 Reviewer 冻结，冻结后任何规则变化必须升版本号。
+
+| 步骤 | 规则 |
+|---|---|
+| 1. 类型与编码 | 仅接受 UTF-8 字符串；非字符串、含 NUL/控制字符或非法 UTF-8 → `INVALID_MPN` / `INVALID_BRAND`，不生成业务键 |
+| 2. Unicode 归一 | NFKC；移除零宽字符（U+200B–U+200D、U+FEFF）；不改变其余字符 |
+| 3. 空白 | 去除首尾空白；内部连续空白折叠为**单个 ASCII 空格**（含空格、制表、换行、不换行空格）；不删除内部空格，避免把两个不同型号拼成一个 |
+| 4. 大小写 | 统一转大写（Unicode uppercase） |
+| 5. 连接符 | 将 Unicode 连字符/破折号（U+2010–U+2015、U+2212、U+FF0D）统一为 ASCII `-`；**不删除** `-`、`/`、`_`、`.`，因其可能承载型号语义 |
+| 6. 品牌 | 与 MPN 使用同一套 Unicode/空白/大小写规则；**不做**公司后缀剥离、别名合并或实体解析；品牌别名须通过独立映射表治理 |
+| 7. 空值 | 归一后 MPN 为空 → `INVALID_MPN`；`brand_raw` 缺失或归一后为空 → `PENDING_BRAND` |
+| 8. 冲突 | 同一来源文档给出多个互斥 MPN 或 Brand，或归一结果落在多个既有身份上 → `PENDING_CONFLICT`，**不得自动合并** |
+| 9. 原始保留 | 始终保留 `mpn_raw` / `brand_raw` / `normalizer_version`，便于审计与重放 |
+
+**`product_business_key` 候选编码（v1）：**
+
+```text
+canonical = "PBK1\n" + len(mpn_norm) + ":" + mpn_norm + "\n" + len(brand_norm) + ":" + brand_norm
+key       = "pbk1_" + lowercase_hex(sha256(UTF-8(canonical)))
+```
+
+- `len(x)` 定义为 `x` 的 **UTF-8 字节长度**（不是字符数），与分隔符 `:` 一起消除字段歧义。
+- 使用**完整 SHA-256**（256 bit），不截断；若未来需要缩短，必须单独做碰撞概率分析并另行裁定。
+- 长度前缀消除字段分隔歧义；空值不参与编码（缺 Brand 不生成键）。
+- `normalizer_version` **不进入**哈希输入，作为并列元数据保存；升级归一规则时必须评估是否需要重算并迁移业务键，迁移方案另行评审。
+- 该编码为候选方案，冻结前允许调整；一旦冻结，变更即视为不兼容变更。
+
+**身份唯一性：**
+
+1. 同一 `mpn_norm` + **不同** `brand_norm` → 两个独立产品业务身份。
+2. 同一 `(mpn_norm, brand_norm)` + 多个来源文档 → **一个**产品业务身份，文档作为关联记录；不得因文档数量生成多个产品身份。
+3. Brand 缺失/无法确认/归一冲突 → 待确认，不分配正式产品业务身份，不自动合并。
+4. 唯一键在数据库层为 `(mpn_norm, brand_norm)`；不得因为"当前一个 MPN 只出现一个 Brand"而临时改为仅 `mpn_norm`。
+
+#### 6.2.2 文档身份与产品身份的边界
+
+| 概念 | 值/来源 | 用途 | 不得用于 |
+|---|---|---|---|
+| `document_id` | `doc-{sha256[:12]}`（PDF 内容） | 文档去重、证据定位、审计 | 产品主键、跨系统业务键 |
+| `prod-{document_id}` | Ds Bit 解析流程内部 ID | 单次文档处理/流转 | Morrishk 产品主键、永久身份、分类映射键 |
+| `product_business_key` | `(mpn_norm, brand_norm)` 派生 | 跨系统产品业务身份 | 文档定位、证据定位 |
+| Morrishk `pd_model.id` | 新平台自增主键 | Morrishk 内部数据库主键 | 跨系统身份、同步游标业务键 |
+
+一个 `product_business_key` 可关联多个文档；一个文档也可因多 MPN 场景关联多个候选，但只有通过 `CONFIRMED` 的候选才进入正式身份。
 
 ### 6.3 产品 DTO 分层
 
@@ -744,11 +810,14 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
 
 ```json
 {
-  "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRS",
+  "product_business_key": "pbk1_ec7e3c0335daa3724e9a24b475e2a40bc6552babb93f2b97571bc053b3e9d40d",
+  "identity_state": "CONFIRMED",
   "identity": {
-    "mpn": "LM358DR",
+    "mpn_raw": "LM358DR",
     "mpn_norm": "LM358DR",
-    "manufacturer": "Texas Instruments",
+    "brand_raw": "Texas Instruments",
+    "brand_norm": "TEXAS INSTRUMENTS",
+    "normalizer_version": "MPN-NORM-v1",
     "package": "SOIC-8",
     "identity_scope": "DEVICE",
     "product_type": "IC"
@@ -791,7 +860,8 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
       "document_id": "doc_01J8N000000000000000000000",
       "document_sha256": "059d448c5a34a4b1...",
       "document_type": "datasheet",
-      "page_count": 24
+      "page_count": 24,
+      "role": "SOURCE_DOCUMENT"
     }
   ],
   "release": {
@@ -812,7 +882,7 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
 2. `technical.parameters` 只包含通过正式容器校验的参数（`VERIFIED/AUDITED`）；
    `UNRESOLVED/QUARANTINED/REJECTED` 不出现在正式响应中，可在 `status` 端点统计中体现。
 3. 不返回原始 `param_blocks`、`candidates.json`、`gold_eval` 等解析中间产物。
-4. `documents` 不返回 PDF 二进制或可下载 URL；仅元数据与 SHA-256。
+4. `documents` 不返回 PDF 二进制或可下载 URL；仅元数据与 SHA-256。`document_id` 只标识来源文档，**不是**产品身份；`prod-{document_id}` 不出现在对外产品 DTO。
 
 ### 6.4 `GET /products/search`
 
@@ -820,23 +890,25 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
 
 | 参数 | 说明 |
 |---|---|
-| `mpn` + `mpn_match=exact|loose` | 型号查找 |
+| `mpn` + `brand` + `mpn_match=exact|loose` | 型号查找；`exact` **必须**同时给 `brand`，否则 `422 PRODUCT_IDENTITY_INCOMPLETE`。`loose` 仍为 `OPEN` IQ-20，v1 不默认启用 |
+| `identity_state` | `CONFIRMED`（默认）/`PENDING_BRAND`/`PENDING_CONFLICT`（需 `product.publish.read`） |
 | `updated_since` | ISO 8601；增量同步 |
 | `release_state` | `RELEASED`（默认）、`REVOKED`、`PENDING`（需 `product.publish.read`） |
 | `taxonomy_id` + `category_id` | 按分类过滤 |
 | `limit` + `cursor` | 分页 |
 | `include_unreleased=true` | 仅 `product.publish.read` 可用 |
 
-默认只返回 `RELEASED`。`REVOKED` 流用于让 Morrishk 感知撤回，**必须**支持（`V1_REQUIRED`），
+默认只返回 `RELEASED` 且 `identity_state=CONFIRMED` 的产品；待确认身份不作为正式产品同步。
+`REVOKED` 流用于让 Morrishk 感知撤回，**必须**支持（`V1_REQUIRED`），
 否则已发布产品被撤回后，消费方无法发现。
 
-### 6.5 `GET /products/{id}/status`
+### 6.5 `GET /products/{product_business_key}/status`
 
 返回三层门禁状态，而不是一个布尔值：
 
 ```json
 {
-  "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRS",
+  "product_business_key": "pbk1_ec7e3c0335daa3724e9a24b475e2a40bc6552babb93f2b97571bc053b3e9d40d",
   "gates": {
     "pipeline": {
       "state": "PASS",
@@ -862,7 +934,7 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
 
 `state` 取值见 §9。
 
-### 6.6 `GET /products/{id}/versions`
+### 6.6 `GET /products/{product_business_key}/versions`
 
 返回内容版本列表（分页），每项含：
 
@@ -876,13 +948,13 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
 
 不在 v1 提供"回滚"写操作。回滚属于 Ds Bit 内部流程。
 
-### 6.7 `GET /products/{id}/evidence`
+### 6.7 `GET /products/{product_business_key}/evidence`
 
 返回证据引用数组：
 
 ```json
 {
-  "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRS",
+  "product_business_key": "pbk1_ec7e3c0335daa3724e9a24b475e2a40bc6552babb93f2b97571bc053b3e9d40d",
   "document_sha256": "059d448c5a34a4b1...",
   "items": [
     {
@@ -907,18 +979,41 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
 - `raw_text` 限制长度（建议 ≤ 500 字符），避免大段原文外泄。
 - 不返回 PDF 二进制。
 
-### 6.8 产品 API 与 Morrishk 现有模型的映射
+### 6.8 产品 API 与新平台模型的映射（IQ-13 裁定后）
 
-| Ds Bit DTO | Morrishk 旧站字段 | 说明 |
+> 目标系统为 Morrishk **新平台业务数据库**（`pd_*`）。旧站 `snsii_*` 不再作为同步目标；
+> 下表保留旧站一列仅用于说明历史差异，**不构成**旧站直接映射方案。
+
+| Ds Bit DTO | 新平台字段（`PLATFORM_PD`） | 说明 |
 |---|---|---|
-| `identity.mpn` | `snsii_product.PartNumber` | 用于匹配 |
-| `identity.mpn_norm` | 无（新平台 `pd_model.mpn_norm`） | 旧站需新增归一化比较（应用层） |
-| `identity.manufacturer` | `snsii_supplier.Name`（通过 `Mid`） | 旧站没有独立品牌字段 |
-| `identity.package` | `DataAttr` 中的键（手工 JSON） | 结构不一致，需映射 |
-| `technical.parameters` | `snsii_product.DataAttr` | 旧站为扁平 JSON，需转换；不得覆盖原值 |
-| `categories.refs[].category_id` | `BigCat`/`SmallCat` | 只能通过显式映射，不得直接用 Ds Bit ID 写入 |
-| `documents[].document_sha256` | `snsii_product.PdfId`/`Pdf` | 旧站无 SHA；需新增关联列或映射表 |
-| `release.content_version` | 无 | 旧站无版本概念 |
+| `identity.mpn_raw` | `pd_model.mpn` | 原文保留；用于展示与回查 |
+| `identity.mpn_norm` | `pd_model.mpn_norm` | 需与新平台生成列使用同一 `MpnNormalizer` 规则；当前迁移脚本规则需对齐 |
+| `identity.brand_norm` | `pd_brand.norm_name`（建议新增/对齐） + `pd_model.brand_id` | 品牌必须参与唯一性；新平台当前 `brand_id` 不参与唯一键，需按本设计调整 |
+| `identity.brand_raw` | `pd_brand.name`（保留原文） | 不做实体合并；别名走独立映射 |
+| `identity.package` | `pd_model` 扩展属性或规格表 | 新平台当前未定；不得写入旧站 `DataAttr` |
+| `technical.parameters` | 新平台规格/参数表（`PROPOSED`） | 不得覆盖原值；不得把 Ds Bit 技术分类 ID 当导航分类 ID |
+| `categories.refs[].category_id` | 通过 `dsbit_category_mapping` → `pd_category.id` | 只能显式映射；不得直接写入 |
+| `documents[].document_sha256` | 新平台文档关联表（`pd_model_doc`，`PROPOSED`） | `document_id` 仅作来源元数据 |
+| `release.content_version` | 新平台无对应概念（`PROPOSED`） | 发布状态存储仍 `OPEN`（IQ-06） |
+
+**新平台 schema 的必要设计变更（未执行）：**
+
+1. `pd_model` 当前 `UNIQUE KEY uk_mpn_norm (mpn_norm)` 只按 MPN 唯一，与 IQ-01 裁定的
+   `(mpn_norm, brand_norm)` 不一致。设计上必须改为品牌参与的唯一键（或等价的联合唯一约束）。
+2. `uk_mpn_slug` 若仅由 MPN 生成，同 MPN 不同品牌会冲突；slug 需包含品牌判别或改用不含歧义的生成规则。
+3. 新平台当前把 `mpn_norm` 实现为**生成列**（MySQL 表达式），无法调用版本化 `MpnNormalizer`。
+   要保证跨系统同一规则，须改为**由应用写入的普通列**（写入时调用同一 `MpnNormalizer` 实现），
+   或提供规则等价性证明并纳入版本校验；否则两侧归一结果可能漂移。
+4. 上述均为**设计层修改要求**，本轮未执行任何迁移；新平台迁移仍禁止 production。
+
+旧站差异（仅记录，不作为目标）：
+
+| Ds Bit DTO | 旧站字段 | 差异 |
+|---|---|---|
+| `identity.mpn_raw` | `snsii_product.PartNumber` | 旧站 `PartNumber` 全局唯一，无法表达同 MPN 多品牌 |
+| `identity.brand_norm` | **无独立品牌字段** | `Mid` 是商家 ID；`/manufacturer` 查询 `snsii_supplier`，不是产品品牌 |
+| `categories.refs[].category_id` | `BigCat`/`SmallCat` | 旧站两级导航分类，不能用作技术参数分类 |
+| `documents[].document_sha256` | `PdfId`/`Pdf` | 旧站无 SHA；旧站不做目标 |
 
 ---
 
@@ -947,7 +1042,58 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
 - 把 `DocumentType` 当作产品分类返回；
 - 把 `identity_scope` / `product_type` 当作分类节点；
 - 把 Morrishk 的 `snsii_product_category.id` 当作 Ds Bit 的 `category_id`；
-- 假定技术分类与 Morrishk 导航分类一一对应。
+- 把旧站/新平台业务导航分类当作 Ds Bit 技术参数分类；
+- 假定技术分类与 Morrishk 导航分类一一对应；
+- 在两套系统之间直接共享分类 ID。
+
+#### 7.1.1 两套分类的硬边界（2026-11-17 IQ-02 裁定）
+
+| 维度 | 业务导航分类 | 技术参数分类 |
+|---|---|---|
+| 载体 | 旧站 `snsii_product_category`；新平台 `pd_category` | Ds Bit 技术分类体系（本设计新增，`PROPOSED`） |
+| 用途 | 前台展示、导航、目录组织、URL | 技术参数归类、规格比较、参数检索 |
+| 归属 | Morrishk | Ds Bit |
+| 是否进 URL | 是（`Links` / `slug`） | **否** |
+| 是否可作技术参数分类 | **否** | 是 |
+| ID 是否可共享 | **否**；只能通过 `dsbit_category_mapping` 显式映射 | **否** |
+| 初始数据 | 既有业务数据 | 由 PM 提供首个真实种子与命名标准 |
+
+**硬规则：**
+
+1. 业务导航分类不得被 Ds Bit 用作参数分类节点，也不得把 `pd_category.id` / `snsii_product_category.id` 写入 Ds Bit `category_id`。
+2. 技术参数分类节点不得直接生成 Morrishk 导航节点；必须经映射层审核。
+3. 两套分类的 ID 空间完全独立；映射是唯一合法关联方式。
+4. v1 不把旧站分类名称导入为技术分类种子；名称相同不代表语义相同。
+
+#### 7.1.2 技术参数字典（`PROPOSED`，PM 种子责任）
+
+技术参数分类的**初始种子与参数命名标准由 PM 提供**，执行 Agent 不得自行臆定正式 code、定义、单位或数据类型。
+本轮只定义字典的承载结构与治理字段；候选核心参数为 `Package`、`Voltage`、`Operating_Temperature`，
+其正式定义以 PM 提交的种子为准。
+
+| 字段 | 说明 |
+|---|---|
+| `parameter_code` | 稳定参数编码；PM 种子确认后分配，发布后不可改 |
+| `canonical_name` | 规范名称 |
+| `display_name` | 展示名 |
+| `definition` | 定义与边界说明 |
+| `data_type` | 数值/枚举/字符串/布尔等 |
+| `canonical_unit` | 规范单位；无量纲为 `null` |
+| `applicable_scope` | 适用范围（器件类型/体系） |
+| `synonyms` | 同义词/别名 |
+| `source` | `PM_SEED` / `MANUAL` / `IMPORT`；**禁止** `FIXTURE` 进入正式字典 |
+| `dictionary_version` | 字典版本；单调递增 |
+| `status` | `DRAFT` / `REVIEWED` / `PUBLISHED` / `DEPRECATED` |
+
+**Fixture 边界（强制）：**
+
+- 开发 Fixture 仅用于 UI 与 Mock 展示，必须显式标记 `DEMO_FIXTURE`。
+- 不得作为正式种子、不得混入正式字典、不得把 Fixture ID/定义写入正式业务数据。
+- 不得把 Fixture 测试通过描述为真实数据验证。
+- UI 使用隔离 Demo Fixture 时必须显示"演示数据"标识。
+
+`ParameterCategory`（`ELECTRICAL` / `ABSOLUTE_MAXIMUM` 等）仍是**参数分组**，不是产品分类，
+也不等同于上述参数字典条目。
 
 ### 7.2 分类数据模型（`PROPOSED`）
 
@@ -998,7 +1144,7 @@ API 支持多体系，是为了未来扩展，不代表 v1 必须启用多个。
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | `edge_id` | string(32) | `<type>_<ULID>`；边身份永不复用 |
-| `product_id` | string(32) | 产品 |
+| `product_business_key` | string(69) | 产品业务身份（§6.2.1）；**不是** `prod-{document_id}`，也不是 `pd_model.id` |
 | `taxonomy_id` | string(32) | 体系 |
 | `category_id` | string(32) | 分类 |
 | `role` | enum | `PRIMARY` / `SECONDARY` |
@@ -1075,7 +1221,7 @@ API 支持多体系，是为了未来扩展，不代表 v1 必须启用多个。
 | `GET /categories/{category_id}/ancestors` | `V1_OPTIONAL` | 祖先链；可由 `path_ids` 推导，但面包屑需要名称时更省请求 |
 | `GET /taxonomies/{taxonomy_id}/version` | `V1_REQUIRED` | 版本与 ETag；同步前置检查 |
 | `GET /taxonomies/{taxonomy_id}/changes` | `V1_OPTIONAL` | 变更记录；合并/拆分/停用需要 |
-| `GET /products/{product_id}/categories` | `V1_REQUIRED` | 产品→分类边；内部读取用 `?internal_only=true`，需双 scope，见 §4.4 规则 4 |
+| `GET /products/{product_business_key}/categories` | `V1_REQUIRED` | 产品→分类边；内部读取用 `?internal_only=true`，需双 scope，见 §4.4 规则 4 |
 | `GET /categories/{category_id}/products` | `V1_OPTIONAL` | 分类→产品；v1 可由 Morrishk 本地反查，避免大列表 |
 | `GET /taxonomies/{taxonomy_id}/tree` | `FUTURE` | 独立全量树快照；v1 用 `categories?mode=tree` |
 | `POST /taxonomies/...`（写） | `FUTURE` | v1 只读 |
@@ -1088,7 +1234,7 @@ API 支持多体系，是为了未来扩展，不代表 v1 必须启用多个。
 4. `GET /taxonomies/{id}/categories?updated_since=&cursor=`
 5. `GET /categories/{id}`
 6. `GET /categories/{id}/children`
-7. `GET /products/{id}/categories`（同时受 `product.category.read` 与产品发布门禁约束，见 §4.4 规则 4）
+7. `GET /products/{product_business_key}/categories`（同时受 `product.category.read` 与产品发布门禁约束，见 §4.4 规则 4）
 
 `changes` 与 `ancestors` 为 `V1_OPTIONAL`；若 Phase 0 决定要支持自动识别合并/拆分，
 则 `changes` 升级为 `V1_REQUIRED`。
@@ -1154,7 +1300,7 @@ API 支持多体系，是为了未来扩展，不代表 v1 必须启用多个。
 
 ```json
 {
-  "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRS",
+  "product_business_key": "pbk1_ec7e3c0335daa3724e9a24b475e2a40bc6552babb93f2b97571bc053b3e9d40d",
   "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMNPQRS",
   "categories": [
     {
@@ -1271,8 +1417,8 @@ API 支持多体系，是为了未来扩展，不代表 v1 必须启用多个。
 | `id` | BIGINT UNSIGNED | 自增主键 |
 | `dsbit_taxonomy_id` | VARCHAR(32) | Ds Bit 体系 ID |
 | `dsbit_category_id` | VARCHAR(32) | Ds Bit 分类 ID |
-| `morrishk_target` | ENUM('LEGACY_SNSII','PLATFORM_PD') | 目标库/表域 |
-| `morrishk_category_id` | INT UNSIGNED | 目标分类 ID |
+| `morrishk_target` | ENUM('PLATFORM_PD','LEGACY_SNSII') | 目标库/表域；**v1 新写入只允许 `PLATFORM_PD`**；`LEGACY_SNSII` 仅保留历史行，不再新建映射（IQ-13） |
+| `morrishk_category_id` | BIGINT UNSIGNED | 目标分类内部主键（新平台 `pd_category.id`）；仅作 Morrishk 内部主键，**不得**当跨系统分类身份 |
 | `mapping_type` | ENUM('EXACT','PARENT','AGGREGATE','SEO_LANDING','MANUAL') | 映射类型 |
 | `is_primary` | TINYINT(1) | 目标侧主映射 |
 | `mapping_status` | ENUM('PROPOSED','APPROVED','REJECTED','STALE','UNMAPPED') | 审核状态 |
@@ -1322,11 +1468,13 @@ Morrishk 当前存在两套分类载体：
 
 | 载体 | 表 | 层级 | URL | 备注 |
 |---|---|---|---|---|
-| 旧站 | `snsii_product_category` | 两级（`Pid=0`） | `/big-categories/...`、`/sub-categories/...` | 生产在用 |
-| 新平台 | `pd_category` | 两级（`level`） | 新前端 `/categories/{slug}` | 未上线 |
+| 旧站 | `snsii_product_category` | 两级（`Pid=0`） | `/big-categories/...`、`/sub-categories/...` | 生产在用；**IQ-13 裁定后不再是同步目标** |
+| 新平台 | `pd_category` | 两级（`level`） | 新前端 `/categories/{slug}` | 未上线；**v1 目标** |
 
-因此映射表必须有 `morrishk_target` 字段，避免两套自增 ID 冲突。
-v1 同步默认写入 `LEGACY_SNSII`；是否同时写 `PLATFORM_PD` 取决于新旧站切换决策（`OPEN` IQ-13）。
+映射表保留 `morrishk_target` 字段，用于区分历史行与目标行，避免两套自增 ID 冲突。
+**IQ-13 裁定（2026-11-17）：** v1 新写入只允许 `morrishk_target='PLATFORM_PD'`；
+`LEGACY_SNSII` 仅作为历史映射保留，不新建、不更新、不作为回退目标。
+旧站分类与新平台分类都是**业务导航分类**，映射目标只能是导航层，不得把映射结果当作 Ds Bit 技术参数分类。
 
 #### 7.8.5 映射审核队列
 
@@ -1395,7 +1543,7 @@ else: visible_state = DRAFT
 | 分类不存在 | 404 | `40402 CATEGORY_NOT_FOUND` | |
 | 分类已停用但仍在保留期 | 200 | `0` | `status=DEPRECATED`，带 `merged_into` / `split_into`；允许读取用于历史映射迁移 |
 | 分类保留期结束 | 410 | `41002 CATEGORY_RETIRED` | `retryable=false`、`degraded_allowed=true`；允许保留旧分类页与历史映射，**不得**新建产品归属 |
-| 读取未发布产品的分类边（无 `product.publish.read`） | 403 | `40302 PRODUCT_NOT_RELEASED` | `/products/{id}/categories` 同样受产品发布门禁约束 |
+| 读取未发布产品的分类边（无 `product.publish.read`） | 403 | `40302 PRODUCT_NOT_RELEASED` | `/products/{product_business_key}/categories` 同样受产品发布门禁约束 |
 | 普通客户端传 `internal_only=true` 但缺 `product.publish.read` | 403 | `40301 INSUFFICIENT_SCOPE` | 不得静默忽略参数，也不得降级为公开读取 |
 | 内部客户端传 `internal_only=true` 但缺 `product.category.read` | 403 | `40301 INSUFFICIENT_SCOPE` | 必须同时具备两个 scope |
 | 内部读取未发布产品的分类边（双 scope + `internal_only=true`） | 200 | `0` | `data.internal_only=true`；仅返回当前有效的 `APPROVED` / `PROPOSED` 边；不含 `REJECTED`、不含 `valid_to` 非空的历史边 |
@@ -1410,8 +1558,8 @@ else: visible_state = DRAFT
 - `product.read` 默认：**仅 `RELEASE_APPROVED`**。
 - `product.category.read` 默认：**`PUBLISHED` 分类，以及在保留期内的 `DEPRECATED` 分类**；`DRAFT` / `REVIEWED` 不可见。
 - `product.evidence.read`：仅 `RELEASE_APPROVED` 产品的证据。
-- `GET /products/{id}/categories`：默认返回 `APPROVED` 且 `valid_to IS NULL` 的边，产品必须 `RELEASE_APPROVED`。
-- `GET /products/{id}/categories?internal_only=true`：需同时具备 `product.category.read` 与 `product.publish.read`；
+- `GET /products/{product_business_key}/categories`：默认返回 `APPROVED` 且 `valid_to IS NULL` 的边，产品必须 `RELEASE_APPROVED`。
+- `GET /products/{product_business_key}/categories?internal_only=true`：需同时具备 `product.category.read` 与 `product.publish.read`；
   返回当前有效的 `APPROVED` / `PROPOSED` 边，并在 `data` 中标记 `internal_only=true`；
   不返回 `REJECTED` 边、不返回 `valid_to` 非空的历史边；`REVOKED` 产品仍不可读。
 - `product.version.read`：版本元数据可读，但不含未发布参数值。
@@ -1572,21 +1720,32 @@ private function recordSuccess(): void;
 
 #### 9.4.2 `dsbit_product_mapping`
 
+> v1.3 重写：不再以 `dsbit_product_id` 为主键，改为 `product_business_key` + `(mpn_norm, brand_norm)`。
+> `platform_model_id` 只是 Morrishk 内部主键，不是跨系统身份。
+
 | 列 | 类型 | 说明 |
 |---|---|---|
 | `id` | BIGINT UNSIGNED AUTO_INCREMENT | PK |
-| `dsbit_product_id` | VARCHAR(32) | Ds Bit 产品 ID |
-| `mpn` | VARCHAR(64) | 原始型号 |
-| `mpn_norm` | VARCHAR(64) | 归一化型号 |
-| `legacy_product_id` | INT UNSIGNED NULL | `snsii_product.id` |
-| `platform_model_id` | BIGINT UNSIGNED NULL | `pd_model.id` |
-| `mapping_source` | ENUM('MPN_EXACT','MPN_LOOSE','MANUAL') | |
+| `product_business_key` | CHAR(69) | 由 `(mpn_norm, brand_norm)` 派生；外部业务身份 |
+| `mpn_raw` | VARCHAR(128) | 原始型号 |
+| `mpn_norm` | VARCHAR(128) | 归一型号 |
+| `brand_raw` | VARCHAR(128) | 原始品牌 |
+| `brand_norm` | VARCHAR(128) | 归一品牌 |
+| `normalizer_version` | VARCHAR(32) | 如 `MPN-NORM-v1` |
+| `identity_state` | ENUM('CONFIRMED','PENDING_BRAND','PENDING_CONFLICT','INVALID') | 待确认状态不得写入正式产品行 |
+| `platform_model_id` | BIGINT UNSIGNED NULL | 新平台 `pd_model.id`；**仅 Morrishk 内部主键** |
+| `mapping_source` | ENUM('MPN_BRAND_EXACT','MANUAL') | 自动流程只能产生 `PROPOSED` |
 | `mapping_status` | ENUM('PROPOSED','APPROVED','REJECTED','STALE') | |
 | `valid_from` | DATETIME | |
 | `valid_to` | DATETIME NULL | |
 | `created_at` / `updated_at` | DATETIME | |
 
-唯一性：同一 `dsbit_product_id` 只能有一行 `valid_to IS NULL`（应用层保证；MySQL 5.6 无部分唯一索引）。
+唯一性：
+
+1. `(mpn_norm, brand_norm)` 是业务唯一键；同一组合只允许一个**当前有效**的产品业务身份。
+2. 同一 `product_business_key` 只能有一行 `valid_to IS NULL`（应用层保证；MySQL 5.6 无部分唯一索引）。
+3. `platform_model_id` 不得作为跨系统查询键；同步游标与审计使用 `product_business_key`。
+4. 同一 `product_business_key` 可关联多个来源文档；文档关联放在独立表（`PROPOSED`），不得复制产品行。
 
 #### 9.4.3 `dsbit_category_mapping`
 
@@ -1597,7 +1756,7 @@ private function recordSuccess(): void;
 | 列 | 类型 | 说明 |
 |---|---|---|
 | `id` | BIGINT UNSIGNED AUTO_INCREMENT | PK |
-| `dsbit_product_id` | VARCHAR(32) | 唯一 |
+| `product_business_key` | CHAR(69) | 唯一；跨系统产品业务身份 |
 | `content_version` | INT UNSIGNED | |
 | `release_id` | VARCHAR(32) NULL | |
 | `visible_state` | VARCHAR(16) | `RELEASED` / `WITHDRAWN` 等 |
@@ -1660,7 +1819,7 @@ private function recordSuccess(): void;
 2. `GET /taxonomies/{id}/version` → 记录版本/ETag。
 3. `GET /taxonomies/{id}/categories?mode=flat&limit=200` 分页拉全量 → 写 `dsbit_category_cache`。
 4. `GET /products/search?release_state=RELEASED&limit=200` 分页拉全量 → 写 `dsbit_product_cache`。
-5. `GET /products/{id}/categories` 逐产品拉边 → 写映射候选（`PROPOSED` / `UNMAPPED`）。
+5. `GET /products/{product_business_key}/categories` 逐产品拉边 → 写映射候选（`PROPOSED` / `UNMAPPED`）。
 6. 校验 → 生成 `dsbit_sync_log`。
 
 首次全量必须限速、可中断、可断点续跑。
@@ -1674,7 +1833,7 @@ private function recordSuccess(): void;
 | 分类变更 | `GET /taxonomies/{id}/changes?since_version=N`（若启用） |
 | 产品 | `GET /products/search?updated_since=<last_success>&release_state=RELEASED` |
 | 撤回 | `GET /products/search?updated_since=<last_success>&release_state=REVOKED` |
-| 产品分类边 | 产品详情增量或 `GET /products/{id}/categories` 按需 |
+| 产品分类边 | 产品详情增量或 `GET /products/{product_business_key}/categories` 按需 |
 
 #### 9.5.3 分类与产品独立同步
 
@@ -1984,10 +2143,16 @@ Morrishk 侧 `yii dsbit/health` 只检查 Token 获取与一个轻量端点。
 | PR-08 | 证据存在性 | 有权限 | GET evidence | 页码/bbox/原文/SHA 完整 | NONE | 是 |
 | PR-09 | 参数缺失 | 参数为空 | GET 详情 | 200；`parameters=[]`；不报错 | NONE | 是 |
 | PR-10 | 非法参数值 | `min>max` | GET 详情 | 服务端拒绝发布；API 不返回该参数 | NONE | 是 |
-| PR-11 | MPN 精确查找 | 已知 MPN | `/products/search?mpn=` | 返回唯一结果 | NONE | 是 |
-| PR-12 | MPN 模糊查找 | 变体 | `mpn_match=loose` | 返回候选；不误判 | NONE | 是 |
+| PR-11 | MPN 精确查找 | 已知 MPN + Brand | `/products/search?mpn=&brand=` | 返回唯一结果；缺少 brand 返回 422 | NONE | 是 |
+| PR-12 | MPN 模糊查找 | 变体 | `mpn_match=loose` | v1 默认不启用（`OPEN` IQ-20） | NONE | 是 |
 | PR-13 | 增量同步 | `updated_since` | 搜索 | 只返回变更 | NONE | 是 |
 | PR-14 | 分类引用 | 已映射 | GET 详情 | 只有 `category_id`，无名称/路径 | NONE | 是 |
+| PR-15 | 同 MPN 不同 Brand | `(M, B1)`、`(M, B2)` | 创建/查询 | 两个独立 `product_business_key`；不合并 | NONE | 是 |
+| PR-16 | 同键多文档 | 两个来源文档同一 `(M, B)` | 关联 | 一个产品身份；两个文档引用 | NONE | 是 |
+| PR-17 | Brand 缺失 | Brand 为空 | 归一化 | `PENDING_BRAND`；不生成正式身份 | NONE | 是 |
+| PR-18 | 归一冲突 | 同文档多互斥 MPN/Brand | 归一化 | `PENDING_CONFLICT`；不自动合并 | NONE | 是 |
+| PR-19 | 空/非法 MPN | 空串/控制字符 | 归一化 | `INVALID_MPN`；不生成键 | NONE | 是 |
+| PR-20 | 键确定性 | 同一输入重复执行 | 归一化 | 键完全一致；SHA-256 全 64 hex；无截断 | NONE | 是 |
 
 ### 12.3 分类 API
 
@@ -2006,8 +2171,8 @@ Morrishk 侧 `yii dsbit/health` 只检查 Token 获取与一个轻量端点。
 | CT-11 | 停用 | `DEPRECATED` | GET | 200 + 状态；不 404 | NONE | 是 |
 | CT-12 | 合并 | `merged_into` | GET + 同步 | 返回合并目标；映射 `STALE` | NONE | 是 |
 | CT-13 | 拆分 | `split_into` | 同步 | 映射 `STALE`；需人工 | NONE | 是 |
-| CT-14 | 产品多分类 | 产品 `RELEASE_APPROVED`，多边 | GET `/products/{id}/categories` | 多分类；至多一个 `PRIMARY` | NONE | 是 |
-| CT-14a | 产品分类门禁 | 产品仅 `PIPELINE_PASS` | GET `/products/{id}/categories` | 403 `PRODUCT_NOT_RELEASED`；不返回任何边 | NONE | 是 |
+| CT-14 | 产品多分类 | 产品 `RELEASE_APPROVED`，多边 | GET `/products/{product_business_key}/categories` | 多分类；至多一个 `PRIMARY` | NONE | 是 |
+| CT-14a | 产品分类门禁 | 产品仅 `PIPELINE_PASS` | GET `/products/{product_business_key}/categories` | 403 `PRODUCT_NOT_RELEASED`；不返回任何边 | NONE | 是 |
 | CT-14b | 仅分类 scope | 有 `product.category.read`，无 `product.publish.read` | 同上 + `internal_only=true` | 403 `INSUFFICIENT_SCOPE`；不得绕过发布门禁 | NONE | 是 |
 | CT-14c | 缺少分类 scope | 有 `product.publish.read`，无 `product.category.read` | 同上 + `internal_only=true` | 403 `INSUFFICIENT_SCOPE` | NONE | 是 |
 | CT-14d | 内部读取未发布边 | 双 scope | 同上 + `internal_only=true` | 200；`data.internal_only=true`；含当前有效 `APPROVED`/`PROPOSED` 边 | NONE | 是 |
@@ -2089,6 +2254,10 @@ Phase 4 只是规划，不代表获得生产授权。
 | R-10 | 同步全量覆盖导致误删 | 数据丢失 | 差异阈值 + 人工确认 + 保留旧版 |
 | R-11 | 证据版权/公开范围 | 法律风险 | v1 只给引用；公开下载需单独授权 |
 | R-12 | 审核/发布后端缺失被当成已实现 | 发布失控 | 明确 `NOT_IMPLEMENTED`；Phase 1 前置 |
+| R-13 | 把 `prod-{document_id}` 当作产品身份 | 同一产品多行/不同产品合并 | 路由与映射只用 `product_business_key`；文档 ID 仅元数据 |
+| R-14 | Brand 缺失时被静默按 MPN 合并 | 不同品牌产品被错误合并 | `PENDING_BRAND` 状态；不得生成正式产品身份 |
+| R-15 | 归一规则在模块间漂移 | 同一型号产生不同键 | 单一 `MpnNormalizer` + `normalizer_version`；跨模块测试 |
+| R-16 | Demo Fixture 混入正式字典 | 假数据进入生产 | `DEMO_FIXTURE` 标记 + 导入拒绝 + UI 演示标识 |
 
 ### 14.2 审批边界
 
@@ -2109,15 +2278,22 @@ Phase 4 只是规划，不代表获得生产授权。
 
 ### 14.3 未决问题
 
-见 `INTEGRATION_OPEN_QUESTIONS.md`（IQ-01 ~ IQ-22）。其中阻断 Phase 0 冻结的：
+见 `INTEGRATION_OPEN_QUESTIONS.md`（IQ-01 ~ IQ-22）。
 
-- IQ-01 产品身份权威与 ID 空间
-- IQ-02 技术分类体系归属与初始种子
-- IQ-05 分类保留期
+**已于 2026-11-17 书面裁定并落地到本版：**
+
+- IQ-01 产品身份：`MPN + Brand`，唯一键 `(mpn_norm, brand_norm)`；废弃 `doc-id` 跨系统主键（§6.2、§6.2.1）。
+- IQ-02 分类治理：业务导航分类与技术参数分类硬隔离；技术参数分类归 Ds Bit，PM 提供首个真实种子；Fixture 必须标记 `DEMO_FIXTURE`（§7.1.1、§7.1.2）。
+- IQ-13 对接目标：Morrishk 新平台业务数据库；旧站不再作为目标；两侧自增 ID 均不得作跨系统身份（§6.8、§7.8.4、§9.4.2）。
+
+**仍阻断 Phase 0 冻结：**
+
+- IQ-05 分类保留期与 410 时机
 - IQ-09 错误响应包最终形状
-- IQ-13 对接目标是旧站、新平台还是两者
 - IQ-15 新表引擎/字符集
 - IQ-21 是否允许非生产凭证
+
+**已裁定但冻结前仍需书面固定：** `MpnNormalizer` 规则版本、`product_business_key` 编码/哈希、`identity_scope` 是否入键、Brand 主数据来源与确认流程、新平台 `pd_model` 唯一键调整方案。
 
 ---
 
@@ -2134,6 +2310,8 @@ Phase 4 只是规划，不代表获得生产授权。
 | EX-05 | 分类树 |
 | EX-06 | 单分类 + 父子 |
 | EX-07 | 产品分类归属 |
+| EX-07b | 产品分类归属：未发布 403 |
+| EX-07c | 产品分类归属：内部读取 |
 | EX-08 | 分类版本 |
 | EX-09 | 分类变更 |
 | EX-10 | 分类停用/合并 |
@@ -2149,6 +2327,7 @@ Phase 4 只是规划，不代表获得生产授权。
 | EX-20 | 429 |
 | EX-21 | Morrishk 映射表行 |
 | EX-22 | 同步状态行 |
+| EX-23 | 产品身份不完整 / 规范化冲突 422 |
 
 ---
 
@@ -2156,8 +2335,15 @@ Phase 4 只是规划，不代表获得生产授权。
 
 | 术语 | 定义 |
 |---|---|
-| **Technical Taxonomy** | 技术产品分类体系；Ds Bit 新增资产；与导航/SEO 分类不同 |
-| **Device Identity** | 器件身份（MPN、厂商、封装、scope、type）；不是分类树 |
+| **MPN + Brand** | 跨系统产品业务身份；唯一键 `(mpn_norm, brand_norm)` |
+| **MpnNormalizer** | 统一、版本化的 MPN/品牌归一函数；禁止模块各自实现 |
+| **Product Business Key** | 由 `(mpn_norm, brand_norm)` 确定性派生的业务键 `pbk1_<sha256>`；不是文档 ID、不是自增 ID |
+| **Identity State** | `CONFIRMED` / `PENDING_BRAND` / `PENDING_CONFLICT` / `INVALID` |
+| **Technical Taxonomy** | 技术产品分类体系；Ds Bit 管理；与导航/SEO 分类不同 |
+| **Technical Parameter Dictionary** | 技术参数字典；PM 提供首个真实种子与命名标准 |
+| **Business Navigation Category** | 旧站 `snsii_product_category` / 新平台 `pd_category`；仅用于导航与 URL，不是技术参数分类 |
+| **DEMO_FIXTURE** | 仅用于 UI/Mock 的演示数据标记；不得进入正式字典或业务数据 |
+| **Device Identity** | 器件身份（MPN、品牌、封装、scope、type）；不是分类树 |
 | **Product Family** | 产品族/系列；可选层级，不等于技术分类 |
 | **Document Type** | 文档类型（datasheet/user guide/errata/EVM/app note/OCR） |
 | **Business Category** | Morrishk 业务/导航分类（旧站 `snsii_product_category`、新平台 `pd_category`） |
@@ -2232,30 +2418,33 @@ Phase 4 只是规划，不代表获得生产授权。
 
 ### A.3 `OPEN`（需人工决策）
 
-| 编号 | 问题 | 阻断 |
-|---|---|---|
-| IQ-01 | 产品身份权威与 ID 空间（MPN / `product_id` / 旧站 ID / `pd_model.id`） | Phase 0 |
-| IQ-02 | 技术分类体系归属、初始种子与是否多体系 | Phase 0 |
-| IQ-03 | `category_id` / `category_code` 的治理与生成规则 | Phase 1 |
-| IQ-04 | 一个产品是否允许跨体系多个主分类 | Phase 1 |
-| IQ-05 | 分类合并/停用保留期与 410 时机 | Phase 1 |
-| IQ-06 | 发布状态存储位置（Ds Bit 库/独立知识库） | Phase 1 |
-| IQ-07 | 内容审核与发布授权角色 | Phase 2 |
-| IQ-08 | 证据公开范围与版权 | Phase 2 |
-| IQ-09 | 错误响应包最终形状 | Phase 0 |
-| IQ-10 | API 域名与环境拓扑 | Phase 4 |
-| IQ-11 | OAuth 客户端注册与密钥轮换责任人 | Phase 4 |
-| IQ-12 | Token TTL 与限流配额 | Phase 1 |
-| IQ-13 | 对接目标是旧站、新平台还是两者 | Phase 0 |
-| IQ-14 | 同步任务调度位置 | Phase 2 |
-| IQ-15 | 新表引擎与字符集（MyISAM/InnoDB、utf8/utf8mb4） | Phase 1 |
-| IQ-16 | 是否需要 `categories/{id}/products` | Phase 1 |
-| IQ-17 | JSON-LD 字段范围与审核 | Phase 2 |
-| IQ-18 | URL/301 变更流程与保留期 | Phase 2 |
-| IQ-19 | 同步日志保留期 | Phase 2 |
-| IQ-20 | 是否开放 MPN 模糊查找 | Phase 1 |
-| IQ-21 | 是否允许非生产凭证 | Phase 1 |
-| IQ-22 | 网络路径（公网/专线/IP 白名单） | Phase 4 |
+> v1.3：IQ-01 / IQ-02 / IQ-13 已于 2026-11-17 书面裁定并落地（标 `DECIDED`），不再列为 `OPEN`。
+> 其余 19 项仍为 `OPEN`；`DECIDED` 不等于契约冻结或独立 Reviewer 验收完成。
+
+| 编号 | 问题 | 阻断 | 状态 |
+|---|---|---|---|
+| IQ-01 | 产品身份权威与 ID 空间（MPN / `product_id` / 旧站 ID / `pd_model.id`） | Phase 0 | `DECIDED`（MPN + Brand） |
+| IQ-02 | 技术分类体系归属、初始种子与是否多体系 | Phase 0 | `DECIDED`（技术参数分类归 Ds Bit；导航分类分离；PM 种子） |
+| IQ-03 | `category_id` / `category_code` 的治理与生成规则 | Phase 1 | `OPEN` |
+| IQ-04 | 一个产品是否允许跨体系多个主分类 | Phase 1 | `OPEN` |
+| IQ-05 | 分类合并/停用保留期与 410 时机 | Phase 0 | `OPEN` |
+| IQ-06 | 发布状态存储位置（Ds Bit 库/独立知识库） | Phase 1 | `OPEN` |
+| IQ-07 | 内容审核与发布授权角色 | Phase 2 | `OPEN` |
+| IQ-08 | 证据公开范围与版权 | Phase 2 | `OPEN` |
+| IQ-09 | 错误响应包最终形状 | Phase 0 | `OPEN` |
+| IQ-10 | API 域名与环境拓扑 | Phase 4 | `OPEN` |
+| IQ-11 | OAuth 客户端注册与密钥轮换责任人 | Phase 4 | `OPEN` |
+| IQ-12 | Token TTL 与限流配额 | Phase 1 | `OPEN` |
+| IQ-13 | 对接目标是旧站、新平台还是两者 | Phase 0 | `DECIDED`（新平台） |
+| IQ-14 | 同步任务调度位置 | Phase 2 | `OPEN` |
+| IQ-15 | 新表引擎与字符集（MyISAM/InnoDB、utf8/utf8mb4） | Phase 0 | `OPEN` |
+| IQ-16 | 是否需要 `categories/{id}/products` | Phase 1 | `OPEN` |
+| IQ-17 | JSON-LD 字段范围与审核 | Phase 2 | `OPEN` |
+| IQ-18 | URL/301 变更流程与保留期 | Phase 2 | `OPEN` |
+| IQ-19 | 同步日志保留期 | Phase 2 | `OPEN` |
+| IQ-20 | 是否开放 MPN 模糊查找 | Phase 1 | `OPEN` |
+| IQ-21 | 是否允许非生产凭证 | Phase 0 | `OPEN` |
+| IQ-22 | 网络路径（公网/专线/IP 白名单） | Phase 4 | `OPEN` |
 
 ---
 
@@ -2314,6 +2503,7 @@ Morrishk 的页面必须能在 Ds Bit 故障时继续展示**最近一次已成�
 | 能力 | 当前实现 | 证据 | 拟议实现 | 差异性质 |
 |---|---|---|---|---|
 | OAuth2 | 无；静态桩 | `serve_b2b.py` | 真实 Client Credentials | 新建 |
+| 产品身份 | `prod-{document_id}`（文档内） | `src/icpdf/parser/pipeline.py:151-157` | `MPN + Brand` → `product_business_key` | 重构（v1.3 裁定） |
 | Token 生命周期 | 固定 3600 秒占位 | 同上 | 15 分钟 + 单飞 + 撤销 | 新建 |
 | 产品 API | `/v1/parts/{model}` 回放 V101 | 同上 | 业务 DTO + 版本 + 门禁 | 重构 |
 | 分类 API | 无 | — | 11 个端点 | 新建 |

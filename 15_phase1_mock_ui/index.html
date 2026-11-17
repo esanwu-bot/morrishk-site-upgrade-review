@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Morrishk × Ds Bit — Phase 1 Mock UI</title>
+  <link rel="stylesheet" href="assets/styles.css?v=2">
+</head>
+<body>
+  <div class="demo-banner" role="status" aria-live="polite">
+    <strong>DEMO_FIXTURE</strong>
+    <span>全部数据为构造演示数据；未连接生产 Business API、未连接 Ds Bit、未连接 Morrishk 数据库。Mock 响应只体现契约方向，不代表真实接口已实现。</span>
+  </div>
+
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-mark">M × D</span>
+      <div>
+        <h1>产品身份与分类治理 <span class="sub">Phase 1 Mock</span></h1>
+        <p class="muted">MPN + Brand 身份 · MpnNormalizer · 技术参数分类与业务导航分类分离</p>
+      </div>
+    </div>
+    <div class="header-meta">
+      <span class="pill">normalizer <code id="normalizer-version">MPN-NORM-v1</code></span>
+      <span class="pill">baseline <code>12_ v1.3</code></span>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="主视图">
+    <button class="tab active" data-view="products">产品身份</button>
+    <button class="tab" data-view="normalizer">MPN 归一化</button>
+    <button class="tab" data-view="conflicts">身份冲突</button>
+    <button class="tab" data-view="dictionary">技术参数字典</button>
+    <button class="tab" data-view="taxonomy">两套分类</button>
+    <button class="tab" data-view="mapping">平台映射预览</button>
+    <button class="tab" data-view="api">Mock API</button>
+    <button class="tab" data-view="sync">同步与重试</button>
+  </nav>
+
+  <main class="app-main">
+    <section id="view-products" class="view active">
+      <div class="split">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>产品列表</h2>
+            <span class="muted" id="products-count"></span>
+          </div>
+          <div class="toolbar">
+            <label>身份状态
+              <select id="filter-identity">
+                <option value="">全部</option>
+                <option value="CONFIRMED">CONFIRMED</option>
+                <option value="PENDING_BRAND">PENDING_BRAND</option>
+                <option value="PENDING_CONFLICT">PENDING_CONFLICT</option>
+              </select>
+            </label>
+            <label>发布状态
+              <select id="filter-release">
+                <option value="">全部</option>
+                <option value="RELEASED">RELEASED</option>
+                <option value="PENDING">PENDING</option>
+                <option value="REVOKED">REVOKED</option>
+              </select>
+            </label>
+            <label>搜索
+              <input id="filter-text" type="search" placeholder="MPN / Brand / key">
+            </label>
+          </div>
+          <table class="data-table" id="products-table">
+            <thead>
+              <tr>
+                <th>MPN</th>
+                <th>Brand</th>
+                <th>身份状态</th>
+                <th>发布</th>
+                <th>product_business_key</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <aside class="panel detail" id="product-detail">
+          <div class="empty-state">选择左侧产品查看详情</div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="view-normalizer" class="view">
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head"><h2>归一化预览</h2><span class="tag">PROPOSED / MPN-NORM-v1</span></div>
+          <p class="muted">输入原始 MPN 与 Brand，查看规范化结果和确定性业务键。规则细节见 12_ §6.2.1。</p>
+          <div class="form-row">
+            <label>mpn_raw <input id="norm-mpn" value="  lm358dr  " autocomplete="off"></label>
+            <label>brand_raw <input id="norm-brand" value="Example  Semiconductor" autocomplete="off"></label>
+          </div>
+          <div class="form-row">
+            <button class="primary" id="norm-run">归一化</button>
+            <button id="norm-variant" type="button">载入边界样例</button>
+          </div>
+          <div id="norm-result" class="result-box"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>批量候选与冲突</h2></div>
+          <p class="muted">同一来源文档出现互斥 MPN 时，应进入 <code>PENDING_CONFLICT</code>，不得自动合并。</p>
+          <table class="data-table" id="candidate-table">
+            <thead><tr><th>候选</th><th>mpn_norm</th><th>brand_norm</th><th>状态</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div id="candidate-result" class="result-box"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-conflicts" class="view">
+      <div class="panel">
+        <div class="panel-head"><h2>待确认身份队列</h2><span class="muted">不会自动合并；确认动作需 Phase 2 人工流程</span></div>
+        <table class="data-table" id="conflict-table">
+          <thead><tr><th>MPN</th><th>Brand</th><th>状态</th><th>原因</th><th>来源文档</th><th>操作</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="view-dictionary" class="view">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>技术参数字典</h2>
+          <span class="tag warn">DEMO_FIXTURE · 非正式字典</span>
+        </div>
+        <p class="muted">正式 code、定义、单位与数据类型由 PM 提供首个真实种子；此表仅演示承载结构与治理字段。</p>
+        <table class="data-table" id="dictionary-table">
+          <thead>
+            <tr><th>parameter_code</th><th>canonical_name</th><th>data_type</th><th>unit</th><th>source</th><th>status</th><th>dictionary_version</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="form-row dictionary-edit">
+          <label>display_name <input id="dict-display" value=""></label>
+          <label>status
+            <select id="dict-status">
+              <option>DRAFT</option><option>REVIEWED</option><option>PUBLISHED</option><option>DEPRECATED</option>
+            </select>
+          </label>
+          <button id="dict-save" class="primary">模拟保存（仅内存）</button>
+          <span class="muted" id="dict-save-note"></span>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-taxonomy" class="view">
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head"><h2>技术参数分类</h2><span class="tag">Ds Bit 管理</span></div>
+          <div id="technical-tree" class="tree"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>业务导航分类</h2><span class="tag alt">Morrishk 新平台 pd_category</span></div>
+          <div id="navigation-tree" class="tree"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>映射预览</h2><span class="muted">两套 ID 空间独立，只能显式映射</span></div>
+        <table class="data-table" id="mapping-table">
+          <thead><tr><th>技术分类</th><th>导航分类</th><th>morrishk_target</th><th>类型</th><th>状态</th><th>来源</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="view-mapping" class="view">
+      <div class="panel">
+        <div class="panel-head"><h2>Ds Bit → Morrishk 新平台映射预览</h2><span class="tag warn">未执行迁移</span></div>
+        <p class="muted"><code>platform_model_id</code> 仅为 Morrishk 内部主键示意；跨系统身份始终是 <code>product_business_key</code>。</p>
+        <table class="data-table" id="platform-table">
+          <thead><tr><th>product_business_key</th><th>MPN</th><th>Brand</th><th>platform_model_id（内部）</th><th>mapping_status</th><th>mapping_source</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="view-api" class="view">
+      <div class="panel">
+        <div class="panel-head"><h2>Mock API 控制台</h2><span class="tag warn">MOCK ONLY · 非生产</span></div>
+        <p class="muted">响应使用未来契约的统一包 <code>{code,message,data,request_id,meta}</code>；错误包含 <code>error_key</code>。不会发起任何网络请求。</p>
+        <div class="form-row">
+          <label>场景
+            <select id="api-scenario">
+              <option value="product_released">200 已发布产品</option>
+              <option value="product_pending">403 未发布产品</option>
+              <option value="product_revoked">410 已撤回产品</option>
+              <option value="identity_missing_brand">422 缺少 Brand</option>
+              <option value="identity_conflict">422 归一化冲突</option>
+              <option value="version_conflict">409 版本冲突</option>
+              <option value="unauthorized">401 Token 无效</option>
+              <option value="rate_limited">429 限流</option>
+              <option value="service_unavailable">503 服务不可用</option>
+              <option value="search">GET /products/search</option>
+              <option value="dictionary">GET /dictionary/parameters</option>
+              <option value="taxonomy">GET /taxonomies/{id}/tree</option>
+            </select>
+          </label>
+          <label>mpn <input id="api-mpn" value="LM358DR"></label>
+          <label>brand <input id="api-brand" value="Example Semiconductor"></label>
+          <label>limit <input id="api-limit" type="number" value="1" min="1" max="200"></label>
+          <button class="primary" id="api-send">发送（模拟）</button>
+        </div>
+        <div class="api-grid">
+          <div>
+            <h3>请求</h3>
+            <pre id="api-request" class="code"></pre>
+          </div>
+          <div>
+            <h3>响应</h3>
+            <pre id="api-response" class="code"></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-sync" class="view">
+      <div class="panel">
+        <div class="panel-head"><h2>同步与重试演示</h2><span class="tag warn">模拟运行 · 不写任何数据库</span></div>
+        <p class="muted">演示游标分页、503 退避重试与撤回发现；不对应真实同步任务。</p>
+        <div class="form-row">
+          <label>pageSize <input id="sync-page" type="number" value="2" min="1"></label>
+          <label>failAtPage <input id="sync-fail" type="number" value="2" min="0"></label>
+          <label>maxRetries <input id="sync-retries" type="number" value="2" min="0"></label>
+          <label>release_state
+            <select id="sync-state"><option>RELEASED</option><option>REVOKED</option></select>
+          </label>
+          <button class="primary" id="sync-run">运行演示</button>
+        </div>
+        <table class="data-table" id="sync-table">
+          <thead><tr><th>page</th><th>attempt</th><th>status</th><th>http</th><th>count</th><th>next_cursor</th><th>note</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <span>Phase 1 Mock UI · DEMO_FIXTURE 隔离数据 · 未实现生产 Business API</span>
+    <span>规则基线：<code>12_ · v1.3</code> · 裁定：IQ-01 / IQ-02 / IQ-13</span>
+  </footer>
+
+  <script src="assets/mpn-normalizer.js?v=1"></script>
+  <script src="assets/mock-api.js?v=1"></script>
+  <script src="assets/app.js?v=2"></script>
+</body>
+</html>

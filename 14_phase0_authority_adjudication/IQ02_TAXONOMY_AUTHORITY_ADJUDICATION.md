@@ -5,7 +5,7 @@
 | 文档编号 | MRH-DSBIT-PHASE0-EVIDENCE-004 |
 | 关联问题 | `INTEGRATION_OPEN_QUESTIONS.md` IQ-02（`BLOCKER_PHASE0`） |
 | 决策人 | 客户业务负责人 |
-| 当前状态 | `OPEN`，`DECISION_REQUIRED` |
+| 当前状态 | v1.0：`OPEN` / `DECISION_REQUIRED`；v1.1：`DECIDED`（2026-11-17，见 §10） |
 | 本文件性质 | 证据与选项；**不构成裁定** |
 | 证据基线 | Ds Bit HEAD `600439a`；旧站 schema/源码；新平台未执行迁移 |
 
@@ -229,3 +229,45 @@ IQ-02 未裁定会阻断：
 - 分类生命周期与 410 时机（IQ-05）。
 
 **在 IQ-02 书面裁定前，契约不得冻结，Phase 1 不得开始。**
+
+---
+
+## 10. 裁定落地（2026-11-17，v1.1 追加）
+
+> 本节为书面裁定转录，不修改上文任何证据、选项或建议。裁定人：项目决策人（依 2026-11-17 书面任务书）。独立 Reviewer 验收未完成，签署待补。
+
+### 10.1 裁定结论
+
+| 子问题 | 裁定 |
+|---|---|
+| 两套分类关系 | **严格分离**：业务导航分类 ≠ 技术参数分类 |
+| 业务导航分类 | 旧站 `snsii_product_category`、新平台 `pd_category`；仅用于前台展示、导航、目录组织；**不得**作为 Ds Bit 技术参数分类；**不得**共享分类 ID |
+| 技术参数分类归属 | 由 Ds Bit 引擎管理与生成 |
+| 初始种子 | PM 提供首个真实分类种子与参数命名标准 |
+| 候选核心字段 | 至少 `Package`、`Voltage`、`Operating_Temperature`；正式 code/定义/单位/数据类型/适用范围/别名以 PM 种子为准，**不得臆定** |
+| 体系数量 | 本轮未裁定单体系/多体系；仍 `OPEN` |
+| Fixture | 仅用于 UI/Mock 展示，必须标记 `DEMO_FIXTURE`；隔离于正式数据 |
+
+### 10.2 参数字典建议字段
+
+`parameter_code`、`canonical_name`、`display_name`、`definition`、`data_type`、`canonical_unit`、`applicable_scope`、`synonyms`、`source`、`dictionary_version`、`status`。
+
+该清单为裁定文本给出的建议字段，不是已定稿表结构；实现前仍需设计评审。
+
+### 10.3 Fixture 硬边界
+
+1. 不得作为正式种子。
+2. 不得混入正式字典。
+3. 不得把 Fixture ID/定义写入正式业务数据。
+4. 不得把 Fixture 测试通过描述为真实数据验证。
+5. UI 使用隔离 Demo Fixture 时必须显示演示数据标识。
+
+### 10.4 被推翻的既有假定
+
+- 本文 §5 中「由 Morrishk 自建技术分类」不在方向内；技术参数分类归 Ds Bit。
+- 原主文档 §7.1 对「业务导航分类」与「技术分类」的并列描述被强化为硬隔离约束。
+- 「旧站分类名称可直接作为技术分类种子」被明确禁止。
+
+### 10.5 仍开放
+
+体系数量、`category_code` 生成与冻结（IQ-03）、多主分类（IQ-04）、生命周期/410（IQ-05）、具体种子内容与字典定稿。PM 种子未提交前，不得以任何 Fixture 冒充正式种子。

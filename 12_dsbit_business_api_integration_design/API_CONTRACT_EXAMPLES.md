@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-INT-001-EX |
-| 版本 | v1.2.2（同步主文档版本号；未冻结；全部为构造样例） |
+| 版本 | v1.3（同步主文档 v1.3；未冻结；全部为构造样例） |
 | 日期 | 2026-11-17 |
 | 关联文档 | `Ds Bit ↔ Morrishk Business API Integration Design v1.md`（主文档） |
 | 状态 | 全部 `PROPOSED` / 构造示例 |
@@ -11,11 +11,16 @@
 > **这些示例全部是设计的构造样例，不是真实响应。**
 >
 > - 未调用任何 Ds Bit 服务，未访问 `dsb.0668xgwl.com`，未连接任何数据库。
-> - 示例中的 `product_id`、`category_id`、型号、参数值、SHA-256、bbox 均为**手工构造**，
+> - 示例中的 `product_business_key`、`category_id`、型号、参数值、SHA-256、bbox 均为**手工构造**，
 >   不代表任何真实器件的解析结果，也不得作为数据正确性的证据。
 > - `client_secret`、`access_token` 一律以 `***` / `<REDACTED>` 表示；本文档不含任何真实凭据。
 > - Base URL 使用占位域名 `https://dsbit.example.com/api/v1`；实际域名见主文档 §5.1（`OPEN` IQ-10）。
-> - 示例 ID 采用 **`<type>_<ULID>`**：前缀（`prd_` / `cat_` / `tax_` / `ev_` / `rel_` 等）
+> - 产品身份一律使用 **`product_business_key`**（`pbk1_` + 64 位小写十六进制 SHA-256，共 69 字符），
+>   由 `(mpn_norm, brand_norm)` 按主文档 §6.2.1 确定性派生。示例中的键值按该公式真实计算，
+>   但**对应的 MPN/Brand 是虚构的**，不得反推为真实产品。
+> - **`prod-{document_id}` 已废弃**，不作为路由参数、响应身份或映射键出现；`document_id` 只出现在
+>   `documents` 元数据里，`role` 固定为 `SOURCE_DOCUMENT`。示例中不再出现 `product_id` 字段。
+> - 分类、证据、发布等**非产品**标识仍采用 **`<type>_<ULID>`**：前缀（`cat_` / `tax_` / `ev_` / `rel_` 等）
 >   加下划线，再接 26 字符 Crockford Base32 ULID（统一大写）；总长度不超过 32。
 >   前缀不参与唯一性判断；示例中的后缀均为合法 ULID（主文档 §5.3）。
 
@@ -49,6 +54,7 @@
 | EX-20 | 429 限流 | §5.11 |
 | EX-21 | Morrishk 映射表行 | §7.8.1 |
 | EX-22 | 同步状态行 | §9.4.1 |
+| EX-23 | 产品身份不完整 / 规范化冲突 422 | §5.8 / §6.2.1 |
 
 **两种错误形状必须先分清：**
 
@@ -423,7 +429,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8Z9K2V4ABCDEFGHJKMNPQRS/categories HTTP/1.1
+GET /api/v1/products/pbk1_e65e545a387d11dfccf729da568de66a33b78c892d6b6809347ceeb499eba88b/categories HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -435,7 +441,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 0,
   "message": "ok",
   "data": {
-    "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRS",
+    "product_business_key": "pbk1_e65e545a387d11dfccf729da568de66a33b78c892d6b6809347ceeb499eba88b",
     "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMNPQRS",
     "taxonomy_version": 42,
     "categories": [
@@ -468,7 +474,8 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 
 - 只返回 `status=APPROVED` 且 `valid_to IS NULL` 的边。
 - 同一 `taxonomy_id` 下最多一个 `PRIMARY`（`OPEN` IQ-04）。
-- 这里的 `category_id` 是 **Ds Bit 分类 ID**，绝不能直接写入 `snsii_product.BigCat/SmallCat`。
+- 这里的 `category_id` 是 **Ds Bit 技术参数分类 ID**，绝不能直接写入 `pd_category` / `snsii_product_category`，
+  也不得与业务导航分类共享 ID（主文档 §7.1.1）。
 - **授权门禁（回应 R4）**：调用者需要 `product.category.read`，且产品必须为 `RELEASE_APPROVED`；
   该端点不得绕过产品详情门禁。未发布产品在无 `product.publish.read` 时返回 403（见 EX-07b）。
 
@@ -479,7 +486,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8Z9K2V4ABCDEFGHJKMNPQRT/categories HTTP/1.1
+GET /api/v1/products/pbk1_f3be4832aee387479a44c81cf4f0be4e1ad52964fd2029c96b81bc94b3298d40/categories HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -510,7 +517,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8Z9K2V4ABCDEFGHJKMNPQRT/categories?internal_only=true HTTP/1.1
+GET /api/v1/products/pbk1_f3be4832aee387479a44c81cf4f0be4e1ad52964fd2029c96b81bc94b3298d40/categories?internal_only=true HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -525,7 +532,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 0,
   "message": "ok",
   "data": {
-    "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRT",
+    "product_business_key": "pbk1_f3be4832aee387479a44c81cf4f0be4e1ad52964fd2029c96b81bc94b3298d40",
     "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMNPQRS",
     "taxonomy_version": 42,
     "internal_only": true,
@@ -739,7 +746,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8Z9K2V4ABCDEFGHJKMNPQRS HTTP/1.1
+GET /api/v1/products/pbk1_e65e545a387d11dfccf729da568de66a33b78c892d6b6809347ceeb499eba88b HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 Accept: application/json
@@ -758,11 +765,14 @@ X-Request-Id: req_01J8Z9K2V3ABCDEFGHJKMNPQR8
   "code": 0,
   "message": "ok",
   "data": {
-    "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRS",
+    "product_business_key": "pbk1_e65e545a387d11dfccf729da568de66a33b78c892d6b6809347ceeb499eba88b",
+    "identity_state": "CONFIRMED",
     "identity": {
-      "mpn": "LM358DR",
+      "mpn_raw": "LM358DR",
       "mpn_norm": "LM358DR",
-      "manufacturer": "Example Semiconductor",
+      "brand_raw": "Example Semiconductor",
+      "brand_norm": "EXAMPLE SEMICONDUCTOR",
+      "normalizer_version": "MPN-NORM-v1",
       "package": "SOIC-8",
       "identity_scope": "DEVICE",
       "product_type": "IC"
@@ -818,7 +828,8 @@ X-Request-Id: req_01J8Z9K2V3ABCDEFGHJKMNPQR8
         "document_id": "doc_01J8N000000000000000000000",
         "document_sha256": "059d448c5a34a4b1e0f1c2d3b4a5968778695a4b3c2d1e0f9a8b7c6d5e4f3a21",
         "document_type": "datasheet",
-        "page_count": 24
+        "page_count": 24,
+        "role": "SOURCE_DOCUMENT"
       }
     ],
     "release": {
@@ -840,7 +851,11 @@ X-Request-Id: req_01J8Z9K2V3ABCDEFGHJKMNPQR8
 - 只包含通过正式容器的参数（`VERIFIED` / `AUDITED`）。
 - 不返回解析中间产物（`candidates.json`、`param_blocks`、`gold_eval`）。
 - `categories.refs` 只有引用，没有名称/路径；分类改名不导致产品缓存失效。
-- `documents` 不含 PDF 二进制或下载 URL。
+- `documents` 不含 PDF 二进制或下载 URL；`document_id` 只是来源文档元数据，
+  **不是**产品身份，也不得写回 `product_business_key` 或映射表（主文档 §6.2.2）。
+- 同一 `product_business_key` 可由多个 `documents` 支撑；API 不因文档数量生成多个产品。
+- `identity_state` 取 `CONFIRMED` / `PENDING_BRAND` / `PENDING_CONFLICT` / `INVALID`；
+  只有 `CONFIRMED` 且 `RELEASE_APPROVED` 的产品才会出现在公开列表（示例为 `CONFIRMED`）。
 
 ---
 
@@ -849,7 +864,7 @@ X-Request-Id: req_01J8Z9K2V3ABCDEFGHJKMNPQR8
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8Q000000000000000000000 HTTP/1.1
+GET /api/v1/products/pbk1_f3be4832aee387479a44c81cf4f0be4e1ad52964fd2029c96b81bc94b3298d40 HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -861,7 +876,8 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 40302,
   "message": "Product data is not released",
   "data": {
-    "product_id": "prd_01J8Q000000000000000000000",
+    "product_business_key": "pbk1_f3be4832aee387479a44c81cf4f0be4e1ad52964fd2029c96b81bc94b3298d40",
+    "identity_state": "CONFIRMED",
     "visible_state": "PENDING"
   },
   "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQR9",
@@ -877,7 +893,9 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 
 - `403` 而非 `404`：产品**存在**但未发布，与"不存在"必须区分。
 - `degraded_allowed=true`：Morrishk 可继续展示本地最后一次已发布快照（如果有），但不得展示 `PENDING` 内容。
-- 若客户端只有 `product.read`，不返回 `visible_state` 细节也无妨；有 `product.publish.read` 时可返回。
+- 若客户端只有 `product.read`，不返回 `visible_state` / `identity_state` 细节也无妨；有 `product.publish.read` 时可返回。
+- 未发布的**待确认身份**（`PENDING_BRAND` / `PENDING_CONFLICT`）如果被直接查询，返回 `422`，
+  而不是 `403`：这是身份不完整，不是发布状态问题（主文档 §5.8）。
 
 ---
 
@@ -886,7 +904,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8R000000000000000000000 HTTP/1.1
+GET /api/v1/products/pbk1_7de19c6b2d36dd692514dc2580af496a126795f386c351950789a9ef3ae83ec1 HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -898,7 +916,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 41001,
   "message": "Product release revoked",
   "data": {
-    "product_id": "prd_01J8R000000000000000000000",
+    "product_business_key": "pbk1_7de19c6b2d36dd692514dc2580af496a126795f386c351950789a9ef3ae83ec1",
     "release_id": "rel_01J8S000000000000000000000",
     "release_version": 2,
     "revoked_at": "2026-11-16T00:00:00Z",
@@ -922,7 +940,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8Z9K2V4ABCDEFGHJKMNPQRS/status HTTP/1.1
+GET /api/v1/products/pbk1_e65e545a387d11dfccf729da568de66a33b78c892d6b6809347ceeb499eba88b/status HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -934,7 +952,8 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 0,
   "message": "ok",
   "data": {
-    "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRS",
+    "product_business_key": "pbk1_e65e545a387d11dfccf729da568de66a33b78c892d6b6809347ceeb499eba88b",
+    "identity_state": "CONFIRMED",
     "gates": {
       "pipeline": {
         "state": "PASS",
@@ -976,7 +995,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8Z9K2V4ABCDEFGHJKMNPQRS/versions?limit=2 HTTP/1.1
+GET /api/v1/products/pbk1_e65e545a387d11dfccf729da568de66a33b78c892d6b6809347ceeb499eba88b/versions?limit=2 HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -988,7 +1007,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 0,
   "message": "ok",
   "data": {
-    "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRS",
+    "product_business_key": "pbk1_e65e545a387d11dfccf729da568de66a33b78c892d6b6809347ceeb499eba88b",
     "items": [
       {
         "content_version": 7,
@@ -1028,7 +1047,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8Z9K2V4ABCDEFGHJKMNPQRS/evidence HTTP/1.1
+GET /api/v1/products/pbk1_e65e545a387d11dfccf729da568de66a33b78c892d6b6809347ceeb499eba88b/evidence HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -1040,7 +1059,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 0,
   "message": "ok",
   "data": {
-    "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRS",
+    "product_business_key": "pbk1_e65e545a387d11dfccf729da568de66a33b78c892d6b6809347ceeb499eba88b",
     "document_sha256": "059d448c5a34a4b1e0f1c2d3b4a5968778695a4b3c2d1e0f9a8b7c6d5e4f3a21",
     "items": [
       {
@@ -1069,6 +1088,8 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 - `screenshot_reference` 是**本地相对路径**，不是 URL；是否提供下载需单独授权（`OPEN` IQ-08）。
 - `raw_text` 建议 ≤ 500 字符。
 - 只返回 `APPROVED` 参数的证据；未通过参数不在正式证据集中。
+- `document_sha256` 标明证据来自哪份来源文档；产品可由多份文档支撑时，证据按文档区分，
+  但产品身份仍只有一个 `product_business_key`。
 
 ---
 
@@ -1077,7 +1098,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ### EX-17a MPN 精确查找
 
 ```http
-GET /api/v1/products/search?mpn=LM358DR&mpn_match=exact&limit=10 HTTP/1.1
+GET /api/v1/products/search?mpn=LM358DR&brand=Example%20Semiconductor&mpn_match=exact&limit=10 HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -1089,10 +1110,13 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "data": {
     "items": [
       {
-        "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRS",
-        "mpn": "LM358DR",
+        "product_business_key": "pbk1_e65e545a387d11dfccf729da568de66a33b78c892d6b6809347ceeb499eba88b",
+        "identity_state": "CONFIRMED",
+        "mpn_raw": "LM358DR",
         "mpn_norm": "LM358DR",
-        "manufacturer": "Example Semiconductor",
+        "brand_raw": "Example Semiconductor",
+        "brand_norm": "EXAMPLE SEMICONDUCTOR",
+        "normalizer_version": "MPN-NORM-v1",
         "package": "SOIC-8",
         "visible_state": "RELEASED",
         "content_version": 7,
@@ -1104,6 +1128,9 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "meta": {"limit": 10, "next_cursor": null, "has_more": false}
 }
 ```
+
+说明：`brand` 为必填参数（主文档 §6.4）。缺少 `brand` 返回 `400 INVALID_ARGUMENT`；
+`brand` 无法规范化返回 `422 PRODUCT_IDENTITY_INCOMPLETE`，不得退化为"仅 MPN"查询。
 
 ### EX-17b 增量同步（含撤回）
 
@@ -1118,9 +1145,10 @@ GET /api/v1/products/search?updated_since=2026-11-12T00:00:00Z&release_state=REL
   "data": {
     "items": [
       {
-        "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRS",
-        "mpn": "LM358DR",
+        "product_business_key": "pbk1_e65e545a387d11dfccf729da568de66a33b78c892d6b6809347ceeb499eba88b",
+        "mpn_raw": "LM358DR",
         "mpn_norm": "LM358DR",
+        "brand_norm": "EXAMPLE SEMICONDUCTOR",
         "visible_state": "RELEASED",
         "content_version": 7,
         "updated_at": "2026-11-12T10:00:00Z"
@@ -1130,7 +1158,7 @@ GET /api/v1/products/search?updated_since=2026-11-12T00:00:00Z&release_state=REL
   "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQRF",
   "meta": {
     "limit": 200,
-    "next_cursor": "eyJ2Ijo3LCJpZCI6InByZF8wMUo4In0",
+    "next_cursor": "eyJ2Ijo3LCJrZXkiOiJwYmsxX2U2NWUifQ",
     "has_more": true
   }
 }
@@ -1149,8 +1177,10 @@ GET /api/v1/products/search?updated_since=2026-11-15T00:00:00Z&release_state=REV
   "data": {
     "items": [
       {
-        "product_id": "prd_01J8R000000000000000000000",
-        "mpn": "EXAMPLE-999",
+        "product_business_key": "pbk1_7de19c6b2d36dd692514dc2580af496a126795f386c351950789a9ef3ae83ec1",
+        "mpn_raw": "EXAMPLE-999",
+        "mpn_norm": "EXAMPLE-999",
+        "brand_norm": "EXAMPLE SEMICONDUCTOR",
         "visible_state": "REVOKED",
         "revoked_at": "2026-11-16T00:00:00Z"
       }
@@ -1242,7 +1272,7 @@ GET /api/v1/products/search?updated_since=2026-11-15T00:00:00Z&release_state=REV
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8Z9K2V4ABCDEFGHJKMNPQRS HTTP/1.1
+GET /api/v1/products/pbk1_e65e545a387d11dfccf729da568de66a33b78c892d6b6809347ceeb499eba88b HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 If-None-Match: "sha256:7a1d3e9b..."
@@ -1312,7 +1342,7 @@ INSERT INTO dsbit_category_mapping (
 ) VALUES (
   'tax_01J8Z9K2V3ABCDEFGHJKMNPQRS',
   'cat_01J8D000000000000000000000',
-  'LEGACY_SNSII', 102,
+  'PLATFORM_PD', 1024,
   'EXACT', 1,
   'APPROVED', 'MANUAL',
   '导航「放大器」对应技术分类 general-purpose-op-amps',
@@ -1336,7 +1366,7 @@ INSERT INTO dsbit_category_mapping (
 ) VALUES (
   'tax_01J8Z9K2V3ABCDEFGHJKMNPQRS',
   'cat_01J8E000000000000000000000',
-  'LEGACY_SNSII', 102,
+  'PLATFORM_PD', 1024,
   'AGGREGATE', 0,
   'PROPOSED', 'SEED',
   '低功耗运放并入「放大器」导航，待业务确认',
@@ -1360,10 +1390,10 @@ INSERT INTO dsbit_category_mapping (
 ) VALUES (
   'tax_01J8Z9K2V3ABCDEFGHJKMNPQRS',
   'cat_01J8G000000000000000000000',
-  'LEGACY_SNSII', 0,
+  'PLATFORM_PD', 0,
   'MANUAL', 0,
   'UNMAPPED', 'IMPORT',
-  '新技术分类，Morrishk 无对应导航项',
+  '新技术分类，Morrishk 新平台导航暂无对应项',
   NULL, NULL,
   '2026-11-16T08:00:00Z', NULL,
   '2026-11-16T08:00:00Z', '2026-11-16T08:00:00Z'
@@ -1372,9 +1402,13 @@ INSERT INTO dsbit_category_mapping (
 
 说明：
 
-- `morrishk_category_id = 0` 仅用于 `UNMAPPED` 占位；**不得**写入 `snsii_product_category`。
+- `morrishk_category_id` 是 **Morrishk 本地** `pd_category.id` 外键，只在 Morrishk 内部使用；
+  不得回传给 Ds Bit，也不得当作跨系统分类身份（IQ-13）。示例值 `1024`、`0` 为构造数字。
+- `morrishk_category_id = 0` 仅用于 `UNMAPPED` 占位；**不得**写入 `pd_category` 或 `snsii_product_category`。
+- v1 新写入的 `morrishk_target` 只允许 `'PLATFORM_PD'`；`'LEGACY_SNSII'` 仅保留历史行（IQ-13）。
 - 同一 `dsbit_category_id` 可有多行（多目标/多类型），但同一 `(dsbit_category_id, morrishk_target, morrishk_category_id, valid_to IS NULL)` 应唯一，由应用层保证（5.6 无部分唯一索引）。
 - 映射变化**不**触发 URL 变更或 301。
+- 映射目标只能是**业务导航分类**；不得把 `dsbit_category_id` 当作 Ds Bit 技术参数分类之外的任何分类身份。
 
 ---
 
@@ -1417,7 +1451,7 @@ INSERT INTO dsbit_sync_state (
   'products',
   'PRODUCT',
   NULL,
-  'eyJ2Ijo3LCJpZCI6InByZF8wMUo4In0',
+  'eyJ2Ijo3LCJrZXkiOiJwYmsxX2U2NWUifQ',
   NULL,
   NULL,
   '2026-11-16T02:00:00Z', '2026-11-17T03:25:00Z',
@@ -1427,6 +1461,72 @@ INSERT INTO dsbit_sync_state (
 ```
 
 说明：`status=DEGRADED` 时页面继续读本地缓存并告警；`consecutive_failures >= 5` 触发熔断（主文档 §4.8）。同步日志不记录 Token、secret、完整响应体。
+
+---
+
+## EX-23 产品身份不完整 / 规范化冲突（`422`）
+
+> 身份门禁先于发布门禁：`(mpn_norm, brand_norm)` 不成立时不能生成 `product_business_key`，
+> 也不得退化为"仅 MPN"或"仅 Brand"。`product_business_key` 在 `422` 响应中为 `null`。
+
+### EX-23a 缺少 Brand → `PENDING_BRAND`
+
+```json
+{
+  "code": 42201,
+  "message": "Product identity is incomplete: brand cannot be resolved",
+  "data": {
+    "product_business_key": null,
+    "identity_state": "PENDING_BRAND",
+    "mpn_raw": "LM358DR",
+    "mpn_norm": "LM358DR",
+    "brand_raw": null,
+    "brand_norm": null,
+    "normalizer_version": "MPN-NORM-v1"
+  },
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQRY",
+  "meta": {
+    "error_key": "PRODUCT_IDENTITY_INCOMPLETE",
+    "retryable": false,
+    "degraded_allowed": false,
+    "missing": ["brand"]
+  }
+}
+```
+
+### EX-23b 规范化冲突 → `PENDING_CONFLICT`
+
+```json
+{
+  "code": 42202,
+  "message": "MPN normalization conflict",
+  "data": {
+    "product_business_key": null,
+    "identity_state": "PENDING_CONFLICT",
+    "mpn_raw": "LM358DR",
+    "mpn_norm": "LM358DR",
+    "conflicting_with": "LM358D",
+    "brand_raw": "Example Semiconductor",
+    "brand_norm": "EXAMPLE SEMICONDUCTOR",
+    "normalizer_version": "MPN-NORM-v1"
+  },
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQRZ",
+  "meta": {
+    "error_key": "MPN_NORMALIZATION_CONFLICT",
+    "retryable": false,
+    "degraded_allowed": false,
+    "conflict_source": ["document_sha256"]
+  }
+}
+```
+
+说明：
+
+- `PENDING_BRAND` / `PENDING_CONFLICT` 只能进入人工确认队列，**不得**自动合并到已有身份，
+  也不得临时生成 `product_business_key`。
+- `422` 与 `403 PRODUCT_NOT_RELEASED`、`410 PRODUCT_RELEASE_REVOKED` 是三种不同语义：
+  身份不成立 / 身份成立但未发布 / 身份成立但已撤回。
+- 冲突判定与人工确认流程的具体规则仍需冻结（主文档 §14.3 仍列为待定项）。
 
 ---
 
@@ -1443,5 +1543,6 @@ INSERT INTO dsbit_sync_state (
 | EX-17 | MPN 精确/松散、增量、撤回发现 |
 | EX-18 / EX-19 / EX-20 | 通用错误、304、429 |
 | EX-21 / EX-22 | 映射与同步幂等、降级 |
+| EX-23 | 缺少 Brand、规范化冲突、`422` 身份门禁 |
 
 > 本文件不包含任何真实数据、真实凭据或真实响应。所有数值和 ID 均为构造示例。

@@ -3,10 +3,11 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-INT-001-OQ |
-| 版本 | v1.2.2（与主文档同步版本号；问题与裁定状态未变） |
+| 版本 | v1.3（同步主文档；回填 IQ-01 / IQ-02 / IQ-13 书面裁定） |
 | 日期 | 2026-11-17 |
-| 关联文档 | `Ds Bit ↔ Morrishk Business API Integration Design v1.md`（主文档）；`API_CONTRACT_EXAMPLES.md` |
-| 状态 | 全部 `OPEN`；本文档**不做**单方裁定，只登记问题、证据、选项与建议 |
+| 关联文档 | `Ds Bit ↔ Morrishk Business API Integration Design v1.md`（主文档 v1.3）；`API_CONTRACT_EXAMPLES.md` |
+| 状态 | IQ-01 / IQ-02 / IQ-13 已 `DECIDED`；其余 19 项 `OPEN`；本文档仍**不做**单方裁定，只登记问题、证据、选项、建议与已收到的书面裁定 |
+| 裁定依据 | 项目决策人 2026-11-17 书面任务书；证据基线 `main@7713765` |
 
 > **使用规则**
 >
@@ -20,35 +21,42 @@
 >    - `NON_BLOCKING`：可在实施中决定，但必须记录。
 > 4. 任何裁定都不得绕过主文档 §14.2 的审批边界。
 > 5. 本文档引用的现状事实均可在主文档 §2 的路径处复核；本文档不新增未经验证的事实。
+>
+> **v1.3 状态说明（2026-11-17）：** IQ-01、IQ-02、IQ-13 已收到项目决策人书面裁定并登记；
+> 三者的「裁定记录」表已填写。其余 19 项仍为 `OPEN`。`DECIDED` 不等于契约冻结，
+> 也不等于独立 Reviewer 验收完成。已裁定项中未固定的技术细节（如 `MpnNormalizer` 规则版本、
+> `product_business_key` 哈希格式）仍须在实现前以设计评审冻结。
 
 ---
 
 ## 0. 总览
 
-| 编号 | 问题 | 目标阶段 | 阻断级别 | 决策人 |
-|---|---|---|---|---|
-| IQ-01 | 产品身份权威与 ID 空间 | Phase 0 | `BLOCKER_PHASE0` | 客户业务负责人 + Ds Bit 负责人 |
-| IQ-02 | 技术分类体系归属、初始种子、是否多体系 | Phase 0 | `BLOCKER_PHASE0` | 客户业务负责人 |
-| IQ-03 | `category_id` / `category_code` 治理与生成规则 | Phase 1 | `BLOCKER_PHASE1` | Ds Bit 负责人 |
-| IQ-04 | 同一产品是否允许跨体系多个主分类 | Phase 1 | `BLOCKER_PHASE1` | 客户业务负责人 |
-| IQ-05 | 分类合并/停用保留期与 410 时机 | Phase 0 | `BLOCKER_PHASE0` | 客户业务负责人 + Reviewer |
-| IQ-06 | 发布状态存储位置 | Phase 1 | `BLOCKER_PHASE1` | Ds Bit 负责人 |
-| IQ-07 | 内容审核与发布授权角色 | Phase 2 | `BLOCKER_PHASE2` | 客户业务负责人 |
-| IQ-08 | 证据公开范围与版权 | Phase 2 | `BLOCKER_PHASE2` | 客户法务/业务负责人 |
-| IQ-09 | 错误响应包最终形状 | Phase 0 | `BLOCKER_PHASE0` | Reviewer + Ds Bit 负责人 |
-| IQ-10 | API 域名与环境拓扑 | Phase 4 | `BLOCKER_PHASE4` | 运维 + 安全 |
-| IQ-11 | OAuth 客户端注册与密钥轮换责任人 | Phase 4 | `BLOCKER_PHASE4` | 安全 + 运维 |
-| IQ-12 | Token TTL 与限流配额 | Phase 1 | `BLOCKER_PHASE1` | Ds Bit 负责人 + 运维 |
-| IQ-13 | 对接目标是旧站、新平台还是两者 | Phase 0 | `BLOCKER_PHASE0` | 客户业务负责人 |
-| IQ-14 | 同步任务调度位置 | Phase 2 | `BLOCKER_PHASE2` | Morrishk 技术负责人 |
-| IQ-15 | 新表引擎与字符集 | Phase 0 | `BLOCKER_PHASE0` | 运维 + Morrishk 技术负责人 |
-| IQ-16 | 是否需要 `categories/{id}/products` | Phase 1 | `NON_BLOCKING` | Ds Bit 负责人 |
-| IQ-17 | JSON-LD 字段范围与审核 | Phase 2 | `BLOCKER_PHASE2` | 客户业务负责人 |
-| IQ-18 | URL/301 变更流程与保留期 | Phase 2 | `BLOCKER_PHASE2` | 客户业务负责人 |
-| IQ-19 | 同步日志保留期 | Phase 2 | `NON_BLOCKING` | 运维 |
-| IQ-20 | 是否开放 MPN 模糊查找 | Phase 1 | `BLOCKER_PHASE1` | 客户业务负责人 |
-| IQ-21 | 是否允许非生产凭证 | Phase 0 | `BLOCKER_PHASE0` | 客户业务负责人 + 安全 |
-| IQ-22 | 网络路径（公网/专线/IP 白名单） | Phase 4 | `BLOCKER_PHASE4` | 运维 + 安全 |
+| 编号 | 问题 | 目标阶段 | 阻断级别 | 决策人 | 状态 |
+|---|---|---|---|---|---|
+| IQ-01 | 产品身份权威与 ID 空间 | Phase 0 | `BLOCKER_PHASE0` | 项目决策人 | `DECIDED`（MPN + Brand） |
+| IQ-02 | 技术分类体系归属、初始种子、是否多体系 | Phase 0 | `BLOCKER_PHASE0` | 项目决策人 | `DECIDED`（技术参数分类归 Ds Bit；PM 种子；两套分类分离） |
+| IQ-03 | `category_id` / `category_code` 治理与生成规则 | Phase 1 | `BLOCKER_PHASE1` | Ds Bit 负责人 | `OPEN` |
+| IQ-04 | 同一产品是否允许跨体系多个主分类 | Phase 1 | `BLOCKER_PHASE1` | 客户业务负责人 | `OPEN` |
+| IQ-05 | 分类合并/停用保留期与 410 时机 | Phase 0 | `BLOCKER_PHASE0` | 客户业务负责人 + Reviewer | `OPEN` |
+| IQ-06 | 发布状态存储位置 | Phase 1 | `BLOCKER_PHASE1` | Ds Bit 负责人 | `OPEN` |
+| IQ-07 | 内容审核与发布授权角色 | Phase 2 | `BLOCKER_PHASE2` | 客户业务负责人 | `OPEN` |
+| IQ-08 | 证据公开范围与版权 | Phase 2 | `BLOCKER_PHASE2` | 客户法务/业务负责人 | `OPEN` |
+| IQ-09 | 错误响应包最终形状 | Phase 0 | `BLOCKER_PHASE0` | Reviewer + Ds Bit 负责人 | `OPEN` |
+| IQ-10 | API 域名与环境拓扑 | Phase 4 | `BLOCKER_PHASE4` | 运维 + 安全 | `OPEN` |
+| IQ-11 | OAuth 客户端注册与密钥轮换责任人 | Phase 4 | `BLOCKER_PHASE4` | 安全 + 运维 | `OPEN` |
+| IQ-12 | Token TTL 与限流配额 | Phase 1 | `BLOCKER_PHASE1` | Ds Bit 负责人 + 运维 | `OPEN` |
+| IQ-13 | 对接目标是旧站、新平台还是两者 | Phase 0 | `BLOCKER_PHASE0` | 项目决策人 | `DECIDED`（新平台） |
+| IQ-14 | 同步任务调度位置 | Phase 2 | `BLOCKER_PHASE2` | Morrishk 技术负责人 | `OPEN` |
+| IQ-15 | 新表引擎与字符集 | Phase 0 | `BLOCKER_PHASE0` | 运维 + Morrishk 技术负责人 | `OPEN` |
+| IQ-16 | 是否需要 `categories/{id}/products` | Phase 1 | `NON_BLOCKING` | Ds Bit 负责人 | `OPEN` |
+| IQ-17 | JSON-LD 字段范围与审核 | Phase 2 | `BLOCKER_PHASE2` | 客户业务负责人 | `OPEN` |
+| IQ-18 | URL/301 变更流程与保留期 | Phase 2 | `BLOCKER_PHASE2` | 客户业务负责人 | `OPEN` |
+| IQ-19 | 同步日志保留期 | Phase 2 | `NON_BLOCKING` | 运维 | `OPEN` |
+| IQ-20 | 是否开放 MPN 模糊查找 | Phase 1 | `BLOCKER_PHASE1` | 客户业务负责人 | `OPEN` |
+| IQ-21 | 是否允许非生产凭证 | Phase 0 | `BLOCKER_PHASE0` | 客户业务负责人 + 安全 | `OPEN` |
+| IQ-22 | 网络路径（公网/专线/IP 白名单） | Phase 4 | `BLOCKER_PHASE4` | 运维 + 安全 | `OPEN` |
+
+> `DECIDED` 表示已收到并登记书面裁定，不代表独立 Reviewer 验收完成，也不代表契约冻结。
 
 ---
 
@@ -87,11 +95,11 @@
 
 产品 API、映射表、同步游标、撤回语义、审计链路。
 
-**裁定记录**（待填）
+**裁定记录**
 
 | 日期 | 决策人 | 结论 | 备注 |
 |---|---|---|---|
-| — | — | — | — |
+| 2026-11-17 | 项目决策人 | **其他（E）**：废弃 `doc-id` 跨系统主键；`prod-{document_id}` 仅内部临时流转凭证；采用 `MPN + Brand`，唯一键 `(mpn_norm, brand_norm)`；强制版本化 `MpnNormalizer`；Brand 缺失/冲突进入待确认 | 证据基线 `main@7713765`；`product_business_key` 编码/哈希与 `MpnNormalizer` 规则仍需设计冻结；独立 Reviewer 验收未完成 |
 
 ---
 
@@ -131,11 +139,11 @@ v1 选 A，只允许一个 `PUBLISHED` 体系；初始种子由客户业务团�
 
 §7 全部端点、`dsbit_category_mapping`、Morrishk 导航改造范围。
 
-**裁定记录**（待填）
+**裁定记录**
 
 | 日期 | 决策人 | 结论 | 备注 |
 |---|---|---|---|
-| — | — | — | — |
+| 2026-11-17 | 项目决策人 | **A 的修订版**：严格分离业务导航分类与技术参数分类；技术参数分类由 Ds Bit 管理与生成；PM 提供首个真实分类种子与参数命名标准；候选核心字段 `Package` / `Voltage` / `Operating_Temperature`；Fixture 必须标记 `DEMO_FIXTURE` 且不得进入正式数据 | 证据基线 `main@7713765`；正式 code/定义/单位以 PM 种子为准；体系数量仍 `OPEN`；独立 Reviewer 验收未完成 |
 
 ---
 
@@ -581,11 +589,11 @@ A 为第一期；B 待新平台具备生产能力后再评估；C 只在明确�
 
 Phase 2/3 全部工作量、映射审核队列、URL 兼容。
 
-**裁定记录**（待填）
+**裁定记录**
 
 | 日期 | 决策人 | 结论 | 备注 |
 |---|---|---|---|
-| — | — | — | — |
+| 2026-11-17 | 项目决策人 | **B（修订）**：目标系统为 Morrishk **新平台业务数据库**；旧站不再作为目标系统，不实施旧站数据库直接映射；旧站与新平台自增内部 ID 均不得作为跨系统产品身份；新平台内部 ID 仅作其内部主键 | 证据基线 `main@7713765`；新平台生产授权与迁移执行未裁定；`LEGACY_SNSII` 仅保留历史映射 |
 
 ---
 
@@ -962,6 +970,8 @@ Phase 4 部署、网络配置、监控。
 
 | IQ | 裁定日期 | 决策人 | 结论摘要 | 影响文档/代码 |
 |---|---|---|---|---|
-| — | — | — | — | — |
+| IQ-01 | 2026-11-17 | 项目决策人 | 废弃 `doc-id` 跨系统主键；采用 `MPN + Brand`，唯一键 `(mpn_norm, brand_norm)`；强制版本化 `MpnNormalizer` | 主文档 §6.2/6.2.1/6.3/6.8/9.4.2；API 示例；Phase 1 Mock |
+| IQ-02 | 2026-11-17 | 项目决策人 | 业务导航分类与技术参数分类硬隔离；技术参数分类归 Ds Bit；PM 提供首个真实种子；Fixture 标记 `DEMO_FIXTURE` | 主文档 §7.1.1/7.1.2；分类 API；Phase 1 UI |
+| IQ-13 | 2026-11-17 | 项目决策人 | 目标系统为 Morrishk 新平台业务数据库；旧站不再作为目标；自增 ID 不作跨系统身份 | 主文档 §6.8/7.8.4/9.4.2；同步范围 |
 
 > 未写入本表的"口头同意"不视为裁定。

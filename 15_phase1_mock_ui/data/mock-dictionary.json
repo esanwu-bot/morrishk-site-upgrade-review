@@ -1,0 +1,50 @@
+{
+  "dataset": "DEMO_FIXTURE",
+  "dictionary_version": 0,
+  "status": "DEMO_ONLY",
+  "note": "演示字典，不是 PM 提供的正式种子。正式 parameter_code、定义、单位与数据类型以 PM 种子为准；本文件不得导入正式字典。",
+  "entries": [
+    {
+      "parameter_code": "DEMO_FIXTURE_PACKAGE",
+      "canonical_name": "Package",
+      "display_name": "封装",
+      "definition": "演示用定义：器件封装形式。正式定义待 PM 种子确认。",
+      "data_type": "STRING",
+      "canonical_unit": null,
+      "applicable_scope": "IC",
+      "synonyms": ["Case", "封装形式"],
+      "source": "DEMO_FIXTURE",
+      "dictionary_version": 0,
+      "status": "DRAFT",
+      "fixture": "DEMO_FIXTURE"
+    },
+    {
+      "parameter_code": "DEMO_FIXTURE_VOLTAGE",
+      "canonical_name": "Voltage",
+      "display_name": "电压",
+      "definition": "演示用定义：电源电压范围。正式定义、测试条件与单位待 PM 种子确认。",
+      "data_type": "RANGE",
+      "canonical_unit": "V",
+      "applicable_scope": "IC",
+      "synonyms": ["Supply Voltage", "VCC", "VDD"],
+      "source": "DEMO_FIXTURE",
+      "dictionary_version": 0,
+      "status": "DRAFT",
+      "fixture": "DEMO_FIXTURE"
+    },
+    {
+      "parameter_code": "DEMO_FIXTURE_OPERATING_TEMPERATURE",
+      "canonical_name": "Operating_Temperature",
+      "display_name": "工作温度",
+      "definition": "演示用定义：推荐工作温度范围。正式定义待 PM 种子确认。",
+      "data_type": "RANGE",
+      "canonical_unit": "C",
+      "applicable_scope": "IC",
+      "synonyms": ["TA", "Ambient Temperature"],
+      "source": "DEMO_FIXTURE",
+      "dictionary_version": 0,
+      "status": "DRAFT",
+      "fixture": "DEMO_FIXTURE"
+    }
+  ]
+}

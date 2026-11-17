@@ -1,0 +1,439 @@
+{
+  "dataset": "DEMO_FIXTURE",
+  "note": "构造演示数据，仅用于 Phase 1 Mock UI。不得导入正式数据库、正式字典或作为真实解析结果引用。",
+  "generated_for": "15_phase1_mock_ui",
+  "products": [
+    {
+      "product_business_key": "pbk1_e65e545a387d11dfccf729da568de66a33b78c892d6b6809347ceeb499eba88b",
+      "identity_state": "CONFIRMED",
+      "identity": {
+        "mpn_raw": "LM358DR",
+        "mpn_norm": "LM358DR",
+        "brand_raw": "Example Semiconductor",
+        "brand_norm": "EXAMPLE SEMICONDUCTOR",
+        "normalizer_version": "MPN-NORM-v1",
+        "package": "SOIC-8",
+        "identity_scope": "DEVICE",
+        "product_type": "IC"
+      },
+      "visible_state": "RELEASED",
+      "release": {
+        "release_id": "rel_demo_0001",
+        "release_version": 3,
+        "content_version": 7,
+        "released_at": "2026-11-12T10:00:00Z"
+      },
+      "technical": {
+        "parameter_set_version": 3,
+        "parameters": [
+          {
+            "parameter_id": "par_demo_voltage",
+            "parameter_code": "DEMO_FIXTURE_VOLTAGE",
+            "name": "Supply Voltage",
+            "min": "3",
+            "typ": null,
+            "max": "32",
+            "unit": "V",
+            "conditions": "TA = 25 C",
+            "verification_status": "VERIFIED",
+            "evidence_ids": ["ev_demo_0001"]
+          },
+          {
+            "parameter_id": "par_demo_offset",
+            "parameter_code": "DEMO_FIXTURE_INPUT_OFFSET",
+            "name": "Input Offset Voltage",
+            "min": null,
+            "typ": "2",
+            "max": "7",
+            "unit": "mV",
+            "conditions": "VCC = 5 V, TA = 25 C",
+            "verification_status": "AUDITED",
+            "evidence_ids": ["ev_demo_0002"]
+          },
+          {
+            "parameter_id": "par_demo_package",
+            "parameter_code": "DEMO_FIXTURE_PACKAGE",
+            "name": "Package",
+            "value": "SOIC-8",
+            "unit": null,
+            "conditions": null,
+            "verification_status": "VERIFIED",
+            "evidence_ids": ["ev_demo_0003"]
+          },
+          {
+            "parameter_id": "par_demo_op_temp",
+            "parameter_code": "DEMO_FIXTURE_OPERATING_TEMPERATURE",
+            "name": "Operating Temperature",
+            "min": "-40",
+            "typ": null,
+            "max": "85",
+            "unit": "C",
+            "conditions": null,
+            "verification_status": "VERIFIED",
+            "evidence_ids": ["ev_demo_0004"]
+          }
+        ]
+      },
+      "categories": {
+        "taxonomy_id": "tax_demo_analog",
+        "refs": [
+          { "category_id": "cat_demo_opamp_general", "role": "PRIMARY", "assigned_at": "2026-11-10T08:00:00Z" }
+        ]
+      },
+      "documents": [
+        {
+          "document_id": "doc_demo_sha_a1",
+          "document_sha256": "059d448c5a34a4b1e0f1c2d3b4a5968778695a4b3c2d1e0f9a8b7c6d5e4f3a21",
+          "document_type": "datasheet",
+          "page_count": 24,
+          "role": "SOURCE_DOCUMENT"
+        },
+        {
+          "document_id": "doc_demo_sha_a2",
+          "document_sha256": "1b2c3d4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef01",
+          "document_type": "app_note",
+          "page_count": 8,
+          "role": "SOURCE_DOCUMENT"
+        }
+      ],
+      "platform": {
+        "platform_model_id": 1001,
+        "mapping_status": "APPROVED",
+        "mapping_source": "MPN_BRAND_EXACT"
+      },
+      "updated_at": "2026-11-12T10:00:00Z"
+    },
+    {
+      "product_business_key": "pbk1_ec7e3c0335daa3724e9a24b475e2a40bc6552babb93f2b97571bc053b3e9d40d",
+      "identity_state": "CONFIRMED",
+      "identity": {
+        "mpn_raw": "LM358DR",
+        "mpn_norm": "LM358DR",
+        "brand_raw": "Texas Instruments",
+        "brand_norm": "TEXAS INSTRUMENTS",
+        "normalizer_version": "MPN-NORM-v1",
+        "package": "SOIC-8",
+        "identity_scope": "DEVICE",
+        "product_type": "IC"
+      },
+      "visible_state": "RELEASED",
+      "release": {
+        "release_id": "rel_demo_0002",
+        "release_version": 1,
+        "content_version": 2,
+        "released_at": "2026-11-13T09:00:00Z"
+      },
+      "technical": {
+        "parameter_set_version": 2,
+        "parameters": [
+          {
+            "parameter_id": "par_demo_ti_voltage",
+            "parameter_code": "DEMO_FIXTURE_VOLTAGE",
+            "name": "Supply Voltage",
+            "min": "3",
+            "typ": null,
+            "max": "32",
+            "unit": "V",
+            "conditions": "TA = 25 C",
+            "verification_status": "VERIFIED",
+            "evidence_ids": ["ev_demo_0011"]
+          }
+        ]
+      },
+      "categories": {
+        "taxonomy_id": "tax_demo_analog",
+        "refs": [
+          { "category_id": "cat_demo_opamp_general", "role": "PRIMARY", "assigned_at": "2026-11-13T09:00:00Z" }
+        ]
+      },
+      "documents": [
+        {
+          "document_id": "doc_demo_sha_b1",
+          "document_sha256": "2c3d4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef0123",
+          "document_type": "datasheet",
+          "page_count": 31,
+          "role": "SOURCE_DOCUMENT"
+        }
+      ],
+      "platform": {
+        "platform_model_id": 1002,
+        "mapping_status": "APPROVED",
+        "mapping_source": "MPN_BRAND_EXACT"
+      },
+      "updated_at": "2026-11-13T09:00:00Z"
+    },
+    {
+      "product_business_key": "pbk1_f3be4832aee387479a44c81cf4f0be4e1ad52964fd2029c96b81bc94b3298d40",
+      "identity_state": "CONFIRMED",
+      "identity": {
+        "mpn_raw": "NE555P",
+        "mpn_norm": "NE555P",
+        "brand_raw": "Example Semiconductor",
+        "brand_norm": "EXAMPLE SEMICONDUCTOR",
+        "normalizer_version": "MPN-NORM-v1",
+        "package": "PDIP-8",
+        "identity_scope": "DEVICE",
+        "product_type": "IC"
+      },
+      "visible_state": "PENDING",
+      "release": null,
+      "technical": {
+        "parameter_set_version": 1,
+        "parameters": [
+          {
+            "parameter_id": "par_demo_555_voltage",
+            "parameter_code": "DEMO_FIXTURE_VOLTAGE",
+            "name": "Supply Voltage",
+            "min": "4.5",
+            "typ": null,
+            "max": "16",
+            "unit": "V",
+            "conditions": null,
+            "verification_status": "VERIFIED",
+            "evidence_ids": ["ev_demo_0021"]
+          }
+        ]
+      },
+      "categories": {
+        "taxonomy_id": "tax_demo_analog",
+        "refs": [
+          { "category_id": "cat_demo_timer", "role": "PRIMARY", "assigned_at": "2026-11-14T08:00:00Z" }
+        ]
+      },
+      "documents": [
+        {
+          "document_id": "doc_demo_sha_c1",
+          "document_sha256": "3d4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef012345",
+          "document_type": "datasheet",
+          "page_count": 12,
+          "role": "SOURCE_DOCUMENT"
+        }
+      ],
+      "platform": {
+        "platform_model_id": null,
+        "mapping_status": "PROPOSED",
+        "mapping_source": "MPN_BRAND_EXACT"
+      },
+      "updated_at": "2026-11-14T08:00:00Z"
+    },
+    {
+      "product_business_key": "pbk1_7de19c6b2d36dd692514dc2580af496a126795f386c351950789a9ef3ae83ec1",
+      "identity_state": "CONFIRMED",
+      "identity": {
+        "mpn_raw": "EXAMPLE-999",
+        "mpn_norm": "EXAMPLE-999",
+        "brand_raw": "Example Semiconductor",
+        "brand_norm": "EXAMPLE SEMICONDUCTOR",
+        "normalizer_version": "MPN-NORM-v1",
+        "package": "SOT-23",
+        "identity_scope": "DEVICE",
+        "product_type": "IC"
+      },
+      "visible_state": "REVOKED",
+      "release": {
+        "release_id": "rel_demo_0004",
+        "release_version": 2,
+        "content_version": 4,
+        "released_at": "2026-11-10T10:00:00Z",
+        "revoked_at": "2026-11-16T00:00:00Z",
+        "reason_code": "CONTENT_WITHDRAWN"
+      },
+      "technical": {
+        "parameter_set_version": 1,
+        "parameters": []
+      },
+      "categories": {
+        "taxonomy_id": "tax_demo_analog",
+        "refs": []
+      },
+      "documents": [
+        {
+          "document_id": "doc_demo_sha_d1",
+          "document_sha256": "4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef01234567",
+          "document_type": "datasheet",
+          "page_count": 6,
+          "role": "SOURCE_DOCUMENT"
+        }
+      ],
+      "platform": {
+        "platform_model_id": 1004,
+        "mapping_status": "STALE",
+        "mapping_source": "MPN_BRAND_EXACT"
+      },
+      "updated_at": "2026-11-16T00:00:00Z"
+    },
+    {
+      "product_business_key": "pbk1_8dfd5509816d929d81f29aa840eae76304e45584a58d81216cda1e509e780cc6",
+      "identity_state": "CONFIRMED",
+      "identity": {
+        "mpn_raw": "AFE7950",
+        "mpn_norm": "AFE7950",
+        "brand_raw": "Example Semiconductor",
+        "brand_norm": "EXAMPLE SEMICONDUCTOR",
+        "normalizer_version": "MPN-NORM-v1",
+        "package": "FCBGA-400",
+        "identity_scope": "DEVICE",
+        "product_type": "IC"
+      },
+      "visible_state": "RELEASED",
+      "release": {
+        "release_id": "rel_demo_0005",
+        "release_version": 1,
+        "content_version": 1,
+        "released_at": "2026-11-15T10:00:00Z"
+      },
+      "technical": {
+        "parameter_set_version": 1,
+        "parameters": [
+          {
+            "parameter_id": "par_demo_afe_package",
+            "parameter_code": "DEMO_FIXTURE_PACKAGE",
+            "name": "Package",
+            "value": "FCBGA-400",
+            "unit": null,
+            "conditions": null,
+            "verification_status": "VERIFIED",
+            "evidence_ids": ["ev_demo_0031"]
+          }
+        ]
+      },
+      "categories": {
+        "taxonomy_id": "tax_demo_rf",
+        "refs": [
+          { "category_id": "cat_demo_afe", "role": "PRIMARY", "assigned_at": "2026-11-15T10:00:00Z" }
+        ]
+      },
+      "documents": [
+        {
+          "document_id": "doc_demo_sha_e1",
+          "document_sha256": "5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef0123456789",
+          "document_type": "datasheet",
+          "page_count": 88,
+          "role": "SOURCE_DOCUMENT"
+        }
+      ],
+      "platform": {
+        "platform_model_id": 1005,
+        "mapping_status": "APPROVED",
+        "mapping_source": "MPN_BRAND_EXACT"
+      },
+      "updated_at": "2026-11-15T10:00:00Z"
+    },
+    {
+      "product_business_key": "pbk1_d83d0b126f3999ba7a5c4356050f6cbc7f87cb751417da24715af219e968b85f",
+      "identity_state": "CONFIRMED",
+      "identity": {
+        "mpn_raw": "AFE7950EVM",
+        "mpn_norm": "AFE7950EVM",
+        "brand_raw": "Example Semiconductor",
+        "brand_norm": "EXAMPLE SEMICONDUCTOR",
+        "normalizer_version": "MPN-NORM-v1",
+        "package": "EVALUATION BOARD",
+        "identity_scope": "BOARD",
+        "product_type": "BOARD"
+      },
+      "visible_state": "RELEASED",
+      "release": {
+        "release_id": "rel_demo_0006",
+        "release_version": 1,
+        "content_version": 1,
+        "released_at": "2026-11-15T11:00:00Z"
+      },
+      "technical": {
+        "parameter_set_version": 1,
+        "parameters": []
+      },
+      "categories": {
+        "taxonomy_id": "tax_demo_rf",
+        "refs": [
+          { "category_id": "cat_demo_eval_board", "role": "PRIMARY", "assigned_at": "2026-11-15T11:00:00Z" }
+        ]
+      },
+      "documents": [
+        {
+          "document_id": "doc_demo_sha_f1",
+          "document_sha256": "60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef0123456789ab",
+          "document_type": "user_guide",
+          "page_count": 42,
+          "role": "SOURCE_DOCUMENT"
+        }
+      ],
+      "platform": {
+        "platform_model_id": 1006,
+        "mapping_status": "PROPOSED",
+        "mapping_source": "MANUAL"
+      },
+      "updated_at": "2026-11-15T11:00:00Z"
+    },
+    {
+      "product_business_key": null,
+      "record_id": "rec_demo_pending_brand",
+      "identity_state": "PENDING_BRAND",
+      "identity": {
+        "mpn_raw": "XYZ123",
+        "mpn_norm": "XYZ123",
+        "brand_raw": null,
+        "brand_norm": null,
+        "normalizer_version": "MPN-NORM-v1",
+        "package": "SOP-8",
+        "identity_scope": "DEVICE",
+        "product_type": "IC"
+      },
+      "visible_state": "PENDING",
+      "release": null,
+      "technical": { "parameter_set_version": 1, "parameters": [] },
+      "categories": { "taxonomy_id": "tax_demo_analog", "refs": [] },
+      "documents": [
+        {
+          "document_id": "doc_demo_sha_g1",
+          "document_sha256": "718293a4b5c6d7e8f90123456789abcdef0123456789abcdef0123456789abcd",
+          "document_type": "datasheet",
+          "page_count": 10,
+          "role": "SOURCE_DOCUMENT"
+        }
+      ],
+      "platform": null,
+      "reason": "MISSING_BRAND",
+      "updated_at": "2026-11-16T06:00:00Z"
+    },
+    {
+      "product_business_key": null,
+      "record_id": "rec_demo_pending_conflict",
+      "identity_state": "PENDING_CONFLICT",
+      "identity": {
+        "mpn_raw": "LM358DR",
+        "mpn_norm": "LM358DR",
+        "brand_raw": "Example Semiconductor",
+        "brand_norm": "EXAMPLE SEMICONDUCTOR",
+        "normalizer_version": "MPN-NORM-v1",
+        "package": "SOIC-8",
+        "identity_scope": "DEVICE",
+        "product_type": "IC"
+      },
+      "conflicting_with": "LM358D",
+      "visible_state": "PENDING",
+      "release": null,
+      "technical": { "parameter_set_version": 1, "parameters": [] },
+      "categories": { "taxonomy_id": "tax_demo_analog", "refs": [] },
+      "documents": [
+        {
+          "document_id": "doc_demo_sha_h1",
+          "document_sha256": "8293a4b5c6d7e8f90123456789abcdef0123456789abcdef0123456789abcdef",
+          "document_type": "datasheet",
+          "page_count": 9,
+          "role": "SOURCE_DOCUMENT"
+        },
+        {
+          "document_id": "doc_demo_sha_h2",
+          "document_sha256": "93a4b5c6d7e8f90123456789abcdef0123456789abcdef0123456789abcdef01",
+          "document_type": "errata",
+          "page_count": 3,
+          "role": "SOURCE_DOCUMENT"
+        }
+      ],
+      "platform": null,
+      "reason": "CONFLICTING_IDENTITY",
+      "updated_at": "2026-11-16T07:00:00Z"
+    }
+  ]
+}

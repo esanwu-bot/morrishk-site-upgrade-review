@@ -5,7 +5,7 @@
 | 文档编号 | MRH-DSBIT-PHASE0-EVIDENCE-003 |
 | 关联问题 | `INTEGRATION_OPEN_QUESTIONS.md` IQ-01（`BLOCKER_PHASE0`） |
 | 决策人 | 客户业务负责人 + Ds Bit 负责人 |
-| 当前状态 | `OPEN`，`DECISION_REQUIRED` |
+| 当前状态 | v1.0：`OPEN` / `DECISION_REQUIRED`；v1.1：`DECIDED`（2026-11-17，见 §9） |
 | 本文件性质 | 证据与选项；**不构成裁定** |
 | 证据基线 | Ds Bit HEAD `600439a`；Morrishk 旧站 schema 审计与源码；新平台未执行迁移 |
 
@@ -248,3 +248,38 @@ IQ-01 未裁定会阻断：
 - Phase 1 数据层设计。
 
 **在 IQ-01 书面裁定前，契约不得冻结，Phase 1 不得开始。**
+
+---
+
+## 9. 裁定落地（2026-11-17，v1.1 追加）
+
+> 本节为书面裁定转录，不修改上文任何证据、选项或建议。裁定人：项目决策人（依 2026-11-17 书面任务书）。独立 Reviewer 验收未完成，签署待补。
+
+### 9.1 裁定结论
+
+| 子问题 | 裁定 |
+|---|---|
+| Q1-a 业务键 | **MPN + Brand**；唯一键 `(mpn_norm, brand_norm)` |
+| Q1-b ID 签发者 | 不引入 Ds Bit 全局注册表；`prod-{document_id}` 降级为文档处理/解析/流转的内部临时凭证；跨系统身份由 `product_business_key` 承载 |
+| Q1-c 身份范围 | 本轮未裁定 `identity_scope` 是否进入业务键；保留为设计待定项 |
+| 归一化 | 强制统一、版本化 `MpnNormalizer`；禁止模块各自实现清洗逻辑 |
+| 冲突 | Brand 缺失/无法确认/归一冲突 → 待确认状态，不自动合并 |
+
+### 9.2 硬约束
+
+1. `prod-{document_id}` **不得**作为：Morrishk 产品主键、跨系统产品业务键、永久产品身份、产品分类映射键。
+2. 同一 `mpn_norm` + 不同 `brand_norm` → 多个独立产品业务身份。
+3. 同一 `(mpn_norm, brand_norm)` + 多个来源文档 → 一个产品业务身份，文档关联；不得生成多个产品身份。
+4. 唯一键结构即使当前数据一 MPN 一 Brand，也不得临时简化。
+5. 必须保留：`mpn_raw`、`mpn_norm`、`brand_raw`、`brand_norm`、`normalizer_version`、`product_business_key`。
+6. `product_business_key` 必须确定性生成，文档化编码、分隔、空值处理与哈希算法；**不得**只用未经碰撞分析的截断哈希作为唯一身份。
+
+### 9.3 被推翻的既有假定
+
+- 本文 §5 选项 A（Ds Bit 注册表 + ULID）不再是方向。
+- 主文档 v1.2.2 §6.2 的 `product_id` 代理键模型、§9.4.2 的 `dsbit_product_id` 映射主键被本裁定取代。
+- IQ-13 已同时裁定目标为新平台（见 `DECISION_REGISTER.md` §2.3）。
+
+### 9.4 仍开放
+
+`MpnNormalizer` 具体规则与版本号、`product_business_key` 哈希算法/编码、`identity_scope` 是否入键、Brand 主数据来源与确认流程。这些不属于本轮裁定，实施前须另行设计评审。
