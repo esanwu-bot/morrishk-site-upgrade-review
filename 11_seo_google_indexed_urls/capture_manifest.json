@@ -116,7 +116,7 @@
       "visible_results_after_host_filter": 0,
       "processed_at_window": "2026-11-17T10:13:41+08:00 – 2026-11-17T10:17:25+08:00",
       "http_checked_at_window": "2026-11-17T10:13:41+08:00 – 2026-11-17T10:17:25+08:00",
-      "note": "Google returned the no-matching-content page; zero result items"
+      "note": "Capture contains zero result items. Original rendered page body was not persisted; original no-results UI evidence is NOT_AVAILABLE. See separately timestamped re-verification evidence in supplemental/reverify_pages_5_6.json (2026-11-17T10:25:10+08:00 / 10:25:39+08:00)."
     },
     {
       "page": 6,
@@ -130,7 +130,7 @@
       "visible_results_after_host_filter": 0,
       "processed_at_window": "2026-11-17T10:13:41+08:00 – 2026-11-17T10:17:25+08:00",
       "http_checked_at_window": "2026-11-17T10:13:41+08:00 – 2026-11-17T10:17:25+08:00",
-      "note": "Google returned the no-matching-content page; zero result items"
+      "note": "Capture contains zero result items. Original rendered page body was not persisted; original no-results UI evidence is NOT_AVAILABLE. See separately timestamped re-verification evidence in supplemental/reverify_pages_5_6.json (2026-11-17T10:25:10+08:00 / 10:25:39+08:00)."
     }
   ]
 }

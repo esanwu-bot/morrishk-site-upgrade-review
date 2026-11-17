@@ -1,7 +1,7 @@
 {
-  "checked_at": "2026-11-17T10:26:51+08:00",
+  "checked_at": "2026-11-17T10:36:02+08:00",
   "method": {
-    "request": "one read-only GET per URL, redirects followed",
+    "request": "one read-only GET per URL; redirects are followed manually, and every hop (status + Location + resolved URL) is stored in redirect_chain",
     "parser": "Python html.parser; rel=canonical is matched case-insensitively; meta robots/googlebot contents are recorded verbatim",
     "x_robots_tag": "all response header values via HTTPMessage.get_all",
     "absence": "not_present = fetched successfully and tag/header absent; not_verified = fetch or parse failed"
@@ -9,15 +9,18 @@
   "urls": [
     {
       "requested_url": "https://www.morrishk.net/products/10047931/JA3102A-36-J2PC-R.html",
-      "checked_at": "2026-11-17T10:26:30+08:00",
+      "checked_at": "2026-11-17T10:35:39+08:00",
       "fetch_ok": true,
       "error": null,
+      "redirect_chain": [],
       "http_status": 200,
       "final_url": "https://www.morrishk.net/products/10047931/JA3102A-36-J2PC-R.html",
+      "redirect_count": 0,
+      "redirect_statuses": [],
       "content_type": "text/html; charset=UTF-8",
       "x_robots_tag": [],
-      "html_body_sha256": "e1a953174eb42c83fb8e8b2e5f19b4383e05a9be9e2c2c1cf787440a67dcae4f",
-      "html_body_bytes": 124771,
+      "html_body_sha256": "dcc3d76fb1f379497fd5ce812aff13ea086cdc97a0f42039ab9ca25aaf250e6e",
+      "html_body_bytes": 124772,
       "html_title": "JA3102A-36-J2PC-R JAE Electronics |MORRISHK.NET",
       "canonical": [],
       "meta_robots": [],
@@ -40,15 +43,18 @@
     },
     {
       "requested_url": "https://www.morrishk.net/sub-categories/c-636-730/pmic-gate-drivers-integrated-circuits.html?page=22",
-      "checked_at": "2026-11-17T10:26:36+08:00",
+      "checked_at": "2026-11-17T10:35:44+08:00",
       "fetch_ok": true,
       "error": null,
+      "redirect_chain": [],
       "http_status": 200,
       "final_url": "https://www.morrishk.net/sub-categories/c-636-730/pmic-gate-drivers-integrated-circuits.html?page=22",
+      "redirect_count": 0,
+      "redirect_statuses": [],
       "content_type": "text/html; charset=UTF-8",
       "x_robots_tag": [],
-      "html_body_sha256": "6b359bde231888fcfffc6597d2dff956aba5ff888a9bbc1e6e85d9ac839ded17",
-      "html_body_bytes": 110573,
+      "html_body_sha256": "1131f9e7a0007f19a7d7f10eaa41b94f9323695faab41b56a70fc909fe8a1e40",
+      "html_body_bytes": 110572,
       "html_title": "PMIC - Gate Drivers | Integrated Circuits | IR2128S | morrishk.net",
       "canonical": [],
       "meta_robots": [],
@@ -71,15 +77,18 @@
     },
     {
       "requested_url": "https://www.morrishk.net/blog/details/The-Bourns-3224W-1-504E-A-Comprehensive-Overview-of-Trimmer-Resistors.html",
-      "checked_at": "2026-11-17T10:26:41+08:00",
+      "checked_at": "2026-11-17T10:35:50+08:00",
       "fetch_ok": true,
       "error": null,
+      "redirect_chain": [],
       "http_status": 200,
       "final_url": "https://www.morrishk.net/blog/details/The-Bourns-3224W-1-504E-A-Comprehensive-Overview-of-Trimmer-Resistors.html",
+      "redirect_count": 0,
+      "redirect_statuses": [],
       "content_type": "text/html; charset=UTF-8",
       "x_robots_tag": [],
-      "html_body_sha256": "8aa6e7cba7c181707f81c3bac7e8061927eaa3ab5c7ebaef9c781f2c15d87c72",
-      "html_body_bytes": 94284,
+      "html_body_sha256": "24ec9ce178cebe8e463b1ae7725623517a324c1be88182ae6dcf36b50858c445",
+      "html_body_bytes": 94282,
       "html_title": "The Bourns 3224W-1-504E: A Comprehensive Overview of Trimmer Resistors | Blog & ArticlesThe Bourns 3224W-1-504E: A Comprehensive Overview of Trimmer Resistors",
       "canonical": [],
       "meta_robots": [],
@@ -102,15 +111,28 @@
     },
     {
       "requested_url": "http://www.morrishk.net/sub-categories/c-962-96/display-modules-led-dot-matrix-and-cluster-optoelectronics.html",
-      "checked_at": "2026-11-17T10:26:45+08:00",
+      "checked_at": "2026-11-17T10:35:55+08:00",
       "fetch_ok": true,
       "error": null,
+      "redirect_chain": [
+        {
+          "hop": 1,
+          "url": "http://www.morrishk.net/sub-categories/c-962-96/display-modules-led-dot-matrix-and-cluster-optoelectronics.html",
+          "status": 301,
+          "location_header": "https://www.morrishk.net/sub-categories/c-962-96/display-modules-led-dot-matrix-and-cluster-optoelectronics.html",
+          "resolved_location": "https://www.morrishk.net/sub-categories/c-962-96/display-modules-led-dot-matrix-and-cluster-optoelectronics.html"
+        }
+      ],
       "http_status": 200,
       "final_url": "https://www.morrishk.net/sub-categories/c-962-96/display-modules-led-dot-matrix-and-cluster-optoelectronics.html",
+      "redirect_count": 1,
+      "redirect_statuses": [
+        301
+      ],
       "content_type": "text/html; charset=UTF-8",
       "x_robots_tag": [],
-      "html_body_sha256": "658d81cae43af654979793f5be17d31f0b548d1aea76401e42d0fa6e6a1a1473",
-      "html_body_bytes": 111072,
+      "html_body_sha256": "5cf3565346e2d9f4d06514e359167dafac48f0257d69c140d5c1e293d4e01949",
+      "html_body_bytes": 111069,
       "html_title": "Display Modules - LED Dot Matrix and Cluster | Optoelectronics | DLG1414 | morrishk.net",
       "canonical": [],
       "meta_robots": [],
@@ -142,8 +164,9 @@
     "file": "google_indexed_urls.json",
     "sha256": "1f5d488fb661a3abaa90c64da76ea1700517296a6dd4a01d512e3806d186484a"
   },
+  "rerun_note": "This spot check was repeated at 2026-11-17T10:35:55–10:36:02+08:00 to record full redirect chains. Results for the four sampled URLs were unchanged: every canonical/robots field remained not_present.",
   "conclusion": {
-    "observed": "For all four sampled page types the fetched HTML contained no rel=canonical, no meta robots, no meta googlebot, and the response carried no X-Robots-Tag header.",
+    "observed": "For all four sampled page types the fetched HTML contained no rel=canonical, no meta robots, no meta googlebot, and the response carried no X-Robots-Tag header. The http:// sample records one 301 hop to https:// before the final 200 response.",
     "not_concluded": "HTTP 200 only proves the page was reachable at check time. These results do not prove the pages are indexed, indexable, or free of canonicalization/coverage issues.",
     "next_step": "Index status, canonical selection, and coverage require Google Search Console."
   }

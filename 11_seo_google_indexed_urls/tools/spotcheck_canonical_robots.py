@@ -83,26 +83,73 @@ def presence(values: list[str], fetch_ok: bool) -> str:
     return "present"
 
 
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[override]
+        return None
+
+
+REDIRECT_STATUSES = {301, 302, 303, 307, 308}
+MAX_REDIRECTS = 10
+
+
+def _open_final(url: str, timeout: float, user_agent: str) -> tuple[object, list[dict]]:
+    opener = urllib.request.build_opener(NoRedirect)
+    current = url
+    chain: list[dict] = []
+    for hop in range(1, MAX_REDIRECTS + 1):
+        request = urllib.request.Request(
+            current, headers={"User-Agent": user_agent, "Accept": "text/html,*/*"}
+        )
+        try:
+            response = opener.open(request, timeout=timeout)
+        except urllib.error.HTTPError as exc:
+            if exc.code not in REDIRECT_STATUSES:
+                raise
+            location = exc.headers.get("Location")
+            resolved = urllib.parse.urljoin(current, location.strip()) if location else None
+            chain.append(
+                {
+                    "hop": hop,
+                    "url": current,
+                    "status": exc.code,
+                    "location_header": location,
+                    "resolved_location": resolved,
+                }
+            )
+            exc.close()
+            if not resolved:
+                raise ValueError(f"redirect without usable Location at hop {hop}: {current}")
+            current = resolved
+            continue
+        return response, chain
+    raise RuntimeError(f"too_many_redirects (> {MAX_REDIRECTS})")
+
+
 def fetch(url: str, timeout: float, user_agent: str) -> dict:
-    request = urllib.request.Request(url, headers={"User-Agent": user_agent, "Accept": "text/html,*/*"})
     checked_at = now_local()
     result: dict = {
         "requested_url": url,
         "checked_at": checked_at,
         "fetch_ok": False,
         "error": None,
+        "redirect_chain": [],
     }
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        response, chain = _open_final(url, timeout, user_agent)
+        with response:  # type: ignore[union-attr]
             raw = response.read()
             encoding = (response.headers.get("Content-Encoding") or "").lower()
             if "gzip" in encoding:
                 raw = gzip.decompress(raw)
+            final_url = response.geturl()
             result.update(
                 {
                     "fetch_ok": True,
                     "http_status": response.status,
-                    "final_url": response.geturl(),
+                    "final_url": final_url,
+                    "redirect_chain": chain,
+                    "redirect_count": len(chain),
+                    "redirect_statuses": [item["status"] for item in chain],
                     "content_type": response.headers.get("Content-Type", ""),
                     "x_robots_tag": response.headers.get_all("X-Robots-Tag") or [],
                     "html_body_sha256": hashlib.sha256(raw).hexdigest(),
@@ -111,7 +158,6 @@ def fetch(url: str, timeout: float, user_agent: str) -> dict:
             )
             parser = HeadParser()
             parser.feed(raw.decode("utf-8", errors="replace"))
-            final_url = response.geturl()
             resolved = []
             for href in parser.canonical_hrefs:
                 resolved.append(
@@ -161,7 +207,8 @@ def main(argv: list[str] | None = None) -> int:
     payload = {
         "checked_at": now_local(),
         "method": {
-            "request": "one read-only GET per URL, redirects followed",
+            "request": "one read-only GET per URL; redirects are followed manually, and every hop "
+            "(status + Location + resolved URL) is stored in redirect_chain",
             "parser": "Python html.parser; rel=canonical is matched case-insensitively; "
             "meta robots/googlebot contents are recorded verbatim",
             "x_robots_tag": "all response header values via HTTPMessage.get_all",

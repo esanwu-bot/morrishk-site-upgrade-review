@@ -79,10 +79,18 @@
 | 产品详情 | `https://www.morrishk.net/products/10047931/JA3102A-36-J2PC-R.html` | 200 | 同左 | `not_present` | `not_present` | `not_present` | `not_present` |
 | 分类列表（带 `?page=22`） | `https://www.morrishk.net/sub-categories/c-636-730/pmic-gate-drivers-integrated-circuits.html?page=22` | 200 | 同左 | `not_present` | `not_present` | `not_present` | `not_present` |
 | 博客文章 | `https://www.morrishk.net/blog/details/The-Bourns-3224W-1-504E-A-Comprehensive-Overview-of-Trimmer-Resistors.html` | 200 | 同左 | `not_present` | `not_present` | `not_present` | `not_present` |
-| 分类列表（`http://`） | `http://www.morrishk.net/sub-categories/c-962-96/display-modules-led-dot-matrix-and-cluster-optoelectronics.html` | 200 | `https://www.morrishk.net/...`（301） | `not_present` | `not_present` | `not_present` | `not_present` |
+| 分类列表（`http://`） | `http://www.morrishk.net/sub-categories/c-962-96/display-modules-led-dot-matrix-and-cluster-optoelectronics.html` | 200（最终） | `https://www.morrishk.net/...` | `not_present` | `not_present` | `not_present` | `not_present` |
 
-- 方法：每个 URL 一次只读 GET，跟随重定向；用独立的 `html.parser` 解析 `link[rel~=canonical]`、
+该 `http://` 样本的完整重定向链（本次抽查已逐跳记录）：
+
+1. `http://www.morrishk.net/...` → **301**，`Location: https://www.morrishk.net/...`
+2. `https://www.morrishk.net/...` → **200**
+
+- 方法：每个 URL 一次只读 GET；重定向由脚本手动跟随，每一跳的 URL、状态码、`Location` 与解析后的目标地址
+  均写入 `redirect_chain`；用独立的 `html.parser` 解析 `link[rel~=canonical]`、
   `meta[name=robots]`、`meta[name=googlebot]`，并用 `HTTPMessage.get_all` 读取全部 `X-Robots-Tag`。
+- 本轮在 `2026-11-17T10:35:55 – 10:36:02+08:00` 重跑抽查以补充重定向链；4 个抽样 URL 的
+  canonical / robots / googlebot / X-Robots-Tag 结论未变化，均为 `not_present`。
 - `not_present` = 成功取回并解析，标签/响应头确实不存在；`not_verified` = 取回或解析失败。空数组绝不解释为「允许抓取」。
 - 独立复核：对产品页原始 HTML 做大小写不敏感检索，`canonical` / `robots` / `googlebot` 出现次数均为 0；
   响应头中也没有 `X-Robots-Tag`。
@@ -108,12 +116,12 @@ python tools/spotcheck_canonical_robots.py \
 | 文件 | SHA-256 |
 |---|---|
 | `SUPPLEMENTAL_EVIDENCE.md` | 见 `SHA256SUMS.txt`（文件自身哈希不写入自身） |
-| `capture_manifest.json` | `50388b1fc8314c73357fb4994ede4ff623c69fcece718a330193280a6f526b11` |
-| `canonical_robots_spotcheck.json` | `6d6bef560c449ceab4f524b85f273dda6753fac0be0915f0c550a6984e6564dc` |
+| `capture_manifest.json` | `0c9da8f8fb4ece12a391df70714b8a525584942a092a50ac80a5cef8d9a6acbb` |
+| `canonical_robots_spotcheck.json` | `a2dcd1f3f99ccd487bf19dac1cb97190c169ab3c39fcbc950711b4a5a00ee95a` |
 | `supplemental/reverify_pages_5_6.json` | `2a5f4ce674926483ec7464c35ab53d00d671cf1d0f01eb24b52df08d013f3f3d` |
 | `supplemental/page_5_reverify_snapshot_2026-11-17T102510+0800.txt` | `55dc584891145a51bba0498df3930a2c7a7648b88313d8e44836eb48d2155af2` |
 | `supplemental/page_6_reverify_snapshot_2026-11-17T102539+0800.txt` | `0458188f5feec8ace729adbe4527411999866c10034218f7d4d949c39cfa7b53` |
-| `tools/spotcheck_canonical_robots.py` | `dae12adbf14ce76a498b110739901cd3a5b13e874b0587467f7feec33cca0419` |
+| `tools/spotcheck_canonical_robots.py` | `5c3c10c26c41082e2ef01844040de79e2e1ecc96550e18d26f02f7c49ef5661e` |
 
 `SHA256SUMS.txt` 已重新生成，覆盖本目录当前全部文件（含基线文件；因 README 增加补充说明，其哈希随新提交更新）。
 
