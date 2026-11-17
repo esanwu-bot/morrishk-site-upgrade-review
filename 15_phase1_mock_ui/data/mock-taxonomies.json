@@ -1,0 +1,154 @@
+{
+  "dataset": "DEMO_FIXTURE",
+  "note": "两套分类演示数据：技术参数分类归 Ds Bit，业务导航分类归 Morrishk 新平台。ID 空间完全独立，只能通过映射层关联。",
+  "technical": {
+    "taxonomy_id": "tax_demo_analog_rf",
+    "name": "DEMO Technical Taxonomy",
+    "version": 2,
+    "status": "DRAFT",
+    "nodes": [
+      {
+        "category_id": "cat_demo_analog",
+        "category_code": "demo_analog",
+        "name": "Analog",
+        "level": 1,
+        "parent_id": null,
+        "parameter_codes": []
+      },
+      {
+        "category_id": "cat_demo_opamp_general",
+        "category_code": "demo_opamp_general",
+        "name": "General Purpose Op Amps",
+        "level": 2,
+        "parent_id": "cat_demo_analog",
+        "parameter_codes": [
+          "DEMO_FIXTURE_VOLTAGE",
+          "DEMO_FIXTURE_PACKAGE",
+          "DEMO_FIXTURE_OPERATING_TEMPERATURE"
+        ]
+      },
+      {
+        "category_id": "cat_demo_timer",
+        "category_code": "demo_timer",
+        "name": "Timers",
+        "level": 2,
+        "parent_id": "cat_demo_analog",
+        "parameter_codes": ["DEMO_FIXTURE_VOLTAGE", "DEMO_FIXTURE_PACKAGE"]
+      },
+      {
+        "category_id": "cat_demo_rf",
+        "category_code": "demo_rf",
+        "name": "RF & Microwave",
+        "level": 1,
+        "parent_id": null,
+        "parameter_codes": []
+      },
+      {
+        "category_id": "cat_demo_afe",
+        "category_code": "demo_afe",
+        "name": "RF Transceivers",
+        "level": 2,
+        "parent_id": "cat_demo_rf",
+        "parameter_codes": ["DEMO_FIXTURE_PACKAGE"]
+      },
+      {
+        "category_id": "cat_demo_eval_board",
+        "category_code": "demo_eval_board",
+        "name": "Evaluation Boards",
+        "level": 2,
+        "parent_id": "cat_demo_rf",
+        "parameter_codes": []
+      }
+    ]
+  },
+  "navigation": {
+    "platform": "pd_category",
+    "name": "DEMO Business Navigation",
+    "version": 3,
+    "status": "DRAFT",
+    "nodes": [
+      {
+        "category_id": 2001,
+        "slug": "demo-amplifiers",
+        "name": "Amplifiers",
+        "level": 1,
+        "parent_id": null,
+        "url_path": "/categories/demo-amplifiers"
+      },
+      {
+        "category_id": 2002,
+        "slug": "demo-op-amps",
+        "name": "Operational Amplifiers",
+        "level": 2,
+        "parent_id": 2001,
+        "url_path": "/categories/demo-op-amps"
+      },
+      {
+        "category_id": 2003,
+        "slug": "demo-timers",
+        "name": "Timers",
+        "level": 2,
+        "parent_id": 2001,
+        "url_path": "/categories/demo-timers"
+      },
+      {
+        "category_id": 2004,
+        "slug": "demo-rf",
+        "name": "RF & Wireless",
+        "level": 1,
+        "parent_id": null,
+        "url_path": "/categories/demo-rf"
+      }
+    ]
+  },
+  "mapping": [
+    {
+      "technical_category_id": "cat_demo_opamp_general",
+      "technical_category_code": "demo_opamp_general",
+      "morrishk_target": "PLATFORM_PD",
+      "navigation_category_id": 2002,
+      "navigation_slug": "demo-op-amps",
+      "mapping_type": "EXACT",
+      "mapping_status": "APPROVED",
+      "mapping_source": "MANUAL",
+      "is_primary": true,
+      "fixture": "DEMO_FIXTURE"
+    },
+    {
+      "technical_category_id": "cat_demo_timer",
+      "technical_category_code": "demo_timer",
+      "morrishk_target": "PLATFORM_PD",
+      "navigation_category_id": 2003,
+      "navigation_slug": "demo-timers",
+      "mapping_type": "EXACT",
+      "mapping_status": "PROPOSED",
+      "mapping_source": "SEED",
+      "is_primary": true,
+      "fixture": "DEMO_FIXTURE"
+    },
+    {
+      "technical_category_id": "cat_demo_afe",
+      "technical_category_code": "demo_afe",
+      "morrishk_target": "PLATFORM_PD",
+      "navigation_category_id": 2004,
+      "navigation_slug": "demo-rf",
+      "mapping_type": "AGGREGATE",
+      "mapping_status": "PROPOSED",
+      "mapping_source": "SEED",
+      "is_primary": false,
+      "fixture": "DEMO_FIXTURE"
+    },
+    {
+      "technical_category_id": "cat_demo_eval_board",
+      "technical_category_code": "demo_eval_board",
+      "morrishk_target": "PLATFORM_PD",
+      "navigation_category_id": 0,
+      "navigation_slug": null,
+      "mapping_type": "MANUAL",
+      "mapping_status": "UNMAPPED",
+      "mapping_source": "IMPORT",
+      "is_primary": false,
+      "fixture": "DEMO_FIXTURE"
+    }
+  ]
+}

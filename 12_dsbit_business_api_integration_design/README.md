@@ -1,0 +1,169 @@
+# 12 · Ds Bit ↔ Morrishk Business API Integration Design
+
+| 项 | 值 |
+|---|---|
+| 交付编号 | MRH-DSBIT-INT-001 |
+| 版本 | v1.4（新增 Business API 契约候选稿；状态仍为 `CANDIDATE_NOT_FROZEN`） |
+| 日期 | 2026-11-17 |
+| 修订 | v1.1 处理 R1–R8 与基线说明（`fc4bcc5`）；v1.2 收口 R3/R4/R5/R6/R8（`3816c10`）；v1.2.1 修正 R5 的 60 秒边界（`60b46ba`）；v1.2.2 修正 §1.1 冻结状态表述；v1.3 产品身份改为 `MPN + Brand`、目标改为新平台、业务导航与技术参数分类硬隔离；v1.4 增加可评审的契约候选（OpenAPI 3.1），不改变任何 `OPEN` 状态 |
+| 性质 | 架构与接口契约设计；**不是**生产实现、不是部署、不是凭证签发 |
+| 状态 | 送 Reviewer 复核 |
+| 决策基线 | `esanwu-bot/morrishk-site-upgrade-review` `main@77137655ed24e3b370eb4fe5c75b68dd708fa9ec` |
+
+---
+
+## 1. 本目录内容
+
+| 文件 | 说明 |
+|---|---|
+| `Ds Bit ↔ Morrishk Business API Integration Design v1.md` | 主设计文档（16 章 + 附录 A–D） |
+| `API_CONTRACT_CANDIDATE_v1.md` | Business API 契约候选稿（`CANDIDATE_NOT_FROZEN`）：端点、错误码、身份规则、冻结阻断与审批矩阵 |
+| `contract/openapi.candidate.v1.json` | 契约候选的 OpenAPI 3.1 机器可读稿（`x-contract-status=CANDIDATE_NOT_FROZEN`；16 路径 / 13 必需操作） |
+| `API_CONTRACT_EXAMPLES.md` | EX-01 ~ EX-23 请求/响应示例（含 EX-07b/EX-07c 补充；全部为构造样例；产品身份为 `product_business_key`） |
+| `INTEGRATION_OPEN_QUESTIONS.md` | IQ-01 ~ IQ-22 未决问题、证据、选项、建议与裁定记录 |
+| `README.md` | 本文件：基线、文件清单、复核方法、未执行操作声明 |
+| `SHA256SUMS.txt` | 本目录文件的 SHA-256 校验清单 |
+
+---
+
+## 2. 基线（本次只读检查的对象）
+
+| 对象 | 路径 | 版本 |
+|---|---|---|
+| Ds Bit 项目仓库（前台 `workbench/` + 解析引擎 `src/icpdf/`） | `E:\workspace\icpdf-extractor` | 分支 `backup/full-local-20261114`，HEAD `600439a5eee69fb3a1cec2715e37080e48ca9840`；工作树不干净 |
+| Ds Bit 本地 B2B 静态桩（前台联调） | `workbench/b2b/serve_b2b.py` | **未跟踪**文件；仅作"本地存在"证据 |
+| 早期静态 UI 原型（不在 Ds Bit 仓库内） | `E:\workspace\DsBit\prototype.html` | 仅历史参考 |
+| Morrishk 旧站（Yii2） | `E:\workspace\独立站\morries\newPlan\morrishk.net` | 非 Git 目录（源码快照）；PHP 7.4.33 / MySQL 5.6.50 |
+| Morrishk 新平台工程 | `E:\workspace\独立站\morries\platform` | 非 Git 目录；OpenAPI 3.1 + 迁移 + Next.js |
+| 数据库结构审计 | `E:\workspace\独立站\morries\mysql_schema_audit` | 2024-11-30 dump |
+| 本送审仓库 | `E:\workspace\独立站\morrishk-site-upgrade-review` | 分支 `main`，决策基线 `77137655ed24e3b370eb4fe5c75b68dd708fa9ec` |
+
+> 说明（按用户 2026-11-17 更正）：`E:\workspace\icpdf-extractor\workbench` 是 **Ds Bit 前台**，
+> `E:\workspace\icpdf-extractor` 是 **Ds Bit 项目仓库**。主设计文档 §1.1、§2.1、§2.2、§3.1 已按此口径修正。
+> `E:\workspace\DsBit\prototype.html` 不属于该仓库，只作为早期静态原型记录。
+
+### 2.1 证据基线时效性（Reviewer 复核补充）
+
+Reviewer 指出：Ds Bit 证据取自本地分支 `backup/full-local-20261114` 的 HEAD
+`600439a5eee69fb3a1cec2715e37080e48ca9840`，且工作树不干净。因此：
+
+1. 主文档中的 `CONFIRMED` **仅表示在上述特定代码快照下确认的事实**，不等同于
+   Ds Bit 当前权威分支（如 `main`/`master`）或未来生产状态的事实。
+2. 在该快照下，工作树含未提交改动，`workbench/b2b/serve_b2b.py` 是**未跟踪**文件；
+   `CONFIRMED` 不覆盖这些改动在权威分支上是否存在。
+3. **Phase 0 冻结前**，须在 Ds Bit 权威分支的**干净提交**上重新核对以下五项，
+   并把结果写入冻结记录；任何一项不成立，相关 `CONFIRMED` 降级为 `OPEN`：
+   - 产品身份模型（产品如何唯一标识、是否允许同一产品多版本）；
+   - 产品全局 ID 唯一性（跨解析批次是否稳定）；
+   - 解析器输出与证据模型（`EV-*`、bbox、页码、SHA 是否仍一致）；
+   - 静态 B2B 桩状态（`serve_b2b.py` 是否仍为本地 stub、是否已进入版本库）；
+   - 数据库、审核、版本、发布四类后端的实际进度（是否仍为 `NOT_IMPLEMENTED`）。
+4. 上述复核**不在本次交付范围内**（本次只做设计与只读取证），也不构成对权威分支现状的断言。
+
+---
+
+## 3. 核心结论（与主文档一致）
+
+1. Ds Bit 当前**没有**生产级 Business API、OAuth2 实现、技术分类体系、参数落库、审核/版本/发布后端。
+2. Morrishk 当前**没有** Ds Bit 客户端、Token 存储、同步任务或映射表。
+3. 本设计把**产品分类 API 作为一等子系统**，并明确区分五类"分类"：
+   技术分类体系、器件身份/产品族、文档类型、Morrishk 业务导航分类、SEO 落地页分类。
+   v1.3 起，**业务导航分类与技术参数分类硬隔离**：前者只用于前台展示/导航/URL，
+   后者由 Ds Bit 管理，初始种子与命名标准由 PM 提供；两套 ID 不得直接共享。
+4. **产品身份为 `MPN + Brand`**（唯一键 `(mpn_norm, brand_norm)`），跨系统使用
+   `product_business_key`；`prod-{document_id}` 仅作文档处理内部凭证，不作为产品主键。
+5. 公开详情页**不实时依赖** Ds Bit；页面只读本地库与缓存。
+6. Ds Bit 的 `category_id` **不进入** Morrishk URL；映射变化**不自动**改写 URL 或生成 301。
+7. 业务 API 采用项目现有 `{code, message, data, request_id, meta}` 包；OAuth2 Token 端点例外，遵循 RFC 6749。
+
+---
+
+## 4. 复核方法（不启动任何服务）
+
+Reviewer 可按以下顺序复核：
+
+1. **读主文档 §2**：所有 `CONFIRMED` 事实都给出文件路径与行号；按路径打开即可核对。
+2. **读主文档 §5.7 / 附录 B**：确认错误包形状与任务书建议的映射关系。
+3. **读 §7**：确认分类是独立章节、独立端点、独立状态机、独立映射层。
+4. **读 §10**：确认 URL 规则冻结、分类不参与 URL、不自动 301。
+5. **读附录 A**：`CONFIRMED` / `PROPOSED` / `OPEN` 三类清单。
+6. **读 `API_CONTRACT_EXAMPLES.md`**：示例均为构造样例，不得作为真实响应证据。
+7. **读 `INTEGRATION_OPEN_QUESTIONS.md`**：确认 IQ-01 / IQ-02 / IQ-13 已登记裁定，
+   其余 19 项的阻断级别与决策人。
+8. **校验文件完整性**：
+
+```bash
+cd 12_dsbit_business_api_integration_design
+sha256sum -c SHA256SUMS.txt
+```
+
+9. **确认未执行操作**：见主文档附录 D 与本文件 §5。
+
+---
+
+## 5. 本次未执行的操作（声明）
+
+本次**没有**：
+
+1. 修改 Ds Bit 或 Morrishk 的任何生产配置；
+2. 部署 Ds Bit 或 Morrishk 生产服务；
+3. 创建或启用任何生产 OAuth2 凭证；
+4. 调用真实生产 Parser API（`/api/parse`、`/api/process` 等）；
+5. 启动 `workbench/serve_parser.py` 或 `workbench/b2b/serve_b2b.py`；
+6. 访问 `dsb.0668xgwl.com`；
+7. 启用 LLM 解析或 Repair；
+8. 批量解析或批量发布任何产品；
+9. 连接或修改 Morrishk 生产数据库；
+10. 修改 Morrishk 的 URL、canonical 或 301 规则；
+11. 把 Mock/Stub 描述为真实 API 已接通；
+12. 实现任何公开 Business API；
+13. 重构现有代码；
+14. 自动化分类映射为不可逆的业务分类或 URL 变更。
+
+本次**只做**：只读文件检查、只读 `git` 查询、只读哈希计算、在本目录写设计文档。
+
+---
+
+## 6. 交付物清单（供 Reviewer 勾选）
+
+- [ ] 主设计文档（16 章 + 附录 A–D）
+- [ ] API 示例（EX-01 ~ EX-23，含 EX-07b/EX-07c）
+- [ ] 未决问题（IQ-01 ~ IQ-22）
+- [ ] `CONFIRMED` / `PROPOSED` / `OPEN` 三类清单（主文档附录 A）
+- [ ] 当前 vs 拟议差异表（主文档附录 C）
+- [ ] 明确声明未执行生产操作（主文档附录 D、本文件 §5）
+- [ ] 契约候选稿（`API_CONTRACT_CANDIDATE_v1.md` + `contract/openapi.candidate.v1.json`）
+- [ ] SHA-256 校验清单（`SHA256SUMS.txt`）
+
+---
+
+## 7. 相关交付：Phase 1 Mock UI（独立目录）
+
+Phase 1 的交互界面与 Mock 联调交付在 `15_phase1_mock_ui/`，**不属于**本契约设计目录，
+也不构成契约冻结或生产实现。
+
+- 允许范围：产品身份与 MPN/Brand 展示、MPN 归一化预览、身份冲突与待确认队列、
+  技术参数字典管理、技术参数分类树、业务导航分类分离展示、技术参数与证据关联、
+  平台映射预览、Mock API（请求/响应/错误/分页）、Mock 同步与失败重试。
+- 数据边界：全部为 `DEMO_FIXTURE`，与正式字典、正式数据库隔离；不得作为 PM 真实种子，
+  不得把 Fixture 测试通过表述为真实数据验证通过。
+- 禁止事项：生产 Business API 实现或调用、生产 OAuth2 凭证、生产数据库迁移/写入、
+  真实产品发布或撤回、真实分类树初始化、擅自确定未确认的字典定义。
+- Mock 响应只体现契约方向，**不代表**生产 API 已实现或已接通。
+- 正式 `parameter_code`、定义、单位、数据类型与适用范围以 PM 提供的真实种子为准（IQ-02 裁定）。
+
+---
+
+## 8. 契约候选稿（v1.4 新增）
+
+| 项 | 值 |
+|---|---|
+| 文档 | `API_CONTRACT_CANDIDATE_v1.md`（`v1.0-candidate`） |
+| 机器可读稿 | `contract/openapi.candidate.v1.json`（OpenAPI 3.1.0） |
+| 状态 | `CANDIDATE_NOT_FROZEN` |
+| 必需操作 | 12 个 V1_REQUIRED 唯一路径 + `POST /oauth/token` = 13；另有 3 个 V1_OPTIONAL |
+| 冻结阻断 | IQ-05 / IQ-09 / IQ-15 / IQ-21，加 MpnNormalizer 冻结、`visible_state` 枚举协调、PM 字典种子、证据公开范围 |
+
+该候选稿只把主设计文档中已写明的接口**整理为可评审、可机读**的形式，
+**不**新增业务裁定、**不**关闭任何 `OPEN` 项、**不**代表契约冻结或生产实现获批。
+独立 Contract Freeze 评审通过前，任何实现都不得以「契约已冻结」为依据。

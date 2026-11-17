@@ -1,0 +1,1498 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Ds Bit Business API v1 (Contract Candidate)",
+    "version": "1.0.0-candidate",
+    "summary": "Machine-readable candidate for the Ds Bit <-> Morrishk Business API v1. NOT A FROZEN CONTRACT.",
+    "description": "This document is a CONTRACT CANDIDATE derived from 'Ds Bit <-> Morrishk Business API Integration Design v1' (v1.3) and the Phase 0 decisions IQ-01 / IQ-02 / IQ-13 registered on 2026-11-17. It is NOT frozen, NOT approved for implementation, and MUST NOT be treated as the production contract. Blocking open questions (IQ-05, IQ-09, IQ-15, IQ-21) and the pending MpnNormalizer freeze are listed in x-open-blockers. Server URLs are placeholders and MUST NOT be called: no production Business API exists.",
+    "contact": {
+      "name": "Morrishk x Ds Bit integration (Session B)"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:8787/api/v1",
+      "description": "PLACEHOLDER ONLY - local static stub address from the design doc. No stub is started by this document."
+    },
+    {
+      "url": "https://dsbit.invalid/api/v1",
+      "description": "PLACEHOLDER ONLY - invalid domain. Production base URL is OPEN (IQ-10) and requires Phase 4 approval."
+    }
+  ],
+  "x-contract-status": "CANDIDATE_NOT_FROZEN",
+  "x-contract-version": "1.0.0-candidate",
+  "x-source-design": "12_dsbit_business_api_integration_design/Ds Bit <-> Morrishk Business API Integration Design v1.md (v1.3)",
+  "x-decision-refs": [
+    "IQ-01: MPN + Brand identity, unique key (mpn_norm, brand_norm)",
+    "IQ-02: technical parameter taxonomy owned by Ds Bit; business navigation taxonomy owned by Morrishk; IDs not shared",
+    "IQ-13: target system is the Morrishk new-platform business database; legacy site is not a target"
+  ],
+  "x-open-blockers": [
+    {
+      "id": "IQ-05",
+      "title": "Category deprecation retention window and 410 timing",
+      "status": "OPEN",
+      "affects": ["GET /categories/{category_id}", "GET /taxonomies/{taxonomy_id}/categories"]
+    },
+    {
+      "id": "IQ-09",
+      "title": "Final error envelope shape",
+      "status": "OPEN",
+      "affects": ["all endpoints"]
+    },
+    {
+      "id": "IQ-15",
+      "title": "New table engine and charset",
+      "status": "OPEN",
+      "affects": ["persistence of all resources; no wire-shape change"]
+    },
+    {
+      "id": "IQ-21",
+      "title": "Whether non-production OAuth2 credentials are allowed",
+      "status": "OPEN",
+      "affects": ["POST /oauth/token", "local/staging integration testing"]
+    },
+    {
+      "id": "MPN-NORM-v1",
+      "title": "MpnNormalizer rules and product_business_key encoding",
+      "status": "PROPOSED",
+      "affects": ["all product identity fields and routes"]
+    },
+    {
+      "id": "VISIBLE-STATE-RECONCILIATION",
+      "title": "visible_state vs release_state enum naming",
+      "status": "OPEN",
+      "affects": ["GET /products/{product_business_key}/status", "GET /products/search"]
+    }
+  ],
+  "x-mock-baseline": {
+    "commit": "0474b19",
+    "note": "Phase 1 Mock UI identity and error behavior was reviewed at 0474b19. Mock labels are not contract enums; see API_CONTRACT_CANDIDATE_v1.md section 10."
+  },
+  "tags": [
+    { "name": "auth", "description": "OAuth2 token endpoint (RFC 6749); not part of the JSON envelope." },
+    { "name": "products", "description": "Product business DTO, identity, gating status, versions, evidence." },
+    { "name": "taxonomy", "description": "Technical taxonomy, category nodes, edges, versions and changes." }
+  ],
+  "security": [
+    { "oauth2": ["product.read", "product.category.read"] }
+  ],
+  "paths": {
+    "/oauth/token": {
+      "post": {
+        "tags": ["auth"],
+        "operationId": "issueToken",
+        "summary": "OAuth2 Client Credentials token issue (RFC 6749)",
+        "description": "Returns an opaque Bearer token. Response uses RFC 6749 fields, NOT the JSON envelope. Credentials are sent via HTTP Basic (client_secret_basic). Production credentials are out of scope for this candidate and are not authorized.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["grant_type"],
+                "properties": {
+                  "grant_type": { "type": "string", "const": "client_credentials" },
+                  "scope": {
+                    "type": "string",
+                    "description": "Space-separated scope list. Must be a subset of the client's registration.",
+                    "example": "product.read product.category.read"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token issued",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TokenResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_request / invalid_scope / unsupported_grant_type (RFC 6749 section 5.2)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OAuthError" }
+              }
+            }
+          },
+          "401": {
+            "description": "invalid_client",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OAuthError" }
+              }
+            }
+          },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/products/search": {
+      "get": {
+        "tags": ["products"],
+        "operationId": "searchProducts",
+        "summary": "Search products, MPN exact lookup, and incremental sync",
+        "description": "Default filter is release_state=RELEASED and identity_state=CONFIRMED. Exact MPN lookup REQUIRES brand; missing brand returns 422 PRODUCT_IDENTITY_INCOMPLETE. The REVOKED stream MUST be supported so consumers can discover withdrawals.",
+        "security": [{ "oauth2": ["product.read"] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/Mpn" },
+          { "$ref": "#/components/parameters/Brand" },
+          { "$ref": "#/components/parameters/MpnMatch" },
+          { "$ref": "#/components/parameters/IdentityStateFilter" },
+          { "$ref": "#/components/parameters/UpdatedSince" },
+          { "$ref": "#/components/parameters/ReleaseStateFilter" },
+          { "$ref": "#/components/parameters/TaxonomyIdFilter" },
+          { "$ref": "#/components/parameters/CategoryIdFilter" },
+          { "$ref": "#/components/parameters/IncludeUnreleased" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Cursor" },
+          { "$ref": "#/components/parameters/IfNoneMatch" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching products",
+            "headers": { "$ref": "#/components/headers/Standard" },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ProductListEnvelope" }
+              }
+            }
+          },
+          "304": { "$ref": "#/components/responses/NotModified" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "422": { "$ref": "#/components/responses/Unprocessable" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
+        }
+      }
+    },
+    "/products/{product_business_key}": {
+      "get": {
+        "tags": ["products"],
+        "operationId": "getProduct",
+        "summary": "Get product business DTO",
+        "description": "Returns RELEASE_APPROVED data only by default. Existing-but-unreleased returns 403 PRODUCT_NOT_RELEASED (never 404). A revoked release returns 410 PRODUCT_RELEASE_REVOKED and consumers must stop public display.",
+        "security": [{ "oauth2": ["product.read"] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/ProductBusinessKey" },
+          { "$ref": "#/components/parameters/IfNoneMatch" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product DTO",
+            "headers": { "$ref": "#/components/headers/Standard" },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ProductEnvelope" }
+              }
+            }
+          },
+          "304": { "$ref": "#/components/responses/NotModified" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "410": { "$ref": "#/components/responses/Gone" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
+        }
+      }
+    },
+    "/products/{product_business_key}/status": {
+      "get": {
+        "tags": ["products"],
+        "operationId": "getProductStatus",
+        "summary": "Get three-gate release status",
+        "description": "Returns pipeline / content / release gate states plus derived visible_state. Requires product.publish.read.",
+        "security": [{ "oauth2": ["product.publish.read"] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/ProductBusinessKey" },
+          { "$ref": "#/components/parameters/IfNoneMatch" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product gate status",
+            "headers": { "$ref": "#/components/headers/Standard" },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ProductStatusEnvelope" }
+              }
+            }
+          },
+          "304": { "$ref": "#/components/responses/NotModified" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/products/{product_business_key}/versions": {
+      "get": {
+        "tags": ["products"],
+        "operationId": "listProductVersions",
+        "summary": "List content versions",
+        "description": "Version metadata only; never returns unpublished parameter values beyond what the caller's scope allows.",
+        "security": [{ "oauth2": ["product.version.read"] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/ProductBusinessKey" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Cursor" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Version list",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VersionListEnvelope" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "410": { "$ref": "#/components/responses/Gone" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/products/{product_business_key}/evidence": {
+      "get": {
+        "tags": ["products"],
+        "operationId": "listProductEvidence",
+        "summary": "List evidence references",
+        "description": "Returns evidence references and short raw text only. Screenshot paths are local relative paths, not download URLs. Public download is OPEN (IQ-08).",
+        "security": [{ "oauth2": ["product.evidence.read"] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/ProductBusinessKey" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Cursor" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Evidence list",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EvidenceEnvelope" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "410": { "$ref": "#/components/responses/Gone" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/products/{product_business_key}/categories": {
+      "get": {
+        "tags": ["products", "taxonomy"],
+        "operationId": "getProductCategories",
+        "summary": "Get product-category edges",
+        "description": "Also gated by product release state. Unreleased product returns 403 PRODUCT_NOT_RELEASED. Internal read requires BOTH product.category.read and product.publish.read plus internal_only=true; otherwise 403 INSUFFICIENT_SCOPE.",
+        "security": [{ "oauth2": ["product.category.read"] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/ProductBusinessKey" },
+          { "$ref": "#/components/parameters/InternalOnly" },
+          { "$ref": "#/components/parameters/IfNoneMatch" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category edges",
+            "headers": { "$ref": "#/components/headers/Standard" },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CategoryEdgesEnvelope" }
+              }
+            }
+          },
+          "304": { "$ref": "#/components/responses/NotModified" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "410": { "$ref": "#/components/responses/Gone" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        },
+        "x-special-gate": "Unreleased product => 403 PRODUCT_NOT_RELEASED; internal_only without product.publish.read => 403 INSUFFICIENT_SCOPE"
+      }
+    },
+    "/taxonomies": {
+      "get": {
+        "tags": ["taxonomy"],
+        "operationId": "listTaxonomies",
+        "summary": "List technical taxonomies",
+        "description": "Only PUBLISHED taxonomies and, during retention, DEPRECATED ones are visible.",
+        "security": [{ "oauth2": ["product.category.read"] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Cursor" },
+          { "$ref": "#/components/parameters/StatusFilter" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Taxonomy list",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TaxonomyListEnvelope" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/taxonomies/{taxonomy_id}": {
+      "get": {
+        "tags": ["taxonomy"],
+        "operationId": "getTaxonomy",
+        "summary": "Get a taxonomy",
+        "security": [{ "oauth2": ["product.category.read"] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/TaxonomyId" },
+          { "$ref": "#/components/parameters/IfNoneMatch" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Taxonomy",
+            "headers": { "$ref": "#/components/headers/Standard" },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TaxonomyEnvelope" }
+              }
+            }
+          },
+          "304": { "$ref": "#/components/responses/NotModified" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "410": { "$ref": "#/components/responses/Gone" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/taxonomies/{taxonomy_id}/version": {
+      "get": {
+        "tags": ["taxonomy"],
+        "operationId": "getTaxonomyVersion",
+        "summary": "Get taxonomy version and ETag for sync pre-check",
+        "security": [{ "oauth2": ["product.version.read"] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/TaxonomyId" },
+          { "$ref": "#/components/parameters/IfNoneMatch" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Taxonomy version",
+            "headers": { "$ref": "#/components/headers/Standard" },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TaxonomyVersionEnvelope" }
+              }
+            }
+          },
+          "304": { "$ref": "#/components/responses/NotModified" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/taxonomies/{taxonomy_id}/categories": {
+      "get": {
+        "tags": ["taxonomy"],
+        "operationId": "listCategories",
+        "summary": "List or tree taxonomy categories",
+        "description": "mode=flat is paginated. mode=tree is capped at depth 4 and 5000 nodes; exceeding it returns 413 TREE_TOO_LARGE and the caller must fall back to flat + incremental.",
+        "security": [{ "oauth2": ["product.category.read"] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/TaxonomyId" },
+          { "$ref": "#/components/parameters/Mode" },
+          { "$ref": "#/components/parameters/UpdatedSince" },
+          { "$ref": "#/components/parameters/StatusFilter" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Cursor" },
+          { "$ref": "#/components/parameters/IfNoneMatch" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category nodes",
+            "headers": { "$ref": "#/components/headers/Standard" },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CategoryListEnvelope" }
+              }
+            }
+          },
+          "304": { "$ref": "#/components/responses/NotModified" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/taxonomies/{taxonomy_id}/changes": {
+      "get": {
+        "tags": ["taxonomy"],
+        "operationId": "listTaxonomyChanges",
+        "summary": "List taxonomy changes (V1_OPTIONAL)",
+        "description": "V1_OPTIONAL: required if Phase 0 decides that merge/split must be detected automatically.",
+        "security": [{ "oauth2": ["product.version.read"] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/TaxonomyId" },
+          { "$ref": "#/components/parameters/SinceVersion" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Cursor" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Change records",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ChangeListEnvelope" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        },
+        "x-endpoint-status": "V1_OPTIONAL"
+      }
+    },
+    "/categories/{category_id}": {
+      "get": {
+        "tags": ["taxonomy"],
+        "operationId": "getCategory",
+        "summary": "Get a category node with parent/child references",
+        "description": "DRAFT/REVIEWED categories return 403 CATEGORY_NOT_PUBLISHED. DEPRECATED categories remain readable during retention and carry merged_into/split_into; after retention they return 410 CATEGORY_RETIRED (retention window is OPEN, IQ-05).",
+        "security": [{ "oauth2": ["product.category.read"] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/CategoryId" },
+          { "$ref": "#/components/parameters/IfNoneMatch" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category detail",
+            "headers": { "$ref": "#/components/headers/Standard" },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CategoryDetailEnvelope" }
+              }
+            }
+          },
+          "304": { "$ref": "#/components/responses/NotModified" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "410": { "$ref": "#/components/responses/Gone" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/categories/{category_id}/children": {
+      "get": {
+        "tags": ["taxonomy"],
+        "operationId": "listCategoryChildren",
+        "summary": "List direct children of a category",
+        "security": [{ "oauth2": ["product.category.read"] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/CategoryId" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Cursor" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Child nodes",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CategoryListEnvelope" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "410": { "$ref": "#/components/responses/Gone" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/categories/{category_id}/ancestors": {
+      "get": {
+        "tags": ["taxonomy"],
+        "operationId": "listCategoryAncestors",
+        "summary": "List ancestor chain (V1_OPTIONAL)",
+        "description": "V1_OPTIONAL: derivable from path_ids, but saves requests when breadcrumb names are needed.",
+        "security": [{ "oauth2": ["product.category.read"] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/CategoryId" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ancestor nodes",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CategoryListEnvelope" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "410": { "$ref": "#/components/responses/Gone" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        },
+        "x-endpoint-status": "V1_OPTIONAL"
+      }
+    },
+    "/categories/{category_id}/products": {
+      "get": {
+        "tags": ["taxonomy"],
+        "operationId": "listCategoryProducts",
+        "summary": "List products in a category (V1_OPTIONAL)",
+        "description": "V1_OPTIONAL: Morrishk can reverse-lookup locally to avoid large lists.",
+        "security": [{ "oauth2": ["product.category.read"] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/CategoryId" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Cursor" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product references",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ProductRefListEnvelope" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "410": { "$ref": "#/components/responses/Gone" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        },
+        "x-endpoint-status": "V1_OPTIONAL"
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "oauth2": {
+        "type": "oauth2",
+        "description": "OAuth2 Client Credentials. Opaque Bearer token, expires_in=900s, refresh when <=120s remain, revocation propagation ceiling 60s. Scopes are additive and never implicitly downgrade.",
+        "flows": {
+          "clientCredentials": {
+            "tokenUrl": "/oauth/token",
+            "scopes": {
+              "product.read": "Released product business DTOs only",
+              "product.category.read": "Taxonomy and category reads, including product-category edges; excludes product parameters",
+              "product.evidence.read": "Evidence references and short raw text; no PDF binary",
+              "product.version.read": "Version numbers, change records, timestamps",
+              "product.publish.read": "Unreleased gate status and internal-only data"
+            }
+          }
+        }
+      }
+    },
+    "parameters": {
+      "ProductBusinessKey": {
+        "name": "product_business_key",
+        "in": "path",
+        "required": true,
+        "description": "Deterministic key derived from (mpn_norm, brand_norm). Not a document id and not an internal platform id.",
+        "schema": { "$ref": "#/components/schemas/ProductBusinessKey" }
+      },
+      "TaxonomyId": {
+        "name": "taxonomy_id",
+        "in": "path",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/TaxonomyId" }
+      },
+      "CategoryId": {
+        "name": "category_id",
+        "in": "path",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/CategoryId" }
+      },
+      "Mpn": {
+        "name": "mpn",
+        "in": "query",
+        "required": false,
+        "description": "Raw MPN. Normalized by the server with MpnNormalizer; the client must NOT pre-normalize.",
+        "schema": { "type": "string", "minLength": 1, "maxLength": 200 }
+      },
+      "Brand": {
+        "name": "brand",
+        "in": "query",
+        "required": false,
+        "description": "Raw brand. Required when mpn_match=exact.",
+        "schema": { "type": "string", "maxLength": 200 }
+      },
+      "MpnMatch": {
+        "name": "mpn_match",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "string", "enum": ["exact", "loose"], "default": "exact" },
+        "description": "loose remains OPEN (IQ-20) and is not enabled by default in v1."
+      },
+      "IdentityStateFilter": {
+        "name": "identity_state",
+        "in": "query",
+        "required": false,
+        "schema": { "$ref": "#/components/schemas/IdentityState" },
+        "description": "Default CONFIRMED. PENDING_* requires product.publish.read."
+      },
+      "UpdatedSince": {
+        "name": "updated_since",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "string", "format": "date-time" }
+      },
+      "ReleaseStateFilter": {
+        "name": "release_state",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "string", "enum": ["RELEASED", "REVOKED", "PENDING"], "default": "RELEASED" },
+        "description": "REVOKED and PENDING require product.publish.read. NOTE: this is a filter namespace, distinct from release gate state and visible_state; reconciliation is OPEN."
+      },
+      "TaxonomyIdFilter": {
+        "name": "taxonomy_id",
+        "in": "query",
+        "required": false,
+        "schema": { "$ref": "#/components/schemas/TaxonomyId" }
+      },
+      "CategoryIdFilter": {
+        "name": "category_id",
+        "in": "query",
+        "required": false,
+        "schema": { "$ref": "#/components/schemas/CategoryId" }
+      },
+      "IncludeUnreleased": {
+        "name": "include_unreleased",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "boolean", "default": false },
+        "description": "Requires product.publish.read."
+      },
+      "InternalOnly": {
+        "name": "internal_only",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "boolean", "default": false },
+        "description": "Requires BOTH product.category.read and product.publish.read. Must not be silently ignored."
+      },
+      "Mode": {
+        "name": "mode",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "string", "enum": ["flat", "tree"], "default": "flat" }
+      },
+      "StatusFilter": {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "string", "enum": ["PUBLISHED", "DEPRECATED"] },
+        "description": "DRAFT/REVIEWED are never exposed to business clients."
+      },
+      "SinceVersion": {
+        "name": "since_version",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "integer", "minimum": 0 }
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 50 }
+      },
+      "Cursor": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "description": "Opaque cursor; clients must not parse or construct it.",
+        "schema": { "type": "string" }
+      },
+      "IfNoneMatch": {
+        "name": "If-None-Match",
+        "in": "header",
+        "required": false,
+        "schema": { "type": "string" }
+      }
+    },
+    "headers": {
+      "Standard": {
+        "description": "Standard response headers",
+        "ETag": { "schema": { "type": "string" }, "description": "Strong ETag = SHA-256 of canonical JSON" },
+        "X-Request-Id": { "schema": { "type": "string" } },
+        "X-Data-Version": { "schema": { "type": "integer" } },
+        "X-Taxonomy-Version": { "schema": { "type": "integer" } },
+        "X-RateLimit-Limit": { "schema": { "type": "integer" } },
+        "X-RateLimit-Remaining": { "schema": { "type": "integer" } },
+        "X-RateLimit-Reset": { "schema": { "type": "integer" } }
+      }
+    },
+    "responses": {
+      "NotModified": {
+        "description": "If-None-Match matched. No body. Not an error.",
+        "headers": {
+          "ETag": { "schema": { "type": "string" } },
+          "X-Request-Id": { "schema": { "type": "string" } }
+        }
+      },
+      "BadRequest": {
+        "description": "400 INVALID_ARGUMENT / UNKNOWN_FILTER",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } }
+      },
+      "Unauthorized": {
+        "description": "401 INVALID_TOKEN / TOKEN_EXPIRED",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } }
+      },
+      "Forbidden": {
+        "description": "403 INSUFFICIENT_SCOPE / PRODUCT_NOT_RELEASED / CATEGORY_NOT_PUBLISHED",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } }
+      },
+      "NotFound": {
+        "description": "404 PRODUCT_NOT_FOUND / CATEGORY_NOT_FOUND / TAXONOMY_NOT_FOUND",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } }
+      },
+      "Conflict": {
+        "description": "409 VERSION_CONFLICT",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } }
+      },
+      "Gone": {
+        "description": "410 PRODUCT_RELEASE_REVOKED / CATEGORY_RETIRED. Not retryable. PRODUCT_RELEASE_REVOKED forbids cache-based display.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } }
+      },
+      "PayloadTooLarge": {
+        "description": "413 TREE_TOO_LARGE - fall back to flat + incremental",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } }
+      },
+      "Unprocessable": {
+        "description": "422 PRODUCT_IDENTITY_INCOMPLETE / MPN_NORMALIZATION_CONFLICT",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } }
+      },
+      "RateLimited": {
+        "description": "429 RATE_LIMITED with Retry-After",
+        "headers": {
+          "Retry-After": { "schema": { "type": "integer" }, "description": "Seconds to wait" }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } }
+      },
+      "InternalError": {
+        "description": "500 INTERNAL_ERROR",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } }
+      },
+      "Unavailable": {
+        "description": "503 SERVICE_UNAVAILABLE / DATA_NOT_READY",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } }
+      }
+    },
+    "schemas": {
+      "ProductBusinessKey": {
+        "type": "string",
+        "pattern": "^pbk1_[0-9a-f]{64}$",
+        "description": "pbk1_ + 64 lowercase hex chars (full SHA-256). 69 chars total. Encoding is PROPOSED and must be frozen.",
+        "examples": ["pbk1_ec7e3c0335daa3724e9a24b475e2a40bc6552babb93f2b97571bc053b3e9d40d"]
+      },
+      "TaxonomyId": {
+        "type": "string",
+        "pattern": "^tax_[0-9A-HJKMNP-TV-Z]{26}$"
+      },
+      "CategoryId": {
+        "type": "string",
+        "pattern": "^cat_[0-9A-HJKMNP-TV-Z]{26}$"
+      },
+      "EdgeId": {
+        "type": "string",
+        "pattern": "^edg_[0-9A-HJKMNP-TV-Z]{26}$"
+      },
+      "RequestId": {
+        "type": "string",
+        "pattern": "^req_[0-9A-HJKMNP-TV-Z]{26}$"
+      },
+      "IdentityState": {
+        "type": "string",
+        "enum": ["CONFIRMED", "PENDING_BRAND", "PENDING_CONFLICT", "INVALID"]
+      },
+      "VisibleState": {
+        "type": "string",
+        "description": "Derived display state from the three gates. Enum reconciliation with release_state is OPEN (VISIBLE-STATE-RECONCILIATION).",
+        "enum": ["DRAFT", "IN_REVIEW", "RELEASED", "WITHDRAWN"]
+      },
+      "CategoryStatus": {
+        "type": "string",
+        "enum": ["DRAFT", "REVIEWED", "PUBLISHED", "DEPRECATED"]
+      },
+      "EdgeStatus": {
+        "type": "string",
+        "enum": ["PROPOSED", "APPROVED", "REJECTED"]
+      },
+      "PageMeta": {
+        "type": "object",
+        "properties": {
+          "limit": { "type": "integer", "minimum": 1, "maximum": 200 },
+          "next_cursor": { "type": ["string", "null"] },
+          "has_more": { "type": "boolean" }
+        },
+        "required": ["limit", "has_more"],
+        "additionalProperties": true
+      },
+      "EnvelopeBase": {
+        "type": "object",
+        "required": ["code", "message", "data", "request_id", "meta"],
+        "properties": {
+          "code": { "type": "integer", "description": "0 on success; stable business error code otherwise" },
+          "message": { "type": "string" },
+          "data": {},
+          "request_id": { "$ref": "#/components/schemas/RequestId" },
+          "meta": { "type": "object", "additionalProperties": true }
+        },
+        "additionalProperties": false
+      },
+      "ErrorEnvelope": {
+        "allOf": [
+          { "$ref": "#/components/schemas/EnvelopeBase" },
+          {
+            "type": "object",
+            "properties": {
+              "code": { "type": "integer", "minimum": 40001 },
+              "data": { "type": "null" },
+              "meta": { "$ref": "#/components/schemas/ErrorMeta" }
+            }
+          }
+        ]
+      },
+      "ErrorMeta": {
+        "type": "object",
+        "required": ["error_key", "retryable", "degraded_allowed"],
+        "properties": {
+          "error_key": {
+            "type": "string",
+            "enum": [
+              "INVALID_ARGUMENT",
+              "UNKNOWN_FILTER",
+              "INVALID_TOKEN",
+              "TOKEN_EXPIRED",
+              "INSUFFICIENT_SCOPE",
+              "PRODUCT_NOT_RELEASED",
+              "CATEGORY_NOT_PUBLISHED",
+              "PRODUCT_NOT_FOUND",
+              "CATEGORY_NOT_FOUND",
+              "TAXONOMY_NOT_FOUND",
+              "VERSION_CONFLICT",
+              "PRODUCT_RELEASE_REVOKED",
+              "CATEGORY_RETIRED",
+              "TREE_TOO_LARGE",
+              "PRODUCT_IDENTITY_INCOMPLETE",
+              "MPN_NORMALIZATION_CONFLICT",
+              "RATE_LIMITED",
+              "INTERNAL_ERROR",
+              "SERVICE_UNAVAILABLE",
+              "DATA_NOT_READY"
+            ]
+          },
+          "retryable": { "type": "boolean" },
+          "degraded_allowed": { "type": "boolean" },
+          "field": { "type": "string" },
+          "missing": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": true
+      },
+      "TokenResponse": {
+        "type": "object",
+        "required": ["access_token", "token_type", "expires_in", "scope"],
+        "properties": {
+          "access_token": { "type": "string" },
+          "token_type": { "type": "string", "const": "Bearer" },
+          "expires_in": { "type": "integer", "const": 900 },
+          "scope": { "type": "string" }
+        }
+      },
+      "OAuthError": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": { "type": "string", "enum": ["invalid_request", "invalid_client", "invalid_scope", "unsupported_grant_type"] },
+          "error_description": { "type": "string" }
+        }
+      },
+      "Identity": {
+        "type": "object",
+        "required": ["mpn_raw", "mpn_norm", "brand_raw", "brand_norm", "normalizer_version"],
+        "properties": {
+          "mpn_raw": { "type": "string" },
+          "mpn_norm": { "type": "string" },
+          "brand_raw": { "type": ["string", "null"] },
+          "brand_norm": { "type": ["string", "null"] },
+          "normalizer_version": { "type": "string", "examples": ["MPN-NORM-v1"] },
+          "package": { "type": ["string", "null"] },
+          "identity_scope": { "type": "string", "enum": ["DEVICE", "BOARD", "ONBOARD_DEVICE", "UNKNOWN"] },
+          "product_type": { "type": "string", "enum": ["IC", "BOARD", "MODULE", "UNKNOWN"] }
+        }
+      },
+      "TechnicalParameter": {
+        "type": "object",
+        "required": ["parameter_id", "name", "category"],
+        "properties": {
+          "parameter_id": { "type": "string", "pattern": "^par_[0-9A-HJKMNP-TV-Z]{26}$" },
+          "name": { "type": "string" },
+          "category": { "type": "string" },
+          "value": { "type": ["string", "null"] },
+          "min": { "type": ["string", "null"] },
+          "typ": { "type": ["string", "null"] },
+          "max": { "type": ["string", "null"] },
+          "unit": { "type": ["string", "null"] },
+          "conditions": { "type": ["string", "null"] },
+          "verification_status": { "type": "string", "enum": ["VERIFIED", "AUDITED"] },
+          "evidence_ids": { "type": "array", "items": { "type": "string", "pattern": "^ev_[0-9A-HJKMNP-TV-Z]{26}$" } }
+        }
+      },
+      "Technical": {
+        "type": "object",
+        "properties": {
+          "parameter_set_version": { "type": "integer" },
+          "parameters": { "type": "array", "items": { "$ref": "#/components/schemas/TechnicalParameter" } },
+          "normalization": {
+            "type": "object",
+            "properties": {
+              "unit_system": { "type": "string" },
+              "normalized_at": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      },
+      "CategoryRef": {
+        "type": "object",
+        "required": ["category_id", "role"],
+        "properties": {
+          "category_id": { "$ref": "#/components/schemas/CategoryId" },
+          "role": { "type": "string", "enum": ["PRIMARY", "SECONDARY"] },
+          "assigned_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ProductCategoriesRef": {
+        "type": "object",
+        "properties": {
+          "taxonomy_id": { "$ref": "#/components/schemas/TaxonomyId" },
+          "refs": { "type": "array", "items": { "$ref": "#/components/schemas/CategoryRef" } },
+          "note": { "type": "string" }
+        }
+      },
+      "DocumentRef": {
+        "type": "object",
+        "required": ["document_id"],
+        "properties": {
+          "document_id": { "type": "string", "pattern": "^doc_[0-9A-HJKMNP-TV-Z]{26}$" },
+          "document_sha256": { "type": "string" },
+          "document_type": { "type": "string" },
+          "page_count": { "type": "integer", "minimum": 0 },
+          "role": { "type": "string" }
+        }
+      },
+      "Release": {
+        "type": "object",
+        "properties": {
+          "content_version": { "type": "integer" },
+          "release_id": { "type": "string", "pattern": "^rel_[0-9A-HJKMNP-TV-Z]{26}$" },
+          "release_version": { "type": "integer" },
+          "released_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "required": ["product_business_key", "identity_state", "identity", "technical", "categories", "documents", "release", "updated_at", "data_version"],
+        "properties": {
+          "product_business_key": { "$ref": "#/components/schemas/ProductBusinessKey" },
+          "identity_state": { "$ref": "#/components/schemas/IdentityState" },
+          "identity": { "$ref": "#/components/schemas/Identity" },
+          "technical": { "$ref": "#/components/schemas/Technical" },
+          "categories": { "$ref": "#/components/schemas/ProductCategoriesRef" },
+          "documents": { "type": "array", "items": { "$ref": "#/components/schemas/DocumentRef" } },
+          "release": { "$ref": "#/components/schemas/Release" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "data_version": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "ProductRef": {
+        "type": "object",
+        "required": ["product_business_key"],
+        "properties": {
+          "product_business_key": { "$ref": "#/components/schemas/ProductBusinessKey" },
+          "mpn_norm": { "type": "string" },
+          "brand_norm": { "type": "string" }
+        }
+      },
+      "Gate": {
+        "type": "object",
+        "required": ["state"],
+        "properties": {
+          "state": { "type": "string" },
+          "pipeline_run_id": { "type": "string" },
+          "evaluated_at": { "type": "string", "format": "date-time" },
+          "approved_at": { "type": "string", "format": "date-time" },
+          "approval_ref": { "type": "string" },
+          "release_id": { "type": "string" },
+          "release_version": { "type": "integer" },
+          "released_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ProductStatus": {
+        "type": "object",
+        "required": ["product_business_key", "gates", "visible_state"],
+        "properties": {
+          "product_business_key": { "$ref": "#/components/schemas/ProductBusinessKey" },
+          "gates": {
+            "type": "object",
+            "required": ["pipeline", "content", "release"],
+            "properties": {
+              "pipeline": { "$ref": "#/components/schemas/Gate" },
+              "content": { "$ref": "#/components/schemas/Gate" },
+              "release": { "$ref": "#/components/schemas/Gate" }
+            }
+          },
+          "visible_state": { "$ref": "#/components/schemas/VisibleState" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "VersionItem": {
+        "type": "object",
+        "required": ["content_version", "is_current"],
+        "properties": {
+          "content_version": { "type": "integer" },
+          "release_version": { "type": ["integer", "null"] },
+          "pipeline_run_id": { "type": "string" },
+          "content_approved_at": { "type": ["string", "null"], "format": "date-time" },
+          "released_at": { "type": ["string", "null"], "format": "date-time" },
+          "change_summary": { "type": ["string", "null"] },
+          "is_current": { "type": "boolean" }
+        }
+      },
+      "EvidenceItem": {
+        "type": "object",
+        "required": ["evidence_id", "evidence_type", "page_number", "bbox", "raw_text"],
+        "properties": {
+          "evidence_id": { "type": "string", "pattern": "^ev_[0-9A-HJKMNP-TV-Z]{26}$" },
+          "evidence_type": { "type": "string", "examples": ["CELL_TEXT"] },
+          "page_number": { "type": "integer", "minimum": 1 },
+          "table_id": { "type": ["string", "null"] },
+          "row_id": { "type": ["string", "null"] },
+          "cell_id": { "type": ["string", "null"] },
+          "bbox": { "type": "array", "items": { "type": "number" }, "minItems": 4, "maxItems": 4 },
+          "raw_text": { "type": "string", "maxLength": 500 },
+          "screenshot_reference": { "type": ["string", "null"] },
+          "document_sha256": { "type": "string" }
+        }
+      },
+      "Evidence": {
+        "type": "object",
+        "required": ["product_business_key", "items"],
+        "properties": {
+          "product_business_key": { "$ref": "#/components/schemas/ProductBusinessKey" },
+          "document_sha256": { "type": "string" },
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/EvidenceItem" } }
+        }
+      },
+      "Taxonomy": {
+        "type": "object",
+        "required": ["taxonomy_id", "taxonomy_code", "name", "taxonomy_version", "status"],
+        "properties": {
+          "taxonomy_id": { "$ref": "#/components/schemas/TaxonomyId" },
+          "taxonomy_code": { "type": "string", "maxLength": 64 },
+          "name": { "type": "string", "maxLength": 200 },
+          "description": { "type": ["string", "null"] },
+          "taxonomy_version": { "type": "integer", "minimum": 0 },
+          "status": { "$ref": "#/components/schemas/CategoryStatus" },
+          "root_category_ids": { "type": "array", "items": { "$ref": "#/components/schemas/CategoryId" } },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "published_at": { "type": ["string", "null"], "format": "date-time" },
+          "deprecated_at": { "type": ["string", "null"], "format": "date-time" }
+        }
+      },
+      "CategoryNode": {
+        "type": "object",
+        "required": ["category_id", "taxonomy_id", "category_code", "name", "level", "status", "is_active"],
+        "properties": {
+          "category_id": { "$ref": "#/components/schemas/CategoryId" },
+          "taxonomy_id": { "$ref": "#/components/schemas/TaxonomyId" },
+          "parent_id": { "type": ["string", "null"], "pattern": "^cat_[0-9A-HJKMNP-TV-Z]{26}$" },
+          "category_code": { "type": "string", "maxLength": 64 },
+          "name": { "type": "string", "maxLength": 200 },
+          "slug": { "type": ["string", "null"], "maxLength": 120 },
+          "description": { "type": ["string", "null"] },
+          "level": { "type": "integer", "minimum": 1 },
+          "path_ids": { "type": "array", "items": { "$ref": "#/components/schemas/CategoryId" } },
+          "path_codes": { "type": "array", "items": { "type": "string" } },
+          "is_active": { "type": "boolean" },
+          "sort_order": { "type": "integer" },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "lang": { "type": "string" },
+                "value": { "type": "string" }
+              }
+            }
+          },
+          "external_codes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "scheme": { "type": "string" },
+                "code": { "type": "string" }
+              }
+            }
+          },
+          "status": { "$ref": "#/components/schemas/CategoryStatus" },
+          "merged_into": { "type": ["string", "null"], "pattern": "^cat_[0-9A-HJKMNP-TV-Z]{26}$" },
+          "split_into": { "type": "array", "items": { "$ref": "#/components/schemas/CategoryId" } },
+          "published_at": { "type": ["string", "null"], "format": "date-time" },
+          "deprecated_at": { "type": ["string", "null"], "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "data_version": { "type": "integer", "minimum": 0 },
+          "children": {
+            "type": "array",
+            "description": "Only present in mode=tree, capped at depth 4 / 5000 nodes.",
+            "items": { "$ref": "#/components/schemas/CategoryNode" }
+          }
+        }
+      },
+      "CategoryRefShort": {
+        "type": "object",
+        "required": ["category_id"],
+        "properties": {
+          "category_id": { "$ref": "#/components/schemas/CategoryId" },
+          "category_code": { "type": "string" },
+          "name": { "type": "string" },
+          "status": { "$ref": "#/components/schemas/CategoryStatus" }
+        }
+      },
+      "CategoryDetail": {
+        "allOf": [
+          { "$ref": "#/components/schemas/CategoryNode" },
+          {
+            "type": "object",
+            "properties": {
+              "parent": {
+                "oneOf": [
+                  { "$ref": "#/components/schemas/CategoryRefShort" },
+                  { "type": "null" }
+                ]
+              },
+              "children": {
+                "type": "array",
+                "description": "Compact child references, max 200; use /children for full pagination.",
+                "items": { "$ref": "#/components/schemas/CategoryRefShort" }
+              }
+            }
+          }
+        ]
+      },
+      "CategoryEdge": {
+        "type": "object",
+        "required": ["category_id", "role"],
+        "properties": {
+          "edge_id": { "$ref": "#/components/schemas/EdgeId" },
+          "category_id": { "$ref": "#/components/schemas/CategoryId" },
+          "role": { "type": "string", "enum": ["PRIMARY", "SECONDARY"] },
+          "assignment_source": { "type": "string", "enum": ["PARSER", "RULE", "MANUAL"] },
+          "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
+          "status": { "$ref": "#/components/schemas/EdgeStatus" },
+          "assigned_at": { "type": "string", "format": "date-time" },
+          "valid_from": { "type": "string", "format": "date-time" },
+          "valid_to": { "type": ["string", "null"], "format": "date-time" }
+        }
+      },
+      "CategoryEdges": {
+        "type": "object",
+        "required": ["product_business_key", "taxonomy_id", "categories"],
+        "properties": {
+          "product_business_key": { "$ref": "#/components/schemas/ProductBusinessKey" },
+          "taxonomy_id": { "$ref": "#/components/schemas/TaxonomyId" },
+          "internal_only": { "type": "boolean" },
+          "categories": { "type": "array", "items": { "$ref": "#/components/schemas/CategoryEdge" } }
+        }
+      },
+      "TaxonomyVersion": {
+        "type": "object",
+        "required": ["taxonomy_id", "taxonomy_version", "status"],
+        "properties": {
+          "taxonomy_id": { "$ref": "#/components/schemas/TaxonomyId" },
+          "taxonomy_version": { "type": "integer", "minimum": 0 },
+          "status": { "$ref": "#/components/schemas/CategoryStatus" },
+          "published_at": { "type": ["string", "null"], "format": "date-time" },
+          "etag": { "type": "string" },
+          "last_change_id": { "type": ["string", "null"], "pattern": "^chg_[0-9A-HJKMNP-TV-Z]{26}$" }
+        }
+      },
+      "ChangeRecord": {
+        "type": "object",
+        "required": ["change_id", "taxonomy_version", "event", "occurred_at"],
+        "properties": {
+          "change_id": { "type": "string", "pattern": "^chg_[0-9A-HJKMNP-TV-Z]{26}$" },
+          "taxonomy_version": { "type": "integer" },
+          "event": {
+            "type": "string",
+            "enum": [
+              "CATEGORY_CREATED",
+              "CATEGORY_RENAMED",
+              "CATEGORY_MOVED",
+              "CATEGORY_MERGED",
+              "CATEGORY_SPLIT",
+              "CATEGORY_DEPRECATED",
+              "CATEGORY_REACTIVATED",
+              "EDGE_ADDED",
+              "EDGE_REMOVED"
+            ]
+          },
+          "occurred_at": { "type": "string", "format": "date-time" },
+          "category_id": { "type": ["string", "null"], "pattern": "^cat_[0-9A-HJKMNP-TV-Z]{26}$" },
+          "payload": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "ProductEnvelope": {
+        "allOf": [
+          { "$ref": "#/components/schemas/EnvelopeBase" },
+          {
+            "type": "object",
+            "properties": {
+              "code": { "type": "integer", "const": 0 },
+              "data": { "$ref": "#/components/schemas/Product" }
+            }
+          }
+        ]
+      },
+      "ProductListEnvelope": {
+        "allOf": [
+          { "$ref": "#/components/schemas/EnvelopeBase" },
+          {
+            "type": "object",
+            "properties": {
+              "code": { "type": "integer", "const": 0 },
+              "data": {
+                "type": "object",
+                "required": ["items"],
+                "properties": {
+                  "items": { "type": "array", "items": { "$ref": "#/components/schemas/Product" } }
+                }
+              },
+              "meta": { "$ref": "#/components/schemas/PageMeta" }
+            }
+          }
+        ]
+      },
+      "ProductRefListEnvelope": {
+        "allOf": [
+          { "$ref": "#/components/schemas/EnvelopeBase" },
+          {
+            "type": "object",
+            "properties": {
+              "code": { "type": "integer", "const": 0 },
+              "data": {
+                "type": "object",
+                "required": ["items"],
+                "properties": {
+                  "items": { "type": "array", "items": { "$ref": "#/components/schemas/ProductRef" } }
+                }
+              },
+              "meta": { "$ref": "#/components/schemas/PageMeta" }
+            }
+          }
+        ]
+      },
+      "ProductStatusEnvelope": {
+        "allOf": [
+          { "$ref": "#/components/schemas/EnvelopeBase" },
+          {
+            "type": "object",
+            "properties": {
+              "code": { "type": "integer", "const": 0 },
+              "data": { "$ref": "#/components/schemas/ProductStatus" }
+            }
+          }
+        ]
+      },
+      "VersionListEnvelope": {
+        "allOf": [
+          { "$ref": "#/components/schemas/EnvelopeBase" },
+          {
+            "type": "object",
+            "properties": {
+              "code": { "type": "integer", "const": 0 },
+              "data": {
+                "type": "object",
+                "required": ["items"],
+                "properties": {
+                  "items": { "type": "array", "items": { "$ref": "#/components/schemas/VersionItem" } }
+                }
+              },
+              "meta": { "$ref": "#/components/schemas/PageMeta" }
+            }
+          }
+        ]
+      },
+      "EvidenceEnvelope": {
+        "allOf": [
+          { "$ref": "#/components/schemas/EnvelopeBase" },
+          {
+            "type": "object",
+            "properties": {
+              "code": { "type": "integer", "const": 0 },
+              "data": { "$ref": "#/components/schemas/Evidence" }
+            }
+          }
+        ]
+      },
+      "CategoryEdgesEnvelope": {
+        "allOf": [
+          { "$ref": "#/components/schemas/EnvelopeBase" },
+          {
+            "type": "object",
+            "properties": {
+              "code": { "type": "integer", "const": 0 },
+              "data": { "$ref": "#/components/schemas/CategoryEdges" }
+            }
+          }
+        ]
+      },
+      "TaxonomyListEnvelope": {
+        "allOf": [
+          { "$ref": "#/components/schemas/EnvelopeBase" },
+          {
+            "type": "object",
+            "properties": {
+              "code": { "type": "integer", "const": 0 },
+              "data": {
+                "type": "object",
+                "required": ["items"],
+                "properties": {
+                  "items": { "type": "array", "items": { "$ref": "#/components/schemas/Taxonomy" } }
+                }
+              },
+              "meta": { "$ref": "#/components/schemas/PageMeta" }
+            }
+          }
+        ]
+      },
+      "TaxonomyEnvelope": {
+        "allOf": [
+          { "$ref": "#/components/schemas/EnvelopeBase" },
+          {
+            "type": "object",
+            "properties": {
+              "code": { "type": "integer", "const": 0 },
+              "data": { "$ref": "#/components/schemas/Taxonomy" }
+            }
+          }
+        ]
+      },
+      "TaxonomyVersionEnvelope": {
+        "allOf": [
+          { "$ref": "#/components/schemas/EnvelopeBase" },
+          {
+            "type": "object",
+            "properties": {
+              "code": { "type": "integer", "const": 0 },
+              "data": { "$ref": "#/components/schemas/TaxonomyVersion" }
+            }
+          }
+        ]
+      },
+      "CategoryListEnvelope": {
+        "allOf": [
+          { "$ref": "#/components/schemas/EnvelopeBase" },
+          {
+            "type": "object",
+            "properties": {
+              "code": { "type": "integer", "const": 0 },
+              "data": {
+                "type": "object",
+                "required": ["items"],
+                "properties": {
+                  "items": { "type": "array", "items": { "$ref": "#/components/schemas/CategoryNode" } }
+                }
+              },
+              "meta": { "$ref": "#/components/schemas/PageMeta" }
+            }
+          }
+        ]
+      },
+      "CategoryDetailEnvelope": {
+        "allOf": [
+          { "$ref": "#/components/schemas/EnvelopeBase" },
+          {
+            "type": "object",
+            "properties": {
+              "code": { "type": "integer", "const": 0 },
+              "data": { "$ref": "#/components/schemas/CategoryDetail" }
+            }
+          }
+        ]
+      },
+      "ChangeListEnvelope": {
+        "allOf": [
+          { "$ref": "#/components/schemas/EnvelopeBase" },
+          {
+            "type": "object",
+            "properties": {
+              "code": { "type": "integer", "const": 0 },
+              "data": {
+                "type": "object",
+                "required": ["changes"],
+                "properties": {
+                  "taxonomy_id": { "$ref": "#/components/schemas/TaxonomyId" },
+                  "since_version": { "type": "integer" },
+                  "taxonomy_version": { "type": "integer" },
+                  "changes": { "type": "array", "items": { "$ref": "#/components/schemas/ChangeRecord" } }
+                }
+              },
+              "meta": { "$ref": "#/components/schemas/PageMeta" }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
