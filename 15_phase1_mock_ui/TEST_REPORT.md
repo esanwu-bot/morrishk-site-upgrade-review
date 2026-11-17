@@ -6,7 +6,7 @@
 | 环境 | Windows 10.0.19045 x64；Node.js v24.21.0；Python 3（仅静态文件服务器）；浏览器经 browser-use 驱动 |
 | 被测对象 | `15_phase1_mock_ui/` |
 | 结论 | 单元/契约测试 73/73 通过；浏览器冒烟 9 项全部通过；**未执行**任何生产接口、数据库或凭证操作 |
-| 修订 | v1.4：补逐操作响应 `$ref` 断言与 OAuth RFC 错误隔离断言（合计 73），并修正 §7 复现命令；v1.3：按 Reviewer B1 修正 scope 名称、按 B2 新增错误目录跨文档一致性测试 10 项（合计 71）；v1.2 新增契约候选一致性测试 19 项（合计 61）；v1.1 B1/B2 修订后重跑（新增 3 项候选冲突用例 + 4 项搜索非法输入用例）；本节结论由执行 Agent 运行得出，Reviewer 未独立复跑 |
+| 修订 | v1.5：按 Reviewer 复测意见澄清映射行数口径（分类映射表 4 行 / 平台映射预览 6 行），无测试与 UI 变更；v1.4：补逐操作响应 `$ref` 断言与 OAuth RFC 错误隔离断言（合计 73），并修正 §7 复现命令；v1.3：按 Reviewer B1 修正 scope 名称、按 B2 新增错误目录跨文档一致性测试 10 项（合计 71）；v1.2 新增契约候选一致性测试 19 项（合计 61）；v1.1 B1/B2 修订后重跑（新增 3 项候选冲突用例 + 4 项搜索非法输入用例）；本节结论由执行 Agent 运行得出，Reviewer 未独立复跑 |
 
 ---
 
@@ -169,7 +169,7 @@ python -m http.server 8777 --bind 127.0.0.1
 | 4 | 候选冲突（B1） | 聚合 `PENDING_CONFLICT` / `CONFLICTING_IDENTITY`；`mpn_norms` 2 项、`brand_norms` 1 项、`keys` 2 项 | PASS |
 | 5 | 冲突队列 | 2 行（缺 Brand / 互斥 MPN），按钮禁用 | PASS |
 | 6 | 字典编辑 | 选中 `DEMO_FIXTURE_PACKAGE`，→ `REVIEWED`，表格状态列即时变为 `REVIEWED`，提示「已在内存中更新…未写入任何数据库」 | PASS |
-| 7 | 两套分类 | 技术树 6 节点（含 Analog、参数编码）；导航树 4 节点（含 Amplifiers、URL 路径）；映射表 4 行且 `morrishk_target` 均为 `PLATFORM_PD` | PASS |
+| 7 | 两套分类 | 技术树 6 节点（含 Analog、参数编码）；导航树 4 节点（含 Amplifiers、URL 路径）；分类映射表 4 行且 `morrishk_target` 均为 `PLATFORM_PD`；同屏平台映射预览 6 行（全部 `CONFIRMED`：`APPROVED` 3 / `PROPOSED` 2 / `STALE` 1） | PASS |
 | 8 | Mock API（B2） | 控制字符 MPN → 400 `ILLEGAL_CHAR`；全空格 MPN → 400 `EMPTY_MPN`；全空格 Brand → 422 `PRODUCT_IDENTITY_INCOMPLETE`；合法输入 → `code=0`、`total=1`、返回 `pbk1_e65e…` | PASS |
 | 9 | 同步演示 | 状态序列 `OK, ERROR, ERROR, OK, DONE`；错误含 503 与退避 300/600ms；结束提示 `no production write performed` | PASS |
 

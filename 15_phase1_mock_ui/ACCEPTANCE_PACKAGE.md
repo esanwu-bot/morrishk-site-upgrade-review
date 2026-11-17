@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-PHASE1-MOCK-ACC-001 |
-| 版本 | v1.2（按独立复核 B1/B2 修订：scope 名称、错误目录跨文档测试、逐操作 `$ref` 与 OAuth 隔离断言） |
+| 版本 | v1.3（按 Reviewer 复测意见修订：澄清“分类映射表 4 行 / 平台映射预览 6 行”的口径；无 UI 与测试变更） |
 | 日期 | 2026-11-17 |
 | 验收对象 | `15_phase1_mock_ui/`（Mock UI 代码基线 `0474b19`） |
 | 本轮新增 | 契约候选一致性测试 19 项 + 错误目录跨文档一致性测试 12 项、Business API 契约候选稿、`14_` 签署登记与四项决策简报 |
@@ -72,10 +72,15 @@
 | 2 | MPN 归一化（`normalizer`） | 边界样例 `LM–358DR` → `LM-358DR`；品牌大写；业务键随规则变化；非法输入有提示 | 冒烟 #3；归一化测试 22 项 | RUN | PASS（执行观察） |
 | 3 | 身份冲突（`conflicts`） | 聚合状态 `PENDING_CONFLICT` / `CONFLICTING_IDENTITY`；`mpn_norms` / `brand_norms` / `keys` 计数正确；待确认队列按钮禁用 | 冒烟 #4/#5；B1 边界测试 3 项 | RUN | PASS（执行观察） |
 | 4 | 技术参数字典（`dictionary`） | 3 条 `DEMO_FIXTURE` 参数；状态可从 `DRAFT` → `REVIEWED`；明确提示“仅内存、未写数据库” | 冒烟 #6 | RUN | PASS（执行观察） |
-| 5 | 两套分类（`taxonomy`） | 技术参数树 6 节点（含参数编码）与业务导航树 4 节点（含 URL 路径）分离展示；不共享 ID | 冒烟 #7 | RUN | PASS（执行观察） |
-| 6 | 平台映射预览（`mapping`） | 4 行映射；`morrishk_target=PLATFORM_PD`；`platform_model_id` 标注为内部主键 | 冒烟 #7；`TEST_REPORT` §4 | RUN + STATIC | PASS（执行观察） |
+| 5 | 两套分类（`taxonomy`） | 技术参数树 6 节点（含参数编码）与业务导航树 4 节点（含 URL 路径）分离展示；不共享 ID；同屏分类映射表 4 行，`morrishk_target` 均为 `PLATFORM_PD` | 冒烟 #7 | RUN | PASS（执行观察） |
+| 6 | 平台映射预览（`mapping`） | 6 行映射（全部 `CONFIRMED` 产品：`APPROVED` 3 / `PROPOSED` 2 / `STALE` 1）；含 `NE555P`（`platform_model_id` 为空、状态 `PROPOSED`）；`platform_model_id` 标注为内部主键 | 冒烟 #7；`TEST_REPORT` §4 | RUN + STATIC | PASS（执行观察） |
 | 7 | Mock API（`api`） | 200/403/410/404/422/401/409/429/503；控制字符/空 MPN/Brand 的 400/422；合法精确搜索返回 `pbk1_e65e…` | 冒烟 #8；Mock API 测试 20 项 | RUN | PASS（执行观察） |
 | 8 | 同步与重试（`sync`） | `OK → ERROR → ERROR → OK → DONE`；重试不跳页；退避 300/600ms；结束提示“无生产写入”；`REVOKED` 流可发现 1 条 | 冒烟 #9；同步测试 4 项 | RUN | PASS（执行观察） |
+
+**两张映射表不要混读：** 视图 5 的“分类映射表”是技术分类→业务导航分类的 4 行映射（`morrishk_target` 固定为 `PLATFORM_PD`）；
+视图 6 的“平台映射预览”是产品→`platform_model_id` 的 6 行映射，按 `identity_state=CONFIRMED` 过滤、**不按映射状态过滤**，
+因此会同时出现 `APPROVED`、`PROPOSED`（待确认）和 `STALE`（过期）行——目的是把尚未生效或已失效的映射一并暴露给评审，
+而不是只列已批准项。
 
 **说明：** 上表“PASS（执行观察）”只表示执行 Agent 在本地观察到预期行为，
 不等于 Reviewer 已独立复跑，也不构成整体 `PASS_MOCK`。
