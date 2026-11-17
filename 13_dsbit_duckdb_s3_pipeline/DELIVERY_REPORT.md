@@ -4,10 +4,10 @@
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
 | 交付日期 | 2026-11-17 |
-| 版本 | **v1.4**（第四轮：R1-3 orphan receipt、回读 404、N-12g3 可执行化） |
+| 版本 | **v1.5**（第五轮：R1-3e 批次索引/覆盖/幂等；R1-3f 重写条件与预算；R1-3g 测试规范） |
 | 性质 | 设计送审（DESIGN ONLY） |
 | 主文档 | `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md` |
-| Reviewer 结论（第四轮） | 待复核：R1-3 三项补充（orphan、404、N-12g3）；契约冻结与 Stage A 仍不批准 |
+| Reviewer 结论（第五轮） | 待复核：R1-3e/f/g 三组补充；契约冻结与 Stage A 仍不批准 |
 | v1.0 提交 | 设计 `a62c70d644ced735ccfe079b086aca744f142f93`；报告 `ce6ba2db2839cb49a69702d3251482c4b58ba633` |
 | v1.1 设计修订提交 | `f8b8085fa12d57050e176bc8517a5a4856eaceef` |
 | v1.1 报告与校验清单 | `cdc61147387801c1b758deae89bb871467ef92d7` |
@@ -16,7 +16,9 @@
 | v1.3 设计修订提交 | `7d00abee8edb6e238bd8f90f321afe7ba1dd058a` |
 | v1.3 报告与校验清单 | `4da074097354874b95278b3702e624864faf7335` |
 | v1.4 设计修订提交 | `8d6760538655121dde369f8618e9a9d4010ce0a5` |
-| v1.4 报告与校验清单 | 紧随 `8d67605` 的报告提交（SHA 见 `git log`） |
+| v1.4 报告与校验清单 | `dc0239cd29ca72055d4d8dc466f9b706d4f3a19e` |
+| v1.5 设计修订提交 | `（提交后回填）` |
+| v1.5 报告与校验清单 | 紧随 v1.5 设计提交（SHA 见 `git log`） |
 | Ds Bit 基线 | `600439a5eee69fb3a1cec2715e37080e48ca9840`（分支 `backup/full-local-20261114`） |
 | 送审仓库任务启动基线 | `0fa9d34` |
 | 送审仓库设计提交直接父提交（v1.0） | `fc4bcc5` |
@@ -51,7 +53,18 @@
 | `OPEN_DECISIONS.md` | 未决事项 | OD-03 给出协调器方案；OD-05 上调 P0；新增 OD-19/OD-20 |
 | `README.md` | 送审说明 | 版本 v1.1、基线区分、R1–R6 索引、结论更新 |
 | `SHA256SUMS.txt` | 校验清单 | 随本报告更新 |
-| `DELIVERY_REPORT.md` | 本文件 | v1.1 重写 |
+| `DELIVERY_REPORT.md` | 本文件 | v1.5 重写 |
+
+**文件数量口径（避免混淆）**：
+
+| 口径 | 数量 |
+|---|---|
+| 目录内文件总数 | **8** |
+| v1.4 两个提交累计修改的不同文件 | **6**（另 2 个未变） |
+| v1.5 两个提交累计修改的不同文件 | 以本次 `git show --stat` 为准 |
+| `SHA256SUMS.txt` 覆盖文件数 | **7**（不含自身） |
+
+> 目录 8 个文件不等于每轮修改 8 个文件。哈希为本机计算，Reviewer 尚未独立复算 7/7。
 
 完整性校验：
 
@@ -114,18 +127,30 @@ v1.1/v1.2 只修改上述 `13_` 目录内的文件；**未修改**：
 | **R1-3f** | 统一 PUT 后回读 404 | `verify_receipt` 四态；404=`ABSENT` 不算冲突；仅 ABSENT 可条件重写；UNKNOWN 只读不写 | 主文档 §5.2.5.1–.2；附件 §9.9；N-12f5 |
 | **R1-3g** | N-12g3 可执行化 | 临时 MinIO + 临时 SQLite 的步骤、SQL、HTTP、A1–A8 断言与清理 | 矩阵 N-12g3 |
 
+### 4.5 第五轮 R1-3e/f/g（v1.5）
+
+| 编号 | Reviewer 要求 | v1.5 处置 | 复核位置 |
+|---|---|---|---|
+| **R1-3e-1** | 批次索引权威来源/状态/SQLite 恢复 | 权威改为对象存储 `plan.json` + `closed.json`；OPEN→CLOSING→CLOSED 持久化；SQLite 丢失按前缀重建 | 主文档 §5.2.5.5.1；附件 §9.10 |
+| **R1-3e-2** | 扫描覆盖范围 | 明确只保证「已登记批次内的已知 task_id」；CLOSED/未登记/损坏/全桶不在自动保证内 | 主文档 §5.2.5.5.2 |
+| **R1-3e-3** | 事件幂等 | `event_id=sha256(batch|task|reason|receipt_sha)`；对象存储日志去重 + SQLite UNIQUE；固定写入顺序 | 主文档 §5.2.5.5.3；附件 §9.2/§9.10 |
+| **R1-3f-1** | PUT 200 后 404 重写/OD-19 | 默认只回读；重写需 C1/C2 + 冷却 + 预算 + 仍 ABSENT；不支持条件写禁止重写 | 主文档 §5.2.5.2.1；附件 §9.9；N-12f5 |
+| **R1-3f-2** | 任务级预算 | 固定 6 参数并持久化；重启不重置；1 h 未写入 → `QUARANTINED` | 主文档 §5.2.5.2.1；附件 §9.9 |
+| **R1-3g-1** | SHA 命令歧义 | `sha256sum | awk '{print $1}'`；对远端原始字节计算 | 矩阵 N-12g3 |
+| **R1-3g-2** | 测试前提与独立路径 | 补批次 OPEN、任务在清单、原状态、不删 receipt、重复 reconcile、清理；N-12g4 不调用 reconcile | 矩阵 N-12g3/N-12g4 |
+
 ---
 
-## 5. 关键架构决策（v1.4）
+## 5. 关键架构决策（v1.5）
 
 1. 批量路径仍是「本地处理 → 大批 Parquet → 上传 → 批量查询」；
 2. DuckDB 仍只做分析查询，单写快照，不是队列/锁/事实源；
 3. 任务分配为**单写协调器 + `lease_generation` + COMMIT 事务**；**租约到期即失效**；
 4. **成功提交点**不是 manifest，而是「协调器 commit 记录 + receipt 一致」；
-5. receipt 用 `verify_receipt` 四态；404=`ABSENT` 不算冲突；orphan receipt 按批次清单有界扫描并隔离，不补 commit、不删/覆盖；
-6. Run Manifest 与 Batch/Partition Manifest 分离，Catalog 只按 part_manifest 计总行数；
-7. `reproducibility_key` v2 覆盖所有影响结果的输入；
-8. `task_id` = `<batch_id>:<sha256(source_sha256 + requested_mpn)>`；同 PDF 同 MPN = 1 task + 多 ingest；
+5. receipt 四态；404=`ABSENT` 不算冲突；**PUT 200 后默认只回读**，重写需 C1/C2、冷却、预算且仍 ABSENT；预算持久化、重启不重置；
+6. orphan 扫描以**对象存储批次索引**为准（`plan.json`/`closed.json`），只保证已登记批次的已知任务；事件按 `event_id` 幂等；
+7. Run Manifest 与 Batch/Partition Manifest 分离，Catalog 只按 part_manifest 计总行数；
+8. `reproducibility_key` v2；`task_id` = `<batch_id>:<sha256(source_sha256 + requested_mpn)>`；
 9. Stage A 必须在最终选型存储上通过 C1–C10。
 
 ---
@@ -230,6 +255,17 @@ R1-3 的修订仍需 Reviewer 定向复核；OD-01/OD-02/OD-03/OD-05/OD-19 仍�
 | Stage A / 1000 份 / 3–5 万 / 生产 | **不批准** |
 
 > v1.4 只改 `13_` 内的 R1-3 相关章节；R5 与其他已通过项未改。
+
+### 9.5 第五轮（v1.4）
+
+| 项 | 结论 |
+|---|---|
+| R1-3e/f/g | PARTIAL（v1.5 已补三组） |
+| v1.5 状态 | 待 Reviewer 定向复核 |
+| 契约冻结 | **不批准** |
+| Stage A / 1000 份 / 3–5 万 / 生产 | **不批准** |
+
+> v1.5 只改 `13_` 内的 R1-3e/f/g；R5、R2/R3/R4/R6 与总体架构未改。
 
 ---
 

@@ -353,10 +353,12 @@ v1.0 写「条件写/分片保证只有一个成功」不是证明。v1.1 拆成
 
 | 项 | 内容 |
 |---|---|
-| 注入 | PUT 返回 200，但第一次 GET 回读返回 404（模拟对象存储最终一致） |
-| 预期 | `verify_receipt` 判为 `ABSENT`，不是 `CONFLICT`；保持 `pending`，退避后重试回读；可见后判 `WRITTEN` |
-| 断言 | 最终 `written`；PUT 总次数 ≤ 2（仅在 ABSENT 时条件重写）；无 `conflict`；任务 `SUCCEEDED` |
-| 反例 | 若 60 s 窗口内始终 404 → 保持 `pending` 并告警，**不得**判 `conflict` |
+| 注入 | PUT 返回 200，但第一次 GET 回读返回 404（模拟最终一致） |
+| 默认行为 | `verify_receipt` 判 `ABSENT`；**只回读，不立即重写**；在 60 s / 10 次预算内继续回读 |
+| 可见后 | 回读 200 且字节一致 → `WRITTEN` → `written`；任务 `SUCCEEDED` |
+| 条件重写（仅特殊用例） | 仅当「首次 PUT 200 ∧ 存储通过 C1/C2 ∧ 冷却 60 s ∧ `put_attempts<2` ∧ 仍 ABSENT」全部满足，允许一次条件重写 |
+| 断言 | 默认路径 PUT 总次数 = 1；条件重写路径 ≤ 2；无 `conflict`；预算耗尽仍 404 → `pending` + 告警，不判冲突 |
+| 反例 | 存储不支持条件写时：**不得重写**；PUT 次数 = 1；保持 `pending` |
 
 #### N-12g Receipt 冲突的四种边界（v1.4 修订，R1-3）
 
@@ -387,13 +389,25 @@ v1.0 写「条件写/分片保证只有一个成功」不是证明。v1.1 拆成
 ```bash
 export S3_ENDPOINT=http://127.0.0.1:9000 S3_BUCKET=test-quarantine-$(date +%s)
 export COORD_DB=/tmp/coord-$(date +%s).db
-# 创建临时桶；启动协调器；建立批次 B 与任务 T（input_key）
+# 创建临时桶；启动协调器；建立批次 B（状态 OPEN）与任务 T（在 tasks.jsonl 中）
 ```
+
+**前提**
+
+- 批次 B 的 `plan.json` 存在、`closed.json` 不存在（OPEN）；
+- 任务 T 在 `control/batches/B/tasks.jsonl` 中，且 `commits` 行状态为 `committed/written`；
+- 删除 commit 行时**不删除** receipt；
+- 记录 receipt 为远端原始字节。
 
 **步骤**
 
 1. 对任务 T 执行正常 COMMIT，等待 receipt `written`；
-2. 记录 `SHA_BEFORE=$(sha256sum committed.json)`；
+2. 从远端 GET 原始 receipt 字节，记录：
+
+```bash
+SHA_BEFORE=$(curl -s "$RECEIPT_URL" | sha256sum | awk '{print $1}')
+```
+
 3. 停止协调器；
 4. 删除 commit 行，保留 receipt：
 
@@ -401,7 +415,7 @@ export COORD_DB=/tmp/coord-$(date +%s).db
 DELETE FROM commits WHERE task_id = 'T';
 ```
 
-5. 重启协调器，调用 `POST /v1/reconcile`；
+5. 重启协调器，调用 `POST /v1/reconcile`；**再调用一次**同接口（验证幂等）；
 6. 执行断言。
 
 **断言**
@@ -409,23 +423,24 @@ DELETE FROM commits WHERE task_id = 'T';
 | # | 断言 |
 |---|---|
 | A1 | `SELECT count(*) FROM commits WHERE task_id='T'` = **0**（不自动补 commit） |
-| A2 | `sha256(committed.json)` == `SHA_BEFORE`（receipt 字节不变） |
-| A3 | `control/coordinator/B/quarantine/T.json` 存在；`reason=receipt_without_commit`；`receipt_sha256=SHA_BEFORE` |
-| A4 | `GET /v1/state/T` = `QUARANTINED`（若 tasks 表有 T） |
-| A5 | 事件中 `ORPHAN_RECEIPT_DETECTED` 恰好 1 条；重复 reconcile 只更新 `last_seen_at` |
+| A2 | 远端 receipt 原始字节的 `sha256` == `SHA_BEFORE`（未被改写） |
+| A3 | `control/coordinator/B/quarantine/T.json` 存在；`reason=receipt_without_commit`；`receipt_sha256=SHA_BEFORE`；`first_receipt_sha256=SHA_BEFORE` |
+| A4 | 任务 T 从原 `SUCCEEDED` 可靠转为 `QUARANTINED`（若 tasks 表有 T）；`GET /v1/state/T` 一致 |
+| A5 | 事件 `ORPHAN_RECEIPT_DETECTED` 恰好 **1** 条；`event_id = sha256(batch|task|reason|receipt_sha)`；两次 reconcile 后仍为 1 条；第二次只更新 `last_seen_at` |
 | A6 | reconcile 期间对 receipt 键的 PUT 计数 = **0** |
 | A7 | Catalog/Eval 不包含该 run；正常任务 T2（commit + receipt 一致）仍为 `SUCCEEDED` 且可消费 |
 | A8 | 扫描只访问批次清单里的 task_id，不执行全桶 list（客户端 list 调用 = 0） |
+| A9 | 清理后临时桶与临时 SQLite 均不存在（`aws s3 ls` 404 / 文件不存在）；`runs/`、`lake/` 未被触碰 |
 
 **清理**：删除临时桶与临时 SQLite；不触碰 `runs/`、`lake/`。
 
-##### N-12g4 启动扫描发现 orphan
+##### N-12g4 启动扫描发现 orphan（独立路径）
 
 | 项 | 内容 |
 |---|---|
-| 注入 | 预置 receipt、删除 commit 行后重启协调器，不手动调用 reconcile |
-| 预期 | 启动扫描（仅 open 批次）发现 orphan，执行与 N-12g3 相同的隔离动作 |
-| 断言 | A1–A8 同样成立；扫描耗时有上限（按 batch 清单，不做全桶 list） |
+| 注入 | 预置 receipt、删除 commit 行后重启协调器；**不调用** `POST /v1/reconcile`，也不调用 `GET /v1/receipt` |
+| 预期 | 仅由**启动扫描**发现并隔离；执行与 N-12g3 相同的动作 |
+| 断言 | A1–A9 同样成立；启动扫描计数器 +1；`/v1/reconcile` 调用计数 = 0；扫描仅遍历 OPEN/CLOSING 批次清单，不做全桶 list |
 
 ### N-13 任务重试产生重复结果
 

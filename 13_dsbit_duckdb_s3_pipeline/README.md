@@ -3,11 +3,11 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
-| 版本 | v1.4（第四轮：R1-3 orphan receipt、回读 404、N-12g3 可执行化） |
+| 版本 | v1.5（第五轮：R1-3e 批次索引/覆盖/幂等；R1-3f 重写条件与预算；R1-3g 测试规范） |
 | 日期 | 2026-11-17 |
-| 修订 | v1.4 补 orphan receipt 发现/隔离、`verify_receipt` 四态与 404 语义、N-12g3 可执行步骤；R5 与其他架构不动 |
+| 修订 | v1.5 只补 R1-3e/f/g：批次索引权威来源、覆盖范围、事件幂等；PUT 200 后 404 的重写条件与任务级预算；N-12g3/g4 测试规范；R5 与其他架构不动 |
 | 性质 | 架构与实施设计；**不是**生产实现、不是部署、不是数据迁移 |
-| 状态 | 送 Reviewer 定向复核；v1.3 契约冻结与 Stage A 均未批准 |
+| 状态 | 送 Reviewer 定向复核；v1.4 契约冻结与 Stage A 均未批准 |
 | 目标产物 | `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md` |
 | 上游依据 | ① Ds Bit 仓库 `E:\workspace\icpdf-extractor`（HEAD `600439a5eee69fb3a1cec2715e37080e48ca9840`）② `lake/` Stage B 单件血缘 Demo ③ Morrishk 技术方案 v1.2 §7「Ds Bit 参数化」④ 已批准的 DuckDB + S3 兼容对象存储离线架构方向 |
 | 全量口径 | 去重 PDF **568,830** 份（约 56.9 万；任务书中的「56.8 万」是 56.883 万截断后的写法，两者同源） |
@@ -50,7 +50,7 @@
 ## 3. 复核路径（10–15 分钟）
 
 1. 读主文档 **§2**：`CONFIRMED / PROPOSED / OPEN` 三类清单与证据位置。
-2. 读 **§0.5 + §5.2.5**：v1.4 的 `verify_receipt` 四态、404 语义与 orphan receipt 隔离。
+2. 读 **§0.6 + §5.2.5**：v1.5 的批次索引、orphan 覆盖范围、事件幂等与 404 重写预算。
 3. 读 **§5.6 + §7.2**：v1.1 对 R2 的两级 Manifest 与三级行数对账。
 4. 读 **§10.2**：v1.1 对 R3 的样本池 P/Q 与五类失败率分母。
 5. 读 **§5.4.1**：v1.1 对 R4 的 `reproducibility_key` v2 字段表。
@@ -105,6 +105,18 @@ sha256sum -c SHA256SUMS.txt
 | R1-3f | 统一 PUT 后回读 404 | `verify_receipt` 四态：`WRITTEN/ABSENT/CONFLICT/UNKNOWN`；404 = `ABSENT`，不算冲突；仅 ABSENT 可条件重写；UNKNOWN 只读不写 |
 | R1-3g | N-12g3 可执行化 | 临时 MinIO + 临时 SQLite 的步骤、SQL、HTTP、A1–A8 断言与清理；补 N-12f5/N-12g4 |
 
+### 3.5 第五轮复核响应（v1.5）
+
+| 编号 | Reviewer 问题 | v1.5 处置 |
+|---|---|---|
+| R1-3e-1 | `open_batches` 权威来源未定义 | 权威改为对象存储 `plan.json` + `closed.json`；OPEN/CLOSING/CLOSED 持久化；SQLite 丢失按前缀重建 |
+| R1-3e-2 | 扫描覆盖范围不清 | 明确只保证「已登记批次内的已知 task_id」；CLOSED、未登记、损坏清单、全桶 orphan 不在自动保证内 |
+| R1-3e-3 | 事件幂等无依据 | `event_id = sha256(batch|task|reason|receipt_sha)`；对象存储日志去重 + SQLite UNIQUE；固定写入顺序 |
+| R1-3f-1 | PUT 200 后 404 是否重写 / OD-19 | 默认只回读；重写需 C1/C2 + 冷却 + 预算 + 仍 ABSENT；不支持条件写时禁止重写 |
+| R1-3f-2 | 重试预算不精确 | 固定 6 个参数并持久化计数；重启不重置；1 h 未写入 → `QUARANTINED` |
+| R1-3g-1 | `sha256sum` 变量歧义 | 改为 `sha256sum | awk '{print $1}'`；明确对远端原始字节计算 |
+| R1-3g-2 | 测试前提不完整 | 补批次 OPEN、任务在清单、原状态 SUCCEEDED、receipt 不删、重复 reconcile、清理校验；N-12g4 不调用 reconcile |
+
 ---
 
 ## 4. 本次实际执行与未执行的操作
@@ -142,7 +154,7 @@ sha256sum -c SHA256SUMS.txt
 2. **架构方向不变**：Raw（内容寻址、只读）/ Parse（run 级不可变、四指纹）/ Eval（Gold 版本化、评估器指纹）三层保留。
 3. **DuckDB 只做分析查询**：它不是队列、不是锁、不是多写并发数据库、不是事实源；`catalog.duckdb` 是可由对象存储重建的派生物。
 4. **批量路径采用「本地处理 → 大批 Parquet → 上传 → 批量查询」**：拒绝 DuckDB 直扫 56 万个小文件；同区对象存储才讨论直读。
-5. **任务分配（v1.4）**：单写协调器 + 租约代次 + 两阶段提交；**租约到期即失效**；receipt 用 `verify_receipt` 四态（`WRITTEN/ABSENT/CONFLICT/UNKNOWN`），**404 不算冲突**；orphan receipt 按批次清单有界扫描并隔离，不补 commit、不删/覆盖。
+5. **任务分配（v1.5）**：单写协调器 + 租约代次 + 两阶段提交；**租约到期即失效**；receipt 四态 + **PUT 200 后 404 默认只回读**，重写需 C1/C2、冷却、预算且仍 ABSENT；orphan 扫描按**对象存储批次索引**覆盖已登记任务，事件按 `event_id` 幂等。
 6. **任务身份（v1.2）**：`input_key = sha256(source_sha256 + requested_mpn)`；同 PDF 同 MPN 只生成 1 个 task + 多条 ingest；同 PDF 不同 MPN 才是 2 个 task；`task_id` 是批次内身份。
 7. **数据契约**：Run Manifest 与 Batch/Partition Manifest 分离；`reproducibility_key` v2；Manifest 不含 token。
 8. **基准口径**：可解析池 950 + 预期拒绝池 50（含子类配额）；五类失败率各有分母；≤2% 只约束可解析池。

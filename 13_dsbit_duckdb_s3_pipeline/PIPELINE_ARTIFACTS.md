@@ -714,12 +714,17 @@ CREATE TABLE commits (
   receipt_sha256 TEXT NOT NULL,                   -- 期望 receipt 字节的 SHA-256
   receipt_state TEXT NOT NULL DEFAULT 'pending',  -- pending|written|conflict
   receipt_attempts INTEGER NOT NULL DEFAULT 0,
+  put_attempts INTEGER NOT NULL DEFAULT 0,        -- 任务级 PUT 预算（≤2）
+  verify_attempts_total INTEGER NOT NULL DEFAULT 0,
+  verify_deadline_at TEXT,
+  next_retry_at TEXT,
   receipt_error TEXT,
   receipt_written_at TEXT
 );
 
 CREATE TABLE events (
   seq INTEGER PRIMARY KEY AUTOINCREMENT,
+  event_id TEXT NOT NULL UNIQUE,                  -- sha256(batch|task|reason|receipt_sha)
   task_id TEXT NOT NULL,
   attempt INTEGER,
   generation INTEGER,
@@ -851,9 +856,21 @@ write_receipt(commit):
 
 **404 统一语义**：404 = `ABSENT`（当前不可见），不是冲突、不是失败；只有 `ABSENT` 允许再次条件写，`UNKNOWN` 只读不写。
 
+**任务级预算（持久化在 commits 行，重启不重置）**：
+
+| 参数 | 值 |
+|---|---|
+| `receipt_verify_attempts_max` | 10 / 次 verification |
+| `receipt_verify_deadline_s` | 60 |
+| `receipt_put_attempts_max` | 2（首次 + 至多一次条件重写） |
+| `receipt_reput_cooldown_s` | 60 |
+| `receipt_pending_max_s` | 3600 → `QUARANTINED(receipt_absent_timeout)` |
+
+**PUT 200 后回读 404**：默认只回读，不立即重写。仅当「首次 PUT 200 ∧ 存储通过 C1/C2 ∧ 冷却期已过 ∧ `put_attempts<2` ∧ 仍 ABSENT」全部满足时，允许**一次**条件重写；不支持条件写时禁止重写，保持 pending + 告警。
+
 | 边界 | 行为 |
 |---|---|
-| PUT 200 后回读 404 | `ABSENT`：保持 `pending`，退避后条件重写（有上限）；**不算冲突** |
+| PUT 200 后回读 404 | `ABSENT`：**默认只回读**；仅在预算/冷却/C1-C2 全部满足时允许一次条件重写；否则 pending + 告警；**不算冲突** |
 | receipt 已存在且内容一致 | 只更新 `receipt_state='written'`，**不 PUT** |
 | receipt 已存在但内容不同 | `conflict` → `QUARANTINED`；**不 PUT**，原字节不变 |
 | PUT 超时但实际成功 | 不做盲目重试；GET 回读一致 → `written` |
@@ -871,6 +888,30 @@ write_receipt(commit):
 ### 9.10 Orphan Receipt 扫描（v1.4，R1-3e）
 
 **定义**：`committed.json` 存在，但 `commits` 表无对应行（或无法对应）。
+
+**批次索引（R1-3e-1）**：权威来源是对象存储，不是 SQLite。
+
+| 状态 | 标记 |
+|---|---|
+| OPEN | `control/batches/<batch_id>/plan.json` 存在，`closed.json` 不存在 |
+| CLOSING | `close.json` 已写（含未完成清单），`closed.json` 未写 |
+| CLOSED | `closed.json` 存在 |
+
+- 内存索引只作缓存；SQLite 丢失时 list `control/batches/`（批次数量级）重建；
+- 清单缺失/损坏 → `INVALID_BATCH`，不扫描、告警。
+
+**覆盖范围（R1-3e-2）**：自动保证仅限「已登记批次 + 清单可读」的 `tasks.jsonl` task_id；CLOSED 批次、未登记 task_id、丢失清单、全桶 orphan 不在自动保证内。CLOSED 批次可用 `POST /v1/audit?batch_id=...` 人工审计。
+
+**事件幂等（R1-3e-3）**：
+
+```text
+event_id = sha256(f"{batch_id}|{task_id}|receipt_without_commit|{receipt_sha256}")
+```
+
+- 对象存储事件日志按 `event_id` 去重；
+- SQLite `events.event_id` UNIQUE + `INSERT OR IGNORE`；
+- 顺序：quarantine（幂等）→ 事件（去重）→ 状态更新；任一步崩溃可重放，事件恰好一条；
+- receipt_sha 变化 → 新 event_id，记录 `first_receipt_sha256` / `last_receipt_sha256` / `receipt_changed=true`。
 
 **有界扫描**（不 list 全桶）：
 
