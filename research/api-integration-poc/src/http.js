@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { PocError, ErrorCode, classifyHttpError, isRetryableStatus } from './errors.js';
-import { redactString } from './redact.js';
+import { redactUrl } from './redact.js';
 
 const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_RETRIES = 2;
@@ -27,13 +27,17 @@ export async function request({
   timeoutMs = DEFAULT_TIMEOUT_MS,
   retries = DEFAULT_RETRIES,
   retryBaseMs = 250,
+  retryNonIdempotent = false,
   logger,
   signal
 }) {
+  // POST 默认不自动重试：发布类请求一旦在服务端生效，重发可能产生重复内容。
+  // 只读 POST（如 GA4 runReport）必须显式传 retryNonIdempotent: true。
+  const maxRetries = method === 'POST' && !retryNonIdempotent ? 0 : retries;
   let attempt = 0;
   let lastError = null;
 
-  while (attempt <= retries) {
+  while (attempt <= maxRetries) {
     const requestId = randomUUID();
     const started = Date.now();
     const controller = new AbortController();
@@ -61,7 +65,7 @@ export async function request({
       logger?.debug('http.request', {
         provider,
         method,
-        url,
+        url: redactUrl(url),
         status: response.status,
         durationMs,
         requestId
@@ -72,10 +76,10 @@ export async function request({
       }
 
       const err = classifyHttpError({ provider, status: response.status, body: parsed, requestId });
-      err.details = { method, url: redactString(url), attempt };
+      err.details = { method, url: redactUrl(url), attempt };
 
-      if (!isRetryableStatus(response.status) || attempt === retries) {
-        if (err.code === ErrorCode.RATE_LIMITED && attempt === retries) {
+      if (!isRetryableStatus(response.status) || attempt === maxRetries) {
+        if (err.code === ErrorCode.RATE_LIMITED && attempt === maxRetries) {
           throw new PocError(ErrorCode.RETRY_EXHAUSTED, `重试耗尽：${err.message}`, {
             provider,
             status: response.status,
@@ -100,7 +104,7 @@ export async function request({
             retryable: true,
             cause: err
           });
-      if (attempt === retries) {
+      if (attempt === maxRetries) {
         throw new PocError(ErrorCode.RETRY_EXHAUSTED, wrapped.message, { provider, cause: err });
       }
       lastError = wrapped;

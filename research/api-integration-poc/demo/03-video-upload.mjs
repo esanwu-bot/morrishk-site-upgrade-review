@@ -35,6 +35,7 @@ try {
     chunkSize: 64 * 1024
   });
   record('2. 分片上传', 'PASS_MOCK', `${uploaded.chunks} 片，共 ${uploaded.bytes} 字节`);
+  record('说明', 'INFO', 'Mock 分片计数只演示状态流转，不代表真实分片续传；真实直传未验证');
 
   const status = await video.mux.getUpload(upload.id);
   record('3. 查询上传状态', 'PASS_MOCK', `status=${status.status}, assetId=${status.assetId}`);

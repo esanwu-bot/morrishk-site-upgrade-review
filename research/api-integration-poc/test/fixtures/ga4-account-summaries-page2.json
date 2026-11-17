@@ -1,0 +1,16 @@
+{
+  "accountSummaries": [
+    {
+      "account": "accounts/200",
+      "displayName": "Morrishk APAC",
+      "propertySummaries": [
+        {
+          "property": "properties/333333333",
+          "displayName": "Morrishk - JP",
+          "propertyType": "PROPERTY_TYPE_ORDINARY",
+          "parent": "accounts/200"
+        }
+      ]
+    }
+  ]
+}

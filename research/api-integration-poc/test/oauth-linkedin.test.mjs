@@ -61,6 +61,20 @@ test('OAuth 授权地址包含 state 与最小 scope', async () => {
   }
 });
 
+test('state 缺失时拒绝回调', async () => {
+  const ctx = await makeProvider();
+  try {
+    const { code } = await authorize(ctx.provider);
+    await assert.rejects(
+      () => ctx.provider.handleCallback({ code, state: 'anything' }),
+      (err) => err.code === ErrorCode.BAD_REQUEST && /expectedState/.test(err.message)
+    );
+    assert.equal(ctx.tokenStore.load('linkedin'), null);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
 test('state 不匹配时拒绝回调', async () => {
   const ctx = await makeProvider();
   try {
@@ -75,18 +89,36 @@ test('state 不匹配时拒绝回调', async () => {
   }
 });
 
-test('完整流程：授权码换 token、保存、读取账号', async () => {
+test('完整流程：授权码换 token、保存、读取个人与组织身份', async () => {
   const ctx = await makeProvider();
   try {
     const { state, code, returnedState } = await authorize(ctx.provider);
     assert.equal(returnedState, state);
-    const { account } = await ctx.provider.handleCallback({ code, state: returnedState, expectedState: state });
-    assert.equal(account.id, 'mock-org-1001');
+    const { account, organization } = await ctx.provider.handleCallback({ code, state: returnedState, expectedState: state });
+    assert.equal(account.id, 'mock-person-2001');
+    assert.equal(account.type, 'person');
+    assert.equal(organization.type, 'organization');
+    assert.equal(organization.verified, false);
+    assert.match(organization.note, /Mock/);
 
     const stored = ctx.tokenStore.load('linkedin');
     assert.ok(stored.accessToken.startsWith('mock-access-'));
     assert.ok(stored.refreshToken.startsWith('mock-refresh-'));
     assert.ok(stored.expiresAt > Date.now());
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('state 重放被拒绝', async () => {
+  const ctx = await makeProvider();
+  try {
+    const { state, code, returnedState } = await authorize(ctx.provider);
+    await ctx.provider.handleCallback({ code, state: returnedState, expectedState: state });
+    await assert.rejects(
+      () => ctx.provider.handleCallback({ code, state: returnedState, expectedState: state }),
+      (err) => err.code === ErrorCode.BAD_REQUEST && /state/.test(err.message)
+    );
   } finally {
     await ctx.cleanup();
   }

@@ -34,12 +34,12 @@ try {
   const callback = new URL(location);
   record('2. 模拟用户同意并回调', 'PASS_MOCK', `code=${callback.searchParams.get('code')?.slice(0, 14)}...`);
 
-  const { account } = await provider.handleCallback({
+  const { account, organization } = await provider.handleCallback({
     code: callback.searchParams.get('code'),
     state: callback.searchParams.get('state'),
     expectedState: state
   });
-  record('3. 换取 token 并获取账号', 'PASS_MOCK', `${account.name} (${account.id})`);
+  record('3. 换取 token 并获取账号', 'PASS_MOCK', `个人=${account.name} (${account.type})；组织=${organization.name} (${organization.id}, verified=${organization.verified})`);
 
   const stored = tokenStore.load('linkedin');
   record('4. 保存 token', 'PASS_MOCK', `本地文件 ${tokenStore.file('linkedin')}；accessToken=${stored.accessToken ? '已保存' : '缺失'}；不打印明文`);

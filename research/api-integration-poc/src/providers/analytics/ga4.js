@@ -13,6 +13,38 @@ function b64url(input) {
   return Buffer.from(input).toString('base64url');
 }
 
+// 真实 accountSummaries 返回 { accountSummaries: [{ account, displayName, propertySummaries: [{ property, displayName, propertyType, parent }] }], nextPageToken }
+export function flattenAccountSummaries(raw) {
+  const out = [];
+  for (const account of raw?.accountSummaries || []) {
+    for (const summary of account.propertySummaries || []) {
+      out.push({
+        propertyId: String(summary.property || '').replace(/^properties\//, ''),
+        propertyName: summary.property || null,
+        displayName: summary.displayName || null,
+        propertyType: summary.propertyType || null,
+        parent: summary.parent || null,
+        account: account.displayName || null,
+        accountName: account.account || null
+      });
+    }
+  }
+  return out;
+}
+
+const MOCK_ACCOUNT_SUMMARIES = {
+  accountSummaries: [
+    {
+      account: 'accounts/100',
+      displayName: 'Morrishk',
+      propertySummaries: [
+        { property: 'properties/123456789', displayName: 'Morrishk - Global', propertyType: 'PROPERTY_TYPE_ORDINARY', parent: 'accounts/100' },
+        { property: 'properties/987654321', displayName: 'Morrishk - DE', propertyType: 'PROPERTY_TYPE_ORDINARY', parent: 'accounts/100' }
+      ]
+    }
+  ]
+};
+
 export class GoogleAuth {
   constructor({ mode, config, logger, scope = READ_SCOPE, tokenUrl = TOKEN_URL }) {
     this.mode = mode;
@@ -88,19 +120,27 @@ export class GA4Provider extends AnalyticsProvider {
 
   async listProperties() {
     if (this.mode === 'mock') {
-      return [
-        { propertyId: '123456789', displayName: 'Morrishk - Global', account: 'Morrishk' },
-        { propertyId: '987654321', displayName: 'Morrishk - DE', account: 'Morrishk' }
-      ];
+      return flattenAccountSummaries(MOCK_ACCOUNT_SUMMARIES);
     }
     const token = await this.auth.getAccessToken();
-    const res = await request({
-      provider: 'ga4',
-      url: `${this.adminBase}/accountSummaries`,
-      headers: { authorization: `Bearer ${token}` },
-      logger: this.logger
-    });
-    return res.body.accountSummaries || [];
+    const properties = [];
+    let pageToken = null;
+    let pages = 0;
+    do {
+      const url = new URL(`${this.adminBase}/accountSummaries`);
+      url.searchParams.set('pageSize', '200');
+      if (pageToken) url.searchParams.set('pageToken', pageToken);
+      const res = await request({
+        provider: 'ga4',
+        url: url.toString(),
+        headers: { authorization: `Bearer ${token}` },
+        logger: this.logger
+      });
+      properties.push(...flattenAccountSummaries(res.body));
+      pageToken = res.body?.nextPageToken || null;
+      pages += 1;
+    } while (pageToken && pages < 50);
+    return properties;
   }
 
   async runReport({ propertyId, dateRanges, dimensions = ['date'], metrics = ['sessions'], limit = 100, offset = 0 }) {
@@ -133,6 +173,8 @@ export class GA4Provider extends AnalyticsProvider {
         limit,
         offset
       }),
+      // runReport 是只读 POST，可安全重试；发布类 POST 不具备该属性
+      retryNonIdempotent: true,
       logger: this.logger
     });
     return res.body;
@@ -181,11 +223,7 @@ export class GA4Provider extends AnalyticsProvider {
       rows: sliced,
       rowCount: rows.length,
       metadata: { currencyCode: 'USD', timeZone: 'Etc/UTC' },
-      kind: 'analyticsData#runReport',
-      mode: 'mock',
-      propertyId,
-      dateRanges,
-      note: '示例数据，非真实 GA4 API 结果'
+      kind: 'analyticsData#runReport'
     };
   }
 }

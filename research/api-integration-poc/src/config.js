@@ -39,6 +39,11 @@ export function loadConfig(overrides = {}) {
   return {
     mode,
     allowRealPublish: String(process.env.ALLOW_REAL_PUBLISH || 'false') === 'true',
+    allowRealMp: String(process.env.ALLOW_REAL_MP || 'false') === 'true',
+    publishAllowlist: (process.env.PUBLISH_TARGET_ALLOWLIST || '')
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean),
     logLevel: process.env.LOG_LEVEL || 'info',
     tokenDir: path.resolve(process.env.POC_TOKEN_DIR || './.tokens'),
     ayrshare: {
@@ -48,7 +53,9 @@ export function loadConfig(overrides = {}) {
     linkedin: {
       clientId: process.env.LINKEDIN_CLIENT_ID || '',
       clientSecret: process.env.LINKEDIN_CLIENT_SECRET || '',
-      redirectUri: process.env.LINKEDIN_REDIRECT_URI || 'http://127.0.0.1:8787/callback/linkedin'
+      redirectUri: process.env.LINKEDIN_REDIRECT_URI || 'http://127.0.0.1:8787/callback/linkedin',
+      authorUrn: process.env.LINKEDIN_AUTHOR_URN || '',
+      organizationId: process.env.LINKEDIN_ORGANIZATION_ID || ''
     },
     mux: {
       tokenId: process.env.MUX_TOKEN_ID || '',

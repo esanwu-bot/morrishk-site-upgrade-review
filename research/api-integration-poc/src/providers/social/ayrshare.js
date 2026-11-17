@@ -3,10 +3,11 @@ import { PocError, ErrorCode, blockedCredential } from '../../errors.js';
 import { request, jsonHeaders } from '../../http.js';
 
 export class AyrshareProvider extends SocialProvider {
-  constructor({ mode, config, logger }) {
+  constructor({ mode, config, logger, timeoutMs = 15_000 }) {
     super({ mode });
     this.config = config;
     this.logger = logger;
+    this.timeoutMs = timeoutMs;
     this.counter = 0;
   }
 
@@ -82,7 +83,12 @@ export class AyrshareProvider extends SocialProvider {
         scheduledAt: scheduleDate || null,
         platforms: platforms.map((p) => ({ platform: p, ok: true })),
         mode: 'mock',
-        idempotencyKey: idempotencyKey || null
+        idempotencyKey: idempotencyKey || null,
+        idempotency: {
+          key: idempotencyKey || null,
+          localStore: 'MemoryIdempotencyStore（Demo 本地）',
+          vendor: { field: 'idempotencyKey', sent: false, verified: false }
+        }
       };
     }
 
@@ -96,11 +102,25 @@ export class AyrshareProvider extends SocialProvider {
         post: text,
         platforms,
         mediaUrls: mediaUrls.length ? mediaUrls : undefined,
-        scheduleDate: scheduleDate || undefined
+        scheduleDate: scheduleDate || undefined,
+        ...(idempotencyKey ? { idempotencyKey } : {})
       }),
+      timeoutMs: this.timeoutMs,
+      // 发布 POST 不自动重试，避免超时后重复发帖
+      retries: 0,
+      retryNonIdempotent: false,
       logger: this.logger
     });
-    return { ...res.body, mode: 'real', idempotencyKey: idempotencyKey || null };
+    return {
+      ...res.body,
+      mode: 'real',
+      idempotencyKey: idempotencyKey || null,
+      idempotency: {
+        key: idempotencyKey || null,
+        localStore: 'MemoryIdempotencyStore（Demo 本地）',
+        vendor: { field: 'idempotencyKey', sent: Boolean(idempotencyKey), verified: false }
+      }
+    };
   }
 
   async getPost(id) {
@@ -135,6 +155,7 @@ export class AyrshareProvider extends SocialProvider {
       method: 'POST',
       headers: this.authHeaders(),
       body: JSON.stringify({ platforms, startDate, endDate }),
+      retryNonIdempotent: true,
       logger: this.logger
     });
     return res.body;

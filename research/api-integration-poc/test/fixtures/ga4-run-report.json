@@ -1,0 +1,26 @@
+{
+  "dimensionHeaders": [
+    { "name": "sessionSource" },
+    { "name": "sessionMedium" }
+  ],
+  "metricHeaders": [
+    { "name": "sessions", "type": "TYPE_INTEGER" },
+    { "name": "totalUsers", "type": "TYPE_INTEGER" }
+  ],
+  "rows": [
+    {
+      "dimensionValues": [{ "value": "google" }, { "value": "organic" }],
+      "metricValues": [{ "value": "1200" }, { "value": "900" }]
+    },
+    {
+      "dimensionValues": [{ "value": "linkedin" }, { "value": "social" }],
+      "metricValues": [{ "value": "340" }, { "value": "280" }]
+    }
+  ],
+  "rowCount": 2,
+  "metadata": {
+    "currencyCode": "USD",
+    "timeZone": "Etc/UTC"
+  },
+  "kind": "analyticsData#runReport"
+}

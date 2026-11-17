@@ -1,0 +1,15 @@
+{
+  "data": {
+    "id": "u-fixture-1",
+    "url": "__UPLOAD_URL__",
+    "status": "waiting",
+    "asset_id": null,
+    "cors_origin": "*",
+    "timeout": 3600,
+    "test": false,
+    "new_asset_settings": {
+      "playback_policies": ["public"],
+      "passthrough": "fixture-pass"
+    }
+  }
+}

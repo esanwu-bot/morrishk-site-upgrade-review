@@ -1,0 +1,11 @@
+{
+  "data": {
+    "id": "u-fixture-1",
+    "url": "__UPLOAD_URL__",
+    "status": "asset_created",
+    "asset_id": "a-fixture-1",
+    "cors_origin": "*",
+    "timeout": 3600,
+    "test": false
+  }
+}

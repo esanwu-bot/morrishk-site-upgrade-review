@@ -1,0 +1,23 @@
+{
+  "accountSummaries": [
+    {
+      "account": "accounts/100",
+      "displayName": "Morrishk",
+      "propertySummaries": [
+        {
+          "property": "properties/123456789",
+          "displayName": "Morrishk - Global",
+          "propertyType": "PROPERTY_TYPE_ORDINARY",
+          "parent": "accounts/100"
+        },
+        {
+          "property": "properties/222222222",
+          "displayName": "Morrishk - DE",
+          "propertyType": "PROPERTY_TYPE_ORDINARY",
+          "parent": "accounts/100"
+        }
+      ]
+    }
+  ],
+  "nextPageToken": "fixture-page-2"
+}

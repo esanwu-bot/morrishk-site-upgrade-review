@@ -2,10 +2,12 @@
 
 | 项目 | 内容 |
 |---|---|
-| 文档版本 | V1.0（初稿） |
+| 文档版本 | V1.1（按 Reviewer 复核意见修订） |
 | 日期 | 2026-11-17 |
 | 适用范围 | 社媒发布、视频上传、GA4 读取（预研） |
 | 依据 | `API_RESEARCH.md` 来源清单 [S1]–[S65] |
+
+**V1.1 修订说明**：补充 OAuth `state` 的强制校验与重放防护、LinkedIn 个人身份与组织身份的分离（`organizationId` / `authorUrn`）、发布目标白名单、Measurement Protocol 独立开关，以及「本地幂等」与「供应商幂等」的区别。所有修订均未使用真实凭证。
 
 ---
 
@@ -47,6 +49,17 @@
 | 以个人身份发帖 | `w_member_social`（`r_member_social` 当前关闭申请） |
 
 **审核要求**：Community Management API 需 Development tier 审核，再申请 Standard tier（录屏 + 技术签核）。调用者必须是组织页 ADMINISTRATOR / CONTENT_ADMIN / DIRECT_SPONSORED_CONTENT_POSTER。
+
+**个人身份与组织身份必须分离（V1.1 新增）**
+
+- `/v2/userinfo` 返回的是**个人**身份（`sub`、`name`、`email`），只能用于确认「谁完成了授权」，**不能**作为组织页发帖的 author。
+- 组织页发帖的 author 必须是 `urn:li:organization:{id}`，且授权用户对该组织页具备管理员类角色。
+- 组织身份来源按以下顺序解析，任一步失败即停止，不猜测、不降级为个人身份发帖：
+  1. 配置项 `LINKEDIN_AUTHOR_URN`（最明确，推荐）；
+  2. 配置项 `LINKEDIN_ORGANIZATION_ID`，拼为 `urn:li:organization:{id}`；
+  3. 调用 `/v2/organizationAcls?q=roleAssignee&role=ADMINISTRATOR&state=APPROVED` 枚举授权用户可管理的组织；
+  4. 全部为空 → 报 `CONFIG_MISSING`，不发布。
+- Mock 模式下的组织对象带有 `verified=false` 与「Mock 组织身份，仅用于演示」标记，**不得**被日志或演示输出表述为「已验证组织」。
 
 ### 2.3 X
 
@@ -105,7 +118,9 @@
 1. 任何真实 token 不得进入 Git；`.env.example` 只放变量名与占位符。
 2. 日志统一脱敏：`access_token`、`refresh_token`、`client_secret`、`api_secret`、`Authorization` 头一律替换为 `***`。
 3. Demo 的 token 存储文件权限在类 Unix 系统上设为 `0600`；Windows 下依赖用户目录隔离。
-4. 发布类操作默认关闭真实通道，必须同时满足：`ALLOW_REAL_PUBLISH=true` + CLI `--confirm-publish` + 非 mock 凭证。
+4. 发布类操作默认关闭真实通道，必须同时满足：`ALLOW_REAL_PUBLISH=true` + CLI `--confirm-publish` + 发布目标命中 `PUBLISH_TARGET_ALLOWLIST` + 显式指定单一目标（`provider:platform:account`）。
+5. GA4 Measurement Protocol 真实写入使用独立开关：`ALLOW_REAL_MP=true` + CLI `--confirm-mp`，与社媒发布开关互不连带。
+6. **全局发布开关不等于批量授权**：即使 `ALLOW_REAL_PUBLISH=true`，Demo 也只发布命令行显式指定的一个目标，不会遍历所有平台/账号。
 
 ---
 
@@ -118,6 +133,22 @@
 | 刷新返回新 refresh token | 原子替换并持久化，避免旧 token 失效 |
 | 撤销授权 | 调用平台撤销端点（如 Google `oauth2.googleapis.com/revoke`），删除本地 token |
 | 权限被收回 | API 返回 401/403 时标记 `PERMISSION_REVOKED`，不自动重试 |
+
+**OAuth `state` 强制校验（V1.1 新增）**
+
+1. `connect()` 生成随机 `state` 并登记为「已签发」。
+2. 回调必须携带 `state`；**缺少 `expectedState`、缺少 `state`、二者不匹配、`state` 未签发或已被使用**，全部拒绝（`BAD_REQUEST`），不进入换 token。
+3. `state` 为一次性：仅在**成功换取 token 之后**才从已签发集合中删除；换 token 失败时保留，允许用户重试同一回调。
+4. 已使用的 `state` 再次回调视为重放，拒绝。日志中 `state` 与授权码一律脱敏。
+
+**幂等的两层含义（V1.1 新增）**
+
+| 层 | 实现 | 作用范围 | 说明 |
+|---|---|---|---|
+| 本地幂等 | `MemoryIdempotencyStore`：按请求指纹去重、共享 in-flight Promise、TTL 过期、失败剔除 | 仅本进程 | 防止同一进程内重复触发；不跨实例、不跨重启 |
+| 供应商幂等 | Ayrshare `POST /api/post` 请求体 `idempotencyKey` | 供应商侧 | 同一 key 重复提交由供应商拒绝（错误码 110）；**不能因为带了 key 就允许自动重试** |
+
+发布类 `POST` 默认**不自动重试**（`retryNonIdempotent=false`）；只读 `POST`（如 GA4 `runReport`、Ayrshare 分析查询）必须显式声明可重试。**本地幂等通过不代表供应商幂等已验证**，后者需要真实凭证，本轮状态为 `BLOCKED_CREDENTIAL`。
 
 ---
 
@@ -143,6 +174,13 @@ POC_MODE=mock
 # 发布安全开关（默认 false；即使 real 也必须显式确认）
 ALLOW_REAL_PUBLISH=false
 
+# 真实发布目标白名单，逗号分隔，格式 provider:platform:account
+# 例：ayrshare:linkedin:morrishk,linkedin:linkedin:urn:li:organization:1234567
+PUBLISH_TARGET_ALLOWLIST=
+
+# GA4 Measurement Protocol 真实写入开关（与社媒发布开关独立）
+ALLOW_REAL_MP=false
+
 # 聚合（Ayrshare）
 AYRSHARE_API_KEY=
 AYRSHARE_BASE_URL=https://api.ayrshare.com
@@ -151,6 +189,9 @@ AYRSHARE_BASE_URL=https://api.ayrshare.com
 LINKEDIN_CLIENT_ID=
 LINKEDIN_CLIENT_SECRET=
 LINKEDIN_REDIRECT_URI=http://127.0.0.1:8787/callback/linkedin
+# 组织身份（二选一，authorUrn 优先级更高）
+LINKEDIN_ORGANIZATION_ID=
+LINKEDIN_AUTHOR_URN=
 
 # Mux
 MUX_TOKEN_ID=
@@ -174,3 +215,6 @@ POC_TOKEN_DIR=./.tokens
 3. TikTok token 有效期与完整速率限制。
 4. YouTube 未审核项目的上传可见性规则。
 5. GA4 服务账号授权在 2026 年是否新增限制（以官方页面为准）。
+6. Ayrshare `idempotencyKey` 在真实账号下的重复拒绝行为（仅按官方文档实现，未实测）。
+7. Mux 真实断点续传与分片重试行为（Mock 分块计数不代表续传能力）。
+8. GA4 `accountSummaries.list` 在真实账号下的多页返回（仅用 fixture 验证了解析与翻页逻辑）。

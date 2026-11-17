@@ -97,6 +97,7 @@ test('Mux mock：直传流程从创建到播放地址', async () => {
   const provider = mux();
   const upload = await provider.createUpload({ passthrough: 'demo' });
   assert.equal(upload.status, 'waiting');
+  assert.equal(upload.assetId, null);
   assert.equal(upload.mode, 'mock');
 
   const buffer = Buffer.alloc(180 * 1024, 0x11);
@@ -142,7 +143,7 @@ test('GA4 mock：Property 发现与来源/媒介报表', async () => {
   assert.equal(report.rows.length, 3);
   assert.deepEqual(report.dimensionHeaders.map((h) => h.name), ['sessionSource', 'sessionMedium']);
   assert.equal(report.rows[0].dimensionValues[0].value, 'google');
-  assert.equal(report.mode, 'mock');
+  assert.deepEqual(Object.keys(report).sort(), ['dimensionHeaders', 'kind', 'metadata', 'metricHeaders', 'rowCount', 'rows']);
 });
 
 test('GA4 mock：limit/offset 分页生效', async () => {
@@ -162,7 +163,7 @@ test('GA4 mock：limit/offset 分页生效', async () => {
 test('GA4 mock：最多 4 个日期范围，5 个被拒绝', async () => {
   const make = (n) => Array.from({ length: n }, (_, i) => ({ startDate: '2026-10-01', endDate: '2026-10-02', name: `r${i}` }));
   const ok = await ga4().runReport({ propertyId: '1', dateRanges: make(4), dimensions: ['date'], metrics: ['sessions'] });
-  assert.equal(ok.dateRanges.length, 4);
+  assert.equal(ok.rowCount, 3);
   await assert.rejects(
     () => ga4().runReport({ propertyId: '1', dateRanges: make(5), dimensions: ['date'], metrics: ['sessions'] }),
     (err) => err.code === ErrorCode.BAD_REQUEST

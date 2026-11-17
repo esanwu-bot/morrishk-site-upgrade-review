@@ -32,6 +32,36 @@ test('ALLOW_REAL_PUBLISH 仅在显式 true 时启用', () => {
   }
 });
 
+test('真实发布与 MP 写入开关默认关闭，白名单为空', () => {
+  const keys = ['ALLOW_REAL_PUBLISH', 'ALLOW_REAL_MP', 'PUBLISH_TARGET_ALLOWLIST'];
+  const prev = Object.fromEntries(keys.map((k) => [k, process.env[k]]));
+  for (const k of keys) delete process.env[k];
+  try {
+    const cfg = loadConfig({ mode: 'mock' });
+    assert.equal(cfg.allowRealPublish, false);
+    assert.equal(cfg.allowRealMp, false);
+    assert.deepEqual(cfg.publishAllowlist, []);
+    assert.equal(cfg.linkedin.authorUrn, '');
+    assert.equal(cfg.linkedin.organizationId, '');
+  } finally {
+    for (const k of keys) {
+      if (prev[k] === undefined) delete process.env[k];
+      else process.env[k] = prev[k];
+    }
+  }
+});
+
+test('发布目标白名单按逗号解析并去除空白', () => {
+  const prev = process.env.PUBLISH_TARGET_ALLOWLIST;
+  process.env.PUBLISH_TARGET_ALLOWLIST = ' ayrshare:linkedin:page-1 , linkedin:linkedin:1001 ,,';
+  try {
+    assert.deepEqual(loadConfig().publishAllowlist, ['ayrshare:linkedin:page-1', 'linkedin:linkedin:1001']);
+  } finally {
+    if (prev === undefined) delete process.env.PUBLISH_TARGET_ALLOWLIST;
+    else process.env.PUBLISH_TARGET_ALLOWLIST = prev;
+  }
+});
+
 test('requireValue 缺值时抛 CONFIG_MISSING', () => {
   assert.throws(
     () => requireValue('', 'MUX_TOKEN_ID'),

@@ -4,6 +4,30 @@ import { request, jsonHeaders } from '../../http.js';
 
 const API_BASE = 'https://api.mux.com';
 
+// Mux 真实 API 使用 snake_case；Provider 对外统一 camelCase。
+export function normalizeUpload(data, mode) {
+  return {
+    id: data.id,
+    url: data.url,
+    status: data.status,
+    assetId: data.asset_id ?? null,
+    mode
+  };
+}
+
+export function normalizeAsset(data, mode) {
+  const playback = Array.isArray(data.playback_ids) ? data.playback_ids[0] : null;
+  return {
+    id: data.id,
+    status: data.status,
+    duration: data.duration ?? null,
+    aspectRatio: data.aspect_ratio ?? null,
+    playbackId: playback?.id ?? null,
+    playbackPolicy: playback?.policy ?? null,
+    mode
+  };
+}
+
 export class MuxProvider extends VideoProvider {
   constructor({ mode, config, logger, apiBase = API_BASE }) {
     super({ mode });
@@ -44,7 +68,7 @@ export class MuxProvider extends VideoProvider {
         passthrough
       };
       this.uploads.set(id, record);
-      return { id, url: record.url, status: record.status, mode: 'mock' };
+      return { id, url: record.url, status: record.status, assetId: null, mode: 'mock' };
     }
     if (this.missingConfig().length) throw blockedCredential('mux', this.missingConfig());
     const res = await request({
@@ -54,11 +78,11 @@ export class MuxProvider extends VideoProvider {
       headers: this.authHeaders(),
       body: JSON.stringify({
         cors_origin: '*',
-        new_asset_settings: { playback_policy: [playbackPolicy], passthrough }
+        new_asset_settings: { playback_policies: [playbackPolicy], passthrough }
       }),
       logger: this.logger
     });
-    return { ...res.body.data, mode: 'real' };
+    return normalizeUpload(res.body.data, 'real');
   }
 
   async uploadFile({ uploadId, uploadUrl, buffer, chunkSize = 64 * 1024 }) {
@@ -81,7 +105,8 @@ export class MuxProvider extends VideoProvider {
       headers: { 'content-type': 'application/octet-stream' },
       body: buffer,
       timeoutMs: 120_000,
-      retries: 1,
+      // 直传 PUT 不做自动重试：Mock 的分片计数不代表真实可恢复续传
+      retries: 0,
       logger: this.logger
     });
     return { uploadId, status: res.status, mode: 'real' };
@@ -107,7 +132,7 @@ export class MuxProvider extends VideoProvider {
       headers: this.authHeaders(),
       logger: this.logger
     });
-    return res.body.data;
+    return normalizeUpload(res.body.data, 'real');
   }
 
   async getAsset(assetId) {
@@ -131,7 +156,7 @@ export class MuxProvider extends VideoProvider {
       headers: this.authHeaders(),
       logger: this.logger
     });
-    return res.body.data;
+    return normalizeAsset(res.body.data, 'real');
   }
 
   playbackUrl(playbackId) {

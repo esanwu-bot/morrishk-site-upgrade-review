@@ -1,0 +1,14 @@
+{
+  "elements": [
+    {
+      "organization": "urn:li:organization:1001",
+      "role": "ADMINISTRATOR",
+      "state": "APPROVED"
+    }
+  ],
+  "paging": {
+    "start": 0,
+    "count": 1,
+    "links": []
+  }
+}

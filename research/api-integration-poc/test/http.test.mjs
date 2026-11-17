@@ -151,6 +151,55 @@ test('连接失败归为网络错误并耗尽重试', async () => {
   );
 });
 
+test('POST 默认不自动重试（防止发布重复）', async () => {
+  let calls = 0;
+  const srv = await startServer((req, res) => {
+    calls += 1;
+    req.resume();
+    res.statusCode = 503;
+    res.end('unavailable');
+  });
+  try {
+    await assert.rejects(
+      () => request({ provider: 'test', url: srv.url, method: 'POST', body: 'x', retries: 3, retryBaseMs: 5 }),
+      (err) => err.code === ErrorCode.PLATFORM_ERROR
+    );
+    assert.equal(calls, 1);
+  } finally {
+    await srv.close();
+  }
+});
+
+test('只读 POST 显式声明后可重试', async () => {
+  let calls = 0;
+  const srv = await startServer((req, res) => {
+    calls += 1;
+    req.resume();
+    if (calls === 1) {
+      res.statusCode = 503;
+      res.end('unavailable');
+      return;
+    }
+    res.setHeader('content-type', 'application/json');
+    res.end(JSON.stringify({ ok: true }));
+  });
+  try {
+    const res = await request({
+      provider: 'test',
+      url: srv.url,
+      method: 'POST',
+      body: '{}',
+      retries: 1,
+      retryBaseMs: 5,
+      retryNonIdempotent: true
+    });
+    assert.equal(res.body.ok, true);
+    assert.equal(calls, 2);
+  } finally {
+    await srv.close();
+  }
+});
+
 test('jsonHeaders 返回 JSON 请求头', () => {
   assert.deepEqual(jsonHeaders({ 'x-a': '1' }), {
     'content-type': 'application/json',

@@ -2,11 +2,13 @@
 
 | 项目 | 内容 |
 |---|---|
-| 文档版本 | V1.0（初稿） |
+| 文档版本 | V1.1（按 Reviewer 复核意见修订） |
 | 调研日期 | 2026-11-17 |
 | 适用项目 | Morrishk 全球 B2B 独立站升级（预研） |
 | 文档性质 | 技术预研，不构成功能承诺、采购决定或报价 |
 | 依据范围 | 仅采用平台官方文档与供应商官方文档；每条结论标注来源编号（见第 7 节） |
+
+**V1.1 修订说明**：按 Reviewer 复核意见，补充 Mux 上传请求的真实字段名（`new_asset_settings.playback_policies`）、GA4 `accountSummaries.list` 的真实响应结构与分页、Ayrshare 的幂等字段 `idempotencyKey`，并明确「Mock 分块计数 ≠ 真实断点续传」。所有新增结论仍来自官方文档，未进行任何真实凭证调用。
 
 **标记约定**
 
@@ -122,6 +124,7 @@
 | 平台数 | 14 个：Bluesky、Facebook、Google Business Profile、Instagram、LinkedIn、Pinterest、Reddit、Snapchat、Telegram、Threads、TikTok、WhatsApp、X、YouTube | 文档写 16 个平台（不同页面口径不一致，**以签约时清单为准**） |
 | 统一发布 | `POST /api/post`，`platforms[]` + `scheduleDate` | 发布 + 排期接口 |
 | 统一授权 | 客户在聚合平台完成各社媒 OAuth 关联 | `GET /v1/connect/{platform}` 打开浏览器授权 |
+| 幂等 | `POST /api/post` 请求体支持 `idempotencyKey`；同一 key 重复提交会被供应商拒绝（错误码 110），**这是供应商侧幂等，与本地去重是两回事** | 幂等字段 **UNVERIFIED** |
 | 视频 | 支持；**视频能力需付费套餐** | 支持（各平台上限 **UNVERIFIED**） |
 | 分析/评论 | 提供分析与评论管理接口 | 提供分析与评论接口 |
 | 客户仍需做的事 | 各平台账号 OAuth；LinkedIn 组织角色；IG 专业账号；**自 2026-03-31 起 X 操作需客户自备 X API 凭证** | 各平台 OAuth；平台审核是否完全由聚合方承担 **UNVERIFIED** |
@@ -159,6 +162,14 @@
 | 公开价格 | 存储 $0.003/分钟/月；分发 $0.001/分钟（每月 10 万分钟免费）；$20 月度抵扣 | 按 credits 计费；具体换算 **UNVERIFIED** | 存储 $0.00285/分钟/月；分发 $0.0017/分钟；沙箱视频 30 秒、带水印、24 小时删除 |
 
 依据：[S30]–[S40]。
+
+**Mux 直传的真实字段（按官方文档核对）**：
+
+- 创建直传：`POST /video/v1/uploads`，请求体使用 `new_asset_settings.playback_policies`（**复数、数组**），例如 `{"playback_policies":["public"]}`；`cors_origin`、`passthrough` 为同级字段。[S30]
+- 创建响应为 snake_case：`id`、`url`、`status`、`asset_id`（上传完成后才有值）。[S30]
+- 资产对象为 snake_case：`id`、`status`、`duration`、`aspect_ratio`、`playback_ids[]`（每项含 `id`/`policy`）。[S31]
+- Demo 在 provider 层做 snake_case → camelCase 归一化（`assetId`、`playbackId`、`playbackPolicy`、`aspectRatio`），业务层不直接消费供应商原始字段。
+- **Mock 模式的分块计数只演示上传状态机，不等于真实的分片/断点续传能力**；真实续传需要真实凭证与网络条件验证，本轮状态为 `BLOCKED_CREDENTIAL`。
 
 **选择倾向（待客户确认预算后定稿）**：Mux 的直传、分片、Webhook、字幕与状态模型最完整，适合作为主候选；api.video 单位价格更低，适合成本敏感场景；Cloudinary 的优势在图片与视频统一治理，若站点已有图片 CDN 需求可一并评估。三家的真实计费需以报价与用量模型核算。
 
@@ -203,6 +214,8 @@
 
 - 基址 `https://analyticsadmin.googleapis.com/v1beta`；覆盖 accounts、properties、dataStreams、customDimensions、customMetrics、keyEvents、measurementProtocolSecrets、firebaseLinks、googleAdsLinks 等；audiences 仅在 v1alpha。[S53]
 - `accountSummaries.list` 返回调用者可访问的全部账号与 Property，是多客户发现的实用入口。[S55]
+- **真实响应结构（按官方参考核对）**：顶层为 `accountSummaries[]`，每项含 `account`（如 `accounts/100`）、`displayName`、`propertySummaries[]`；每个 `propertySummaries` 项含 `property`（形如 `properties/123456789`）、`displayName`、`propertyType`、`parent`。**Property ID 必须从 `propertySummaries[].property` 中截取，不能假定顶层直接给出 Property 列表。** [S55]
+- **分页**：请求参数 `pageSize`（上限 200）、`pageToken`；响应顶层返回 `nextPageToken`，未返回即表示结束。实现需循环取页，不能只读第一页。[S55]
 - 读权限用 `analytics.readonly`；任何写操作需 `analytics.edit` 且账号角色允许。[S54][S56]
 - `measurementProtocolSecrets.create` 可通过 API 为数据流创建 MP 的 `api_secret`，无需手工操作。[S53]
 
@@ -283,7 +296,7 @@
 
 ## 7. 来源清单
 
-> 全部页面访问日期：2026-11-17。标注「二次复核」的条目为本轮另行直连核对。
+> 全部页面访问日期：2026-11-17。标注「二次复核」的条目为本轮另行直连核对；标注「V1.1 复核」的条目为按 Reviewer 意见再次核对字段名与响应结构。
 
 | 编号 | 来源 |
 |---|---|
@@ -312,11 +325,11 @@
 | S23 | https://developers.google.com/youtube/v3/guides/uploading_a_video |
 | S24 | https://developers.google.com/youtube/v3/docs/videos/insert |
 | S25 | https://www.ayrshare.com/docs/apis/overview（二次复核） |
-| S26 | https://www.ayrshare.com/docs/apis/post/post |
+| S26 | https://www.ayrshare.com/docs/apis/post/post（V1.1 复核 `idempotencyKey`） |
 | S27 | https://www.ayrshare.com/pricing |
 | S28 | https://docs.zernio.com/quickstart（二次复核） |
 | S29 | https://docs.zernio.com/api-reference |
-| S30 | https://www.mux.com/docs/guides/video/upload-files-directly |
+| S30 | https://www.mux.com/docs/guides/video/upload-files-directly（V1.1 复核 `new_asset_settings.playback_policies`） |
 | S31 | https://www.mux.com/docs/guides/video/stream-video-files |
 | S32 | https://www.mux.com/pricing |
 | S33 | https://www.mux.com/docs/guides/add-subtitles-to-your-videos |
@@ -341,7 +354,7 @@
 | S52 | https://developers.google.com/analytics/devguides/reporting/data/v1/realtime-basics |
 | S53 | https://developers.google.com/analytics/devguides/config/admin/v1/rest |
 | S54 | https://developers.google.com/analytics/devguides/config/admin/v1/rest/v1beta/properties.dataStreams/list |
-| S55 | https://developers.google.com/analytics/devguides/config/admin/v1/rest/v1beta/accountSummaries/list |
+| S55 | https://developers.google.com/analytics/devguides/config/admin/v1/rest/v1beta/accountSummaries/list（V1.1 复核 `propertySummaries[].property` 与 `nextPageToken`） |
 | S56 | https://developers.google.com/analytics/devguides/config/admin/v1/quickstart |
 | S57 | https://developers.google.com/analytics/devguides/collection/protocol/ga4 |
 | S58 | https://developers.google.com/analytics/devguides/collection/protocol/ga4/sending-events?client_type=gtag |
