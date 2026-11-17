@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DISCOVERY-001 |
-| 版本 | v1.0 |
+| 版本 | v1.0.1（按 Reviewer 第一轮复核 C1–C7 最小修订；结论与证据基线不变） |
 | 日期 | 2026-11-17 |
 | 执行人 | Morrishk 主项目执行 Agent |
 | 审核人 | Reviewer（独立审核，本报告不构成验收） |
@@ -17,6 +17,20 @@
 
 > 本报告所有「已核实」均为**代码/文件快照级核实**，不等于线上实时验证。凡未能取得运行证据者，一律标注「无法验证」或「未执行」，不推定为通过。
 
+### 0.1 v1.0.1 修订记录（仅文档）
+
+| 编号 | Reviewer 意见 | 修订位置 | 处理 |
+|---|---|---|---|
+| C1 | 摘要把「关闭 CSRF」与「无登录鉴权」混写 | §0、§10.2 | 拆分为「3 个控制器无登录鉴权」与「7 个控制器关闭 CSRF」两项独立风险 |
+| C2 | P1-9 写「两套 API」，正文实为三套 | §7.3、§10.2 | 统一为三套口径，并区分两套候选/本地契约与一套归档原型 |
+| C3 | API 冻结阻断项不完整 | §7.1、§7.4 | 补 `MPN-NORM-v1`（`PROPOSED`）、状态枚举协调（B6）、证据公开范围（B8/IQ-08）等 |
+| C4 | SQL 拼接直接定性为注入 | §6.2、§8.3 | 补用户输入→SQL 证据链，改称「注入风险待验证」；未构造利用验证 |
+| C5 | FE-8 仅凭 `UrlRules` 判 404 | §5.2 | 补「无 `OrderController`、无 `/order/*` 规则、catch-all 只匹配单段」证据 |
+| C6 | 「明文凭据入库」易误解为数据库 | §0、§8.3、§10.1 | 改为「代码配置中明文硬编码」，区分 SMTP 与 `cookieValidationKey` |
+| C7 | 「可复现」「邮件中继」表述过强 | §5.2、§8.3、§11 | 改为「静态审计」；邮件接口补公开可达与用户可控输入证据，注明未实际发送 |
+
+> 本节仅记录文档修订，不改动任何代码、配置、数据库、契约状态或 Session A/B 决策。
+
 ---
 
 ## 0. 结论摘要（A–F）
@@ -24,7 +38,7 @@
 | 类别 | 结论 | 依据摘要 |
 |---|---|---|
 | **A. 可复用** | 旧站商品/分类/搜索/详情/询盘/内容/多语词条主链路代码完整存在；Ds Bit 解析引擎、证据模型与运行产物可复用；`platform/` 的组件层、i18n 骨架、API 适配层与 Phase 1 组件可复用 | §5、§6、§7 |
-| **B. 需修复/重构** | 旧站存在可复现的代码级缺陷与安全隐患：询盘走第三方外发、后台 7 个控制器无 AccessControl/CSRF、日志接口引用不存在的表且存在 SQL 拼接、`YII_DEBUG=true` 写进入口、硬编码 SMTP 凭据、价格阶梯解析后未渲染、移动端搜索未接线、`/order/success` 路由缺失、Help 模块引用不存在模型 | §5、§6、§8 |
+| **B. 需修复/重构** | 旧站存在静态审计发现的代码级缺陷与安全隐患（未经 Reviewer 逐项复现）：询盘走第三方外发、3 个后台控制器无登录鉴权（News/Help/Api）、7 个后台控制器关闭 CSRF、日志接口引用不存在的表且将用户可控参数直接拼接进 SQL、`YII_DEBUG=true` 写进入口、代码配置中明文硬编码 SMTP 凭据与 `cookieValidationKey`、价格阶梯解析后未渲染、移动端搜索未接线、`/order/success` 无对应控制器/路由、Help 模块引用不存在模型 | §5、§6、§8 |
 | **C. 需新建** | 营销工作台、线索管理与归因、客户账户、订单跟踪、审计闭环、备份恢复、任务队列、RBAC、Business API 服务端实现 | §7、§9（FR 矩阵） |
 | **D. 受 Ds Bit 阻断** | 参数证据上线、三层闸门、参数持久化、产品-文档关联、模型辅助抽取、跨页跨表合并 | §7 |
 | **E. 本期不纳入** | 按范围确认书原处置：`FR-1-016`、`FR-1-046`、`FR-1-059`、`FR-1-060`；社媒真实发布/视频制作虽为「尚未具备」，原处置均为「待确认」，本报告不代为排除 | §9 |
@@ -289,7 +303,7 @@
 | sitemap/robots | 命令生成静态文件 | `commands/MapController.php:145-210` |
 | Google URL 提交 | `google/apiclient` Indexing API | `commands/CController.php:115-147` |
 
-### 5.2 代码级缺陷（可复现，未运行）
+### 5.2 代码级缺陷（静态审计，未运行）
 
 | 编号 | 缺陷 | 位置 | 影响 |
 |---|---|---|---|
@@ -300,11 +314,13 @@
 | FE-5 | 移动端搜索框无 `form`、无 `name`、无 `action` | `views/layouts/header.php:73-77` | 移动端搜索不可用 |
 | FE-6 | 价格阶梯 `PriceNew` 被 JSON 解码后**从未渲染** | `views/pro/item.php:29-33` | 阶梯价功能实际不可见 |
 | FE-7 | 商品图集仅单张 `BigImg`，无多图 | `views/pro/item.php:69-76` | 「图集」名不符实 |
-| FE-8 | `actionHotPart` 保存后跳转 `/order/success`，该路由在 `UrlRules` 中不存在 | `controllers/CartController.php:271`、`config/params.php` | 用户看到 404 |
+| FE-8 | `actionHotPart` 保存后跳转 `/order/success`；`controllers/` 无 `OrderController`，`UrlRules` 无 `/order/*` 规则，唯一 catch-all `/<Links>` 只匹配单段路径；同文件另有 `actionSuccess`（对应 `/cart/success`），与跳转目标不同 | `controllers/CartController.php:271,274`、`config/params.php:115` | 按 Yii 默认路由解析到不存在的控制器 → 静态推断 404（未运行验证） |
 | FE-9 | 公开调试路由 `/test/<Act>` 暴露随机商品、分类、Nginx 片段 | `config/params.php`、`SiteController::actionTest` | 信息泄露 |
-| FE-10 | `actionSendEmail` 无鉴权、无限流、无验证码，可被当作邮件中继；且 `return` 之后存在死代码 | `controllers/PageController.php:74-176` | 滥用/垃圾邮件风险 |
+| FE-10 | `PageController extends SnSiiController`，基类文件 `commands/SnSiiController.php:24` 直接继承 `yii\web\Controller`，全项目仅 `AdminController` 使用 `AccessControl`，故本控制器无登录鉴权；`actionSendEmail` 读取 POST/JSON 的 `from_address`/`to`/`subject` 并经 `MailService::send` 发送，无鉴权、无限流、无验证码；`/page/send-email` 为两段路径，不被单段 `/<Links>` 规则匹配，按默认控制器/动作解析可达 | `controllers/PageController.php:28,63-166`、`commands/SnSiiController.php:24`、`config/params.php:115` | 具备被当作邮件中继的接口条件（未实际发送验证）；`return`（`:129`）后存在不可达死代码 |
 | FE-11 | `robots.txt` 中 `GPTBot`、`Amazonbot` 等重复出现两次且规则相反 | `web/robots.txt` | 规则语义不确定 |
 | FE-12 | 后台登录与前台登录共用 `SiteController::actionLogin`，成功即跳后台 | `controllers/SiteController.php:175-200` | 前台无独立客户登录 |
+
+> 复核边界：本节与 §6 的缺陷均为执行 Agent 对源文件的**静态审计结论**；旧站 PHP 源码未随本提交交付 Reviewer，Reviewer 尚未逐项打开源文件复现。本报告不将这些条目表述为 Reviewer 已复现的事实。
 
 ### 5.3 前台证据边界
 
@@ -339,7 +355,7 @@
 | AD-1 | 只有 7 个控制器继承 `AdminController` 并受 `AccessControl` 保护 | `commands/AdminController.php` | — |
 | AD-2 | `NewsController`、`HelpController`、`ApiController` 继承**前台** `SnSiiController`，无登录校验 | 三个文件 | 未登录即可访问后台新闻/帮助/日志接口 |
 | AD-3 | 7 个后台控制器显式 `enableCsrfValidation=false` | 各控制器 | CSRF 风险 |
-| AD-4 | `ApiController::actionPutLogs` 用字符串拼接写 `snsii_all_logs`；该表**不在 31 表快照中** | `ApiController.php:26-45` | SQL 注入 + 运行时表不存在 |
+| AD-4 | `ApiController::actionPutLogs` 将 `request->post()` 取出的 `Date`/`HostName`/`Url`/`Number`/`LogsId` 直接拼接进 SQL 字符串后交给 `createCommand()->execute()`，未做参数绑定：`UPDATE` 的 `Number` 未加引号直接拼接（`:35`），`INSERT` 五个字段均以字符串拼接（`:37`）；`SELECT` 仅以 `md5(...)`（十六进制）拼接（`:33`）。该表**不在 31 表快照中** | `ApiController.php:27-42`、`02_table_inventory.csv` | 用户输入→SQL 字符串证据链成立，**注入风险待验证**（未构造利用）；运行时表不存在 |
 | AD-5 | `HelpController` 引用 `app\models\SnSiiHelp`、`SnSiiHelpCategory`，两个模型不存在，31 表中也无对应表 | `HelpController.php:19-22` | 帮助中心后台不可用 |
 | AD-6 | 菜单由 `snsii_nav` + `snsii_manage.NavList` 驱动；`UserId==1` 看全部 | `views/layouts/header.php:16-43` | 粗粒度菜单权限，无操作级鉴权 |
 | AD-7 | 后台账号表含明文 `PassWord` 字段（列存在；哈希方式未逐一验证） | `03_column_inventory.csv` | 凭据存储需核查 |
@@ -369,6 +385,9 @@
 | 必需 | 13（12 业务路径 + `POST /oauth/token`） | 实测 |
 | 可选 | 3：`/taxonomies/{id}/changes`、`/categories/{id}/ancestors`、`/categories/{id}/products` | `x-endpoint-status: V1_OPTIONAL` |
 | 冻结就绪度 | `NOT_READY` | `16_/FREEZE_READINESS_REVIEW.md` |
+| 归一化规则 | `MPN-NORM-v1` 为 `PROPOSED`，未评审冻结（B5） | `12_/API_CONTRACT_CANDIDATE_v1.md:104,444` |
+| 状态枚举 | `release_state` / `visible_state` / 三层闸门状态为三套命名空间，未协调（B6 `OPEN`） | 同上 `:82,370,445` |
+| 证据公开范围 | `OPEN`（B8 / IQ-08）：证据截图可获取性未定 | 同上 `:447` |
 | Phase 0 决策 | IQ-01/02/13 `DECIDED`（未签署、未被 Reviewer 验收）；IQ-05/09/15/21 `OPEN` | `14_/DECISION_REGISTER.md` |
 
 ### 7.2 Ds Bit 能力与集成缺口
@@ -384,7 +403,7 @@
 | 审计 | `src/icpdf/audit/__init__.py` 占位 | 无审计闭环 |
 | 三层闸门 | 仅 HTML 原型前端演示 | 无服务端 `PIPELINE_PASS → CONTENT_APPROVED → RELEASE_APPROVED` 持久化 |
 
-### 7.3 两套 API 口径并存
+### 7.3 三套 API 口径并存
 
 | 口径 | 位置 | 端点 | 用途 |
 |---|---|---|---|
@@ -404,6 +423,12 @@
 6. 跨页跨表合并：仅设计/切片，未完成。
 7. 同步出站：仅有 `sync_outbox` 表，无 worker。
 8. OAuth2/限流：仅候选与本地桩。
+9. **归一化规则**：`MPN-NORM-v1` 仍为 `PROPOSED`（B5），未评审冻结；冻结前不得作为服务端唯一实现依据。
+10. **状态枚举协调**：`release_state`（查询参数）、`visible_state`（派生状态）、三层闸门状态是三套不同命名空间，枚举对齐列为冻结阻断（B6 `OPEN` / `VISIBLE-STATE-RECONCILIATION`），执行方不得自行合并或改名。
+11. **证据公开范围**：证据截图的可获取性与公开边界未定（B8 / IQ-08 `OPEN`），影响 `evidence` 端点与验收口径。
+12. **非生产凭证**：是否允许非生产 OAuth2 凭证仍 `OPEN`（B4 / IQ-21），影响联调方案与安全审计。
+
+> 完整阻断清单以 `12_/API_CONTRACT_CANDIDATE_v1.md` §11（B1–B8、IQ-03/04/06/12/20）与 `16_/FREEZE_READINESS_REVIEW.md` 为准；上表只列与 Morrishk 集成直接相关项，不替代契约评审。
 
 ---
 
@@ -439,14 +464,14 @@
 
 | 编号 | 问题 | 位置 | 等级（建议） |
 |---|---|---|---|
-| SEC-1 | 未鉴权邮件中继 `actionSendEmail` | `PageController.php` | P0 |
+| SEC-1 | 未鉴权邮件发送接口（具备中继滥用条件，未实际发送验证） | `PageController.php:63-166` | P0 |
 | SEC-2 | 未鉴权后台控制器（News/Help/Api） | `modules/ejadmin/controllers/*` | P0 |
-| SEC-3 | `ApiController` SQL 拼接 | `ApiController.php:30-40` | P0 |
+| SEC-3 | 用户可控 POST 参数未经参数化直接拼接进 SQL（注入风险待验证） | `ApiController.php:33-37` | P0 |
 | SEC-4 | `YII_DEBUG=true` / `YII_ENV=dev` | `web/index.php` | P1 |
 | SEC-5 | 公开调试路由 `/test/<Act>` | `config/params.php` | P1 |
 | SEC-6 | 上传目录位于 `web/uploads`（可执行风险） | `CartController.php` | P1 |
 | SEC-7 | 后台 CSRF 关闭 | 7 个控制器 | P1 |
-| SEC-8 | 明文凭据 | 配置文件 | P1 |
+| SEC-8 | 代码配置中明文硬编码凭据（SMTP、`cookieValidationKey`） | 配置文件 | P1 |
 | SEC-9 | 无登录限流/锁定 | `SiteController::actionLogin` | P2 |
 | SEC-10 | 无安全响应头证据（CSP/HSTS/X-Frame-Options） | 无 Nginx 配置 | P2 |
 
@@ -473,6 +498,7 @@
 - **原始功能编号、名称、原现状、原处置均逐字保留**，不改写、不合并、不重排。
 - 「本次核查」为新增列，取值：`已核实` / `部分核实` / `未发现` / `仅原型` / `冲突` / `不可用` / `无法验证`。
 - 范围确认书正文共 **227 个唯一 FR**；文末另有 4 行重复的汇总行（`FR-1-016`、`FR-1-046`、`FR-1-059`、`FR-1-060`，现状/处置为空），本矩阵不重复列出，特此说明。原始总行数为 231。
+- **范围状态**：该确认书封面仍为审核/客户确认待签；其中 104 项为「待确认」、4 项为项目方建议排除（`不纳入本期`），**不构成双方最终批准范围**。本矩阵只做现状映射，不改变任何 FR 的现状或处置。
 - 证据代码见 §9.6；所有「已核实」均指**代码/结构快照级**。
 
 ### 9.1 领域 1：旧站前台（60 条）
@@ -713,7 +739,7 @@
 | FR-5-029 | 通知模板 | 尚未具备 | 待确认 | 未发现 | `mail/` 模板 |
 | FR-5-030 | 系统字典 | 尚未具备 | 待确认 | 未发现 | — |
 | FR-5-031 | 文件与媒体库 | 仅有界面方案 | 待确认 | 仅原型 | EV-R01 |
-| FR-5-032 | 接口契约 | 已具备（未确认上线） | 保留 | 已核实（9 + 16 两套） | EV-P04、EV-C01 |
+| FR-5-032 | 接口契约 | 已具备（未确认上线） | 保留 | 已核实（9 + 16 两套契约，另有 8 端点归档原型） | EV-P04、EV-C01 |
 | FR-5-033 | 接口实现 | 尚未具备 | 新建 | 未发现（归档 ThinkPHP 8 端点不算实现） | EV-P01 |
 | FR-5-034 | 后台接口命名空间 | 尚未具备 | 待确认 | 未发现 | EV-P04 |
 | FR-5-035 | 接口鉴权与限流 | 尚未具备 | 新建 | 未发现（OAuth2 仅候选/本地桩） | EV-C02、EV-S03 |
@@ -789,11 +815,11 @@
 
 | 编号 | 风险 | 位置 |
 |---|---|---|
-| P0-1 | 未鉴权邮件中继可被滥用 | `PageController::actionSendEmail` |
+| P0-1 | 未鉴权的邮件发送接口，用户可控收件人/主题，具备中继滥用条件（未实际发送验证） | `PageController::actionSendEmail` |
 | P0-2 | 未鉴权后台控制器（新闻/帮助/日志） | `NewsController`、`HelpController`、`ApiController` |
-| P0-3 | SQL 拼接写库 + 表不存在 | `ApiController::actionPutLogs` |
+| P0-3 | 用户可控 POST 参数直接拼接进 SQL（注入风险待验证）+ 目标表不存在 | `ApiController::actionPutLogs` |
 | P0-4 | 询盘主链路外发第三方，本站无留痕 | `views/pro/item.php`、`views/cart/index.php` |
-| P0-5 | 明文凭据入库（SMTP/cookie key） | `config/web.php`、`config/console.php` |
+| P0-5 | 代码配置中明文硬编码凭据（SMTP 用户名/密码、`cookieValidationKey`），非数据库存储 | `config/web.php`、`config/console.php` |
 
 ### 10.2 P1（功能不可用/严重偏差）
 
@@ -807,8 +833,9 @@
 | P1-6 | 帮助中心模型缺失 | `HelpController` |
 | P1-7 | 商品删除/批量导入/SEO 字段缺失 | `ProductController` |
 | P1-8 | 语种集合与客户决策冲突（`id` vs `fr`） | `locales.ts` |
-| P1-9 | 两套 API 契约并存，无唯一事实源 | `platform/docs` vs `12_/contract` |
+| P1-9 | 三套 API 口径并存（9 端点本地契约、16 端点 Business 候选、8 端点归档原型），无唯一事实源 | `platform/docs` vs `12_/contract` vs `_archive/platform_server` |
 | P1-10 | 新平台无页面工程，前端不可交付 | `platform/web/src/app` |
+| P1-11 | 7 个后台控制器显式关闭 CSRF 校验（`Ad`/`Api`/`Category`/`Help`/`Info`/`News`/`Product`）；与 P0-2 的 3 个未鉴权控制器是两组不同问题 | `modules/ejadmin/controllers/*` |
 
 ### 10.3 P2（工程化/可维护性）
 
@@ -822,6 +849,8 @@
 ---
 
 ## 11. 未验证事项（明确列出，不推定）
+
+> 复核边界：§5、§6 的代码缺陷条目为执行 Agent 的静态审计结论。旧站 PHP 源码、`platform/` 源码与 Ds Bit 本地工作树均未作为本次提交的代码快照交付 Reviewer，Reviewer 尚未逐项打开源文件复现；不得将其写成 Reviewer 已独立复现的事实。
 
 | 编号 | 事项 | 原因 |
 |---|---|---|
@@ -854,7 +883,7 @@
 | Q-08 | 营销工作台是否按原型（34 页）作为目标范围？ | 全部 Demo，无后端 |
 | Q-09 | Ds Bit 生产授权范围与上线前置条件？ | G0 冻结、契约 `CANDIDATE_NOT_FROZEN`、冻结就绪度 `NOT_READY` |
 | Q-10 | 三套 API 口径以哪一套为唯一事实源？ | 9 端点 / 16 端点 / 归档 8 端点并存 |
-| Q-11 | 旧站凭据轮换与配置外部化是否作为独立事项？ | 明文凭据已在库中 |
+| Q-11 | 旧站凭据轮换与配置外部化是否作为独立事项？ | 明文凭据硬编码于代码配置，非数据库存储 |
 | Q-12 | 旧站 URL 冻结范围是否包含 80 个一域一语域名？ | `DuoLang` 80 条；新平台仅 5 语 |
 
 ---
