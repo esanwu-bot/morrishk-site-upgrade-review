@@ -872,7 +872,9 @@ write_receipt(commit):
 | `receipt_reput_cooldown_s` | 60 |
 | `receipt_pending_max_s` | 3600 → `QUARANTINED(receipt_absent_timeout)` |
 
-**episode 状态机（A5）**：`episode_no ∈ {0,1}`；普通 30 s reconcile **延续当前 episode**（不重置次数/截止）；只有第二次 PUT 后允许 `0→1`；重启恢复原 episode，不自动新增；`verify_attempts_total` 上限 20；`pending_since` 3600 s 生命周期上限。
+**episode 状态机（A5/B5）**：`episode_no ∈ {0,1}`；普通 30 s reconcile **延续当前 episode**（不重置次数/截止）；只有第二次 PUT 后允许 `0→1`；重启恢复原 episode，不自动新增；`verify_attempts_total` 上限 20；`pending_since` 3600 s 生命周期上限。
+
+**REC（B5）**：episode 0 结束后允许一次 1 次 GET 的**重写资格检查**；计入 `verify_attempts_total`，不占 episode 1 的 10 次；`WRITTEN` 直接成功、`CONFLICT` 隔离、`UNKNOWN` 不再重试 REC、`ABSENT` 且条件全满足才第二次 PUT；episode 1 上限 = `min(10, 20-total)`。总量耗尽后仅允许不计数的 observation-only GET（不提升成功），人工 `manual_verify` 需审计。
 
 **无 CAS 的退化（A6）**：仅允许**首次创建**走「GET 404 → 串行 PUT → 回读」，标记 `receipt_write_mode=serialized_no_cas`；**永不重写**；未知结果只读；OD-19 未批准时禁止写入。
 
@@ -916,7 +918,9 @@ write_receipt(commit):
 
 1. **L1**：有备份 → 恢复 → 重放 receipt/事件 → 不一致隔离；
 2. **L2**：无备份 → receipt 有 commit 无 → orphan 隔离，不自动补 commit；
-3. **L3**：人工审批后按 receipt 重建 commit，必须逐项校验 receipt schema/hash、task 在清单、input_key/MPN 一致、manifest 存在且 `task_id/run_id/source_sha` 一致、token 未复用、generation 不倒退；通过后记 `recovered_from_receipt=true`，失败保持隔离。
+3. **L3**：人工审批后按 receipt 重建 commit，必须逐项校验 receipt schema/hash、task 在清单、input_key/MPN 一致、manifest 存在且 `task_id/run_id/source_sha` 一致、**token 用 receipt.token_key_id 对应密钥重算且账本一致**、**generation 严格等于 watermark**；通过后记 `recovered_from_receipt=true`，失败保持隔离。
+
+**token 账本顺序（B4）**：commit 事务 → token 账本条件写（冲突隔离；失败标 pending，不阻断本次成功但阻断 L3）→ receipt。**密钥版本（B2）**：receipt/账本记录 `token_key_id`；历史 key 受控保留；key 不可得则 L3 禁止。
 
 **覆盖范围（R1-3e-2）**：自动保证仅限「已登记批次 + 清单可读」的 `tasks.jsonl` task_id；CLOSED 批次、未登记 task_id、丢失清单、全桶 orphan 不在自动保证内。CLOSED 批次可用 `POST /v1/audit?batch_id=...` 人工审计。
 

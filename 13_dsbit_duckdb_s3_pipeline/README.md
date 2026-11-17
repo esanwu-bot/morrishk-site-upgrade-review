@@ -3,11 +3,11 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
-| 版本 | v1.7（第七轮：A1 事件门禁/稳定字节；A2 token/generation 权威；A3 恢复统一；A4 附件同步；A5 episode 状态机；A6 条件写统一） |
+| 版本 | v1.8（第八轮：B1 事件写入模式；B2 密钥版本；B3 generation 严格相等；B4 token 账本顺序；B5 重写资格检查） |
 | 日期 | 2026-11-17 |
-| 修订 | v1.7 只补 A1–A6；R5、R2–R4/R6 与总体架构不动 |
+| 修订 | v1.8 只补 B1–B5；A3/A4 保持关闭，R5、R2–R4/R6 与总体架构不动 |
 | 性质 | 架构与实施设计；**不是**生产实现、不是部署、不是数据迁移 |
-| 状态 | 送 Reviewer 定向复核；v1.6 契约冻结与 Stage A 均未批准 |
+| 状态 | 送 Reviewer 定向复核；v1.7 契约冻结与 Stage A 均未批准 |
 | 目标产物 | `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md` |
 | 上游依据 | ① Ds Bit 仓库 `E:\workspace\icpdf-extractor`（HEAD `600439a5eee69fb3a1cec2715e37080e48ca9840`）② `lake/` Stage B 单件血缘 Demo ③ Morrishk 技术方案 v1.2 §7「Ds Bit 参数化」④ 已批准的 DuckDB + S3 兼容对象存储离线架构方向 |
 | 全量口径 | 去重 PDF **568,830** 份（约 56.9 万；任务书中的「56.8 万」是 56.883 万截断后的写法，两者同源） |
@@ -50,7 +50,7 @@
 ## 3. 复核路径（10–15 分钟）
 
 1. 读主文档 **§2**：`CONFIRMED / PROPOSED / OPEN` 三类清单与证据位置。
-2. 读 **§0.8 + §5.2.5**：v1.7 的事件门禁/稳定字节、token/generation 权威、episode 状态机。
+2. 读 **§0.9 + §5.2.5**：v1.8 的事件两种模式、token key 版本、watermark 顺序与 REC。
 3. 读 **§5.6 + §7.2**：v1.1 对 R2 的两级 Manifest 与三级行数对账。
 4. 读 **§10.2**：v1.1 对 R3 的样本池 P/Q 与五类失败率分母。
 5. 读 **§5.4.1**：v1.1 对 R4 的 `reproducibility_key` v2 字段表。
@@ -142,6 +142,16 @@ sha256sum -c SHA256SUMS.txt
 | A5 | episode 生命周期 | `episode_no≤1`；普通 reconcile 延续；重启恢复原 episode；总量上限 20 |
 | A6 | 条件写规则统一 + A9 | 无 CAS 仅首次串行创建、永不重写；A9 补 `-wal`/`-shm` 与空桶区分 |
 
+### 3.8 第八轮复核响应（v1.8）
+
+| 编号 | Reviewer 问题 | v1.8 处置 |
+|---|---|---|
+| B1 | 事件两种模式冲突 | `storage_atomic`（条件 PUT，≤3 次）与 `coordinator_serialized`（普通 PUT，≤2 次）分别定义超时/重试；后者不宣称原子去重 |
+| B2 | HMAC 密钥生命周期 | token 增加 `token_key_id`；历史 key 受控保留；L3 按 receipt key_id 验签；key 不可得禁止 L3 |
+| B3 | generation 严格相等/顺序 | L3 改为 `generation == watermark`；发租约顺序固定为 watermark→回读→SQLite→返回 |
+| B4 | token 账本顺序/失败/冲突 | commit → 账本条件写 → receipt；冲突隔离；账本失败不阻断成功但阻断 L3 |
+| B5 | episode 0 后重写路径 | 引入一次 REC（1 GET，计入总量）；episode 1 上限 `min(10,20-total)`；耗尽后仅 observation，不提升成功 |
+
 ---
 
 ## 4. 本次实际执行与未执行的操作
@@ -179,7 +189,7 @@ sha256sum -c SHA256SUMS.txt
 2. **架构方向不变**：Raw（内容寻址、只读）/ Parse（run 级不可变、四指纹）/ Eval（Gold 版本化、评估器指纹）三层保留。
 3. **DuckDB 只做分析查询**：它不是队列、不是锁、不是多写并发数据库、不是事实源；`catalog.duckdb` 是可由对象存储重建的派生物。
 4. **批量路径采用「本地处理 → 大批 Parquet → 上传 → 批量查询」**：拒绝 DuckDB 直扫 56 万个小文件；同区对象存储才讨论直读。
-5. **任务分配（v1.7）**：单写协调器 + 租约代次；receipt 四态 + `episode_no≤1` 状态机（普通 reconcile 不重置预算）；无 CAS 仅首次串行创建、永不重写；orphan 事件分 `storage_atomic/coordinator_serialized` 两档，重放字节稳定；L3 恢复需 token 账本与 generation watermark。
+5. **任务分配（v1.8）**：单写协调器 + 租约代次；receipt 四态 + `episode_no≤1` + 一次性 REC；事件写入分 `storage_atomic/coordinator_serialized` 两种模式；L3 需 key-version HMAC、token 账本与严格相等的 generation watermark。
 6. **任务身份（v1.2）**：`input_key = sha256(source_sha256 + requested_mpn)`；同 PDF 同 MPN 只生成 1 个 task + 多条 ingest；同 PDF 不同 MPN 才是 2 个 task；`task_id` 是批次内身份。
 7. **数据契约**：Run Manifest 与 Batch/Partition Manifest 分离；`reproducibility_key` v2；Manifest 不含 token。
 8. **基准口径**：可解析池 950 + 预期拒绝池 50（含子类配额）；五类失败率各有分母；≤2% 只约束可解析池。
