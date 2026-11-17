@@ -58,7 +58,10 @@ MinIO 只用于开发；Stage A 必须在**最终选型**存储上完成 C1–C1
 ### 1.4 验收清单
 
 - [ ] 同一 PDF 两次执行：2 个 `run_id`、2 个 `lease_generation`，1 个 raw 对象，2 条 Run Manifest；
-- [ ] 旧 generation 提交被 409 拒绝，且不写 committed 标记（N-12b）；
+- [ ] 旧 generation 提交被 409 拒绝，且不产生 receipt（N-12b）；
+- [ ] 租约过期但扫描未跑：HEARTBEAT/COMMIT 均被拒（N-12e）；
+- [ ] COMMIT 后、receipt 前崩溃：重启补写、同参数重试幂等（N-12f）；
+- [ ] 同 PDF 同 MPN 重复输入：1 task / 2 ingest（N-21）；
 - [ ] 篡改 raw 1 bit：`verify_lineage` 失败，退出码非 0；
 - [ ] 删除 manifest 但保留 eval：加载失败（`ManifestMissing`）；
 - [ ] 快照中的 Parquet 被改 1 bit：校验失败，查询不返回少行；
@@ -82,6 +85,16 @@ v1.0 的筛选条件 `FetchStatus=1 且 HasTextLayer=1` 与「S5 无文本层 50
 |---|---|---|---|---|
 | **P 可解析池** | `FetchStatus=1 AND HasTextLayer=1` | **950** | 解析质量、吞吐、证据完整性 | 是 |
 | **Q 预期拒绝池** | 无文本层 / 扫描 / 加密 / 0 页 | **50** | 拒绝路径、错误分类 | 否（单独统计） |
+
+Q 子类配额（R3 补充）：
+
+| 子类 | 份数 |
+|---|---|
+| 无文本层 | 20 |
+| 扫描版 | 15 |
+| 加密 | 10 |
+| 0 页 / 损坏 | 5 |
+| 合计 | **50** |
 
 P 分层：
 
@@ -130,7 +143,7 @@ P 分层：
 | 基础设施失败率 | P 中 `OBJECT_STORE_*` / `NETWORK_*` / `DISK_FULL` | 950 |
 | Parser 异常率 | P 中 `PARSER_EXCEPTION` | 950 |
 | 重试率 | P 中 `attempt > 1` | 950 |
-| 重复率 | `1 - unique_sha256 / P_inputs` | — |
+| 重复率 | `1 - unique_sha256 / P_ingest_records` | — |
 
 - 分位数：P50 / P90 / P95 / max，按分层与总体分别给；
 - 吞吐：`成功文档数 ÷ 总墙钟小时`，同时给「每机」与「全批」；

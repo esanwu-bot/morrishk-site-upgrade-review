@@ -1,6 +1,6 @@
 # 不变量与负向测试矩阵
 
-本文件定义 12 条数据不变量与 15 项必测 + 5 项回归负向测试。**除特别标注「已执行」的三项外，全部为 `PROPOSED` 测试设计，本轮未执行。**
+本文件定义 13 条数据不变量与 15 项必测 + 6 项回归负向测试（N-12 另有 a–g 子用例）。**除特别标注「已执行」的三项外，全部为 `PROPOSED` 测试设计，本轮未执行。**
 
 已执行的三项来自 `lake/_negative_tests.py`（本次运行 3/3 PASS）：
 
@@ -122,21 +122,31 @@
 | 测试 | N-19：2 个 run 共享 1 个文件（2896），总行数必须是 2896 而不是 5792 |
 | 失败后果 | 统计虚高、质量指标分母错误 |
 
-### I-12 任务最多一个成功标记（v1.1 新增，R1）
+### I-12 任务最多一个成功标记（v1.2 修订，R1）
 
 | 项 | 内容 |
 |---|---|
-| 定义 | 同一 `task_id` 最多一个 `committed.json`；只有持有当前 `lease_generation` 的 Worker 能获得 token |
-| 实现 | 协调器 SQLite `commits.task_id` 主键；COMMIT 事务校验 generation；旧 generation 返回 409 |
-| 检测 | 协调器 `commits` 表；任务终态 |
-| 测试 | N-12a–N-12d、N-20 |
-| 失败后果 | 同一任务出现两个成功结果，canonical 不可判定 |
+| 定义 | 同一 `task_id` 最多一个成功 commit；只有持有当前 `lease_generation` 且未过期的 Worker 能触发 commit；成功 = commit 记录 + receipt 一致 |
+| 实现 | 协调器 SQLite `commits.task_id` 主键；COMMIT 事务校验 owner/generation/expires_at/epoch/state；token 只存 commit 与 receipt；receipt 由协调器 outbox 写 |
+| 检测 | `commits` 表；receipt 的 token/manifest_sha；任务终态 |
+| 测试 | N-12a–N-12g、N-20 |
+| 失败后果 | 同一任务两个成功结果，或「协调器成功、下游未成功」的双重状态 |
+
+### I-13 重复输入不产生重复任务（v1.2 新增，R5）
+
+| 项 | 内容 |
+|---|---|
+| 定义 | 同一批次、同一 PDF、同一 MPN 的多次输入只生成一个 `task_id`；每次输入是一条 `ingest_id` 记录；同 PDF 不同 MPN 才是不同 task |
+| 实现 | `input_key = sha256(source_sha256 + requested_mpn)`；`tasks` 表 `UNIQUE(batch_id, input_key)`；ingest.jsonl 记录每次输入 |
+| 检测 | `tasks` 与 `ingest` 计数；`task_id` 唯一性 |
+| 测试 | N-21 |
+| 失败后果 | 同一内容被重复解析，或两条输入共用同一个 `task_id` 但被当成两个任务 |
 
 ---
 
-## 2. 负向测试（15 项必测 + 5 项 v1.1 回归）
+## 2. 负向测试（15 项必测 + 6 项回归 + N-12 子用例）
 
-> 通用断言：任何失败都**不得**产生「看似成功」的 run（无 committed 标记即不成功）；
+> 通用断言：任何失败都**不得**产生「看似成功」的 run（无 commit + receipt 一致即不成功）；
 > 不得覆盖既有对象；必须写任务事件；错误必须可分类。
 
 ### N-01 PDF 上传后 SHA 校验失败
@@ -268,9 +278,9 @@ v1.0 写「条件写/分片保证只有一个成功」不是证明。v1.1 拆成
 | 项 | 内容 |
 |---|---|
 | 注入 | W1 租约过期；协调器把 generation 递增到 2 并派给 W2；W1 恢复后调用 `/v1/commit`（g=1） |
-| 预期 | 协调器返回 409 `STALE_LEASE`；W1 不写 `committed.json`；其已上传的 manifest 成为孤儿 |
+| 预期 | 409 `STALE_LEASE`；W1 不写任何 receipt；其已上传的 manifest 成为孤儿 |
 | 自动重试 | 否（Worker 中止） |
-| 断言 | `commits` 表只有 g=2 一行；`committed.json` 只有一份；Eval/Catalog 不消费孤儿 manifest |
+| 断言 | `commits` 表只有 g=2 一行；receipt 只有一份；Eval/Catalog 不消费孤儿 manifest |
 | 状态 | 设计 |
 
 #### N-12c 协调器崩溃后重启
@@ -278,9 +288,9 @@ v1.0 写「条件写/分片保证只有一个成功」不是证明。v1.1 拆成
 | 项 | 内容 |
 |---|---|
 | 注入 | 协调器在处理中途 `kill -9`，重启后加载 SQLite |
-| 预期 | 过期租约按 §5.2.4 处理；已提交任务不重发；未提交任务 generation+1 重派 |
+| 预期 | 过期租约按 §5.2.4 处理；已提交任务不重发；未提交任务 generation+1 重派；pending receipt 补写 |
 | 自动重试 | 不适用 |
-| 断言 | 每 task 最多一个 commit；无重复成功标记；事件连续 |
+| 断言 | 每 task 最多一个 commit；无重复 receipt；事件连续 |
 | 状态 | 设计 |
 
 #### N-12d 协调器不可达超过 TTL
@@ -288,9 +298,39 @@ v1.0 写「条件写/分片保证只有一个成功」不是证明。v1.1 拆成
 | 项 | 内容 |
 |---|---|
 | 注入 | 断开 Worker 与协调器网络 120 s |
-| 预期 | Worker 心跳失败 → 停止任务；不写 committed；不产生成功；恢复后重新注册 |
+| 预期 | Worker 心跳失败 → 停止任务；不产生成功；恢复后重新注册 |
 | 自动重试 | 否（暂停） |
-| 断言 | 无 manifest 被提交；无 committed；任务回到可分配 |
+| 断言 | 无 manifest 被提交；无 receipt；任务回到可分配 |
+| 状态 | 设计 |
+
+#### N-12e 租约已到期、但过期扫描尚未执行（v1.2 新增，R1-1）
+
+| 项 | 内容 |
+|---|---|
+| 注入 | `expires_at` 已过，协调器的 5 s 扫描尚未运行；W1 立即 HEARTBEAT 与 COMMIT |
+| 预期 | 两者均返回 409 `LEASE_EXPIRED`；不续期、不提交；generation 仍为 g |
+| 自动重试 | 否 |
+| 断言 | `expires_at` 不再延长；无 commit；无 receipt；任务回到可分配 |
+| 状态 | 设计 |
+
+#### N-12f SQLite COMMIT 成功、receipt 写入前崩溃（v1.2 新增，R1-3）
+
+| 项 | 内容 |
+|---|---|
+| 注入 | 协调器事务提交 commit 后立即 `kill -9`，`committed.json` 未写 |
+| 预期 | 重启后 reconciler 补写 receipt；任务 `COMMITTED_PENDING_RECEIPT → SUCCEEDED`；同参数 COMMIT 返回同一 token |
+| 自动重试 | 不适用（协调器恢复） |
+| 断言 | 只有一条 commit；receipt 的 token/manifest_sha 与 commit 一致；无「协调器成功、下游拒绝」状态 |
+| 状态 | 设计 |
+
+#### N-12g commit 与 receipt 不一致（v1.2 新增，R1-3）
+
+| 项 | 内容 |
+|---|---|
+| 注入 | 人为写入 token 或 manifest_sha 不同的 receipt；或 receipt 存在但 commit 缺失 |
+| 预期 | `QUARANTINED`；不覆盖、不猜测、不自动补 commit |
+| 自动重试 | 否 |
+| 断言 | 任务终态为 `QUARANTINED`；原 commit/receipt 字节不变；告警 |
 | 状态 | 设计 |
 
 ### N-13 任务重试产生重复结果
@@ -367,10 +407,20 @@ v1.0 写「条件写/分片保证只有一个成功」不是证明。v1.1 拆成
 
 | 项 | 内容 |
 |---|---|
-| 注入 | 删除协调器 SQLite，只保留 `committed.json` 与事件日志 |
-| 预期 | 已提交集合可从 committed 标记重建；无法判定的任务 `QUARANTINED`，不猜测、不重发 |
+| 注入 | 删除协调器 SQLite，只保留 receipt 与事件日志 |
+| 预期 | 已提交集合可从 receipt 重建；无法判定的任务 `QUARANTINED`，不猜测、不重发 |
 | 自动重试 | 否 |
-| 断言 | 重建后的 commits 与 committed 标记一致；无重复成功；隔离项有原因 |
+| 断言 | 重建后的 commits 与 receipt 一致；无重复成功；隔离项有原因 |
+| 状态 | 设计 |
+
+### N-21 同批次同 PDF 重复输入（v1.2 新增，R5）
+
+| 项 | 内容 |
+|---|---|
+| 注入 | 同一批次提交同一 PDF 两次：① 同 MPN；② 不同 MPN |
+| 预期 | ① 生成 1 个 `task_id`、2 条 `ingest_id`、只解析一次；② 生成 2 个 `task_id`（`input_key` 不同），共享同一 raw 对象 |
+| 自动重试 | 否 |
+| 断言 | ① `tasks` 1 行、`ingest` 2 行；② `tasks` 2 行；两种情况下 `task_id` 都唯一且为批次内身份；raw 对象数 = 1 |
 | 状态 | 设计 |
 
 ---
@@ -379,7 +429,7 @@ v1.0 写「条件写/分片保证只有一个成功」不是证明。v1.1 拆成
 
 | 测试组 | 环境 | 是否触碰真实数据 |
 |---|---|---|
-| N-01 / N-02 / N-06 / N-07 / N-12a–d / N-14 / N-19 | 本地 MinIO + 临时桶 + 本地协调器 | 否 |
+| N-01 / N-02 / N-06 / N-07 / N-12a–g / N-14 / N-19 / N-21 | 本地 MinIO + 临时桶 + 本地协调器 | 否 |
 | N-03 / N-04 / N-05 / N-08 / N-09 / N-13 / N-20 | 本地 2 Worker + 协调器 + 故障注入 | 否 |
 | N-10 / N-11 | 本地快照副本 | 否 |
 | N-15 | MinIO（开启版本化） | 否 |
@@ -419,7 +469,8 @@ v1.0 写「条件写/分片保证只有一个成功」不是证明。v1.1 拆成
 | **v1.1 回归：DPI 变化 → key 变化** | N-18 |
 | **v1.1 回归：2 run 共享 1 文件只计一次** | N-19 |
 | **v1.1 回归：协调器状态丢失后重建** | N-20 |
+| **v1.2 回归：同 PDF 重复输入身份** | N-21 |
 
-> N-12 的四个子用例（a/b/c/d）共同覆盖任务书「同一任务并发执行」；不是把一项拆成四项充数，而是分别对应「并发申请」「旧 Worker 复活」「协调器崩溃」「网络分区」四种故障。
+> N-12 的七个子用例（a–g）共同覆盖任务书「同一任务并发执行」，分别对应：并发申请、旧 Worker 复活、协调器崩溃、网络分区、租约过期但未扫描、COMMIT 后 receipt 崩溃、commit/receipt 不一致。
 >
-> 覆盖计数：任务书 15 项 → N-01…N-15；v1.1 追加 5 项回归 → N-16…N-20（N-12 另有 4 个子用例）。
+> 覆盖计数：任务书 15 项 → N-01…N-15；v1.1 追加 5 项 → N-16…N-20；v1.2 追加 1 项 → N-21；N-12 另有 a–g 七个子用例。

@@ -4,13 +4,15 @@
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
 | 交付日期 | 2026-11-17 |
-| 版本 | **v1.1**（按 Reviewer R1–R6 修订） |
+| 版本 | **v1.2**（第二轮复核：R1 协议缺口、R5 身份规则） |
 | 性质 | 设计送审（DESIGN ONLY） |
 | 主文档 | `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md` |
-| Reviewer 结论 | 提交完整性 PASS；架构方向 PASS；数据契约 REVISIONS REQUIRED；P0 OPEN；**Stage A 未批准** |
+| Reviewer 结论（第二轮） | 提交/远端 PASS；R2/R3/R4/R6 PASS；**R1/R5 仍需修订**；v1.1 契约冻结不批准；Stage A 不批准 |
 | v1.0 提交 | 设计 `a62c70d644ced735ccfe079b086aca744f142f93`；报告 `ce6ba2db2839cb49a69702d3251482c4b58ba633` |
 | v1.1 设计修订提交 | `f8b8085fa12d57050e176bc8517a5a4856eaceef` |
-| v1.1 报告与校验清单 | 紧随 `f8b8085` 的报告提交（SHA 见 `git log`；不预先编造） |
+| v1.1 报告与校验清单 | `cdc61147387801c1b758deae89bb871467ef92d7`（已推送，远端 HEAD 曾为 cdc6114） |
+| v1.2 设计修订提交 | `（提交后回填）` |
+| v1.2 报告与校验清单 | 紧随 v1.2 设计提交（SHA 见 `git log`） |
 | Ds Bit 基线 | `600439a5eee69fb3a1cec2715e37080e48ca9840`（分支 `backup/full-local-20261114`） |
 | 送审仓库任务启动基线 | `0fa9d34` |
 | 送审仓库设计提交直接父提交（v1.0） | `fc4bcc5` |
@@ -58,7 +60,7 @@ sha256sum -c SHA256SUMS.txt
 
 ## 3. 变更文件列表
 
-v1.1 只修改上述 `13_` 目录内的文件；**未修改**：
+v1.1/v1.2 只修改上述 `13_` 目录内的文件；**未修改**：
 
 - Ds Bit 仓库任何文件；
 - 送审仓库 `00_`–`12_` 既有目录；
@@ -66,7 +68,9 @@ v1.1 只修改上述 `13_` 目录内的文件；**未修改**：
 
 ---
 
-## 4. Reviewer R1–R6 响应
+## 4. Reviewer 响应
+
+### 4.1 第一轮 R1–R6（v1.1）
 
 | 编号 | Reviewer 问题 | v1.1 处置 | 复核位置 |
 |---|---|---|---|
@@ -77,20 +81,30 @@ v1.1 只修改上述 `13_` 目录内的文件；**未修改**：
 | **R5** | `task_id` 用 SHA 前 16 位，存在碰撞 | 改为完整 64 位 SHA-256；同 ID 不同内容即致命错误 | 主文档 §5.2.2；附件 §1；矩阵无改动 |
 | **R6** | MinIO 不能代替真实对象存储 | Stage A 增加真实存储 C1–C10；MinIO 仅开发；OD-05 上调 P0；新增 OD-19 fallback | 主文档 §10.1.1；计划 §1.3；`OPEN_DECISIONS.md` OD-05/OD-19 |
 
-> 以上是**设计层闭合**，不代表 Reviewer 已认可；每项仍需 Reviewer 在下一轮判定。
+### 4.2 第二轮 R1/R5（v1.2）
+
+| 编号 | Reviewer 问题 | v1.2 处置 | 复核位置 |
+|---|---|---|---|
+| **R1-1** | 租约过期后、5 s 扫描前，旧 Worker 仍可续租/提交 | HEARTBEAT/COMMIT 在同一事务校验 `owner` / `generation` / `expires_at > now` / `plan_epoch` / 批次状态；过期即失效 | 主文档 §5.2.3、§5.2.4；附件 §9.4；N-12e |
+| **R1-2** | Manifest 含 `commit_token`，与「先算 SHA 再提交」循环 | 从 Run Manifest **删除 token**；token 只在协调器 `commits` 与 receipt；Manifest 记录 `input_key`/`ingest_ids`/`lease_generation`/`commit_receipt_key` | 主文档 §5.5、§5.6；附件 §2、§4.2 |
+| **R1-3** | SQLite COMMIT 成功、receipt 未写崩溃的恢复不完整 | 协调器是 receipt 唯一写者 + outbox + reconciler；COMMIT 幂等（同参数同 token）；不一致 `QUARANTINED`；成功 = commit + receipt 一致 | 主文档 §5.2.5；附件 §9.2、§9.8；N-12f/N-12g |
+| **R5** | 完整 SHA 的 `task_id` 与「同 PDF 两条 task」冲突 | 方案 A + MPN：`input_key = sha256(source_sha256 + requested_mpn)`；同 PDF 同 MPN = 1 task + 多 ingest；不同 MPN = 2 task；`task_id` 明确为批次内身份 | 主文档 §5.2.2；附件 §1、§8；N-21 |
+
+> 以上是**设计层修订**，不代表 Reviewer 已认可；R1/R5 仍需定向复核。
 
 ---
 
-## 5. 关键架构决策（v1.1）
+## 5. 关键架构决策（v1.2）
 
 1. 批量路径仍是「本地处理 → 大批 Parquet → 上传 → 批量查询」；
 2. DuckDB 仍只做分析查询，单写快照，不是队列/锁/事实源；
-3. 任务分配改为**单写协调器 + `lease_generation` + COMMIT 事务 + committed 标记**；
-4. **成功提交点**不是 manifest，而是「协调器事务 + committed.json」；
-5. Run Manifest 与 Batch/Partition Manifest 分离，Catalog 只按 part_manifest 计总行数；
-6. `reproducibility_key` v2 覆盖所有影响结果的输入；
-7. `task_id` 使用完整 SHA-256；
-8. Stage A 必须在最终选型存储上通过 C1–C10。
+3. 任务分配为**单写协调器 + `lease_generation` + COMMIT 事务**；**租约到期即失效**，不依赖扫描；
+4. **成功提交点**不是 manifest，而是「协调器 commit 记录 + receipt 一致」；
+5. 协调器是 receipt 唯一写者；receipt outbox + reconciler 补写；同参数 COMMIT 幂等；
+6. Run Manifest 与 Batch/Partition Manifest 分离，Catalog 只按 part_manifest 计总行数；
+7. `reproducibility_key` v2 覆盖所有影响结果的输入；
+8. `task_id` = `<batch_id>:<sha256(source_sha256 + requested_mpn)>`；同 PDF 同 MPN = 1 task + 多 ingest；
+9. Stage A 必须在最终选型存储上通过 C1–C10。
 
 ---
 
@@ -100,6 +114,8 @@ v1.1 只修改上述 `13_` 目录内的文件；**未修改**：
 |---|---|
 | `lake/` 单件三层 Demo | 已实现（`7d8ab3f`）；本次实跑 4 个脚本 |
 | 协调器 / 租约 / fencing / 提交裁决 | 未实现 |
+| receipt outbox / reconciler | 未实现 |
+| ingest 记录与任务去重 | 未实现 |
 | 对象存储上传/下载 | 未实现 |
 | 真实存储一致性 C1–C10 | 未执行 |
 | 运行时 Parser 指纹 | 未实现（Demo 硬编码） |
@@ -112,7 +128,7 @@ v1.1 只修改上述 `13_` 目录内的文件；**未修改**：
 
 ## 7. 测试结果
 
-v1.1 **只改设计文档，未改代码**；以下结果仍来自 v1.0 的同一代码快照：
+v1.1/v1.2 **只改设计文档，未改代码**；以下结果仍来自 v1.0 的同一代码快照：
 
 | 测试 | 结果 |
 |---|---|
@@ -144,7 +160,7 @@ P1/P2 见 `OPEN_DECISIONS.md`。OD-16（权限/凭据）虽为 P2，但任何上
 
 ## 9. 评审结论与边界
 
-Reviewer 的 v1 结论被原样保留：
+### 9.1 第一轮（v1.0/v1.1）
 
 | 项 | 结论 |
 |---|---|
@@ -154,7 +170,20 @@ Reviewer 的 v1 结论被原样保留：
 | P0 决策 | OPEN |
 | Stage A 启动 | **NOT APPROVED** |
 
+### 9.2 第二轮（v1.1）
+
+| 项 | 结论 |
+|---|---|
+| Git 提交与远端交付 | PASS |
+| v1.1 架构方向 | PASS |
+| R2 / R3 / R4 / R6 | PASS |
+| R1 / R5 | **仍需修订**（v1.2 已响应） |
+| v1.1 数据契约冻结 | **不批准** |
+| Stage A | **不批准** |
+| 1000 份基准、3–5 万试跑 | **不批准** |
+
 本包**不批准**：设计冻结、Stage A 实现、1000 份基准、3–5 万试跑、任何生产操作。
+R1/R5 的修订仍需 Reviewer 定向复核；OD-01/OD-05/OD-19 也不能以设计文字代替真实存储选型与测试。
 
 ---
 

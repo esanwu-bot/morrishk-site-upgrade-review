@@ -3,9 +3,9 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
-| 文档版本 | v1.1（按 Reviewer R1–R6 修订；仍未冻结） |
+| 文档版本 | v1.2（第二轮复核：R1 协议缺口、R5 身份规则；仍未冻结） |
 | 日期 | 2026-11-17 |
-| 修订 | v1.1 闭合 R1–R6，详见 §0.2；不改变三层架构与验证节奏 |
+| 修订 | v1.2 闭合 R1（租约到期即失效、token 循环依赖、receipt 崩溃恢复）与 R5（重复输入身份）；R2/R3/R4/R6 不动 |
 | 性质 | 架构与实施设计（DESIGN ONLY） |
 | 实现状态 | **未实现**；本文件不含生产代码、不含部署、不含数据迁移 |
 | 基线仓库 | `E:\workspace\icpdf-extractor` |
@@ -48,6 +48,18 @@
 | — | `DELIVERY_REPORT.md` 把 `0fa9d34` 写成设计提交基线 | 区分为「任务启动时基线 `0fa9d34`」与「设计提交直接父提交 `fc4bcc5`」 | `DELIVERY_REPORT.md` §1、`README.md` §2 |
 
 本修订**不改变**：Raw/Parse/Eval 三层、DuckDB 只做分析、单件 → 1000 份 → 3–5 万 → 全量外推的节奏。只闭合任务并发正确性、Manifest 契约、基准统计口径、可复现键四个契约问题。
+
+### 0.3 第二轮复核修订（v1.1 → v1.2）
+
+| 编号 | Reviewer 结论 | v1.2 处置 | 位置 |
+|---|---|---|---|
+| **R1-1** | 租约到期后、扫描前旧 Worker 仍可续租/提交 | HEARTBEAT/COMMIT 在同一事务内同时校验 `generation`、`owner`、`expires_at > now`、批次状态、`plan_epoch`；过期租约**不再续期** | §5.2.3、§5.2.4；N-12e |
+| **R1-2** | Manifest 的 `commit_token` 与「先算 SHA 再提交」循环依赖 | **从 Run Manifest 删除 `commit_token`**；token 只存在于协调器 commit 记录与 `committed.json`；Manifest 记录 `input_key`、`ingest_ids`、`lease_generation`、`commit_receipt_key` | §5.5、§5.6；附件 §2 |
+| **R1-3** | SQLite COMMIT 成功、receipt 未写时崩溃的恢复不完整 | 引入 **receipt outbox**：协调器是 receipt 唯一写者；COMMIT 幂等（同 generation + 同 manifest_sha 返回同一 token）；重启/定时 reconciler 补写；commit 与 receipt 不一致进入 `QUARANTINED` | §5.2.5、附件 §9；N-12f/N-12g |
+| **R5** | 完整 SHA 的 `task_id` 与「同 PDF 两条 task」冲突 | 采用**方案 A + MPN 维度**：`input_key = sha256(source_sha256 + requested_mpn)`；同 PDF 同 MPN 只生成一个 task，多条 **ingest 记录**；同 PDF 不同 MPN 才是两个 task；`task_id` 明确为**批次内唯一** | §5.2.2；附件 §1；N-21 |
+| R2/R3/R4/R6 | PASS | 不修改；只补 R3 的 Q 子类配额与 R2 的同快照对账说明 | §10.2、§7.2 |
+
+> 第二轮复核的 R2/R3/R4/R6 已 PASS，本版不重写这些章节；只做必要的衔接修订。
 
 ---
 
@@ -278,7 +290,7 @@ tests/unit/test_assembly.py::test_a1_10_pipeline_py_is_byte_identical_to_the_aut
 3. Eval 层 Gold 版本化、字段级/结构/证据完整性指标、人工审核记录、质量门。
 4. DuckDB 职责边界、Parquet 分区与合并、本地暂存、快照发布、并发限制。
 5. 调度与基础设施：本地 / MinIO / ECS / 对象存储 / 日志 / 失败队列 / 成本方法。
-6. 12 条数据不变量、15 项必测 + 5 项回归负向测试、三级性能验证、成本公式。
+6. 13 条数据不变量、15 项必测 + 6 项回归负向测试、三级性能验证、成本公式。
 7. 对 `lake/` 的升级路径与必须删除的硬编码。
 
 #### OPEN（需裁定）
@@ -376,7 +388,7 @@ PDF 字节
 | D-03 | 原始 PDF 以完整 SHA-256 内容寻址，只增不改 | PROPOSED（Demo 已实现） | `lake/_build_lake.py:107-133` |
 | D-04 | Parse 以 `run_id` 为执行身份，`reproducibility_key` 为可复现条件 | PROPOSED（Demo 已实现） | `lake/_build_lake.py:229-249` |
 | D-05 | 任务分配由**单写协调器**负责（租约 + 追加事件）；不引入队列服务器，也不把分片当互斥 | PROPOSED | §5.2；单写事务即互斥（R1） |
-| D-06 | 发布顺序：blob → parquet → Run Manifest → 协调器 COMMIT → committed.json；成功提交点是「协调器事务 + committed 标记」 | PROPOSED | §5.5；缺任一即失败 |
+| D-06 | 发布顺序：blob → parquet → Run Manifest → 协调器 COMMIT → receipt；成功提交点是「commit 记录 + receipt 一致」 | PROPOSED | §5.5；缺任一即失败 |
 | D-07 | 历史结果只增不改；压缩/合并产生新对象与新快照，不覆盖旧对象 | PROPOSED | §7.5；可审计 |
 | D-08 | 每次查询必须绑定 `snapshot_id` | PROPOSED | 不变量 9 |
 | D-09 | Parser 指纹必须运行时计算，禁止硬编码 | PROPOSED | 修正 `lake/_build_lake.py:58` |
@@ -388,6 +400,8 @@ PDF 字节
 | D-15 | `reproducibility_key` 升级 v2，覆盖 PDF / Parser / 配置 / 表参数 / 依赖锁 / DPI / Python / 平台族 | PROPOSED | R4 |
 | D-16 | Run Manifest 与 Batch/Partition Manifest 分离；Catalog 只按批次清单累计文件行数 | PROPOSED | R2 |
 | D-17 | Stage A 必须在最终选定的对象存储上做一致性测试；MinIO 只作开发环境 | PROPOSED | R6 |
+| D-18 | 协调器是 receipt 唯一写者；COMMIT 幂等；receipt 用 outbox + reconciler 补写 | PROPOSED | R1-2/R1-3 |
+| D-19 | 任务身份 = `(batch_id, sha256(source_sha256 + requested_mpn))`；重复输入是 ingest 记录，不是重复 task | PROPOSED | R5 |
 
 ---
 
@@ -521,69 +535,160 @@ s3://<bucket>/dsbit-lake/v1/raw/
 - 单写 SQLite 事务提供互斥；所有租约与提交裁决在同一事务内完成。
 - 协调器每 30 s 把状态快照写到 `control/coordinator/<batch_id>/state-<seq>.json`；对象存储只做检查点，不做并发控制。
 
-#### 5.2.2 任务身份（修订 R5）
+#### 5.2.2 任务身份与 ingest 记录（修订 R5）
 
+```text
+input_key = sha256( canonical_json({ "source_sha256": ..., "requested_mpn": ... }) )
+task_id   = <batch_id>:<input_key>
 ```
-task_id = <batch_id>:<完整 64 位 sha256>
-```
 
-- 不再使用前 16 位；`task_id` 的唯一性由完整 SHA-256 保证。
-- 生成批次时若 `task_id` 已存在但 `document_sha256` 不同 → 致命错误，批次拒绝生成。
-- 同一 PDF 的重复输入是两条 task 记录，但共享同一个 raw 对象；是否跳过解析由 `reproducibility_key` 判断。
+- `input_key` 是完整 64 位 SHA-256；`task_id` 是**批次内唯一**身份，**不是全局身份**。
+- **同一 PDF + 同一 MPN** 在同一批次出现多次 → **只生成一个 task**；每次输入是一条 `ingest` 记录（`ingest_id` 唯一）。
+- **同一 PDF + 不同 MPN** → 两个 task，因为 `product.json` 与 `requested_mpn` 不同；两者共享同一个 raw 对象。
+- 重复输入不再是「两条 task 共用同一个 task_id」：v1.1 的身份规则自相矛盾已消除。
+- `ingest_id = <batch_id>:<sha256>:<seq>`；`seq` 对同一 sha 从 1 递增；ingest 记录不可变。
+- 生成批次时：同一 `input_key` 的多次输入合并为多 ingest；`task_id` 已存在但 `input_key` 不同 → 致命错误。
+- 为什么保留 MPN 维度：现有 `parse_pdf()` 用 `requested_mpn` 生成 `product.json`；若把同 PDF 不同 MPN 合并成一个 task，会丢失产品身份。方案 A 的「一份 PDF 一个 task」在**同 MPN** 语义下成立，不同 MPN 是合法的不同任务。
 
-#### 5.2.3 租约协议（fencing）
+#### 5.2.3 租约与提交协议（fencing，修订 R1）
 
 | 字段 | 含义 |
 |---|---|
-| `lease_generation` | 每个 task 单调递增的整数；每次重新发租约 +1 |
+| `lease_generation` | 每个 task 单调递增；每次重新发租约 +1 |
 | `worker_id` | 当前持有者 |
 | `expires_at` | 租约到期时间（默认 90 s） |
-| `heartbeat` | Worker 每 15 s 续租；协调器只在 generation 匹配时延长 |
+| `plan_epoch` | 批次计划代次；与 `plan.json` 一致 |
+
+**发租约（协调器事务）**：
+
+```sql
+BEGIN IMMEDIATE;
+SELECT state, generation, owner, expires_at FROM tasks WHERE task_id = ?;
+-- 可分配：PENDING，或 (CLAIMED/RUNNING 且 expires_at <= now)
+UPDATE tasks
+   SET state='CLAIMED', generation=generation+1, owner=?, expires_at=now+90s
+ WHERE task_id=?;
+INSERT INTO events(...);
+COMMIT;
+```
+
+**HEARTBEAT（协调器事务；任一不满足即拒绝）**：
+
+```text
+state      ∈ {CLAIMED, RUNNING}
+owner      == worker_id
+generation == g
+expires_at >  coordinator_now      -- 过期租约不得续期
+plan_epoch == current_plan_epoch
+```
+
+| 不满足 | 返回 |
+|---|---|
+| owner 不符 | `409 NOT_OWNER` |
+| generation 不符 | `409 STALE_LEASE` |
+| `expires_at <= now` | `409 LEASE_EXPIRED` |
+| 批次状态不允许接单 | `409 BATCH_CLOSED` |
+| plan_epoch 不符 | `409 EPOCH_MISMATCH` |
+
+> 这条修复 R1-1：租约一到 `expires_at` 就失效，**不依赖** 5 秒一次的过期扫描；扫描只负责递增 generation 与重派。
+
+**COMMIT（协调器事务；幂等优先）**：
+
+```text
+1) 先查 commits：
+   同 task + 同 generation + 同 manifest_sha256 已存在
+       -> 200 {同一 token}，即使租约已过期（幂等重试）
+   同 task + 同 generation + 不同 manifest_sha256
+       -> 409 COMMIT_CONFLICT
+2) 不存在 commit 时，再校验：
+   state      == RUNNING
+   owner      == worker_id
+   generation == g
+   expires_at > coordinator_now
+   plan_epoch == current_plan_epoch
+```
+
+| 情况 | 返回 |
+|---|---|
+| 同 task、同 generation、同 `manifest_sha256` 已提交 | `200 {token}`（同一 token，幂等，不受 `expires_at` 影响） |
+| 同 task、同 generation、不同 `manifest_sha256` | `409 COMMIT_CONFLICT` |
+| 无 commit；generation 过期 / owner 不符 / 已过期 | `409` 对应错误 |
+| 无 commit；首次提交 | 事务插入 `commits`（含 token），任务置 `COMMITTED_PENDING_RECEIPT` |
+
+**提交顺序（修复 R1-2 循环依赖）**：
 
 ```
-Worker → Coordinator: HELLO(batch_id, worker_id, plan_epoch)
-Coordinator → Worker: LEASE(task_id, generation=g, expires_at=now+90s)
-Worker: 执行 parse_pdf
-Worker → Coordinator: HEARTBEAT(task_id, g)          # 每 15 s
-Coordinator: 仅当 current_generation == g 时延长 expires_at
-Worker → Coordinator: COMMIT(task_id, g, manifest_sha256)
-Coordinator: BEGIN
-               SELECT generation, committed FROM tasks WHERE task_id = ?
-               if generation != g        -> ROLLBACK, 409 STALE_LEASE
-               if committed is not null  -> ROLLBACK, 409 ALREADY_COMMITTED
-               INSERT commit(task_id, g, manifest_sha256, token)
-             COMMIT
-Coordinator → Worker: {token}
-Worker → 对象存储: PUT control/tasks/<task_id>/committed.json
-                   {generation: g, token, manifest_sha256, run_id}
+1. Worker 上传产物与该 run 的 Parquet
+2. Worker 上传 Run Manifest（不含 token）
+3. Worker -> Coordinator: COMMIT(task_id, generation, manifest_sha256)
+4. 协调器事务：校验 -> 插入 commit -> 生成 token -> 任务置 COMMITTED_PENDING_RECEIPT
+5. 协调器（不是 Worker）写 control/tasks/<task_id>/committed.json
+6. 写成功 -> receipt_state='written'，返回 200 {token}
+   写失败 -> 保留 commit 记录，返回 503 RECEIPT_PENDING
 ```
 
 **硬性规则**：
 
-1. 旧 Worker 恢复后，若 `g` 已被协调器递增，**不得**再写 `committed.json`；即使它已上传 manifest，也不构成成功（没有 committed 标记）。
-2. 协调器拒绝过期 generation 的 HEARTBEAT/COMMIT，返回 `409 STALE_LEASE` 与当前持有者；Worker 必须立即停止并清理本地工作区。
-3. `committed.json` 只由持有当前 generation 的 Worker 写；协调器只在事务内签发 token，因此同一 task 最多一个成功标记。
-4. 对象存储不参与互斥裁决；即使条件写不可用，也不影响「同一 task 最多一个成功」。
-5. 协调器不依赖对象存储条件写；它靠单进程 + SQLite 事务。
+1. `commit_token` **只**存在于协调器 `commits` 表与 `committed.json`；Run Manifest 不含 token，因此不存在「先算 manifest SHA 再拿 token」的循环。
+2. 协调器是 `committed.json` 的唯一写者；Worker 不再写该对象，消除双写。
+3. 旧 generation 的任何 HEARTBEAT/COMMIT 都被拒绝；即使它已上传 manifest，也不构成成功（没有 receipt）。
+4. 同参数 COMMIT 重试必须幂等：返回同一 token，不产生第二条 commit。
+5. 对象存储不参与互斥裁决；协调器靠单进程 + SQLite 事务。
 
 #### 5.2.4 租约过期与接管
 
+- **过期即失效**：`expires_at <= now` 后，HEARTBEAT 与 COMMIT 立即返回 `LEASE_EXPIRED`，不依赖扫描；
 - 协调器每 5 s 扫描 `expires_at < now` 的租约 → 标记 `LEASE_EXPIRED`，`lease_generation += 1`，任务回到可分配；
+- 扫描与 Worker 请求使用同一 `BEGIN IMMEDIATE` 事务串行化，不存在「扫描未跑所以旧租约仍有效」的窗口；
 - 接管只由协调器发起；Worker 不得自行接管；
 - 接管事件写 `{from_worker, to_worker, old_generation, new_generation}`；
-- 旧 Worker 的任何后续 HEARTBEAT/COMMIT 都因 generation 不匹配被拒绝。
+- 旧 Worker 的任何后续 HEARTBEAT/COMMIT 都因 generation/owner/expires_at 不匹配被拒绝。
 
-#### 5.2.5 协调器崩溃与恢复
+#### 5.2.5 协调器崩溃、receipt outbox 与恢复
+
+**核心问题（R1-3）**：SQLite COMMIT 与 `committed.json` 是两个存储系统，不是一个原子事务。
+
+**处置：协调器作为 receipt 唯一写者，使用 outbox 模式**：
+
+```
+commits(task_id, generation, manifest_sha256, token, run_id, committed_at,
+        receipt_state: pending|written|conflict, receipt_attempts, receipt_error)
+```
+
+| 时点 | 行为 |
+|---|---|
+| COMMIT 事务 | 写 commit 记录，`receipt_state='pending'`，任务 `COMMITTED_PENDING_RECEIPT` |
+| 事务后 | 立即尝试写 `committed.json`；成功 → `written`；失败 → 保留 `pending`，返回 `503 RECEIPT_PENDING` |
+| 同参数 COMMIT 重试 | 返回同一 token；若 `pending`，再次尝试写 receipt；不产生第二条 commit |
+| 后台 reconciler | 每 30 s 扫描 `pending`，补写 receipt；超过 10 次失败 → `QUARANTINED`，人工介入 |
+| 协调器重启 | 先加载 SQLite，再对全部 `pending` 执行 reconcile；不重新签发 token |
+| receipt 已存在但 commit 缺失 | `QUARANTINED`（不一致），不猜测、不补 commit |
+| receipt 与 commit 的 token/manifest_sha 不一致 | `QUARANTINED`，不覆盖 |
+
+**成功判定（Eval/Catalog）**：
+
+```text
+success = commit 记录存在
+       AND receipt 存在
+       AND receipt.token == commit.token
+       AND receipt.manifest_sha256 == commit.manifest_sha256
+```
+
+任一不满足 → 不得进入 Eval/Catalog，任务状态为 `COMMITTED_PENDING_RECEIPT` 或 `QUARANTINED`。
+
+**`GET /v1/receipt/<task_id>`** 返回 commit 记录的规范 receipt body，供人工/运维核对与补写；不返回其他任务的 token。
+
+**其他恢复场景**：
 
 | 场景 | 处置 |
 |---|---|
 | 协调器进程崩溃 | Worker 心跳失败 → 租约到期 → 任务暂停；不产生成功标记 |
-| 协调器重启 | 从本地 SQLite + 最近快照恢复；过期租约按 §5.2.4 处理 |
-| SQLite 丢失 | 从 `control/tasks/*/committed.json` + 事件日志重建「已提交」集合；无法判定的任务标 `QUARANTINED`，不猜 |
+| 协调器重启 | 从 SQLite + 快照恢复；过期租约按 §5.2.4 处理；`pending` receipt 补写 |
+| SQLite 丢失 | 从 `committed.json` + 事件日志重建「已提交」集合；无法判定的任务 `QUARANTINED`，不猜 |
 | 协调器状态不确定 | **关闭当前批次**，用未完成任务生成新的 recovery 批次（新 `batch_id`）；旧批次只读，不再发租约 |
 
 - 恢复批次中的 `task_id` 带新 `batch_id`，不会与旧批次状态文件冲突；
-- 旧 Worker 若仍在跑，只能写旧批次的 committed 标记，不影响新批次；
+- 旧 Worker 若仍在跑，只能写旧批次的 artifact/manifest，不影响新批次；
 - 两个批次的同一 PDF 可能各解析一次，但**可区分**（不同 `batch_id`/`run_id`），由 canonical 视图选择最早成功者。
 
 #### 5.2.6 为什么不用「确定性分片」或「S3 条件写抢占」
@@ -599,14 +704,16 @@ Worker → 对象存储: PUT control/tasks/<task_id>/committed.json
 #### 5.2.7 状态存储
 
 ```
+control/ingest/<batch_id>/ingest.jsonl            # 每次输入一条，不可变
 control/coordinator/<batch_id>/state-<seq>.json   # 协调器检查点（单写）
 control/events/<batch_id>/<worker_id>.jsonl       # Worker 追加事件，定期上传
 control/tasks/<task_id>/final.json                # 终态（协调器确认后写）
-control/tasks/<task_id>/committed.json            # 成功标记（含 generation + token）
+control/tasks/<task_id>/committed.json            # receipt（协调器写；含 generation + token）
 ```
 
-- 事件是不可变事实：`{event_id, task_id, attempt, generation, from, to, at, worker_id, run_id, error_class}`；
-- 当前状态以协调器 SQLite 为准；事件与 committed 标记用于审计与重建；
+- `ingest.jsonl`：`{ingest_id, batch_id, task_id, document_sha256, requested_mpn, source_uri, received_at, seq}`；
+- 事件是不可变事实：`{event_id, task_id, attempt, generation, from, to, at, worker_id, run_id, error_class, receipt_state}`；
+- 当前状态以协调器 SQLite 为准；事件与 receipt 用于审计与重建；
 - 每 30 s 或每 100 条事件上传一次 Worker 日志；崩溃最多丢失一个窗口的事件，任务会按租约过期重新分配。
 
 ### 5.3 并发、超时与资源
@@ -688,17 +795,18 @@ reproducibility_key = sha256( canonical_json({
 ```
 1. 解析产物 JSON 逐个按内容寻址上传（幂等；同名同字节直接跳过）
 2. candidates/tables/documents 行写入本地 Arrow 缓冲；达阈值 → 写 Parquet → 上传
-3. 计算 Run Manifest，上传 parse/runs/<run_id>/manifest.json（If-None-Match: *）
-4. 向 Coordinator 提交 COMMIT(task_id, lease_generation, manifest_sha256)
-5. 协调器事务通过后返回 token；Worker 写 control/tasks/<task_id>/committed.json
-6. 写 task 事件 SUCCEEDED（携带 generation、token、manifest_sha256、parquet 贡献）
+3. 计算 Run Manifest（不含 token），上传 parse/runs/<run_id>/manifest.json（If-None-Match: *）
+4. Worker → Coordinator: COMMIT(task_id, lease_generation, manifest_sha256)
+5. 协调器事务插入 commit（生成 token）→ 任务 COMMITTED_PENDING_RECEIPT
+6. 协调器写 control/tasks/<task_id>/committed.json；成功 → SUCCEEDED，失败 → 503 RECEIPT_PENDING
 ```
 
-**成功提交点不是 Manifest，而是「协调器事务 + committed.json」**：
+**成功提交点不是 Manifest，而是「协调器 commit 记录 + receipt 一致」**：
 
 - Manifest 只证明「这次 run 的产物齐了」，不证明它是该任务的唯一成功者；
-- 只有持有当前 `lease_generation` 的 Worker 才能拿到 token 并写 committed 标记；
-- 没有 committed 标记的 run 一律视为未成功；Eval 与 Catalog 都拒绝消费；
+- 只有持有当前 `lease_generation` 的 Worker 才能触发 commit；
+- **receipt 由协调器写**，Worker 不写；token 只在协调器 commit 记录与 receipt 中；
+- Eval/Catalog 只在 `commit 存在 ∧ receipt 存在 ∧ token/manifest_sha 一致` 时消费；
 - 步骤 1–3 产生的孤儿 blob/parquet 允许存在（内容寻址，后续按引用计数归档，但**不自动删除**）。
 
 ### 5.6 两级 Manifest（修订 R2）
@@ -726,7 +834,8 @@ SUM(part_manifest.total_rows)
 Run Manifest 要点：
 
 - `schema = lakehouse/run-manifest/v2`；
-- `identity`：`run_id` / `task_id` / `attempt` / `worker_id` / `lease_generation` / `commit_token`；
+- `identity`：`run_id` / `task_id` / `input_key` / `ingest_ids` / `attempt` / `worker_id` / `lease_generation` / `commit_receipt_key`；
+- **不含 `commit_token`**（R1-2：避免「先算 manifest SHA 再拿 token」的循环）；
 - `reproducibility`：`reproducibility_key`（v2）、`reproducibility_key_version=2`、`source_sha256`、`requested_mpn`、`parser_fingerprint`、`config_hash`、`table_params_sha256`、`dependency_lock_sha256`、`effective_dpi`、`python_version`、`platform_family`；
 - `source`：桶、键、字节、`version_id`、`etag`；
 - `artifacts`：每个产物的 `name` / `sha256` / `bytes` / `object_key`；
@@ -735,17 +844,21 @@ Run Manifest 要点：
 - `timings`：各阶段耗时；
 - `status`：`complete` / `partial`（partial 不得被 Eval 消费）。
 
+> `commit_receipt_key` 是确定性路径 `control/tasks/<task_id>/committed.json`，不是 token；token 只能从协调器 commit 记录或 receipt 读取。
+
 ### 5.7 幂等与断点续跑
 
 | 场景 | 行为 |
 |---|---|
 | 同一任务被重复领取 | 协调器只在租约过期后重新分配，并递增 `lease_generation`；Worker 不得自行重领 |
-| 旧 Worker 恢复 | 其 generation 已过期；HEARTBEAT/COMMIT 被拒；不得写 committed 标记 |
+| 旧 Worker 恢复 | generation/owner/expires_at 任一不符即被拒；不得续租、不得提交 |
+| 同一 PDF 同 MPN 重复输入 | 只生成一个 task；多条 ingest 记录；不重复解析 |
 | 同一 `reproducibility_key` 已成功 | 提交前查询；命中则 `SKIPPED_DUPLICATE`，记录 `canonical_run_id` |
 | 解析中断（进程被杀） | 本地工作区丢弃；已上传 blob 可复用；重试产生新 `run_id`（新 `attempt`） |
 | 上传中断 | multipart resume 或整文件重传；已存在同字节则跳过 |
 | Worker 重启 | 向协调器重新注册；旧租约按 §5.2.4 处理 |
-| 协调器重启 | 从 SQLite + 快照恢复；已提交任务不重发 |
+| 协调器重启 | 从 SQLite + 快照恢复；已提交任务不重发；`pending` receipt 由 reconciler 补写 |
+| COMMIT 后、receipt 前崩溃 | commit 记录保留；同参数重试返回同一 token；reconciler 补写 receipt；补齐前不算成功 |
 | 批次中途代码变化 | 指纹漂移 → 停止接新任务；不允许同一批次混用两个指纹 |
 
 ---
@@ -892,6 +1005,7 @@ SUM(part_manifest.total_rows)
 ```
 
 - 2 个 run 共享 1 个文件时，`total_rows` 只算一次（2896），不是按引用次数累加（5792）。
+- 对账必须限定在**同一批次、同一表分区、同一有效快照**内；不得把历史 compaction 清单与新清单同时纳入累计。
 
 **分区决策（PROPOSED）**：
 
@@ -1052,7 +1166,7 @@ SET preserve_insertion_order = false;
 - **权威**：协调器的本地 SQLite（单写，WAL）保存 task / lease / commit 三张表；
 - **检查点**：协调器每 30 s 写 `control/coordinator/<batch_id>/state-<seq>.json`；
 - **审计事实**：Worker 事件日志 + `committed.json` + `final.json`；
-- **恢复**：协调器重启先读 SQLite；若 SQLite 丢失，从 committed 标记与事件日志重建已提交集合；无法判定的任务 `QUARANTINED`；
+- **恢复**：协调器重启先读 SQLite；若 SQLite 丢失，从 receipt 与事件日志重建已提交集合；无法判定的任务 `QUARANTINED`；
 - **不引入** Redis / Kafka / Celery / 独立数据库（D-12）；协调器不是数据库服务器，只是一个有状态进程。
 
 ### 8.3 日志与监控
@@ -1180,6 +1294,16 @@ P 分层：
 
 Q 单独抽样 50 份，不按页数分层；Q 中的 PDF 不进入「可解析率」统计。
 
+**Q 的子类配额（避免 50 份全来自同一类）**：
+
+| 子类 | 份数 |
+|---|---|
+| 无文本层（有页但无文本） | 20 |
+| 扫描版（有文本层但不可用） | 15 |
+| 加密 | 10 |
+| 0 页 / 损坏 | 5 |
+| 合计 | **50** |
+
 **五类比率（分母必须写明）**：
 
 | 指标 | 分子 | 分母 |
@@ -1214,7 +1338,7 @@ Q 单独抽样 50 份，不按页数分层；Q 中的 PDF 不进入「可解析�
 | 并发 | 每机 4 起，按 Stage B 的 RSS/耗时实测调整 |
 | 任务分配 | 协调器动态发放租约；**不按分片静态切割** |
 | 批处理 | 每 1000 份一个 `batch_id`；每批结束构建快照 |
-| 断点续跑 | 租约 + committed 标记 + 协调器 SQLite；重启后重新注册 |
+| 断点续跑 | 租约 + receipt + 协调器 SQLite；重启后重新注册 |
 | 数据校验 | 全量 lineage + 每批 1% 人工抽检 + 三级行数对账 |
 | 停止条件 | 失败率 > 5% 持续 30 min；指纹漂移；磁盘 > 90%；单位成本 > 预估 120%；任一血缘失败 |
 | 回滚 | 停止 Worker；不发布新快照；保留全部数据；写墓碑标记批次失效；不删除对象 |
@@ -1236,7 +1360,7 @@ Q 单独抽样 50 份，不按页数分层；Q 中的 PDF 不进入「可解析�
 
 ## 11. 负向测试（摘要）
 
-完整矩阵见 `INVARIANT_AND_NEGATIVE_TEST_MATRIX.md` §2。任务书要求的 15 项全部覆盖，另补 5 项针对 R1/R2/R4 的回归：
+完整矩阵见 `INVARIANT_AND_NEGATIVE_TEST_MATRIX.md` §2。任务书要求的 15 项全部覆盖，另补 6 项回归（N-16–N-21）与 N-12 的 7 个子用例（a–g）：
 
 | 编号 | 场景 | 期望 |
 |---|---|---|
@@ -1252,9 +1376,12 @@ Q 单独抽样 50 份，不按页数分层；Q 中的 PDF 不进入「可解析�
 | N-10 | Parquet 损坏 | 查询失败；快照校验发现；可从产物重建 |
 | N-11 | DuckDB 查询失败 | 明确报错；不返回部分结果 |
 | N-12a | 两 Worker 同时申请同一 task | 协调器只发一个租约；另一个排队或转下一任务 |
-| N-12b | 旧 Worker 恢复后提交（generation 已过期） | 协调器返回 409 `STALE_LEASE`；旧 Worker 不写 committed |
+| N-12b | 旧 Worker 恢复后提交（generation 已过期） | 409 `STALE_LEASE`；不写 receipt |
 | N-12c | 协调器崩溃后重启 | 过期租约递增 generation 重派；已提交不重发；无重复成功 |
-| N-12d | 协调器不可达超过 TTL | Worker 停止任务；不写 committed；不产生成功 |
+| N-12d | 协调器不可达超过 TTL | Worker 停止任务；不产生成功 |
+| N-12e | 租约已到期，但 5 s 扫描尚未执行 | HEARTBEAT 与 COMMIT 均返回 409 `LEASE_EXPIRED`；不续期 |
+| N-12f | SQLite COMMIT 成功、receipt 写入前崩溃 | 重启后 reconciler 补写 receipt；同参数 COMMIT 返回同一 token；无双重状态 |
+| N-12g | commit 与 receipt 的 token/manifest 不一致 | `QUARANTINED`；不覆盖、不猜测 |
 | N-13 | 重试产生重复结果 | 多 `run_id`、多 `attempt`、多 `lease_generation`；canonical 唯一 |
 | N-14 | Eval 引用不存在的 Parse | `ManifestMissing`；退出码非 0 |
 | N-15 | Raw 对象被意外覆盖 | 条件写/版本化拒绝；校验发现篡改 |
@@ -1262,7 +1389,8 @@ Q 单独抽样 50 份，不按页数分层；Q 中的 PDF 不进入「可解析�
 | N-17 | 仅 `dependency_lock_sha256` 变化 | `reproducibility_key` 必须变化 |
 | N-18 | 仅 `effective_dpi` 变化 | `reproducibility_key` 必须变化 |
 | N-19 | 2 run 共享 1 个 Parquet 文件 | Catalog 总行数只计一次（2896，不是 5792） |
-| N-20 | 协调器状态丢失后重建 | 从 committed 标记重建已提交集合；无法判定的任务 `QUARANTINED` |
+| N-20 | 协调器状态丢失后重建 | 从 receipt 重建已提交集合；无法判定的任务 `QUARANTINED` |
+| N-21 | 同批次同 PDF 重复输入 | 同 MPN：1 个 task + 2 条 ingest；不同 MPN：2 个 task；task_id 唯一且为批次内身份 |
 
 ---
 
@@ -1274,22 +1402,25 @@ Q 单独抽样 50 份，不按页数分层；Q 中的 PDF 不进入「可解析�
 PENDING
   → CLAIMED (协调器发租约 generation=g)
   → RUNNING
-      → SUCCEEDED (协调器 COMMIT + committed.json)
+      → COMMITTED_PENDING_RECEIPT (协调器 COMMIT 事务成功)
+          → SUCCEEDED (receipt 写入并与 commit 一致)
+          → RECEIPT_CONFLICT → QUARANTINED
       → FAILED_RETRYABLE → (退避) → PENDING
       → FAILED_PERMANENT
       → TIMED_OUT → FAILED_RETRYABLE (≤ max) / FAILED_PERMANENT
-      → LEASE_EXPIRED (协调器判定) → PENDING (generation=g+1)
-      → STALE_ABORTED (Worker 收到 409 STALE_LEASE)
+      → LEASE_EXPIRED (协调器判定或 expires_at 已过) → PENDING (generation=g+1)
+      → STALE_ABORTED (Worker 收到 409 STALE_LEASE/NOT_OWNER/LEASE_EXPIRED)
   → SKIPPED_DUPLICATE (同 repro key 已成功)
   → INVALID_INPUT (PDF 非法/加密/无页/无文本层)
-  → QUARANTINED (证据/血缘/对象冲突)
+  → QUARANTINED (证据/血缘/对象冲突/receipt 不一致)
   → TOMBSTONED (批次失效/人工撤销)
 ```
 
+- `COMMITTED_PENDING_RECEIPT` 不是终态，也不算成功；只有 receipt 一致后才转 `SUCCEEDED`；
 - `STALE_ABORTED` 是 **Worker 侧中止事件**，任务本身回到 `PENDING`（由协调器重派），不是终态；
 - `CLAIMED` 只由协调器写入；Worker 不得自行置位；
 - 终态：`SUCCEEDED`、`FAILED_PERMANENT`、`INVALID_INPUT`、`QUARANTINED`、`TOMBSTONED`、`SKIPPED_DUPLICATE`；
-- 每个转换必须写事件（含 `lease_generation`）；不得存在「隐含成功」。
+- 每个转换必须写事件（含 `lease_generation` / `receipt_state`）；不得存在「隐含成功」。
 
 ---
 
@@ -1300,8 +1431,9 @@ PENDING
 | 瞬时基础设施 | 对象存储 5xx、网络超时、DNS | 是 | 60 s / 300 s / 900 s + 抖动 | 3 |
 | Worker 崩溃/被杀 | 租约过期、进程退出 | 是 | 立即（新 generation） | 3 |
 | 解析超时 | 180 s/大件阈值 | 是（仅前 2 次） | 300 s | 2 |
-| 租约失效 | 协调器返回 409 `STALE_LEASE` | 否（Worker 立即中止） | — | 由协调器重派 |
+| 租约失效 | 协调器返回 409 `STALE_LEASE` / `NOT_OWNER` / `LEASE_EXPIRED` | 否（Worker 立即中止） | — | 由协调器重派 |
 | 协调器不可达 | 心跳/提交超时 | 否（暂停，不提交） | 重连探测 | 由协调器恢复 |
+| receipt 待写 | COMMIT 成功但 receipt 未写 | 不适用（协调器 outbox） | 30 s reconciler | 10 次后隔离 |
 | 输入非法 | 非 PDF、加密、0 页、无文本层 | 否 | — | 1（直接终态） |
 | 代码/配置错误 | 指纹漂移、配置非法 | 否 | — | 1（批次停止） |
 | 证据/血缘冲突 | 哈希不符、对象冲突 | 否 | — | 1（隔离） |
@@ -1342,7 +1474,7 @@ PENDING
 
 ### 15.3 实现启动的前置条件
 
-1. **R1–R6 全部闭合**（本 v1.1 已给出设计，仍需 Reviewer 逐项确认）；
+1. **第一轮 R1–R6 + 第二轮 R1/R5 全部闭合**（本 v1.2 已给出设计，仍需 Reviewer 逐项确认）；
 2. Reviewer 对 `OPEN_DECISIONS.md` 的 P0 项给出裁定（OD-01 / OD-02 / OD-03 / OD-05 / OD-19）；
 3. `pipeline.py` 授权快照问题关闭（OD-02）；
 4. 对象存储与区域确定（OD-01）；
@@ -1422,12 +1554,13 @@ v1.0 新增 `13_dsbit_duckdb_s3_pipeline/` 目录；v1.1 只修订该目录内�
 
 ### 18.5 关键架构决策
 
-D-01 ～ D-17（§3.4）。最关键的四个：
+D-01 ～ D-19（§3.4）。最关键的五个：
 
 1. 批量采用「本地 → 大批 Parquet → 上传 → 批量查询」，拒绝直扫远程小文件；
 2. DuckDB 只做分析，单写者 + 不可变快照，不做队列/锁/多写库；
 3. 任务分配由**单写协调器 + 租约代次 + 两阶段提交**完成，不引入独立数据库或队列服务器；
-4. Run Manifest 与 Batch/Partition Manifest 分离，行数三级对账，避免重复累计。
+4. **协调器是 receipt 唯一写者**，COMMIT 幂等 + outbox 补写；成功 = commit 与 receipt 一致；
+5. Run Manifest 与 Batch/Partition Manifest 分离，行数三级对账，避免重复累计。
 
 ### 18.6 已实现与拟议的区别
 
@@ -1436,6 +1569,8 @@ D-01 ～ D-17（§3.4）。最关键的四个：
 | `lake/` 单件三层 Demo | **已实现**（commit `7d8ab3f`）；本次实际运行 4 个脚本 |
 | 对象存储上传/下载 | **未实现** |
 | 协调器 / 租约 / fencing / 提交裁决 | **未实现** |
+| receipt outbox / reconciler | **未实现** |
+| ingest 记录与任务去重 | **未实现** |
 | 指纹运行时计算 | **未实现**（Demo 为硬编码） |
 | `reproducibility_key` v2 | **未实现**（Demo 为 v1 三字段） |
 | Parquet 分区/合并 / part_manifest | **未实现**（Demo 每 run 一个文件） |
@@ -1455,7 +1590,7 @@ D-01 ～ D-17（§3.4）。最关键的四个：
 | `lake/_s3_connectivity_test.py --local` | 103 ms，2896 行 |
 | 真实 S3 | 未测试（无凭据、无桶） |
 
-> v1.1 只改设计文档，未改代码、未重跑上述测试；测试结果仍为 v1.0 同一基线快照的结果。
+> v1.1/v1.2 只改设计文档，未改代码、未重跑上述测试；测试结果仍为 v1.0 同一基线快照的结果。
 
 ### 18.8 未解决问题
 
@@ -1532,6 +1667,9 @@ Select-String -Path workbench\serve_parser.py -Pattern "ICEX_PARSE_TIMEOUT|ICEX_
 | Eval | 评估层，Gold 版本化 + 指标 + 归因 + 审核 |
 | `reproducibility_key` | v2：`sha256(canonical_json(source_sha256, requested_mpn, parser_fingerprint, config_hash, table_params_sha256, dependency_lock_sha256, effective_dpi, python_version, platform_family))`，表示「同输入、同代码、同配置、同依赖、同渲染条件」 |
 | `run_id` | 唯一执行身份；同条件重复执行产生不同 `run_id` |
+| `task_id` | `<batch_id>:<input_key>`；**批次内唯一**，不是全局唯一；同一 PDF 同 MPN 只生成一个 task |
+| `ingest_id` | 每次输入一条记录；同一 task 可有多条 ingest |
+| `commit receipt` | 协调器写 `committed.json`；成功 = commit 记录与 receipt 的 token/manifest_sha 一致 |
 | `snapshot_id` | Catalog 快照身份；查询必须绑定 |
 | 墓碑（tombstone） | 逻辑失效记录；不物理删除对象 |
 | 协调器（coordinator） | 批次内唯一的任务分配与提交裁决者；单进程 + SQLite；不是数据库服务器 |

@@ -46,7 +46,7 @@
 | 建议 | **D（v1.1 已选定并写入 §5.2）**。分片只作静态分组，不承担互斥；条件写不作为互斥前提（见 OD-19） |
 | 决策人 | R + B |
 | 触发 | Stage A 实现前 |
-| 状态 | **设计已补，待 Reviewer 确认**（v1.1 新增 D-13/D-14） |
+| 状态 | **v1.2 已补 R1-1/R1-2/R1-3：过期即失效、Manifest 去 token、receipt outbox**；仍待 Reviewer 定向复核 |
 | 备注 | 协调器是单进程 + SQLite，不是数据库服务器、不是 Redis/Celery（D-12） |
 
 ---
@@ -187,8 +187,8 @@
 
 | 项 | 内容 |
 |---|---|
-| 问题 | Worker 使用实例角色还是静态 AK/SK？是否分桶/分前缀授权？ |
-| 建议 | 实例角色优先；静态密钥只用于本地验证；Worker 无删除权限 |
+| 问题 | Worker 使用实例角色还是静态 AK/SK？是否分桶/分前缀授权？协调器写 receipt 的权限如何限定？ |
+| 建议 | 实例角色优先；静态密钥只用于本地验证；Worker 无删除权限；**协调器仅对 `control/tasks/*/committed.json` 有 PutObject，不得有 DeleteObject** |
 | 决策人 | B + A |
 | 触发 | Stage A 之前（实现层） |
 
