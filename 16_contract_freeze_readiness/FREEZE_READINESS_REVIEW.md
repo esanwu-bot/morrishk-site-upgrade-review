@@ -226,7 +226,7 @@ OpenAPI `x-endpoint-status` 重排后，**总数不变**（13 + 3 = 16），仅�
 | P1-7 | 撤销机制尚未选择、未进入机器契约 | MD §4.3（`:377`）把「RFC 7009 `/oauth/revoke`**或**管理端禁用」并列为候选；OpenAPI 无任何撤销或客户端禁用端点 | 明确 v1 采用哪种撤销/禁用机制并写入契约，或书面声明 v1 仅支持管理端禁用且不提供端点。**不得**表述为「遗漏必需端点」 |
 | P1-8 | `expires_in` 被固化为 `const 900` | OpenAPI `:947`；MD §11.3 IQ-12「Token TTL 与限流配额」为 `PROPOSED` | IQ-12 裁定后改为普通整数或确认固定值并写明不可配置 |
 | P1-9 | `Product` DTO 不含 `visible_state` 的分工未书面化 | `Product` 必填字段无 `visible_state`（`:1041-1055`），仅 `ProductStatus` 有（`:1093`）；搜索默认按 `release_state=RELEASED` 过滤（`:142`） | 在冻结记录中明确「可见性只在 `/status` 暴露」的消费方约定，避免误判 |
-| P1-10 | `EvidenceEnvelope` 的 `meta` 语义与分页口径 | `EvidenceEnvelope` 仅 `allOf` `EnvelopeBase` + `Evidence`（`:1376-1387`）；`EnvelopeBase` 必填 `meta` 但 `meta` 为自由 object（`:881-891`）；MD §6.7 返回含 `items` 数组的证据对象、未定义分页（`:953-970`） | 明确证据响应是否分页、`meta` 为空时仍须存在，或在证据信封中绑定 `PageMeta` 并声明上限 |
+| P1-10 | `EvidenceEnvelope` 的 `meta` 语义与分页口径 | `/products/{product_business_key}/evidence` 已声明 `limit` / `cursor`（`:281-282`），但 `EvidenceEnvelope` 仅 `allOf` `EnvelopeBase` + `Evidence`（`:1376-1387`）、未绑定 `PageMeta`；`EnvelopeBase` 必填 `meta` 但 `meta` 为自由 object（`:881-891`）；MD §6.7 返回含 `items` 数组的证据对象、未定义分页（`:953-970`） | 明确证据响应是否分页；若分页，`meta` 绑定 `PageMeta` 并声明上限；若不分页，去掉 `limit` / `cursor` 或书面说明其语义 |
 
 ### 4.3 C.3 P2（记录项）
 
