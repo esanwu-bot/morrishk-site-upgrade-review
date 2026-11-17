@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-INT-001-EX |
-| 版本 | v1.1（同步 R1–R8 修订；未冻结） |
+| 版本 | v1.2（收口 R3/R4/R5/R6/R8；未冻结；全部为构造样例） |
 | 日期 | 2026-11-17 |
 | 关联文档 | `Ds Bit ↔ Morrishk Business API Integration Design v1.md`（主文档） |
 | 状态 | 全部 `PROPOSED` / 构造示例 |
@@ -33,6 +33,7 @@
 | EX-06 | 单分类 + 父子引用 | §7.5.3 |
 | EX-07 | 产品分类归属（边） | §7.5.4 |
 | EX-07b | 产品分类归属：未发布产品 403 | §4.4 / §7.4 |
+| EX-07c | 产品分类归属：内部读取（双 scope + `internal_only`） | §4.4 / §8.3 |
 | EX-08 | 分类版本 | §7.5.5 / §7.6 |
 | EX-09 | 分类变更 | §7.3 / §7.5.5 |
 | EX-10 | 分类停用 / 合并 / 410 | §7.5.6 |
@@ -67,13 +68,12 @@ OAuth2 端点**不套用**业务响应包，避免破坏标准客户端库兼容
 ```http
 POST /oauth/token HTTP/1.1
 Host: dsbit.example.com
+Authorization: Basic <BASE64(client_id:client_secret)>
 Content-Type: application/x-www-form-urlencoded
 Accept: application/json
 X-Request-Id: req_01J8Z9K2V3ABCDEFGHJKMNPQRT
 
 grant_type=client_credentials
-&client_id=morrishk-staging
-&client_secret=***
 &scope=product.read%20product.category.read%20product.evidence.read%20product.version.read
 ```
 
@@ -100,6 +100,9 @@ X-Request-Id: req_01J8Z9K2V3ABCDEFGHJKMNPQRT
 - 不签发 `refresh_token`（Client Credentials 直接重新获取）。
 - 响应必须 `Cache-Control: no-store`，避免中间层缓存 Token。
 - `scope` 为服务端实际授予值，可能小于请求值；客户端必须以返回值为准。
+- 本示例使用 `client_secret_basic`；staging 与生产示例**不得**把 `client_secret` 放入表单体。
+- `client_secret_post`（表单体传凭据）只允许出现在 stub 模式或受控内网的**例外示例**中，
+  且必须显式标注；同一次请求不得同时使用两种认证方式。
 
 ---
 
@@ -107,7 +110,13 @@ X-Request-Id: req_01J8Z9K2V3ABCDEFGHJKMNPQRT
 
 ### EX-02a 客户端凭据无效
 
-**请求** 同 EX-01，`client_secret` 错误。
+**请求** 同 EX-01（`client_secret_basic`），Basic 头部中的 `client_secret` 错误：
+
+```http
+Authorization: Basic <BASE64(client_id:WRONG_SECRET)>
+```
+
+不允许改为在表单体提交凭据来规避 Basic 校验。
 
 **响应 `401 Unauthorized`**
 
@@ -412,7 +421,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8Z9K2V3ABCDEFGHJKMNPQRS/categories HTTP/1.1
+GET /api/v1/products/prd_01J8Z9K2V4ABCDEFGHJKMNPQRS/categories HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -424,7 +433,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 0,
   "message": "ok",
   "data": {
-    "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMNPQRS",
+    "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRS",
     "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMNPQRS",
     "taxonomy_version": 42,
     "categories": [
@@ -455,18 +464,20 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 
 说明：
 
-- 只返回 `status=APPROVED` 的边。
+- 只返回 `status=APPROVED` 且 `valid_to IS NULL` 的边。
 - 同一 `taxonomy_id` 下最多一个 `PRIMARY`（`OPEN` IQ-04）。
 - 这里的 `category_id` 是 **Ds Bit 分类 ID**，绝不能直接写入 `snsii_product.BigCat/SmallCat`。
 - **授权门禁（回应 R4）**：调用者需要 `product.category.read`，且产品必须为 `RELEASE_APPROVED`；
   该端点不得绕过产品详情门禁。未发布产品在无 `product.publish.read` 时返回 403（见 EX-07b）。
+
+---
 
 ## EX-07b 产品分类归属：未发布产品被拒（构造样例）
 
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8Z9K2V3ABCDEFGHJKMNPQRT/categories HTTP/1.1
+GET /api/v1/products/prd_01J8Z9K2V4ABCDEFGHJKMNPQRT/categories HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -489,6 +500,71 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 
 说明：仅持 `product.category.read` 时无法读取未发布产品的分类边；内部客户端需同时具备
 `product.publish.read` 并显式传 `internal_only=true`（主文档 §4.4 规则 4）。
+
+---
+
+## EX-07c 产品分类归属：内部读取未发布产品（构造样例）
+
+**请求**
+
+```http
+GET /api/v1/products/prd_01J8Z9K2V4ABCDEFGHJKMNPQRT/categories?internal_only=true HTTP/1.1
+Host: dsbit.example.com
+Authorization: Bearer <REDACTED_ACCESS_TOKEN>
+```
+
+前置条件：Token 同时具备 `product.category.read` 与 `product.publish.read`；产品状态为 `PIPELINE_PASS`。
+缺少任一 scope 时返回 `403 INSUFFICIENT_SCOPE`，不得静默忽略 `internal_only` 参数。
+
+**响应 `200 OK`**
+
+```json
+{
+  "code": 0,
+  "message": "ok",
+  "data": {
+    "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRT",
+    "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMNPQRS",
+    "taxonomy_version": 42,
+    "internal_only": true,
+    "visible_state": "PIPELINE_PASS",
+    "categories": [
+      {
+        "edge_id": "edg_01J8Z000000000000000000000",
+        "category_id": "cat_01J8C000000000000000000000",
+        "category_code": "low-power-op-amps",
+        "role": "PRIMARY",
+        "assignment_source": "PARSER",
+        "confidence": 81.2,
+        "status": "APPROVED",
+        "valid_from": "2026-11-12T04:00:00Z",
+        "data_version": 7
+      },
+      {
+        "edge_id": "edg_01J8Z000000000000000000001",
+        "category_id": "cat_01J8D000000000000000000000",
+        "category_code": "rail-to-rail-op-amps",
+        "role": "SECONDARY",
+        "assignment_source": "PARSER",
+        "confidence": 64.0,
+        "status": "PROPOSED",
+        "valid_from": "2026-11-12T04:00:00Z",
+        "data_version": 7
+      }
+    ]
+  },
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQRX",
+  "meta": {}
+}
+```
+
+说明：
+
+- `internal_only=true` 回显在 `data` 中，消费方不得把它当作公开数据。
+- 内部读取只返回当前有效（`valid_to IS NULL`）的 `APPROVED` / `PROPOSED` 边；
+  `REJECTED` 边与任何 `valid_to` 非空的历史边均不得返回。
+- `REVOKED` 产品即使具备双 scope 也不可读取业务数据。
+- 此示例中的 `edg_` ID 仅用于展示，不得与 `cat_` / `tax_` 等 ID 混用。
 
 ---
 
@@ -558,7 +634,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
         }
       },
       {
-        "change_id": "chg_01J8G000000000000000000000",
+        "change_id": "chg_01J8W000000000000000000000",
         "taxonomy_version": 42,
         "event": "CATEGORY_RENAMED",
         "occurred_at": "2026-11-15T06:00:00Z",
@@ -661,7 +737,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8Z9K2V3ABCDEFGHJKMNPQRS HTTP/1.1
+GET /api/v1/products/prd_01J8Z9K2V4ABCDEFGHJKMNPQRS HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 Accept: application/json
@@ -680,7 +756,7 @@ X-Request-Id: req_01J8Z9K2V3ABCDEFGHJKMNPQR8
   "code": 0,
   "message": "ok",
   "data": {
-    "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMNPQRS",
+    "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRS",
     "identity": {
       "mpn": "LM358DR",
       "mpn_norm": "LM358DR",
@@ -844,7 +920,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8Z9K2V3ABCDEFGHJKMNPQRS/status HTTP/1.1
+GET /api/v1/products/prd_01J8Z9K2V4ABCDEFGHJKMNPQRS/status HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -856,7 +932,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 0,
   "message": "ok",
   "data": {
-    "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMNPQRS",
+    "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRS",
     "gates": {
       "pipeline": {
         "state": "PASS",
@@ -898,7 +974,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8Z9K2V3ABCDEFGHJKMNPQRS/versions?limit=2 HTTP/1.1
+GET /api/v1/products/prd_01J8Z9K2V4ABCDEFGHJKMNPQRS/versions?limit=2 HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -910,7 +986,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 0,
   "message": "ok",
   "data": {
-    "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMNPQRS",
+    "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRS",
     "items": [
       {
         "content_version": 7,
@@ -950,7 +1026,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8Z9K2V3ABCDEFGHJKMNPQRS/evidence HTTP/1.1
+GET /api/v1/products/prd_01J8Z9K2V4ABCDEFGHJKMNPQRS/evidence HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -962,7 +1038,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 0,
   "message": "ok",
   "data": {
-    "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMNPQRS",
+    "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRS",
     "document_sha256": "059d448c5a34a4b1e0f1c2d3b4a5968778695a4b3c2d1e0f9a8b7c6d5e4f3a21",
     "items": [
       {
@@ -1011,7 +1087,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "data": {
     "items": [
       {
-        "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMNPQRS",
+        "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRS",
         "mpn": "LM358DR",
         "mpn_norm": "LM358DR",
         "manufacturer": "Example Semiconductor",
@@ -1040,7 +1116,7 @@ GET /api/v1/products/search?updated_since=2026-11-12T00:00:00Z&release_state=REL
   "data": {
     "items": [
       {
-        "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMNPQRS",
+        "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRS",
         "mpn": "LM358DR",
         "mpn_norm": "LM358DR",
         "visible_state": "RELEASED",
@@ -1164,7 +1240,7 @@ GET /api/v1/products/search?updated_since=2026-11-15T00:00:00Z&release_state=REV
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8Z9K2V3ABCDEFGHJKMNPQRS HTTP/1.1
+GET /api/v1/products/prd_01J8Z9K2V4ABCDEFGHJKMNPQRS HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 If-None-Match: "sha256:7a1d3e9b..."

@@ -3,9 +3,9 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-DSBIT-INT-001 |
-| 版本 | v1.1（按 Reviewer 复核意见修订；仍未冻结） |
+| 版本 | v1.2（按 Reviewer 二次复核意见收口；仍未冻结） |
 | 日期 | 2026-11-17 |
-| 修订 | v1.1 处理 R1–R8 与证据基线时效性说明，见 §2.1 |
+| 修订 | v1.1 处理 R1–R8 与基线说明（`fc4bcc5`）；v1.2 收口 R3/R4/R5/R6/R8 |
 | 性质 | 架构与接口契约设计；**不是**生产实现、不是部署、不是凭证签发 |
 | 状态 | 送 Reviewer 复核 |
 
@@ -16,7 +16,7 @@
 | 文件 | 说明 |
 |---|---|
 | `Ds Bit ↔ Morrishk Business API Integration Design v1.md` | 主设计文档（16 章 + 附录 A–D） |
-| `API_CONTRACT_EXAMPLES.md` | EX-01 ~ EX-22 请求/响应示例（全部为构造样例） |
+| `API_CONTRACT_EXAMPLES.md` | EX-01 ~ EX-22 请求/响应示例（含 EX-07b/EX-07c 补充；全部为构造样例） |
 | `INTEGRATION_OPEN_QUESTIONS.md` | IQ-01 ~ IQ-22 未决问题、证据、选项、建议与裁定记录 |
 | `README.md` | 本文件：基线、文件清单、复核方法、未执行操作声明 |
 | `SHA256SUMS.txt` | 本目录文件的 SHA-256 校验清单 |
@@ -119,7 +119,7 @@ sha256sum -c SHA256SUMS.txt
 ## 6. 交付物清单（供 Reviewer 勾选）
 
 - [ ] 主设计文档（16 章 + 附录 A–D）
-- [ ] API 示例（EX-01 ~ EX-22）
+- [ ] API 示例（EX-01 ~ EX-22，含 EX-07b/EX-07c）
 - [ ] 未决问题（IQ-01 ~ IQ-22）
 - [ ] `CONFIRMED` / `PROPOSED` / `OPEN` 三类清单（主文档附录 A）
 - [ ] 当前 vs 拟议差异表（主文档附录 C）

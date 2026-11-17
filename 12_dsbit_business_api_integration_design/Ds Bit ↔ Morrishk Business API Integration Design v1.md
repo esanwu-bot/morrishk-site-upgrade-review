@@ -3,9 +3,9 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-INT-001 |
-| 版本 | v1.1（按 Reviewer 复核意见修订，未冻结） |
+| 版本 | v1.2（按 Reviewer 二次复核意见修订，未冻结） |
 | 日期 | 2026-11-17 |
-| 修订记录 | v1.0 首版送审（提交 `0fa9d34`）；v1.1 处理 R1–R8 与基线时效性说明，见 §1.5 |
+| 修订记录 | v1.0 首版送审（`0fa9d34`）；v1.1 处理 R1–R8 与基线说明（`fc4bcc5`）；v1.2 收口 R3/R4/R5/R6/R8，见 §1.4、§1.5 |
 | 范围 | 架构与接口契约设计；不含生产实现、生产部署、生产凭证 |
 | 上游依据 | 本任务书；`09_current_state_inventory/`；`02_technical_design/morrishk_technical_plan_v1.2.md`；`platform/docs/phase1/03-api-contract.yaml`；`mysql_schema_audit/`；Ds Bit 项目仓库（`E:\workspace\icpdf-extractor`，含前台 `workbench/`）与本地 Stub 源码 |
 | 下游用途 | Phase 0 契约冻结输入；Phase 1/2 开发依据；Reviewer 独立复核对象 |
@@ -84,15 +84,27 @@
 | R1 | 410 降级策略自相矛盾 | 按 `error_key` 拆分：`PRODUCT_RELEASE_REVOKED` → `degraded_allowed=false`，立即停止展示；`CATEGORY_RETIRED` → `degraded_allowed=true`，保留旧分类页/历史映射，不新建归属。见 §4.7、§5.8、§8.3、§10.4、EX-10、EX-13 |
 | R2 | Scope 只允许读 `PUBLISHED`，但 DEPRECATED 又要求保留期内 200 | `product.category.read` 明确可读保留期内的 `DEPRECATED`（不含 `DRAFT`/`REVIEWED`）；保留期后 `410 CATEGORY_RETIRED`；`DEPRECATED` 永不可用于新归属。见 §4.4 规则 5、§7.5.6、§7.7 |
 | R3 | ULID 长度与示例 ID 不一致 | 统一为 `<type>_<26 字符 Crockford Base32 ULID>`，总长 ≤32；DB 列 `VARCHAR(32)`；全部示例 ID 重新校验。见 §5.3 |
-| R4 | 产品分类端点权限边界不完整 | 明确 `GET /products/{id}/categories` 需 `product.category.read` **且**产品 `RELEASE_APPROVED`；内部读取未发布边需 `product.publish.read` + `internal_only=true`。见 §4.4 规则 4、§7.4、EX-07 / EX-07b |
+| R4 | 产品分类端点权限边界不完整 | 明确 `GET /products/{id}/categories` 需 `product.category.read` **且**产品 `RELEASE_APPROVED`；内部读取未发布边需 `product.publish.read` + `internal_only=true`（v1.2 进一步明确双 scope 与边过滤）。见 §4.4 规则 4、§7.4、EX-07 / EX-07b / EX-07c |
 | R5 | OAuth2 Token 机制未定义 | v1 采用 **opaque Token**（256 位随机、服务端哈希存储、可撤回、≤60 秒缓存）；v1 不支持 JWT/JWKS。见 §4.3 |
 | R6 | `invalid_scope` 状态码不一致 | 按 RFC 6749 §5.2 统一为 `400`；首选 `client_secret_basic`；两种认证方式不得同时使用。见 §4.5、§12.1 |
-| R7 | 只读 API 中出现未定义的 412 | 删除 `412 ETAG_MISMATCH`；`If-None-Match` 命中一律 `304`。见 §4.7、§5.8、§8.3 |
+| R7 | 只读 API 中出现未定义的条件失败状态 | 删除该未定义状态；`If-None-Match` 命中一律 `304`，不返回独立错误码。见 §4.7、§5.8、§8.3 |
 | R8 | 合并/拆分后产品分类边需保留历史 | 边永不物理删除，新增 `valid_to` / `superseded_by_edge_id` / `superseded_at` / `change_reason` / `data_version`；API 只返回当前有效且 `APPROVED` 的边。见 §7.2.3、§7.2.4 |
 | — | 证据基线时效性 | 新增基线说明：`CONFIRMED` 仅限 `600439a5…` 快照；Phase 0 冻结前须在权威分支干净提交上复核五项。见 §2.1 |
 | — | 端点数量口径 | V1 必需分类端点修正为 **7 个**（含 `GET /taxonomies/{id}`）。见 §7.4 |
 
 本次修订**不新增**任何实现、部署或生产操作。
+
+### 1.5 v1.2 修订记录（基线 `fc4bcc5` 后复核）
+
+| 编号 | 复核意见 | 本版处理 |
+|---|---|---|
+| R3 | 跨类型 ULID 重复 | 为 `prd_` 与 `chg_` 重新分配独立 ULID；同一资源跨示例保持一致；跨类型重复归零。见 §5.3 与全部示例 |
+| R4 | `internal_only` 契约不完整 | 明确 Query 参数 `?internal_only=true`；必须同时具备 `product.category.read` 与 `product.publish.read`；缺任一 scope 返回 403；普通客户端不得借参数绕过门禁；成功响应含 `data.internal_only=true`；只返回当前有效 `APPROVED`/`PROPOSED` 边。见 §4.4 规则 4、§7.4、§8.3、§8.4、§12.3、EX-07c |
+| R5 | 撤销时间语义矛盾 | 统一为"撤销后最迟 60 秒全体 Resource Server 拒绝"；提前失效仅属优化，不承诺无条件立即生效；OA-13 改为传播延迟上限测试并覆盖 0/59/60/61 秒。见 §4.3、§11.1、§12.1 |
+| R6 | Token 示例仍用 Body 传 secret | EX-01 与 EX-02a 改为 `client_secret_basic`；staging/生产示例不把 `client_secret` 放入表单体；`client_secret_post` 仅作 stub/受控内网例外。见 EX-01、EX-02a、§11.5 |
+| R8 | 分类节点生命周期未收口 | 明确历史边永不物理删除、被引用节点不得物理删除、`410` 仅表示 API 退役、保留 tombstone、ID 永不复用。见 §7.2.4、§7.5.6、§7.6、§12.3 |
+
+本次修订同样**不新增**任何实现、部署或生产操作。
 
 ---
 
@@ -334,7 +346,7 @@
 | 存储位置（Ds Bit） | 密钥管理系统或服务端加密配置；**不入库明文、不入 Git、不入日志** |
 | 存储位置（Morrishk） | 环境变量 `DSBIT_CLIENT_SECRET`；由 `config/params-local.php` 读取，该文件不入 Git |
 | 轮换 | 支持双活窗口：新 secret 生效后保留旧 secret 24 小时，再禁用旧 secret |
-| 禁用 | 客户端级 `enabled=0`，立即拒绝签发与验签；已签发 Token 在过期前仍有效，可通过撤销列表提前失效 |
+| 禁用 | 客户端级 `enabled=0`：立即拒绝签发；已签发 Token 最迟 60 秒内被全体 Resource Server 拒绝（撤销传播上限见 §4.3） |
 | 权限变更 | scope 在客户端注册时静态绑定；变更需重新签发 Token |
 
 **本地 Stub 密钥隔离**（`PROPOSED`）：
@@ -357,7 +369,7 @@
 | 时钟偏差 | 允许 60 秒 | 服务端与客户端均校验 |
 | 并发获取 | 单飞（single-flight） | 见 §4.6 |
 | Token 形态 | **opaque Token**（不透明随机串） | 见下方决策 |
-| 撤销 | RFC 7009 `/oauth/revoke` 或管理端禁用 | 撤销后下一次请求即拒绝 |
+| 撤销 | RFC 7009 `/oauth/revoke` 或管理端禁用 | 撤销后最迟 60 秒全体 Resource Server 拒绝；提前失效通知仅为优化 |
 
 **Token 形态决策（`PROPOSED`，回应 R5）**
 
@@ -365,8 +377,11 @@ v1 采用 **opaque Token**，不使用 JWT：
 
 - `access_token` 为 256 位密码学随机数，Base64URL 编码；不含任何可解析声明。
 - 服务端在 `oauth_access_token` 表中保存：`token_hash`（SHA-256，不存明文）、`client_id`、`scope`、`iat`、`exp`、`jti`、`aud`、`revoked_at`。
-- Resource Server 每次请求按 `token_hash` 查表并校验 `exp` / `revoked_at`；允许最长 60 秒的进程内缓存，但撤回后必须在 60 秒内全网生效。
-- 撤销通过 `revoked_at` 立即生效，不需要维护 JWT 黑名单，也不引入 JWKS 与密钥轮换。
+- Resource Server 每次请求按 `token_hash` 查表并校验 `exp` / `revoked_at`；允许最长 60 秒的进程内缓存。
+- **撤销传播语义（统一口径）**：撤销后**最迟 60 秒**，全体 Resource Server 必须拒绝该 Token；
+  这是契约上限，不承诺无条件立即生效。若通过主动失效通知（如缓存删除或消息广播）提前生效，
+  属于实现优化，不得写进对外 SLA，也不得替代 60 秒上限的兜底校验。
+- 撤销通过 `revoked_at` 与上述传播机制生效，不需要维护 JWT 黑名单，也不引入 JWKS 与密钥轮换。
 - v1 **不**支持 JWT / JWKS；若未来需要无状态校验，在 v2 单独设计签名算法、`kid` 轮换与撤销名单（`FUTURE`）。
 
 **Token 不得**：
@@ -383,7 +398,7 @@ v1 采用 **opaque Token**，不使用 JWT：
 | `product.category.read` | 全部 `/taxonomies/*`、`/categories/*`，以及 `GET /products/{id}/categories` | `PUBLISHED` 分类正常读取；`DEPRECATED` 分类在保留期内可读（含 `merged_into` / `split_into`）；`DRAFT` / `REVIEWED` 不可见；不含产品参数 |
 | `product.evidence.read` | `GET /products/{id}/evidence` | 证据引用与短原文；不含 PDF 二进制 |
 | `product.version.read` | `GET /products/{id}/versions`、`GET /taxonomies/{id}/version`、`/changes` | 版本号、变更记录、时间戳 |
-| `product.publish.read` | `GET /products/{id}/status`；`product.read` 的 `include_unreleased=true`；`GET /products/{id}/categories` 读取未发布产品边 | 未发布产品的门禁状态与内部可见数据 |
+| `product.publish.read` | `GET /products/{id}/status`；`product.read` 的 `include_unreleased=true`；`GET /products/{id}/categories?internal_only=true` 读取未发布产品边（仍需 `product.category.read`） | 未发布产品的门禁状态与内部可见数据 |
 
 规则：
 
@@ -392,9 +407,16 @@ v1 采用 **opaque Token**，不使用 JWT：
    `product.publish.read` 仅授予内部审核/运维客户端。
 3. 缺失 scope 返回 `403 INSUFFICIENT_SCOPE`，不回退、不静默降级。
 4. **`GET /products/{id}/categories` 同时受产品发布门禁约束（回应 R4）**：
-   - 普通客户端（仅有 `product.category.read`）只能读取 `RELEASE_APPROVED` 产品的 `APPROVED` 分类边；
+   - 普通客户端（仅有 `product.category.read`）只能读取 `RELEASE_APPROVED` 产品的 `APPROVED` 且当前有效的边；
    - 产品未发布时返回 `403 PRODUCT_NOT_RELEASED`，不得通过该端点绕过产品详情 API 的门禁；
-   - 需要读取未发布产品边的内部客户端，必须额外持有 `product.publish.read`，并在响应中标记 `internal_only=true`。
+   - 内部读取必须显式使用 Query 参数 `?internal_only=true`；
+   - 使用 `internal_only=true` 时，必须同时具备 `product.category.read` **和** `product.publish.read`；
+     缺少任一 scope 返回 `403 INSUFFICIENT_SCOPE`，不得静默忽略该参数；
+   - 普通客户端传入 `internal_only=true` 但缺少 `product.publish.read` 时返回 `403`，不能借此绕过发布门禁；
+   - 内部成功响应必须在 `data` 中返回 `"internal_only": true`；
+   - 内部读取允许返回当前有效（`valid_to IS NULL`）的 `APPROVED` 与 `PROPOSED` 边；
+     **不得**返回 `REJECTED` 边，**不得**返回 `valid_to` 非空的历史边或已失效的替代链；
+   - 内部读取的产品状态仍受 `product.publish.read` 约束，不能读取 `REVOKED` 产品的业务数据。
 5. `DEPRECATED` 分类的读取规则（回应 R2）：
    - 保留期内 `GET /categories/{id}` 返回 `200`，`status=DEPRECATED`、`is_active=false`，并带迁移信息；
    - 保留期结束后返回 `410 CATEGORY_RETIRED`；
@@ -717,7 +739,7 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
 
 ```json
 {
-  "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMNPQRS",
+  "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRS",
   "identity": {
     "mpn": "LM358DR",
     "mpn_norm": "LM358DR",
@@ -809,7 +831,7 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
 
 ```json
 {
-  "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMNPQRS",
+  "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRS",
   "gates": {
     "pipeline": {
       "state": "PASS",
@@ -855,7 +877,7 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
 
 ```json
 {
-  "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMNPQRS",
+  "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRS",
   "document_sha256": "059d448c5a34a4b1...",
   "items": [
     {
@@ -1005,7 +1027,16 @@ API 支持多体系，是为了未来扩展，不代表 v1 必须启用多个。
 | 合并 | 源节点保留，`status=DEPRECATED`、`merged_into=目标`、`is_active=false`；**旧产品边不删除**：置 `valid_to`、`superseded_by_edge_id`、`change_reason='CATEGORY_MERGED'`，再为目标分类新建边（需 `APPROVED`）；源节点在保留期内仍可解析 |
 | 拆分 | 源节点 `DEPRECATED`、`split_into=[...]`；旧边置 `valid_to` + `change_reason='CATEGORY_SPLIT'`；产品边需人工重新分配，不自动推断 |
 | 停用 | `is_active=false`、`status=DEPRECATED`、无 `merged_into`；不自动重定向 |
-| 硬删除 | 禁止在仍被引用时硬删除；保留期后可返回 `410 CATEGORY_RETIRED` |
+| 硬删除 | **禁止**。被任何历史边引用过的分类节点不得物理删除；保留期结束后进入 tombstone，仅对外返回 `410 CATEGORY_RETIRED` |
+| ID 复用 | **禁止**。任何已分配的 `category_id` 永不复用，即使节点已退役 |
+
+**分类节点生命周期（回应 R8）**：
+
+1. 历史 Product-Category Edge **永不物理删除**；失效只写 `valid_to`、`superseded_by_edge_id`、`superseded_at`、`change_reason`。
+2. 只要仍有历史边引用该节点，分类节点就**不得物理删除**；保留期结束后保留 tombstone（或等效生命周期记录）。
+3. Tombstone 至少保留：`category_id`、`taxonomy_id`、`retired_at`、`retirement_reason`、`merged_into` / `split_into`（如有）、`last_data_version`。
+4. `410 CATEGORY_RETIRED` 仅表示 **API 对外退役**，不表示数据库行被删除，也不表示历史映射失效。
+5. 分类 ID 一经分配即永不复用；恢复（`CATEGORY_REACTIVATED`）只能复用原 ID，不能新建同义 ID。
 
 ### 7.3 分类版本与变更
 
@@ -1033,14 +1064,13 @@ API 支持多体系，是为了未来扩展，不代表 v1 必须启用多个。
 |---|---|---|
 | `GET /taxonomies` | `V1_REQUIRED` | 列出分类体系 |
 | `GET /taxonomies/{taxonomy_id}` | `V1_REQUIRED` | 体系详情 |
-| `GET /taxonomies/{taxonomy_id}/categories` | `V1_REQUIRED` | 分类节点列表；`mode=flat|tree` |
+| `GET /taxonomies/{taxonomy_id}/categories` | `V1_REQUIRED` | 分类节点列表；`mode=flat|tree`；增量用 `updated_since=&cursor=`（同一端点） |
 | `GET /categories/{category_id}` | `V1_REQUIRED` | 单节点 + 父/子引用 |
 | `GET /categories/{category_id}/children` | `V1_REQUIRED` | 直接子节点 |
 | `GET /categories/{category_id}/ancestors` | `V1_OPTIONAL` | 祖先链；可由 `path_ids` 推导，但面包屑需要名称时更省请求 |
 | `GET /taxonomies/{taxonomy_id}/version` | `V1_REQUIRED` | 版本与 ETag；同步前置检查 |
 | `GET /taxonomies/{taxonomy_id}/changes` | `V1_OPTIONAL` | 变更记录；合并/拆分/停用需要 |
-| `GET /taxonomies/{taxonomy_id}/categories?updated_since=` | `V1_REQUIRED` | 增量同步 |
-| `GET /products/{product_id}/categories` | `V1_REQUIRED` | 产品→分类边 |
+| `GET /products/{product_id}/categories` | `V1_REQUIRED` | 产品→分类边；内部读取用 `?internal_only=true`，需双 scope，见 §4.4 规则 4 |
 | `GET /categories/{category_id}/products` | `V1_OPTIONAL` | 分类→产品；v1 可由 Morrishk 本地反查，避免大列表 |
 | `GET /taxonomies/{taxonomy_id}/tree` | `FUTURE` | 独立全量树快照；v1 用 `categories?mode=tree` |
 | `POST /taxonomies/...`（写） | `FUTURE` | v1 只读 |
@@ -1119,7 +1149,7 @@ API 支持多体系，是为了未来扩展，不代表 v1 必须启用多个。
 
 ```json
 {
-  "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMNPQRS",
+  "product_id": "prd_01J8Z9K2V4ABCDEFGHJKMNPQRS",
   "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMNPQRS",
   "categories": [
     {
@@ -1155,7 +1185,7 @@ API 支持多体系，是为了未来扩展，不代表 v1 必须启用多个。
   "taxonomy_version": 42,
   "changes": [
     {
-      "change_id": "chg_01J8A000000000000000000000",
+      "change_id": "chg_01J8V000000000000000000000",
       "taxonomy_version": 41,
       "event": "CATEGORY_MERGED",
       "occurred_at": "2026-11-14T02:00:00Z",
@@ -1186,6 +1216,9 @@ API 支持多体系，是为了未来扩展，不代表 v1 必须启用多个。
 ```
 
 - 保留期（建议 180 天，`OPEN` IQ-05）后返回 `410 CATEGORY_RETIRED`。
+- `410` **仅表示 API 对外退役**，不表示数据库删除；节点仍以 tombstone 或等效生命周期记录保留。
+- 被任何历史产品分类边引用的节点**不得物理删除**；历史边与其 `valid_to` / `superseded_by_edge_id` 一并保留。
+- `category_id` 永不复用；恢复时只能复用原 ID（见 §7.2.4）。
 - **不返回 301/302**。API 不负责 HTTP 重定向。
 
 ### 7.6 ETag、增量与通知
@@ -1197,7 +1230,7 @@ API 支持多体系，是为了未来扩展，不代表 v1 必须启用多个。
 | 增量 | `updated_since`（时间）+ `cursor`；推荐 `since_version`（版本） |
 | 全量 | `mode=tree` 或 `flat` 全量分页；不得依赖单次响应 |
 | 变更通知 | **不推送**；Morrishk 主动轮询 `version` / `changes`。理由：v1 不引入 webhook 的密钥、重放与可达性问题 |
-| 删除 | 软删除；`status=DEPRECATED` + `is_active=false`；保留期后 `410` |
+| 删除 | 禁止物理删除；`status=DEPRECATED` + `is_active=false`；保留期后进入 tombstone 并对外 `410`；历史边引用保留 |
 | 分类 ID 失效 | Morrishk 保留本地映射与旧页面；`mapping_status=STALE`；不自动删除、不改 URL |
 | 历史 URL | Morrishk 自己的 URL 由 Morrishk 控制；API 不提供也不修改 URL |
 
@@ -1358,6 +1391,9 @@ else: visible_state = DRAFT
 | 分类已停用但仍在保留期 | 200 | `0` | `status=DEPRECATED`，带 `merged_into` / `split_into`；允许读取用于历史映射迁移 |
 | 分类保留期结束 | 410 | `41002 CATEGORY_RETIRED` | `retryable=false`、`degraded_allowed=true`；允许保留旧分类页与历史映射，**不得**新建产品归属 |
 | 读取未发布产品的分类边（无 `product.publish.read`） | 403 | `40302 PRODUCT_NOT_RELEASED` | `/products/{id}/categories` 同样受产品发布门禁约束 |
+| 普通客户端传 `internal_only=true` 但缺 `product.publish.read` | 403 | `40301 INSUFFICIENT_SCOPE` | 不得静默忽略参数，也不得降级为公开读取 |
+| 内部客户端传 `internal_only=true` 但缺 `product.category.read` | 403 | `40301 INSUFFICIENT_SCOPE` | 必须同时具备两个 scope |
+| 内部读取未发布产品的分类边（双 scope + `internal_only=true`） | 200 | `0` | `data.internal_only=true`；仅返回当前有效的 `APPROVED` / `PROPOSED` 边；不含 `REJECTED`、不含 `valid_to` 非空的历史边 |
 | scope 不足 | 403 | `40301 INSUFFICIENT_SCOPE` | |
 | 条件请求命中 | 304 | `NOT_MODIFIED` | `If-None-Match` 命中；无响应体；不是错误 |
 
@@ -1369,7 +1405,10 @@ else: visible_state = DRAFT
 - `product.read` 默认：**仅 `RELEASE_APPROVED`**。
 - `product.category.read` 默认：**`PUBLISHED` 分类，以及在保留期内的 `DEPRECATED` 分类**；`DRAFT` / `REVIEWED` 不可见。
 - `product.evidence.read`：仅 `RELEASE_APPROVED` 产品的证据。
-- `GET /products/{id}/categories`：产品必须 `RELEASE_APPROVED`（除非另有 `product.publish.read`），且只返回 `APPROVED` 边。
+- `GET /products/{id}/categories`：默认返回 `APPROVED` 且 `valid_to IS NULL` 的边，产品必须 `RELEASE_APPROVED`。
+- `GET /products/{id}/categories?internal_only=true`：需同时具备 `product.category.read` 与 `product.publish.read`；
+  返回当前有效的 `APPROVED` / `PROPOSED` 边，并在 `data` 中标记 `internal_only=true`；
+  不返回 `REJECTED` 边、不返回 `valid_to` 非空的历史边；`REVOKED` 产品仍不可读。
 - `product.version.read`：版本元数据可读，但不含未发布参数值。
 - `product.publish.read`：可读未发布状态与数据，用于内部审核。
 
@@ -1805,7 +1844,7 @@ yii dsbit/verify
 - 全链路 HTTPS（TLS 1.2+）；仅本地 stub 允许回环 HTTP。
 - OAuth2 Client Credentials；Bearer Token 仅放 `Authorization` 头。
 - 最小 scope；分类权限独立。
-- Token 撤销与客户端禁用即时生效（撤销列表或短 TTL + 拒绝签发）。
+- Token 撤销与客户端禁用：撤销后最迟 60 秒内全体 Resource Server 拒绝；客户端禁用立即拒绝签发。
 
 ### 11.2 Secret 管理
 
@@ -1841,13 +1880,13 @@ yii dsbit/verify
 脱敏规则：
 
 ```
+Authorization: Basic ***
 Authorization: Bearer ***
-client_secret=***
 access_token=***
 ```
 
-示例：`[dsbit] POST /oauth/token client_id=morrishk-prod client_secret=*** -> 200`
-（实际不应记录 token 端点请求体；上面仅为脱敏格式示意。）
+示例：`[dsbit] POST /oauth/token auth=client_secret_basic client_id=morrishk-prod -> 200`
+（实际不应记录 token 端点请求体或认证头；上面仅为脱敏格式示意。）
 
 ### 11.6 健康检查
 
@@ -1921,7 +1960,9 @@ Morrishk 侧 `yii dsbit/health` 只检查 Token 获取与一个轻量端点。
 | OA-10 | Stub 隔离 | `mode=real` 指向 stub | 启动 | 拒绝启动/拒绝响应 | NONE | 是 |
 | OA-11 | 认证方式混用 | 同时带 Basic 与 body secret | 同上 | 400 `invalid_request`；不签发 | NONE | 是 |
 | OA-12 | opaque Token 校验 | 任意修改 1 字节 | 调用 API | 401 `INVALID_TOKEN` | NONE | 是 |
-| OA-13 | 撤回即时生效 | 服务端 `revoked_at` | 撤回后 61 秒内调用 | 401 `INVALID_TOKEN`（缓存上限 60 秒） | NONE | 是 |
+| OA-13 | 撤销传播延迟上限 | 服务端 `revoked_at` | 分别在 0 / 59 / 60 / 61 秒调用 | 0–60 秒：允许 200 或 401（优化可提前生效）；>60 秒（含 61 秒）：必须 401 `INVALID_TOKEN`；全体 RS 均满足 | NONE | 是 |
+| OA-14 | Basic 认证成功 | 仅 `Authorization: Basic`，Body 无 secret | POST `/oauth/token` | 200；服务端不从 Body 读取凭据 | NONE | 是 |
+| OA-15 | Stub 认证例外 | `client_secret_post` | stub 模式允许并标记；real 模式拒绝 | real 模式返回 400/401；日志标记 stub | NONE | 是 |
 
 ### 12.2 产品 API
 
@@ -1961,14 +2002,21 @@ Morrishk 侧 `yii dsbit/health` 只检查 Token 获取与一个轻量端点。
 | CT-13 | 拆分 | `split_into` | 同步 | 映射 `STALE`；需人工 | NONE | 是 |
 | CT-14 | 产品多分类 | 产品 `RELEASE_APPROVED`，多边 | GET `/products/{id}/categories` | 多分类；至多一个 `PRIMARY` | NONE | 是 |
 | CT-14a | 产品分类门禁 | 产品仅 `PIPELINE_PASS` | GET `/products/{id}/categories` | 403 `PRODUCT_NOT_RELEASED`；不返回任何边 | NONE | 是 |
-| CT-14b | 仅分类 scope | 无 `product.publish.read` | GET 未发布产品的分类 | 403；不得绕过产品详情门禁 | NONE | 是 |
-| CT-14c | 内部读取未发布边 | `product.publish.read` | 同上 + `internal_only=true` | 200；仅内部可见 | NONE | 是 |
+| CT-14b | 仅分类 scope | 有 `product.category.read`，无 `product.publish.read` | 同上 + `internal_only=true` | 403 `INSUFFICIENT_SCOPE`；不得绕过发布门禁 | NONE | 是 |
+| CT-14c | 缺少分类 scope | 有 `product.publish.read`，无 `product.category.read` | 同上 + `internal_only=true` | 403 `INSUFFICIENT_SCOPE` | NONE | 是 |
+| CT-14d | 内部读取未发布边 | 双 scope | 同上 + `internal_only=true` | 200；`data.internal_only=true`；含当前有效 `APPROVED`/`PROPOSED` 边 | NONE | 是 |
+| CT-14e | 内部读取边过滤 | 双 scope，存在 `REJECTED` 与历史边 | 同上 | 不返回 `REJECTED`；不返回 `valid_to` 非空边 | NONE | 是 |
+| CT-14f | 普通客户端传内部参数 | 仅 `product.category.read`，产品未发布 | 同上 + `internal_only=true` | 403；参数不得静默忽略 | NONE | 是 |
 | CT-15 | 无映射分类 | 新分类 | 同步 | `UNMAPPED` 队列；不自动映射 | NONE | 是 |
 | CT-16 | 循环父子 | 构造环 | 同步 | 拒绝整批；告警 | NONE | 是 |
 | CT-17 | 保留期后 | 过期 | GET | 410 `CATEGORY_RETIRED` | NONE | 是 |
 | CT-18 | 历史映射 | 合并后 | 同步 | 旧映射保留 `valid_to` | NONE | 是 |
 | CT-19 | 历史 URL 不受影响 | 映射变化 | 页面访问 | URL/canonical 不变 | NONE | 是 |
 | CT-20 | ETag 命中 | 无变化 | `If-None-Match` | 304；无 body | NONE | 是 |
+| CT-21 | 退役保留 tombstone | 保留期结束 | 查询分类行 + API | DB 行/tombstone 仍存在；API 返回 410；不物理删除 | NONE | 是 |
+| CT-22 | 历史边引用保护 | 存在 `valid_to` 非空边的分类 | 尝试删除分类 | 拒绝删除；历史边与引用完整 | NONE | 是 |
+| CT-23 | ID 不复用 | 已退役 ID | 新建分类并尝试复用旧 ID | 拒绝；必须分配新 ULID | NONE | 是 |
+| CT-24 | ID 格式与跨类型唯一 | 全量分类/产品/边 | 校验长度、字符集、前缀 | 26 字符合法 ULID；同一 ULID 不得跨类型复用 | NONE | 是 |
 
 ### 12.4 Morrishk 集成
 
