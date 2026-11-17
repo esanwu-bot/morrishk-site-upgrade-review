@@ -3,9 +3,9 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
-| 文档版本 | v1.15（第十五轮：B5 恢复通道结果状态处理、观察字段职责、N-12n 恢复通道崩溃测试） |
+| 文档版本 | v1.16（第十六轮：`recovery_attempts` 预留语义、重启恢复字段、交付元数据收尾） |
 | 日期 | 2026-11-17 |
-| 修订 | v1.15 只补 B5 结果状态与测试；A3/A4、B1–B4、恢复通道预算保持不变，R5、R2–R4/R6 与总体架构不动 |
+| 修订 | v1.16 只统一语义与元数据；A3/A4、B1–B4、恢复通道预算保持不变，R5、R2–R4/R6 与总体架构不动 |
 | 性质 | 架构与实施设计（DESIGN ONLY） |
 | 实现状态 | **未实现**；本文件不含生产代码、不含部署、不含数据迁移 |
 | 基线仓库 | `E:\workspace\icpdf-extractor` |
@@ -227,6 +227,16 @@
 | **B5-R7-4** | N-12l 旧口径 | 将「普通 GET 计数」替换为独立恢复通道口径（不占 episode；10 次 / 300 s / reserved 20） | 矩阵 N-12l |
 
 > v1.15 不重做恢复通道预算，不重新引入 episode 计数，不重开 B1–B4。
+
+### 0.17 第十六轮复核修订（v1.15 → v1.16）
+
+| 编号 | Reviewer 要求 | v1.16 处置 | 位置 |
+|---|---|---|---|
+| **B5-R8-1** | `recovery_attempts` 计数语义不准确 | 统一为「恢复通道**已预留**的 GET 尝试次数」，含预留后崩溃、请求未发出或结果未持久化的预算消耗；不新增计数器 | 主文档 §5.2.5.2.1；附件 §9.2/§9.9；矩阵 N-12l/N-12n |
+| **B5-R8-2** | 重启恢复字段漏 `last_observed_receipt_state` | 重启恢复清单补入该字段；明确已提交观察保留、未提交观察不得出现 | 主文档 §5.2.5.2.1；附件 §9.9；矩阵 N-12n |
+| **交付元数据** | README 状态与报告提交 SHA 未收尾 | README 状态改为 v1.15；`DELIVERY_REPORT.md` 的 v1.15 报告行填入 `b41cea364399436af03a075104769a5a79f74f36` | `README.md`；`DELIVERY_REPORT.md` |
+
+> v1.16 不重做计数字段、不新增 SQLite 实测、不重开 B1–B4。
 
 ---
 
@@ -945,7 +955,7 @@ write_receipt(commit):
 | `episode_started_at` | 当前 episode 起点（60 s 截止） |
 | `verify_attempts_reserved` | 已消耗的验证预算次数（含已预留但未完成的 REC 与恢复通道），**上限 20**（2 × 10） |
 | `verify_attempts_total` | **结果已持久化**的 GET 次数（审计口径；恒 ≤ `verify_attempts_reserved`） |
-| `recovery_attempts` | `REC_PENDING_UNKNOWN` 恢复通道已用 GET 次数（≤10） |
+| `recovery_attempts` | `REC_PENDING_UNKNOWN` 恢复通道**已预留**的 GET 尝试次数（≤10）；含预留后崩溃、请求未发出或结果未持久化的预算消耗，不等于实际发出/完成的 GET 数 |
 | `recovery_started_at` | 恢复通道起点（300 s 截止） |
 | `last_observed_receipt_state` | 最近一次恢复/观察 GET 的结果；**不覆盖** `rec_state` |
 | `pending_since` | 首次进入 pending 的时间；3600 s 生命周期上限 |
@@ -955,7 +965,7 @@ write_receipt(commit):
 1. **普通 30 s reconcile 延续当前 episode**：不重置 `episode_attempts` / `episode_started_at`，只继续用剩余次数与剩余时间；
 2. 当前 episode 达到 10 次或 60 s 后**结束**，任务保持 `pending`；`next_retry_at` 供观测，但 **不会自动开启新 episode**；
 3. 仅当满足 §5.2.5.2.1 的全部重写条件并执行**第二次 PUT** 后，才允许 `episode_no: 0 → 1`；它是**最后一个** episode；
-4. 协调器重启：从 SQLite 恢复 `episode_no` / `episode_attempts` / `episode_started_at` / `recovery_attempts` / `recovery_started_at` / `verify_attempts_reserved` / `verify_attempts_total` / `rec_attempted` / `rec_state`；`rec_state='in_flight'` 一律按 `unknown` 恢复且不重发 REC；**恢复原 episode / 原恢复通道，不自动新增**；无法恢复时保持 `pending`，走 L1/L2/L3，不通过重启获得新预算；
+4. 协调器重启：从 SQLite 恢复 `episode_no` / `episode_attempts` / `episode_started_at` / `recovery_attempts` / `recovery_started_at` / `last_observed_receipt_state` / `verify_attempts_reserved` / `verify_attempts_total` / `rec_attempted` / `rec_state`；`rec_state='in_flight'` 一律按 `unknown` 恢复且不重发 REC；**恢复原 episode / 原恢复通道，不自动新增**；已提交的最新观察结果必须保留，未提交的观察不得出现；无法恢复时保持 `pending`，走 L1/L2/L3，不通过重启获得新预算；
 5. **20 次上限按 `verify_attempts_reserved` 计**；达到后只允许 **observation-only GET**（见下），不再新 episode；`verify_attempts_total` 只作审计，不单独触发上限；
 6. `pending_since` 的 3600 s 是 commit 生命周期预算，不因 episode 或重启重置。
 
@@ -1024,7 +1034,7 @@ write_receipt(commit):
 - **退出条件**：
   - 恢复通道 10 次用完、300 s 到期，或 `reserved=20` → **observation-only**（不发新 GET、不改状态、不提升成功）；
   - `pending_since` 超过 3600 s → `QUARANTINED(receipt_absent_timeout)`；
-  - 重启恢复 `recovery_attempts` / `recovery_started_at`，不重置、不新增通道；
+  - 重启恢复 `recovery_attempts` / `recovery_started_at` / `last_observed_receipt_state`，不重置、不新增通道；已提交观察保留，未提交观察不得出现；
 - **崩溃语义**：与普通 GET 相同——预留后崩溃不返还预算；GET 已发出/已返回但结果未落盘时 `reserved`/`recovery_attempts` 保留、`total` 不增。
 
 **重写资格检查 REC（B5）**：

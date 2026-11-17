@@ -527,8 +527,8 @@ DELETE FROM commits WHERE task_id = 'T';
 | UNKNOWN 后的 GET 归属 | 属**独立恢复通道**：只 `reserved` + `recovery_attempts` +1，不改 `episode_no/episode_attempts/episode_started_at`，不开启 episode 1 |
 | episode 0 已用满 10 次 | REC UNKNOWN 后恢复通道仍可执行（不依赖 episode 0 剩余次数） |
 | episode 0 已超 60 s | REC UNKNOWN 后恢复通道仍可执行（不受 episode 60 s 窗口约束） |
-| 恢复通道预算 | `recovery_attempts<10`、`recovery_window_s<300`、`reserved<20`；任一耗尽 → observation-only |
-| 恢复通道重启 | `recovery_attempts/recovery_started_at` 持久化，重启不重置、不新增通道 |
+| 恢复通道预算 | `recovery_attempts<10`（已预留尝试数，含未发出/未落盘）、`recovery_window_s<300`、`reserved<20`；任一耗尽 → observation-only |
+| 恢复通道重启 | `recovery_attempts/recovery_started_at` 持久化，重启不重置、不新增通道；`last_observed_receipt_state` 保留已提交值 |
 | 恢复 GET 观察 `WRITTEN` | `last_observed_receipt_state='written'`；`rec_state` 仍为 `unknown`；转 `SUCCEEDED` |
 | 恢复 GET 观察 `CONFLICT` | `last_observed_receipt_state='conflict'`；`rec_state` 仍为 `unknown`；转 `QUARANTINED` |
 | 恢复 GET 观察 `ABSENT` | `last_observed_receipt_state='absent'`；`rec_state` 仍为 `unknown`；保持 `REC_PENDING_UNKNOWN`，剩余预算内可继续 |
@@ -568,7 +568,7 @@ DELETE FROM commits WHERE task_id = 'T';
 | 恢复通道预留后、GET 前崩溃 | 恢复预留事务 COMMIT 后关闭连接 | `reserved`/`recovery_attempts` 已 +1、`total` 不变；episode 字段不变；预算不返还 |
 | 恢复 GET 已发出、响应未返回 | 发出恢复 GET 后、响应前关闭连接 | `reserved`/`recovery_attempts` 保留；`total` 不变；不重发该次 |
 | 恢复 GET 响应已返回、RR2 未提交 | 响应已收到但结果事务未提交时关闭连接 | `reserved`/`recovery_attempts` 保留；`total` 不增；`last_observed_receipt_state` 未更新 |
-| 恢复通道连续重启 | 上述崩溃后重启 3 次 | `recovery_attempts`/`recovery_started_at` 不重置；不重新获得预算 |
+| 恢复通道连续重启 | 上述崩溃后重启 3 次 | `recovery_attempts`/`recovery_started_at` 不重置；不重新获得预算；已提交的 `last_observed_receipt_state` 必须保留；未提交的观察不得出现 |
 
 > 这是测试设计；执行需临时 SQLite（或协调器实现），不进入生产库。
 
