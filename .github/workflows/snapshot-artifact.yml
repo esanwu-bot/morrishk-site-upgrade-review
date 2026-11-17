@@ -1,0 +1,20 @@
+name: review-snapshot-artifact
+on:
+  push:
+    paths:
+      - "090cae9-session-b-snapshot.zip"
+permissions:
+  contents: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify snapshot SHA-256
+        run: echo "81cfbbf526add434de7e3bfef4c7ce0db737cb2fc917996c0351fa3bce24e5c2 *090cae9-session-b-snapshot.zip" | sha256sum -c -
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 090cae9-session-b-snapshot
+          path: 090cae9-session-b-snapshot.zip
+          if-no-files-found: error
+          retention-days: 90
