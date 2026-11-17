@@ -16,6 +16,14 @@
 随界面语言、地域与会话抽样变化），因此另一浏览器会话截图中的「共 6 页」在本次会话无法复现。
 本清单以实际抓取到的 4 页可见结果为准，未补造第 5、6 页数据。
 
+**时间字段口径**：`browser_captured_at`（逐页浏览器采集）、`processed_at`（脚本处理 capture）、
+`http_checked_at`（URL 只读检查）三者含义与取值见 `supplemental/` 下的补充核验材料；
+逐页时间见 `capture_manifest.json`。
+
+**补充核验（Reviewer 第 1 轮）**：第 5、6 页无结果证据、时间字段说明与 canonical/robots 抽查
+见 `SUPPLEMENTAL_EVIDENCE.md`、`capture_manifest.json`、`canonical_robots_spotcheck.json`
+和 `supplemental/` 目录。
+
 **命名口径**：本清单是「Google site 搜索可见 URL」，不是 Google 全量索引，也不是站点真实页面总数。
 `site:` 的展示条数受 Google 展示上限、抽样、地域与时间影响，只能作为当前可见样本。
 

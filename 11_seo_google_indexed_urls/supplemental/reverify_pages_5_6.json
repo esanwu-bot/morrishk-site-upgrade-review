@@ -1,0 +1,64 @@
+{
+  "baseline_commit": "24b65a7223f9a688fb740c4a5c1c22eaf4ac4181",
+  "purpose": "Evidence that pages 5 and 6 of the Google site: query returned the 'no matching content' page at re-verification time.",
+  "original_capture_evidence": {
+    "status": "NOT_AVAILABLE",
+    "reason": "captures/page_5.json and captures/page_6.json persisted only page/url/next/count/items. The rendered body text and a screenshot were not stored at original browser capture time (source capture files last written 2026-11-17T10:04:46+08:00 and 10:07:32+08:00).",
+    "do_not_treat_reverification_as_historical_evidence": true
+  },
+  "reverification": {
+    "performed_at_local": "2026-11-17T10:25:10+08:00 / 2026-11-17T10:25:39+08:00",
+    "performed_at_utc": "2026-11-17T02:25:10Z / 2026-11-17T02:25:39Z",
+    "timezone": "Asia/Shanghai",
+    "tool": "browser-use in-app browser",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) QoderCN/0.4.3 Chrome/150.0.7871.114 Electron/43.1.1 Safari/537.36",
+    "screenshot": "NOT_AVAILABLE: browser reported viewport 0x0 (visible=false, attached=false); take_screenshot failed. Accessibility-tree snapshots were saved instead.",
+    "pages": [
+      {
+        "page": 5,
+        "request_url": "https://www.google.com.hk/search?q=site%3Ahttps%3A%2F%2Fwww.morrishk.net%2F&newwindow=1&start=40",
+        "final_url": "https://www.google.com.hk/search?q=site%3Ahttps%3A%2F%2Fwww.morrishk.net%2F&newwindow=1&start=40",
+        "captured_at_utc": "2026-11-17T02:25:10.978Z",
+        "captured_at_local": "2026-11-17T10:25:10.978+08:00",
+        "page_title": "site:https://www.morrishk.net/ - Google 搜索",
+        "h3_count": 0,
+        "result_stats_text": "获得约 38 条结果，以下是第 5 页 （0.16 秒）",
+        "pagination_visible": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ],
+        "no_results_message": "找不到和您查询的“site:https://www.morrishk.net/”相符的内容或信息。",
+        "body_text": "跳到主要内容\n无障碍功能帮助\n登录\n全部\n图片\n视频\n短视频\n新闻\n图书\n网页\n更多\n工具\n搜索结果\n\n找不到和您查询的“site:https://www.morrishk.net/”相符的内容或信息。\n\n建议：\n\n请检查输入字词有无错误。\n请尝试其他查询词。\n请改用较常见的字词。\n网页导航\n上一页\n\t\n1\n\t\n2\n\t\n3\n\t\n4\n\t\n5\t\n页脚链接\n上海市 中国 - 根据您的活动记录\n - 更新位置信息\n帮助\n发送反馈\n隐私权\n条款",
+        "snapshot_file": "supplemental/page_5_reverify_snapshot_2026-11-17T102510+0800.txt",
+        "snapshot_sha256": "55dc584891145a51bba0498df3930a2c7a7648b88313d8e44836eb48d2155af2"
+      },
+      {
+        "page": 6,
+        "request_url": "https://www.google.com.hk/search?q=site%3Ahttps%3A%2F%2Fwww.morrishk.net%2F&newwindow=1&start=50",
+        "final_url": "https://www.google.com.hk/search?q=site%3Ahttps%3A%2F%2Fwww.morrishk.net%2F&newwindow=1&start=50",
+        "captured_at_utc": "2026-11-17T02:25:39.587Z",
+        "captured_at_local": "2026-11-17T10:25:39.587+08:00",
+        "page_title": "site:https://www.morrishk.net/ - Google 搜索",
+        "h3_count": 0,
+        "result_stats_text": "获得约 38 条结果，以下是第 6 页 （0.17 秒）",
+        "pagination_visible": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6"
+        ],
+        "no_results_message": "找不到和您查询的“site:https://www.morrishk.net/”相符的内容或信息。",
+        "body_text": "跳到主要内容\n无障碍功能帮助\n登录\n全部\n图片\n视频\n短视频\n新闻\n图书\n网页\n更多\n工具\n搜索结果\n\n找不到和您查询的“site:https://www.morrishk.net/”相符的内容或信息。\n\n建议：\n\n请检查输入字词有无错误。\n请尝试其他查询词。\n请改用较常见的字词。\n网页导航\n上一页\n\t\n1\n\t\n2\n\t\n3\n\t\n4\n\t\n5\n\t\n6\t\n页脚链接\n上海市 中国 - 根据您的活动记录\n - 更新位置信息\n帮助\n发送反馈\n隐私权\n条款",
+        "snapshot_file": "supplemental/page_6_reverify_snapshot_2026-11-17T102539+0800.txt",
+        "snapshot_sha256": "0458188f5feec8ace729adbe4527411999866c10034218f7d4d949c39cfa7b53"
+      }
+    ],
+    "interpretation": "Google displayed page-number navigation up to 6 while reporting about 38 results. The last two requested offsets had no rows. The 6-page navigation is therefore not evidence that 6 pages of results existed at collection time."
+  },
+  "redaction_note": "Volatile Google session/analytics parameters (gsessionid, sxsrf, sca_esv, ei, ved) were replaced with REDACTED in the snapshots before publication. Result text, page numbers and HTTP status were not altered."
+}

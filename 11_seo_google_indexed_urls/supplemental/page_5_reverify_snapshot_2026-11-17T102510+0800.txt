@@ -1,0 +1,366 @@
+uid=1_1 RootWebArea "site:https://www.morrishk.net/ - Google 搜索" focusable url="https://www.google.com.hk/search?q=site%3Ahttps%3A%2F%2Fwww.morrishk.net%2F&newwindow=1&start=40"
+  uid=1_2 none
+    uid=1_3 generic
+      uid=1_4 generic
+        uid=1_5 none
+          uid=1_6 link "跳到主要内容" focusable
+            uid=1_7 StaticText "跳到主要内容"
+              InlineTextBox "跳到主要内容"
+          uid=1_8 link "无障碍功能帮助" focusable url="https://support.google.com/websearch/answer/181196?hl=zh-CN"
+            uid=1_9 StaticText "无障碍功能帮助"
+              InlineTextBox "无障碍功能帮助"
+      uid=1_10 none
+      uid=1_11 none
+        uid=1_12 generic
+          uid=1_13 generic
+            uid=1_14 none
+              uid=1_15 search
+                uid=1_16 none
+                  uid=1_17 generic
+                    uid=1_18 generic
+                      uid=1_19 link "Google 首页" description="Google 首页" focusable url="https://www.google.com.hk/webhp?hl=zh-CN&sa=X&ved=REDACTED"
+                    uid=1_20 generic
+                      uid=1_21 none
+                        uid=1_22 none
+                          uid=1_23 generic
+                          uid=1_24 generic
+                          uid=1_25 combobox "搜索" autocomplete="both" editable="plaintext" expandable focusable hasPopup="listbox" invalid="false" settable value="site:https://www.morrishk.net/"
+                            uid=1_26 none
+                            uid=1_27 generic editable="plaintext"
+                              uid=1_28 StaticText "site:https://www.morrishk.net/" editable="plaintext"
+                                InlineTextBox "site:https://www.morrishk.net/" editable="plaintext"
+                        uid=1_29 none
+                          uid=1_30 none
+                            uid=1_31 button "清除" focusable
+                              uid=1_32 none
+                            uid=1_33 none
+                          uid=1_34 none
+                            uid=1_35 button "按语音搜索" focusable
+                            uid=1_36 button "按图搜索" focusable
+                      uid=1_37 button "搜索" focusable invalid="false"
+                        uid=1_38 generic
+                      uid=1_39 generic
+                    uid=1_40 generic
+                uid=1_41 generic
+              uid=1_42 none
+                uid=1_43 generic
+                  uid=1_44 button "设置" focusable
+                    uid=1_45 generic
+                      uid=1_46 generic
+                uid=1_47 button "分享" focusable
+                  uid=1_48 generic
+                    uid=1_49 generic
+                      uid=1_50 none
+                  uid=1_51 generic
+                uid=1_52 none
+                  uid=1_53 generic
+                    uid=1_54 generic
+                      uid=1_55 button "Google 应用" expandable focusable
+                  uid=1_56 generic
+                    uid=1_57 link "登录" focusable url="https://accounts.google.com/ServiceLogin?hl=zh-CN&passive=true&continue=https://www.google.com.hk/search%3Fq%3Dsite%253Ahttps%253A%252F%252Fwww.morrishk.net%252F%26newwindow%3D1%26start%3D40&ec=futura_srp_og_si_72236_p"
+                      uid=1_58 none
+                        uid=1_59 StaticText "登录"
+                          InlineTextBox "登录"
+      uid=1_60 generic
+        uid=1_61 generic
+          uid=1_62 generic
+          uid=1_63 generic
+            uid=1_64 none
+          uid=1_65 generic
+          uid=1_66 generic
+            uid=1_67 generic
+              uid=1_68 none
+                uid=1_69 navigation focusable
+                  uid=1_70 generic
+                    uid=1_71 generic
+                      uid=1_72 generic
+                        uid=1_73 generic
+                          uid=1_74 none
+                            uid=1_75 generic
+                              uid=1_76 list
+                                uid=1_77 listitem level="1"
+                                  uid=1_78 link "全部" disableable disabled focusable
+                                    uid=1_79 generic
+                                      uid=1_80 none
+                                        uid=1_81 StaticText "全部"
+                                          InlineTextBox "全部"
+                                uid=1_82 listitem level="1"
+                                  uid=1_83 link "图片" focusable url="https://www.google.com.hk/search?newwindow=1&sca_esv=REDACTED&sxsrf=REDACTED&udm=2&fbs=ACAhTvyLl1FT72rIIRCGeP12ubyA54JzeHydVGA3CrcwKvHLEN0okAxhJru-YPZ4bSbhB2v5EVJ2k_wFq24LyIPRZlbNOY6Jy4IR1QeVkJIFtLgVFkscBVVert9hTszZCedxCQGQQa348G9gjPGAlOjmp-_2q_dWx7nmNhoMV_g6pzddcB2ZAXE&q=site:https://www.morrishk.net/&sa=X&ved=REDACTED"
+                                    uid=1_84 none
+                                      uid=1_85 none
+                                        uid=1_86 StaticText "图片"
+                                          InlineTextBox "图片"
+                                uid=1_87 listitem level="1"
+                                  uid=1_88 link "视频" focusable url="https://www.google.com.hk/search?newwindow=1&sca_esv=REDACTED&sxsrf=REDACTED&udm=vids&fbs=ACAhTvyLl1FT72rIIRCGeP12ubyA54JzeHydVGA3CrcwKvHLEN0okAxhJru-YPZ4bSbhB2v5EVJ2k_wFq24LyIPRZlbNOY6Jy4IR1QeVkJIFtLgVFkscBVVert9hTszZCedxCQGQQa348G9gjPGAlOjmp-_2q_dWx7nmNhoMV_g6pzddcB2ZAXE&q=site:https://www.morrishk.net/&sa=X&ved=REDACTED"
+                                    uid=1_89 none
+                                      uid=1_90 none
+                                        uid=1_91 StaticText "视频"
+                                          InlineTextBox "视频"
+                                uid=1_92 listitem level="1"
+                                  uid=1_93 link "短视频" focusable url="https://www.google.com.hk/search?newwindow=1&sca_esv=REDACTED&sxsrf=REDACTED&udm=short_vids&fbs=ACAhTvyLl1FT72rIIRCGeP12ubyA54JzeHydVGA3CrcwKvHLEN0okAxhJru-YPZ4bSbhB2v5EVJ2k_wFq24LyIPRZlbNOY6Jy4IR1QeVkJIFtLgVFkscBVVert9hTszZCedxCQGQQa348G9gjPGAlOjmp-_2q_dWx7nmNhoMV_g6pzddcB2ZAXE&q=site:https://www.morrishk.net/&sa=X&ved=REDACTED"
+                                    uid=1_94 none
+                                      uid=1_95 none
+                                        uid=1_96 StaticText "短视频"
+                                          InlineTextBox "短视频"
+                                uid=1_97 listitem level="1"
+                                  uid=1_98 link "新闻" focusable url="https://www.google.com.hk/search?newwindow=1&sca_esv=REDACTED&sxsrf=REDACTED&q=site:https://www.morrishk.net/&tbm=nws&source=lnms&fbs=ACAhTvyLl1FT72rIIRCGeP12ubyA54JzeHydVGA3CrcwKvHLEN0okAxhJru-YPZ4bSbhB2v5EVJ2k_wFq24LyIPRZlbNOY6Jy4IR1QeVkJIFtLgVFkscBVVert9hTszZCedxCQGQQa348G9gjPGAlOjmp-_2q_dWx7nmNhoMV_g6pzddcB2ZAXE&sa=X&ved=REDACTED"
+                                    uid=1_99 none
+                                      uid=1_100 none
+                                        uid=1_101 StaticText "新闻"
+                                          InlineTextBox "新闻"
+                                uid=1_102 listitem level="1"
+                                  uid=1_103 link "图书" focusable url="https://www.google.com.hk/search?newwindow=1&sca_esv=REDACTED&sxsrf=REDACTED&q=site:https://www.morrishk.net/&udm=36&source=lnms&fbs=ACAhTvyLl1FT72rIIRCGeP12ubyA54JzeHydVGA3CrcwKvHLEN0okAxhJru-YPZ4bSbhB2v5EVJ2k_wFq24LyIPRZlbNOY6Jy4IR1QeVkJIFtLgVFkscBVVert9hTszZCedxCQGQQa348G9gjPGAlOjmp-_2q_dWx7nmNhoMV_g6pzddcB2ZAXE&sa=X&ved=REDACTED"
+                                    uid=1_104 none
+                                      uid=1_105 none
+                                        uid=1_106 StaticText "图书"
+                                          InlineTextBox "图书"
+                                uid=1_107 listitem level="1"
+                                  uid=1_108 link "网页" focusable url="https://www.google.com.hk/search?newwindow=1&sca_esv=REDACTED&sxsrf=REDACTED&udm=web&fbs=ACAhTvyLl1FT72rIIRCGeP12ubyA54JzeHydVGA3CrcwKvHLEN0okAxhJru-YPZ4bSbhB2v5EVJ2k_wFq24LyIPRZlbNOY6Jy4IR1QeVkJIFtLgVFkscBVVert9hTszZCedxCQGQQa348G9gjPGAlOjmp-_2q_dWx7nmNhoMV_g6pzddcB2ZAXE&q=site:https://www.morrishk.net/&sa=X&ved=REDACTED"
+                                    uid=1_109 none
+                                      uid=1_110 none
+                                        uid=1_111 StaticText "网页"
+                                          InlineTextBox "网页"
+                                uid=1_112 listitem level="1"
+                                  uid=1_113 button "更多过滤条件" expandable focusable
+                                    uid=1_114 generic "更多过滤条件"
+                                      uid=1_115 none
+                                        uid=1_116 none
+                                          uid=1_117 StaticText "更多"
+                                            InlineTextBox "更多"
+                                        uid=1_118 none
+                              uid=1_119 generic
+                                uid=1_120 button "工具" expandable focusable
+                                  uid=1_121 none
+                                    uid=1_122 none
+                                      uid=1_123 none
+                                        uid=1_124 StaticText "工具"
+                                          InlineTextBox "工具"
+                                      uid=1_125 none
+                          uid=1_126 none
+                      uid=1_127 generic
+                        uid=1_128 none
+                      uid=1_129 generic
+                        uid=1_130 none
+                          uid=1_131 none
+                            uid=1_132 none
+                              uid=1_133 none
+                                uid=1_134 none
+              uid=1_135 none
+          uid=1_136 generic
+            uid=1_137 none
+          uid=1_138 heading "搜索结果" level="1"
+            uid=1_139 StaticText "搜索结果"
+              InlineTextBox "搜索结果"
+          uid=1_140 generic
+            uid=1_141 generic
+              uid=1_142 none
+                uid=1_143 none
+                  uid=1_144 none
+                uid=1_145 none
+                  uid=1_146 none
+                uid=1_147 none
+                uid=1_148 none
+          uid=1_149 generic
+            uid=1_150 generic
+              uid=1_151 none
+                uid=1_152 none
+          uid=1_153 generic
+          uid=1_154 generic
+            uid=1_155 none
+              uid=1_156 none
+              uid=1_157 generic
+                uid=1_158 generic
+          uid=1_159 none
+            uid=1_160 generic
+          uid=1_161 generic
+          uid=1_162 none
+            uid=1_163 none
+              uid=1_164 generic
+          uid=1_165 generic
+            uid=1_166 main
+              uid=1_167 generic
+                uid=1_168 generic
+                  uid=1_169 generic
+                  uid=1_170 generic
+                    uid=1_171 generic
+                      uid=1_172 none
+                        uid=1_173 none
+                      uid=1_174 none
+                        uid=1_175 none
+                uid=1_176 generic
+                  uid=1_177 generic
+                  uid=1_178 generic
+                uid=1_179 generic
+                  uid=1_180 generic
+                    uid=1_181 none
+                    uid=1_182 none
+                      uid=1_183 none
+                        uid=1_184 heading "找不到和您查询的“site:https://www.morrishk.net/”相符的内容或信息。" level="3"
+                          uid=1_185 StaticText "找不到和您查询的“"
+                            InlineTextBox "找不到和您查询的“"
+                          uid=1_186 emphasis
+                            uid=1_187 StaticText "site:https://www.morrishk.net/"
+                              InlineTextBox "site:https://www.morrishk.net/"
+                          uid=1_188 StaticText "”相符的内容或信息。"
+                            InlineTextBox "”"
+                            InlineTextBox "相符的内容或信息。"
+                        uid=1_189 paragraph
+                          uid=1_190 StaticText "建议："
+                            InlineTextBox "建议："
+                        uid=1_191 list
+                          uid=1_192 listitem level="1"
+                            uid=1_193 ListMarker "•"
+                              none
+                            uid=1_194 StaticText "请检查输入字词有无错误。"
+                              InlineTextBox "请检查输入字词有无错误。"
+                          uid=1_195 listitem level="1"
+                            uid=1_196 ListMarker "•"
+                              none
+                            uid=1_197 StaticText "请尝试其他查询词。"
+                              InlineTextBox "请尝试其他查询词。"
+                          uid=1_198 listitem level="1"
+                            uid=1_199 ListMarker "•"
+                              none
+                            uid=1_200 StaticText "请改用较常见的字词。"
+                              InlineTextBox "请改用较常见的字词。"
+                        uid=1_201 none
+                          uid=1_202 none
+                            uid=1_203 generic
+                              uid=1_204 image "雪人正在冰中钓鱼的图片" focusable
+                                uid=1_205 generic
+                                  uid=1_206 generic
+                                    uid=1_207 image
+                    uid=1_208 generic
+                    uid=1_209 navigation
+                      uid=1_210 heading "网页导航" level="1"
+                        uid=1_211 StaticText "网页导航"
+                          InlineTextBox "网页导航"
+                      uid=1_212 none
+                        uid=1_213 none
+                          uid=1_214 none
+                            uid=1_215 heading "上一页" level="2"
+                              uid=1_216 link "上一页" focusable url="https://www.google.com.hk/search?q=site:https://www.morrishk.net/&newwindow=1&sca_esv=REDACTED&sxsrf=REDACTED&ei=REDACTED&start=30&sa=N&ved=REDACTED"
+                                uid=1_217 none
+                                uid=1_218 none
+                                  uid=1_219 StaticText "上一页"
+                                    InlineTextBox "上一页"
+                            uid=1_220 none
+                              uid=1_221 link "第 1 页" focusable url="https://www.google.com.hk/search?q=site:https://www.morrishk.net/&newwindow=1&sca_esv=REDACTED&sxsrf=REDACTED&ei=REDACTED&start=0&sa=N&ved=REDACTED"
+                                uid=1_222 none
+                                uid=1_223 StaticText "1"
+                                  InlineTextBox "1"
+                            uid=1_224 none
+                              uid=1_225 link "第 2 页" focusable url="https://www.google.com.hk/search?q=site:https://www.morrishk.net/&newwindow=1&sca_esv=REDACTED&sxsrf=REDACTED&ei=REDACTED&start=10&sa=N&ved=REDACTED"
+                                uid=1_226 none
+                                uid=1_227 StaticText "2"
+                                  InlineTextBox "2"
+                            uid=1_228 none
+                              uid=1_229 link "第 3 页" focusable url="https://www.google.com.hk/search?q=site:https://www.morrishk.net/&newwindow=1&sca_esv=REDACTED&sxsrf=REDACTED&ei=REDACTED&start=20&sa=N&ved=REDACTED"
+                                uid=1_230 none
+                                uid=1_231 StaticText "3"
+                                  InlineTextBox "3"
+                            uid=1_232 none
+                              uid=1_233 link "第 4 页" focusable url="https://www.google.com.hk/search?q=site:https://www.morrishk.net/&newwindow=1&sca_esv=REDACTED&sxsrf=REDACTED&ei=REDACTED&start=30&sa=N&ved=REDACTED"
+                                uid=1_234 none
+                                uid=1_235 StaticText "4"
+                                  InlineTextBox "4"
+                            uid=1_236 none
+                              uid=1_237 none
+                              uid=1_238 StaticText "5"
+                                InlineTextBox "5"
+                            uid=1_239 none
+                              uid=1_240 none
+                uid=1_241 generic
+                uid=1_242 navigation
+                  uid=1_243 generic
+                  uid=1_244 generic
+                  uid=1_245 generic
+          uid=1_246 none
+          uid=1_247 none
+          uid=1_248 none
+          uid=1_249 none
+            uid=1_250 none
+              uid=1_251 generic
+                uid=1_252 generic
+                uid=1_253 generic
+          uid=1_254 none
+            uid=1_255 none
+          uid=1_256 none
+          uid=1_257 none
+          uid=1_258 none
+          uid=1_259 contentinfo
+            uid=1_260 heading "页脚链接" level="1"
+              uid=1_261 StaticText "页脚链接"
+                InlineTextBox "页脚链接"
+            uid=1_262 generic
+              uid=1_263 generic
+                uid=1_264 generic
+                  uid=1_265 none
+                    uid=1_266 none
+                    uid=1_267 none
+                      uid=1_268 none
+                        uid=1_269 generic
+                          uid=1_270 generic
+                            uid=1_271 generic
+                              uid=1_272 button "上海市 中国  - 根据您的活动记录" focusable
+                                uid=1_273 generic
+                                uid=1_274 generic
+                                  uid=1_275 generic
+                                  uid=1_276 StaticText "上海市 中国"
+                                    InlineTextBox "上海市 中国"
+                                uid=1_277 generic
+                                  uid=1_278 StaticText "-"
+                                    InlineTextBox "-"
+                                  uid=1_279 none
+                                    uid=1_280 generic
+                                    uid=1_281 StaticText "根据您的活动记录"
+                                      InlineTextBox "根据您的活动记录"
+                              uid=1_282 generic
+                                uid=1_283 generic
+                                  uid=1_284 generic
+                                    uid=1_285 none
+                                      uid=1_286 none
+                            uid=1_287 StaticText "-"
+                              InlineTextBox "-"
+                            uid=1_288 generic
+                              uid=1_289 button "更新位置信息" focusable
+                                uid=1_290 generic
+                                uid=1_291 StaticText "更新位置信息"
+                                  InlineTextBox "更新位置信息"
+                                uid=1_292 generic
+                                uid=1_293 generic
+                                  uid=1_294 generic
+                                uid=1_295 generic
+                    uid=1_296 generic
+                      uid=1_297 generic
+                        uid=1_298 link "帮助" focusable url="https://support.google.com/websearch/?p=ws_results_help&hl=zh-CN&fg=1"
+                          uid=1_299 StaticText "帮助"
+                            InlineTextBox "帮助"
+                        uid=1_300 none
+                          uid=1_301 button "发送反馈" focusable
+                            uid=1_302 generic
+                              uid=1_303 StaticText "发送反馈"
+                                InlineTextBox "发送反馈"
+                          uid=1_304 generic
+                        uid=1_305 link "隐私权" focusable url="https://policies.google.com/privacy?hl=zh-CN&fg=1"
+                          uid=1_306 StaticText "隐私权"
+                            InlineTextBox "隐私权"
+                        uid=1_307 link "条款" focusable url="https://policies.google.com/terms?hl=zh-CN&fg=1"
+                          uid=1_308 StaticText "条款"
+                            InlineTextBox "条款"
+          uid=1_309 none
+          uid=1_310 none
+          uid=1_311 none
+          uid=1_312 none
+          uid=1_313 none
+          uid=1_314 none
+          uid=1_315 generic
+      uid=1_316 none
+      uid=1_317 none
+      uid=1_318 none
+      uid=1_319 generic
+        uid=1_320 generic
+      uid=1_321 none
+      uid=1_322 none
+      uid=1_323 none
+      uid=1_324 generic

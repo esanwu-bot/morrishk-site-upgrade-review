@@ -1,0 +1,136 @@
+{
+  "baseline_commit": "24b65a7223f9a688fb740c4a5c1c22eaf4ac4181",
+  "time_fields": {
+    "browser_captured_at": {
+      "definition": "Per-page browser capture completion time, taken from the original capture file's filesystem mtime (GMT+8).",
+      "precision": "seconds",
+      "limitation": "The browser session did not log a separate navigation timestamp; mtime is the best available proxy. Navigation start time is NOT_RECORDED."
+    },
+    "processed_at": {
+      "definition": "Time window in which the collector parsed the six captures and wrote google_indexed_urls.json/csv.",
+      "value": "2026-11-17T10:13:41+08:00 – 2026-11-17T10:17:25+08:00",
+      "source": "google_indexed_urls.json started_at / finished_at"
+    },
+    "http_checked_at": {
+      "definition": "Time window in which the read-only GET checks ran; this is inside the same collector run as processing.",
+      "value": "2026-11-17T10:13:41+08:00 – 2026-11-17T10:17:25+08:00",
+      "per_url_timestamps": "NOT_RECORDED"
+    },
+    "repo_packaged_at": {
+      "definition": "When the review-repo copies were re-serialized (gsessionid redaction, LF normalization) and README written. This is not a capture or check time.",
+      "value": "2026-11-17T10:18:53+08:00 – 2026-11-17T10:19:31+08:00"
+    },
+    "reverified_at": {
+      "definition": "Supplemental re-access of pages 5 and 6; separate from the original capture and must not be presented as historical evidence.",
+      "value": "2026-11-17T10:25:10+08:00 – 2026-11-17T10:25:39+08:00"
+    }
+  },
+  "processing": {
+    "mode": "browser_capture",
+    "requested_max_pages": 6,
+    "pages_fetched": 6,
+    "raw_result_count": 38,
+    "deduped_url_count": 28,
+    "per_page_visible_results": {
+      "1": 10,
+      "2": 10,
+      "3": 10,
+      "4": 8,
+      "5": 0,
+      "6": 0
+    }
+  },
+  "http_checks": {
+    "total_urls": 28,
+    "ok": 28,
+    "failed": 0,
+    "per_url_checked_at": "NOT_RECORDED",
+    "window": "2026-11-17T10:13:41+08:00 – 2026-11-17T10:17:25+08:00"
+  },
+  "pages": [
+    {
+      "page": 1,
+      "capture_file": "captures/page_1.json",
+      "capture_file_sha256": "9d203175fab9dc7dada0efaa31cf8936b75a840a97e556a3d4f5b5ff198a3a49",
+      "source_capture_file": "E:/workspace/独立站/morries/reports/seo/google-indexed-urls/_capture_page_1.json",
+      "source_capture_sha256": "8750bd38158b330483863b57c912aacfdb65d8138e50424e997766af0ded82dd",
+      "browser_captured_at": "2026-11-17T09:57:30+08:00",
+      "browser_captured_at_method": "source capture file filesystem mtime (seconds precision); browser navigation start time NOT_RECORDED",
+      "capture_items_count": 11,
+      "visible_results_after_host_filter": 10,
+      "processed_at_window": "2026-11-17T10:13:41+08:00 – 2026-11-17T10:17:25+08:00",
+      "http_checked_at_window": "2026-11-17T10:13:41+08:00 – 2026-11-17T10:17:25+08:00",
+      "note": "page 1 capture contains 1 Google Search Console promo link; it is filtered out, leaving 10 site results"
+    },
+    {
+      "page": 2,
+      "capture_file": "captures/page_2.json",
+      "capture_file_sha256": "a60ec9476bc2b00d2d2e32bad22600c2f3124f8899ab83356dd08af6a2b60939",
+      "source_capture_file": "E:/workspace/独立站/morries/reports/seo/google-indexed-urls/_capture_page_2.json",
+      "source_capture_sha256": "d5211cd9826d84405f01638c1ddcc9b1c5a594b9a9afee73336d36ca12662013",
+      "browser_captured_at": "2026-11-17T10:00:32+08:00",
+      "browser_captured_at_method": "source capture file filesystem mtime (seconds precision); browser navigation start time NOT_RECORDED",
+      "capture_items_count": 10,
+      "visible_results_after_host_filter": 10,
+      "processed_at_window": "2026-11-17T10:13:41+08:00 – 2026-11-17T10:17:25+08:00",
+      "http_checked_at_window": "2026-11-17T10:13:41+08:00 – 2026-11-17T10:17:25+08:00",
+      "note": "next-page pointer was not captured reliably; page traversal used explicit start offsets"
+    },
+    {
+      "page": 3,
+      "capture_file": "captures/page_3.json",
+      "capture_file_sha256": "bc85810f5ff5b4b7928d7cccf37e27aa6120b34e35742d0e7a9e1aa058d5e97a",
+      "source_capture_file": "E:/workspace/独立站/morries/reports/seo/google-indexed-urls/_capture_page_3.json",
+      "source_capture_sha256": "e5931fb8168e716e54d479e7e206fef15012c8832c439d0d0303a190eb1404fb",
+      "browser_captured_at": "2026-11-17T10:01:44+08:00",
+      "browser_captured_at_method": "source capture file filesystem mtime (seconds precision); browser navigation start time NOT_RECORDED",
+      "capture_items_count": 10,
+      "visible_results_after_host_filter": 10,
+      "processed_at_window": "2026-11-17T10:13:41+08:00 – 2026-11-17T10:17:25+08:00",
+      "http_checked_at_window": "2026-11-17T10:13:41+08:00 – 2026-11-17T10:17:25+08:00",
+      "note": "next-page pointer was not captured reliably; page traversal used explicit start offsets"
+    },
+    {
+      "page": 4,
+      "capture_file": "captures/page_4.json",
+      "capture_file_sha256": "7ccdf6d51e33bee7a6b8593e9a62b5fdf51c994acb88e0a9012ec01c6d44ac8c",
+      "source_capture_file": "E:/workspace/独立站/morries/reports/seo/google-indexed-urls/_capture_page_4.json",
+      "source_capture_sha256": "3b98dfba3e15d13337c7bde6d16030c235e662a0d51ae02f5e63f83f2d3b0739",
+      "browser_captured_at": "2026-11-17T10:03:09+08:00",
+      "browser_captured_at_method": "source capture file filesystem mtime (seconds precision); browser navigation start time NOT_RECORDED",
+      "capture_items_count": 8,
+      "visible_results_after_host_filter": 8,
+      "processed_at_window": "2026-11-17T10:13:41+08:00 – 2026-11-17T10:17:25+08:00",
+      "http_checked_at_window": "2026-11-17T10:13:41+08:00 – 2026-11-17T10:17:25+08:00",
+      "note": "next-page pointer was not captured reliably; page traversal used explicit start offsets"
+    },
+    {
+      "page": 5,
+      "capture_file": "captures/page_5.json",
+      "capture_file_sha256": "006e2cee1a91a30ab8c3a8cd2d3892bb969722d59c8b4d48e76983d899e688d7",
+      "source_capture_file": "E:/workspace/独立站/morries/reports/seo/google-indexed-urls/_capture_page_5.json",
+      "source_capture_sha256": "91278611d6b5c26acb9e685b16440322fe0599c6fd9ae201b50531212115f317",
+      "browser_captured_at": "2026-11-17T10:04:46+08:00",
+      "browser_captured_at_method": "source capture file filesystem mtime (seconds precision); browser navigation start time NOT_RECORDED",
+      "capture_items_count": 0,
+      "visible_results_after_host_filter": 0,
+      "processed_at_window": "2026-11-17T10:13:41+08:00 – 2026-11-17T10:17:25+08:00",
+      "http_checked_at_window": "2026-11-17T10:13:41+08:00 – 2026-11-17T10:17:25+08:00",
+      "note": "Google returned the no-matching-content page; zero result items"
+    },
+    {
+      "page": 6,
+      "capture_file": "captures/page_6.json",
+      "capture_file_sha256": "3e656e6424cc61a11d87ecacf2c1cd8dfbcb1b5cc1de4977c53e29ca25b90236",
+      "source_capture_file": "E:/workspace/独立站/morries/reports/seo/google-indexed-urls/_capture_page_6.json",
+      "source_capture_sha256": "58e0269433f33ea9895e5f112fb4aa163a346deb731dd043fd01b3c1a48e4def",
+      "browser_captured_at": "2026-11-17T10:07:32+08:00",
+      "browser_captured_at_method": "source capture file filesystem mtime (seconds precision); browser navigation start time NOT_RECORDED",
+      "capture_items_count": 0,
+      "visible_results_after_host_filter": 0,
+      "processed_at_window": "2026-11-17T10:13:41+08:00 – 2026-11-17T10:17:25+08:00",
+      "http_checked_at_window": "2026-11-17T10:13:41+08:00 – 2026-11-17T10:17:25+08:00",
+      "note": "Google returned the no-matching-content page; zero result items"
+    }
+  ]
+}
