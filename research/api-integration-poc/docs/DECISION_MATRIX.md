@@ -137,3 +137,4 @@
 | D-10 | 是否需要保存平台侧互动数据用于线索归因 | 影响分析接口范围与配额预算 |
 | D-11 | 真实发布白名单的目标清单与变更审批人 | 决定 `PUBLISH_TARGET_ALLOWLIST` 内容与运维流程 |
 | D-12 | LinkedIn 组织页 URN 与授权管理员 | 决定组织身份 author 的解析路径；个人身份不能替代 |
+| D-13 | Ayrshare 专用 Profile Key 的归属与轮换 | Profile Key 是真实发布唯一账号身份；多 Profile 或 `default` 占位会导致发错账号 |

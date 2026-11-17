@@ -118,7 +118,7 @@ export class GA4Provider extends AnalyticsProvider {
     return 'ga4';
   }
 
-  async listProperties() {
+  async listProperties({ maxPages = 50 } = {}) {
     if (this.mode === 'mock') {
       return flattenAccountSummaries(MOCK_ACCOUNT_SUMMARIES);
     }
@@ -139,7 +139,14 @@ export class GA4Provider extends AnalyticsProvider {
       properties.push(...flattenAccountSummaries(res.body));
       pageToken = res.body?.nextPageToken || null;
       pages += 1;
-    } while (pageToken && pages < 50);
+    } while (pageToken && pages < maxPages);
+    if (pageToken) {
+      throw new PocError(
+        ErrorCode.PLATFORM_ERROR,
+        `accountSummaries 分页超过 ${maxPages} 页仍未结束，结果不完整，已中止`,
+        { provider: 'ga4', retryable: false, details: { pages, nextPageToken: pageToken } }
+      );
+    }
     return properties;
   }
 

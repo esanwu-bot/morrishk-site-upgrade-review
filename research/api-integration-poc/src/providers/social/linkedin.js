@@ -7,10 +7,23 @@ import { isExpired } from '../../token-store.js';
 const AUTH_BASE = 'https://www.linkedin.com/oauth/v2/authorization';
 const TOKEN_URL = 'https://www.linkedin.com/oauth/v2/accessToken';
 const API_BASE = 'https://api.linkedin.com';
-const SCOPES = ['openid', 'profile', 'w_organization_social'];
+const DEFAULT_API_VERSION = '202610';
+// 发布与组织发现是两套权限：w_organization_social 只能发帖，不能枚举 organizationAcls。
+export const PUBLISH_SCOPES = ['openid', 'profile', 'w_organization_social'];
+export const ORG_ADMIN_SCOPE = 'rw_organization_admin';
 
 export class LinkedInProvider extends SocialProvider {
-  constructor({ mode, config, tokenStore, logger, timeoutMs = 15_000, authBase = AUTH_BASE, tokenUrl = TOKEN_URL, apiBase = API_BASE }) {
+  constructor({
+    mode,
+    config,
+    tokenStore,
+    logger,
+    timeoutMs = 15_000,
+    authBase = AUTH_BASE,
+    tokenUrl = TOKEN_URL,
+    apiBase = API_BASE,
+    apiVersion = DEFAULT_API_VERSION
+  }) {
     super({ mode });
     this.config = config;
     this.tokenStore = tokenStore;
@@ -19,6 +32,7 @@ export class LinkedInProvider extends SocialProvider {
     this.authBase = authBase;
     this.tokenUrl = tokenUrl;
     this.apiBase = apiBase;
+    this.apiVersion = apiVersion;
     this.counter = 0;
     this.issuedStates = new Set();
   }
@@ -34,19 +48,20 @@ export class LinkedInProvider extends SocialProvider {
     return missing;
   }
 
-  async connect({ state = randomUUID() } = {}) {
+  async connect({ state = randomUUID(), includeOrgAdmin = this.config.linkedin?.orgAdminDiscovery === true } = {}) {
     if (this.mode === 'real' && this.missingConfig().length) {
       throw blockedCredential('linkedin', this.missingConfig());
     }
+    const scopes = includeOrgAdmin ? [...PUBLISH_SCOPES, ORG_ADMIN_SCOPE] : [...PUBLISH_SCOPES];
     const params = new URLSearchParams({
       response_type: 'code',
       client_id: this.mode === 'mock' ? 'mock-client' : this.config.linkedin.clientId,
       redirect_uri: this.config.linkedin.redirectUri,
       state,
-      scope: SCOPES.join(' ')
+      scope: scopes.join(' ')
     });
     this.issuedStates.add(state);
-    return { authorizationUrl: `${this.authBase}?${params.toString()}`, state };
+    return { authorizationUrl: `${this.authBase}?${params.toString()}`, state, scopes, includeOrgAdmin };
   }
 
   async handleCallback({ code, state, expectedState }) {
@@ -92,7 +107,7 @@ export class LinkedInProvider extends SocialProvider {
       accessToken: body.access_token,
       refreshToken: body.refresh_token || null,
       expiresAt: Date.now() + Number(body.expires_in || 0) * 1000,
-      scope: body.scope || SCOPES.join(' '),
+      scope: body.scope || PUBLISH_SCOPES.join(' '),
       tokenType: body.token_type || 'Bearer'
     };
   }
@@ -168,7 +183,7 @@ export class LinkedInProvider extends SocialProvider {
       url: `${this.apiBase}/rest/organizations/${encodeURIComponent(id)}`,
       headers: {
         authorization: `Bearer ${tokens.accessToken}`,
-        'LinkedIn-Version': '202506'
+        'LinkedIn-Version': this.apiVersion
       },
       logger: this.logger
     });
@@ -186,21 +201,42 @@ export class LinkedInProvider extends SocialProvider {
       return [{ id: 'mock-org-1001', urn: 'urn:li:organization:mock-1001', role: 'ADMINISTRATOR', state: 'APPROVED', mode: 'mock' }];
     }
     const tokens = await this.ensureToken();
+    const scopes = String(tokens.scope || '').split(/\s+/);
+    if (!scopes.includes(ORG_ADMIN_SCOPE)) {
+      throw new PocError(
+        ErrorCode.BLOCKED_PERMISSION,
+        `组织发现需要 ${ORG_ADMIN_SCOPE}；w_organization_social 仅授予发帖，不能枚举 organizationAcls`,
+        { provider: 'linkedin', details: { granted: tokens.scope || null, required: ORG_ADMIN_SCOPE } }
+      );
+    }
+    // 官方文档：GET /rest/organizationAcls?q=roleAssignee，需 X-Restli-Protocol-Version 与 LinkedIn-Version
+    const url = new URL(`${this.apiBase}/rest/organizationAcls`);
+    url.searchParams.set('q', 'roleAssignee');
+    url.searchParams.set('role', 'ADMINISTRATOR');
+    url.searchParams.set('state', 'APPROVED');
+    url.searchParams.set('count', '10');
     const res = await request({
       provider: 'linkedin',
-      url: `${this.apiBase}/v2/organizationAcls?q=roleAssignee&role=ADMINISTRATOR&state=APPROVED`,
+      url: url.toString(),
       headers: {
         authorization: `Bearer ${tokens.accessToken}`,
-        'X-Restli-Protocol-Version': '2.0.0'
+        'X-Restli-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': this.apiVersion
       },
       logger: this.logger
     });
-    return (res.body.elements || []).map((el) => ({
-      urn: el.organization,
-      id: String(el.organization || '').split(':').pop(),
-      role: el.role || null,
-      state: el.state || null
-    }));
+    return (res.body.elements || [])
+      .map((el) => {
+        // 官方响应两种字段名都出现过：organization / organizationTarget
+        const urn = el.organization || el.organizationTarget || '';
+        return {
+          urn,
+          id: String(urn).split(':').pop(),
+          role: el.role || null,
+          state: el.state || null
+        };
+      })
+      .filter((el) => el.urn);
   }
 
   async resolveAuthorUrn() {
@@ -211,8 +247,9 @@ export class LinkedInProvider extends SocialProvider {
     const orgs = await this.discoverOrganizations();
     if (!orgs.length) {
       throw new PocError(
-        ErrorCode.CONFIG_MISSING,
-        '未找到可发布的组织主页，请配置 LINKEDIN_AUTHOR_URN 或授予 Community Management 权限'
+        ErrorCode.BLOCKED_PERMISSION,
+        '未找到可发布的组织主页：授权用户没有 ADMINISTRATOR 角色，或未授予组织管理权限',
+        { provider: 'linkedin', details: { required: ORG_ADMIN_SCOPE } }
       );
     }
     return orgs[0].urn;
@@ -246,7 +283,13 @@ export class LinkedInProvider extends SocialProvider {
       };
     }
     const tokens = await this.ensureToken();
-    const urn = authorUrn || (await this.resolveAuthorUrn());
+    if (!authorUrn) {
+      throw new PocError(
+        ErrorCode.CONFIG_MISSING,
+        'LinkedIn 真实发布必须显式传入最终 authorUrn，禁止隐式解析或默认组织'
+      );
+    }
+    const urn = authorUrn;
     const res = await request({
       provider: 'linkedin',
       url: `${this.apiBase}/rest/posts`,
@@ -254,7 +297,7 @@ export class LinkedInProvider extends SocialProvider {
       headers: {
         ...jsonHeaders(),
         authorization: `Bearer ${tokens.accessToken}`,
-        'LinkedIn-Version': '202506',
+        'LinkedIn-Version': this.apiVersion,
         'X-Restli-Protocol-Version': '2.0.0'
       },
       body: JSON.stringify({
@@ -287,7 +330,7 @@ export class LinkedInProvider extends SocialProvider {
       url: `${this.apiBase}/rest/posts/${encodeURIComponent(id)}`,
       headers: {
         authorization: `Bearer ${tokens.accessToken}`,
-        'LinkedIn-Version': '202506'
+        'LinkedIn-Version': this.apiVersion
       },
       logger: this.logger
     });

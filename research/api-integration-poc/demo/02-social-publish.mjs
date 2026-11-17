@@ -2,8 +2,8 @@ import { loadEnv, loadConfig } from '../src/config.js';
 import { createLogger } from '../src/log.js';
 import { createProviders } from '../src/factory.js';
 import { MemoryIdempotencyStore } from '../src/idempotency.js';
-import { assertPublishAllowed, statusLabel } from '../src/publish-guard.js';
-import { PocError } from '../src/errors.js';
+import { assertPublishAllowed, requireExplicitTarget, statusLabel } from '../src/publish-guard.js';
+import { PocError, ErrorCode } from '../src/errors.js';
 
 loadEnv();
 const config = loadConfig();
@@ -13,10 +13,17 @@ const store = new MemoryIdempotencyStore();
 const results = [];
 const real = config.mode === 'real';
 
-function argValue(name, fallback = null) {
+function readArg(name) {
   const prefix = `--${name}=`;
-  const found = process.argv.find((arg) => arg.startsWith(prefix));
-  return found ? found.slice(prefix.length) : fallback;
+  for (let i = 0; i < process.argv.length; i += 1) {
+    const arg = process.argv[i];
+    if (arg.startsWith(prefix)) return arg.slice(prefix.length);
+    if (arg === `--${name}`) {
+      const next = process.argv[i + 1];
+      return next && !next.startsWith('--') ? next : '';
+    }
+  }
+  return null;
 }
 
 function record(step, status, detail) {
@@ -98,31 +105,52 @@ async function runMockFlows() {
 }
 
 async function runSingleRealPublish() {
-  const provider = argValue('provider', 'ayrshare');
-  const platform = argValue('platform', 'linkedin');
-  const account = argValue('account', 'default');
-  const text = argValue('text', 'Morrishk API 预研真实发布测试（单平台单次）');
+  const provider = readArg('provider');
+  const platform = readArg('platform');
+  const rawAccount = readArg('account');
+  const text = readArg('text') || 'Morrishk API 预研真实发布测试（单平台单次）';
+
+  // 1. provider / platform / account 必须全部显式传入，且不能是占位值（不触网）
+  requireExplicitTarget({ provider, platform, account: rawAccount });
+
+  // 2. 解析最终账号身份：LinkedIn 绑定组织 URN，Ayrshare 绑定 Profile Key（不触网）
+  let account = rawAccount;
+  let authorUrn = null;
+  if (provider === 'linkedin') {
+    if (platform !== 'linkedin') {
+      throw new PocError(ErrorCode.BLOCKED_PLATFORM, 'LinkedIn 官方接口只支持 platform=linkedin');
+    }
+    const match = /^(?:urn:li:organization:)?(\d+)$/.exec(String(rawAccount).trim());
+    if (!match) {
+      throw new PocError(
+        ErrorCode.POLICY_BLOCKED,
+        'LinkedIn account 必须是组织数字 ID（或 organization URN），禁止使用 default/占位值'
+      );
+    }
+    account = match[1];
+    authorUrn = `urn:li:organization:${account}`;
+  }
   const target = `${provider}:${platform}:${account}`;
 
-  // 真实模式只允许一次、一个目标、一个平台；不做批量或媒体混合发布
+  // 3. 白名单校验必须在任何发布请求之前完成；LinkedIn 同时校验最终 authorUrn
   const guard = assertPublishAllowed(config, {
     confirmPublish: process.argv.includes('--confirm-publish'),
-    targets: [target]
+    targets: [target],
+    authorUrn
   });
-  record('真实发布目标', 'INFO', `${target}，单平台单次`);
+  record('真实发布目标', 'INFO', `${target}${authorUrn ? `，author=${authorUrn}` : ''}，单平台单次`);
 
+  // 4. 发布：一次、一个目标、一个平台
   if (provider === 'ayrshare') {
     const res = await social.ayrshare.publish({
       text,
       platforms: [platform],
+      profileKey: account,
       idempotencyKey: `poc-real-${Date.now()}`
     });
-    record('真实发布', statusLabel(guard.real, true), `id=${res.id}, status=${res.status}`);
+    record('真实发布', statusLabel(guard.real, true), `id=${res.id}, status=${res.status}, profile=${res.profileKey}`);
   } else if (provider === 'linkedin') {
-    const res = await social.linkedin.publish({
-      text,
-      authorUrn: account === 'default' ? undefined : `urn:li:organization:${account}`
-    });
+    const res = await social.linkedin.publish({ text, authorUrn });
     record('真实发布', statusLabel(guard.real, true), `id=${res.id}, author=${res.authorUrn}`);
   } else {
     record('真实发布', 'BLOCKED_PLATFORM', `Demo 未实现 provider=${provider}`);

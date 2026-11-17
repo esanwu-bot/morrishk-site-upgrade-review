@@ -44,6 +44,11 @@ function readBody(req) {
 test('idempotencyKey 进入真实 POST Body，并与本地幂等区分', async () => {
   const bodies = [];
   const srv = await startServer(async (req, res) => {
+    if (req.url === '/api/user' && req.method === 'GET') {
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ activeSocialAccounts: ['linkedin'] }));
+      return;
+    }
     if (req.url === '/api/post' && req.method === 'POST') {
       bodies.push(await readBody(req));
       res.setHeader('content-type', 'application/json');
@@ -58,6 +63,7 @@ test('idempotencyKey 进入真实 POST Body，并与本地幂等区分', async (
     const result = await provider.publish({
       text: 'hello',
       platforms: ['linkedin'],
+      profileKey: 'profile-fixture',
       idempotencyKey: 'idem-real-1'
     });
 
@@ -76,6 +82,11 @@ test('idempotencyKey 进入真实 POST Body，并与本地幂等区分', async (
 test('本地幂等：重复调用只产生一次真实 POST，冲突内容被拒绝', async () => {
   let posts = 0;
   const srv = await startServer(async (req, res) => {
+    if (req.url === '/api/user' && req.method === 'GET') {
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ activeSocialAccounts: ['linkedin'] }));
+      return;
+    }
     if (req.url === '/api/post' && req.method === 'POST') {
       posts += 1;
       await readBody(req);
@@ -89,7 +100,7 @@ test('本地幂等：重复调用只产生一次真实 POST，冲突内容被拒
   try {
     const provider = makeProvider(srv.baseUrl);
     const store = new MemoryIdempotencyStore();
-    const payload = { text: 'same', platforms: ['linkedin'], idempotencyKey: 'idem-local-1' };
+    const payload = { text: 'same', platforms: ['linkedin'], profileKey: 'profile-fixture', idempotencyKey: 'idem-local-1' };
     const run = () => store.run('idem-local-1', JSON.stringify(payload), () => provider.publish(payload));
 
     const first = await run();
@@ -110,6 +121,11 @@ test('本地幂等：重复调用只产生一次真实 POST，冲突内容被拒
 test('发布 POST 超时只发送一次，不做无保护重试', async () => {
   let posts = 0;
   const srv = await startServer((req, res) => {
+    if (req.url === '/api/user' && req.method === 'GET') {
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ activeSocialAccounts: ['linkedin'] }));
+      return;
+    }
     if (req.url === '/api/post' && req.method === 'POST') {
       posts += 1;
       req.resume();
@@ -121,7 +137,7 @@ test('发布 POST 超时只发送一次，不做无保护重试', async () => {
   try {
     const provider = makeProvider(srv.baseUrl, { timeoutMs: 60 });
     await assert.rejects(
-      () => provider.publish({ text: 'timeout', platforms: ['linkedin'], idempotencyKey: 'idem-timeout' }),
+      () => provider.publish({ text: 'timeout', platforms: ['linkedin'], profileKey: 'profile-fixture', idempotencyKey: 'idem-timeout' }),
       (err) => err.code === ErrorCode.RETRY_EXHAUSTED && /超时/.test(err.message)
     );
     assert.equal(posts, 1);
@@ -133,6 +149,11 @@ test('发布 POST 超时只发送一次，不做无保护重试', async () => {
 test('发布 POST 遇到 5xx 默认不重试', async () => {
   let posts = 0;
   const srv = await startServer((req, res) => {
+    if (req.url === '/api/user' && req.method === 'GET') {
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ activeSocialAccounts: ['linkedin'] }));
+      return;
+    }
     if (req.url === '/api/post' && req.method === 'POST') {
       posts += 1;
       req.resume();
@@ -146,7 +167,7 @@ test('发布 POST 遇到 5xx 默认不重试', async () => {
   try {
     const provider = makeProvider(srv.baseUrl);
     await assert.rejects(
-      () => provider.publish({ text: 'fail', platforms: ['linkedin'] }),
+      () => provider.publish({ text: 'fail', platforms: ['linkedin'], profileKey: 'profile-fixture' }),
       (err) => err.code === ErrorCode.PLATFORM_ERROR
     );
     assert.equal(posts, 1);

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   assertPublishAllowed,
   assertMpWriteAllowed,
+  requireExplicitTarget,
   statusLabel
 } from '../src/publish-guard.js';
 import { ErrorCode } from '../src/errors.js';
@@ -12,6 +13,13 @@ const allowedConfig = {
   allowRealPublish: true,
   allowRealMp: true,
   publishAllowlist: ['ayrshare:linkedin:page-1']
+};
+
+const linkedinConfig = {
+  mode: 'real',
+  allowRealPublish: true,
+  allowRealMp: false,
+  publishAllowlist: ['linkedin:linkedin:1001']
 };
 
 test('mock 模式始终允许，且不视为真实发布', () => {
@@ -63,6 +71,63 @@ test('白名单目标 + 双开关同时满足才放行', () => {
     real: true,
     targets: ['ayrshare:linkedin:page-1']
   });
+});
+
+test('真实发布必须显式传入 provider/platform/account，不提供默认目标', () => {
+  assert.throws(
+    () => requireExplicitTarget({}),
+    (err) =>
+      err.code === ErrorCode.POLICY_BLOCKED &&
+      /--provider/.test(err.message) &&
+      /--platform/.test(err.message) &&
+      /--account/.test(err.message)
+  );
+  assert.throws(
+    () => requireExplicitTarget({ provider: 'ayrshare' }),
+    (err) => err.code === ErrorCode.POLICY_BLOCKED && /--platform/.test(err.message) && /--account/.test(err.message)
+  );
+  assert.equal(requireExplicitTarget({ provider: 'ayrshare', platform: 'linkedin', account: 'page-1' }), 'ayrshare:linkedin:page-1');
+});
+
+test('account=default 等占位值不能作为真实账号身份', () => {
+  for (const account of ['default', 'DEFAULT', 'all', '*', 'any', 'profile']) {
+    assert.throws(
+      () => requireExplicitTarget({ provider: 'ayrshare', platform: 'linkedin', account }),
+      (err) => err.code === ErrorCode.POLICY_BLOCKED && /占位值/.test(err.message),
+      account
+    );
+    assert.throws(
+      () => assertPublishAllowed({ ...allowedConfig, publishAllowlist: [`ayrshare:linkedin:${account}`] }, { confirmPublish: true, targets: [`ayrshare:linkedin:${account}`] }),
+      (err) => err.code === ErrorCode.POLICY_BLOCKED && /占位值/.test(err.message),
+      account
+    );
+  }
+});
+
+test('LinkedIn 白名单目标必须与最终 authorUrn 一致', () => {
+  assert.deepEqual(
+    assertPublishAllowed(linkedinConfig, { confirmPublish: true, targets: ['linkedin:linkedin:1001'], authorUrn: 'urn:li:organization:1001' }),
+    { allowed: true, real: true, targets: ['linkedin:linkedin:1001'] }
+  );
+  assert.throws(
+    () => assertPublishAllowed(linkedinConfig, { confirmPublish: true, targets: ['linkedin:linkedin:1001'], authorUrn: 'urn:li:organization:2002' }),
+    (err) => err.code === ErrorCode.POLICY_BLOCKED && /authorUrn 不匹配/.test(err.message)
+  );
+  assert.throws(
+    () => assertPublishAllowed(linkedinConfig, { confirmPublish: true, targets: ['linkedin:linkedin:1001'] }),
+    (err) => err.code === ErrorCode.POLICY_BLOCKED && /authorUrn/.test(err.message)
+  );
+  assert.throws(
+    () => assertPublishAllowed(linkedinConfig, { confirmPublish: true, targets: ['linkedin:linkedin:1001'], authorUrn: 'urn:li:person:abc' }),
+    (err) => err.code === ErrorCode.POLICY_BLOCKED && /organization/.test(err.message)
+  );
+});
+
+test('目标格式必须是 provider:platform:account 三段', () => {
+  assert.throws(
+    () => assertPublishAllowed(allowedConfig, { confirmPublish: true, targets: ['ayrshare:linkedin:page-1:extra'] }),
+    (err) => err.code === ErrorCode.POLICY_BLOCKED && /格式/.test(err.message)
+  );
 });
 
 test('MP 真实写入有独立开关，不继承发布授权', async () => {

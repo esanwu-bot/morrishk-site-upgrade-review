@@ -2,6 +2,9 @@ import { SocialProvider } from './provider.js';
 import { PocError, ErrorCode, blockedCredential } from '../../errors.js';
 import { request, jsonHeaders } from '../../http.js';
 
+// platform 只是渠道，不是账号身份；这些占位值不得作为真实目标。
+const PLACEHOLDER_PROFILES = new Set(['default', 'all', '*', 'any', 'profile']);
+
 export class AyrshareProvider extends SocialProvider {
   constructor({ mode, config, logger, timeoutMs = 15_000 }) {
     super({ mode });
@@ -59,11 +62,81 @@ export class AyrshareProvider extends SocialProvider {
     return Array.isArray(accounts) ? accounts[0] : accounts;
   }
 
-  authHeaders() {
-    return { ...jsonHeaders(), authorization: `Bearer ${this.config.ayrshare.apiKey}` };
+  authHeaders(profileKey) {
+    const headers = { ...jsonHeaders(), authorization: `Bearer ${this.config.ayrshare.apiKey}` };
+    // 官方文档：发布到指定 User Profile 时，Profile-Key 放在请求头，不放 body
+    if (profileKey) headers['Profile-Key'] = profileKey;
+    return headers;
   }
 
-  async publish({ text, platforms = ['linkedin'], mediaUrls = [], scheduleDate, idempotencyKey }) {
+  assertProfileKey(profileKey) {
+    const key = String(profileKey || '').trim();
+    if (!key) {
+      throw new PocError(
+        ErrorCode.POLICY_BLOCKED,
+        'Ayrshare 真实发布必须显式指定 Profile Key（account），platform 不能代替账号身份'
+      );
+    }
+    if (PLACEHOLDER_PROFILES.has(key.toLowerCase())) {
+      throw new PocError(
+        ErrorCode.POLICY_BLOCKED,
+        `account=${key} 是占位值，不是真实 Ayrshare Profile，禁止真实发布`
+      );
+    }
+    return key;
+  }
+
+  async resolvePublishTarget({ profileKey, platform }) {
+    const key = this.assertProfileKey(profileKey);
+    if (!platform) {
+      throw new PocError(ErrorCode.BAD_REQUEST, 'Ayrshare 目标必须指定 platform');
+    }
+    if (this.mode === 'mock') {
+      return { profileKey: key, platform, platforms: [platform], mode: 'mock' };
+    }
+    if (this.missingConfig().length) throw blockedCredential('ayrshare', this.missingConfig());
+
+    // 发布前预检：/api/user 带 Profile-Key 返回该 Profile 已关联的社交账号。
+    // 若无法确认该 Profile 与目标平台的唯一绑定，直接拒绝，不发送 POST /api/post。
+    const res = await request({
+      provider: 'ayrshare',
+      url: `${this.config.ayrshare.baseUrl}/api/user`,
+      headers: this.authHeaders(key),
+      logger: this.logger
+    });
+    const body = res.body;
+    const list = Array.isArray(body)
+      ? body
+      : body?.activeSocialAccounts || body?.accounts || body?.socialAccounts || [];
+    const platforms = list
+      .map((item) => (typeof item === 'string' ? item : item?.platform || item?.type || ''))
+      .filter(Boolean);
+    if (!platforms.length) {
+      throw new PocError(
+        ErrorCode.BLOCKED_PERMISSION,
+        'Ayrshare 无法从 /api/user 确认该 Profile 的已关联平台，拒绝真实发布',
+        { provider: 'ayrshare', details: { profileKey: key } }
+      );
+    }
+    const matches = platforms.filter((item) => item === platform).length;
+    if (matches === 0) {
+      throw new PocError(
+        ErrorCode.BLOCKED_PERMISSION,
+        `Ayrshare Profile ${key} 未关联平台 ${platform}，拒绝真实发布`,
+        { provider: 'ayrshare', details: { profileKey: key, platform, platforms } }
+      );
+    }
+    if (matches > 1) {
+      throw new PocError(
+        ErrorCode.BLOCKED_PERMISSION,
+        `Ayrshare Profile ${key} 在平台 ${platform} 有多个已关联账号，无法确认唯一目标，拒绝真实发布`,
+        { provider: 'ayrshare', details: { profileKey: key, platform, platforms } }
+      );
+    }
+    return { profileKey: key, platform, platforms, source: '/api/user' };
+  }
+
+  async publish({ text, platforms = ['linkedin'], mediaUrls = [], scheduleDate, idempotencyKey, profileKey }) {
     if (!text || !text.trim()) throw new PocError(ErrorCode.BAD_REQUEST, '发布内容不能为空');
     if (!Array.isArray(platforms) || !platforms.length) {
       throw new PocError(ErrorCode.BAD_REQUEST, '至少选择一个平台');
@@ -93,11 +166,20 @@ export class AyrshareProvider extends SocialProvider {
     }
 
     if (this.missingConfig().length) throw blockedCredential('ayrshare', this.missingConfig());
+    if (platforms.length !== 1) {
+      throw new PocError(
+        ErrorCode.POLICY_BLOCKED,
+        'Ayrshare 真实发布一次只能指定一个平台，禁止用多平台替代账号身份'
+      );
+    }
+    // platform 只决定渠道；账号身份必须由 Profile-Key 唯一确定，并在 POST 前完成绑定预检
+    const key = this.assertProfileKey(profileKey);
+    const target = await this.resolvePublishTarget({ profileKey: key, platform: platforms[0] });
     const res = await request({
       provider: 'ayrshare',
       url: `${this.config.ayrshare.baseUrl}/api/post`,
       method: 'POST',
-      headers: this.authHeaders(),
+      headers: this.authHeaders(key),
       body: JSON.stringify({
         post: text,
         platforms,
@@ -115,6 +197,9 @@ export class AyrshareProvider extends SocialProvider {
       ...res.body,
       mode: 'real',
       idempotencyKey: idempotencyKey || null,
+      profileKey: key,
+      target: { profileKey: key, platform: platforms[0] },
+      preflight: { verified: true, source: target.source, platforms: target.platforms },
       idempotency: {
         key: idempotencyKey || null,
         localStore: 'MemoryIdempotencyStore（Demo 本地）',

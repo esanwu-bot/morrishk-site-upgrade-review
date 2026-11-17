@@ -11,7 +11,14 @@ export function createProviders(config, logger, overrides = {}) {
     social: {
       linkedin:
         overrides.linkedin ||
-        new LinkedInProvider({ mode: config.mode, config, tokenStore, logger }),
+        new LinkedInProvider({
+          mode: config.mode,
+          config,
+          tokenStore,
+          logger,
+          apiBase: config.linkedin?.apiBase,
+          apiVersion: config.linkedin?.apiVersion
+        }),
       ayrshare:
         overrides.ayrshare || new AyrshareProvider({ mode: config.mode, config, logger })
     },

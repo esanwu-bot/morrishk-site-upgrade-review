@@ -30,4 +30,5 @@
 | OQ-19 | 是否有指定的数据驻留/合规要求（GDPR 等）？ | 影响聚合商与托管商选择 | 按客户所在司法辖区另行确认 | AUTH §3 |
 | OQ-20 | 谁负责平台审核材料的准备与提交？ | 审核需要企业资质与录屏 | 客户提供资质，项目方准备技术材料 | AUTH §5 |
 | OQ-21 | 真实发布白名单由谁维护、变更走什么审批？ | 白名单是防误发的最后一道闸门，必须由客户确认 | 客户书面确认目标清单，变更需重新确认 | AUTH §3 |
-| OQ-22 | LinkedIn 组织页 URN 由谁提供？授权用户是否为该页管理员？ | 组织 Identity 无法从个人 token 推断；管理员角色决定能否发帖 | 客户提供 `LINKEDIN_AUTHOR_URN` 或 `LINKEDIN_ORGANIZATION_ID` | AUTH §2.2 |
+| OQ-22 | LinkedIn 组织页 URN 由谁提供？授权用户是否为该页管理员？是否需要组织发现权限？ | 组织 Identity 无法从个人 token 推断；管理员角色决定能否发帖；`w_organization_social` 不能枚举 organizationAcls | 客户提供 `LINKEDIN_AUTHOR_URN` 或 `LINKEDIN_ORGANIZATION_ID`；如需自动发现，另行申请 `rw_organization_admin` | AUTH §2.2 |
+| OQ-23 | Ayrshare Profile Key 由谁创建、持有与轮换？一个 Profile 是否只绑定目标组织页？ | Profile Key 是真实发布的账号身份，platform 不能替代；多 Profile 可能导致发错账号 | 客户在 Ayrshare 控制台创建专用 Profile 并提供 Key，禁止使用 `default` 占位 | AUTH §3 |

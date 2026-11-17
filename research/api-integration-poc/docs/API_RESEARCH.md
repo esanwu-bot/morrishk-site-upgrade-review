@@ -2,13 +2,15 @@
 
 | 项目 | 内容 |
 |---|---|
-| 文档版本 | V1.1（按 Reviewer 复核意见修订） |
+| 文档版本 | V1.2（按 Reviewer 166e542 P1 补充复核意见修订） |
 | 调研日期 | 2026-11-17 |
 | 适用项目 | Morrishk 全球 B2B 独立站升级（预研） |
 | 文档性质 | 技术预研，不构成功能承诺、采购决定或报价 |
 | 依据范围 | 仅采用平台官方文档与供应商官方文档；每条结论标注来源编号（见第 7 节） |
 
 **V1.1 修订说明**：按 Reviewer 复核意见，补充 Mux 上传请求的真实字段名（`new_asset_settings.playback_policies`）、GA4 `accountSummaries.list` 的真实响应结构与分页、Ayrshare 的幂等字段 `idempotencyKey`，并明确「Mock 分块计数 ≠ 真实断点续传」。所有新增结论仍来自官方文档，未进行任何真实凭证调用。
+
+**V1.2 修订说明**：修正 LinkedIn 组织发现接口为版本化 REST `GET /rest/organizationAcls`（需 `X-Restli-Protocol-Version: 2.0.0` 与 `LinkedIn-Version`），并拆分发布 scope `w_organization_social` 与组织发现 scope `rw_organization_admin`；补充 Ayrshare `Profile-Key` 请求头与 `GET /api/user` 账号绑定预检；GA4 分页达到上限时显式失败，不再静默截断。仍未进行任何真实凭证调用。
 
 **标记约定**
 
@@ -56,7 +58,9 @@
 | Token 生命周期 | Access token 60 天（`expires_in=5184000`），返回 refresh token；程序化刷新仅对特定合作伙伴开放，普通应用到期需重新授权 | [S8] |
 | 应用审核 | Community Management API 属 vetted product：先 Development tier，再申请 Standard tier（需录屏与技术签核） | [S10] |
 | 账号类型 | 组织主页；调用者需为 ADMINISTRATOR / CONTENT_ADMIN / DIRECT_SPONSORED_CONTENT_POSTER | [S9][S10] |
-| 发布 | Posts API 创建/读取/部分更新/删除；删除返回 204，无批量删除 | [S9] |
+| 发布 | Posts API 创建/读取/部分更新/删除；删除返回 204，无批量删除；`POST /rest/posts` 需 `LinkedIn-Version` 与 `X-Restli-Protocol-Version` | [S9] |
+| 发布权限 | `w_organization_social`（组织发帖）；个人发帖为 `w_member_social`，二者不可混用 | [S9][S10] |
+| 组织发现 | `GET /rest/organizationAcls?q=roleAssignee&role=ADMINISTRATOR&state=APPROVED&count=10`，需 `rw_organization_admin`（或只读 `r_organization_admin`）；`w_organization_social` **不能**替代；响应元素字段可能为 `organization` 或 `organizationTarget` | [S9][S10] |
 | 媒体 | 图片、视频、文档、文章、MultiImage、投票；**自然流量不支持轮播（仅赞助内容）** | [S9] |
 | 数据读取 | Follower Statistics、Page Statistics、Share Statistics、Social Metadata（互动/评论）、Video Analytics | [S10] |
 | 速率限制 | Development tier：500 请求/应用、100/成员；Standard tier 限额未公开 | [S10] |
@@ -125,6 +129,7 @@
 | 统一发布 | `POST /api/post`，`platforms[]` + `scheduleDate` | 发布 + 排期接口 |
 | 统一授权 | 客户在聚合平台完成各社媒 OAuth 关联 | `GET /v1/connect/{platform}` 打开浏览器授权 |
 | 幂等 | `POST /api/post` 请求体支持 `idempotencyKey`；同一 key 重复提交会被供应商拒绝（错误码 110），**这是供应商侧幂等，与本地去重是两回事** | 幂等字段 **UNVERIFIED** |
+| 账号身份 | 发布到指定 User Profile 时，`Profile-Key` 放在**请求头**（与 `Authorization: Bearer <API_KEY>` 并用）；`GET /api/profiles` 不返回 Profile Key；带 `Profile-Key` 的 `GET /api/user` 返回该 Profile 已关联账号。`platforms[]` 只表示渠道，不能唯一确定账号；若目标平台出现多个账号则视为无法唯一确认，拒绝真实发布 | [S25][S26] |
 | 视频 | 支持；**视频能力需付费套餐** | 支持（各平台上限 **UNVERIFIED**） |
 | 分析/评论 | 提供分析与评论管理接口 | 提供分析与评论接口 |
 | 客户仍需做的事 | 各平台账号 OAuth；LinkedIn 组织角色；IG 专业账号；**自 2026-03-31 起 X 操作需客户自备 X API 凭证** | 各平台 OAuth；平台审核是否完全由聚合方承担 **UNVERIFIED** |

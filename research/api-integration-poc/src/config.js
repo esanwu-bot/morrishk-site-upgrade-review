@@ -55,7 +55,12 @@ export function loadConfig(overrides = {}) {
       clientSecret: process.env.LINKEDIN_CLIENT_SECRET || '',
       redirectUri: process.env.LINKEDIN_REDIRECT_URI || 'http://127.0.0.1:8787/callback/linkedin',
       authorUrn: process.env.LINKEDIN_AUTHOR_URN || '',
-      organizationId: process.env.LINKEDIN_ORGANIZATION_ID || ''
+      organizationId: process.env.LINKEDIN_ORGANIZATION_ID || '',
+      // 便于本地 fixture 测试；生产默认官方域名
+      apiBase: process.env.LINKEDIN_API_BASE || 'https://api.linkedin.com',
+      apiVersion: process.env.LINKEDIN_API_VERSION || '202610',
+      // 组织发现需要额外申请 rw_organization_admin，默认不申请
+      orgAdminDiscovery: String(process.env.LINKEDIN_ORG_ADMIN_DISCOVERY || 'false') === 'true'
     },
     mux: {
       tokenId: process.env.MUX_TOKEN_ID || '',

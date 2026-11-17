@@ -51,6 +51,23 @@ test('真实发布与 MP 写入开关默认关闭，白名单为空', () => {
   }
 });
 
+test('LinkedIn API 版本与组织发现默认保守', () => {
+  const keys = ['LINKEDIN_API_BASE', 'LINKEDIN_API_VERSION', 'LINKEDIN_ORG_ADMIN_DISCOVERY'];
+  const prev = Object.fromEntries(keys.map((k) => [k, process.env[k]]));
+  for (const k of keys) delete process.env[k];
+  try {
+    const cfg = loadConfig({ mode: 'mock' });
+    assert.equal(cfg.linkedin.apiBase, 'https://api.linkedin.com');
+    assert.equal(cfg.linkedin.apiVersion, '202610');
+    assert.equal(cfg.linkedin.orgAdminDiscovery, false);
+  } finally {
+    for (const k of keys) {
+      if (prev[k] === undefined) delete process.env[k];
+      else process.env[k] = prev[k];
+    }
+  }
+});
+
 test('发布目标白名单按逗号解析并去除空白', () => {
   const prev = process.env.PUBLISH_TARGET_ALLOWLIST;
   process.env.PUBLISH_TARGET_ALLOWLIST = ' ayrshare:linkedin:page-1 , linkedin:linkedin:1001 ,,';

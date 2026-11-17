@@ -115,12 +115,18 @@ test('真实模式：userinfo 映射为个人身份，组织接口单独返回',
   }
 });
 
-test('真实模式：无配置时通过 organizationAcls 发现 authorUrn', async () => {
+test('真实模式：/rest/organizationAcls 发现 authorUrn，携带版本头并兼容 organizationTarget', async () => {
   const calls = [];
   const srv = await startServer((req, res) => {
     const url = new URL(req.url, 'http://127.0.0.1');
-    calls.push({ path: url.pathname, query: Object.fromEntries(url.searchParams), auth: req.headers.authorization });
-    if (url.pathname === '/v2/organizationAcls') {
+    calls.push({
+      path: url.pathname,
+      query: Object.fromEntries(url.searchParams),
+      auth: req.headers.authorization,
+      restli: req.headers['x-restli-protocol-version'],
+      version: req.headers['linkedin-version']
+    });
+    if (url.pathname === '/rest/organizationAcls') {
       res.setHeader('content-type', 'application/json');
       res.end(JSON.stringify(acls));
       return;
@@ -128,7 +134,12 @@ test('真实模式：无配置时通过 organizationAcls 发现 authorUrn', asyn
     res.statusCode = 404;
     res.end('{}');
   });
-  const tmp = tempStore({ accessToken: 'fixture-token', refreshToken: 'r', expiresAt: Date.now() + 3600_000 });
+  const tmp = tempStore({
+    accessToken: 'fixture-token',
+    refreshToken: 'r',
+    expiresAt: Date.now() + 3600_000,
+    scope: 'openid profile w_organization_social rw_organization_admin'
+  });
   try {
     const provider = new LinkedInProvider({
       mode: 'real',
@@ -137,12 +148,79 @@ test('真实模式：无配置时通过 organizationAcls 发现 authorUrn', asyn
       logger: null,
       apiBase: srv.baseUrl
     });
-    const urn = await provider.resolveAuthorUrn();
-    assert.equal(urn, 'urn:li:organization:1001');
-    assert.equal(calls[0].path, '/v2/organizationAcls');
+    const orgs = await provider.discoverOrganizations();
+    assert.deepEqual(orgs.map((o) => o.urn), ['urn:li:organization:1001', 'urn:li:organization:1002']);
+    assert.equal(orgs[1].id, '1002');
+    assert.equal(await provider.resolveAuthorUrn(), 'urn:li:organization:1001');
+    assert.equal(calls.length, 2);
+    assert.equal(calls[0].path, '/rest/organizationAcls');
     assert.equal(calls[0].query.q, 'roleAssignee');
     assert.equal(calls[0].query.role, 'ADMINISTRATOR');
     assert.equal(calls[0].query.state, 'APPROVED');
+    assert.equal(calls[0].restli, '2.0.0');
+    assert.equal(calls[0].version, '202610');
+  } finally {
+    await srv.close();
+    tmp.cleanup();
+  }
+});
+
+test('真实模式：仅有 w_organization_social 时不能枚举 organizationAcls，且不发请求', async () => {
+  let calls = 0;
+  const srv = await startServer((req, res) => {
+    calls += 1;
+    res.statusCode = 500;
+    res.end('should not be called');
+  });
+  const tmp = tempStore({
+    accessToken: 'fixture-token',
+    refreshToken: 'r',
+    expiresAt: Date.now() + 3600_000,
+    scope: 'openid profile w_organization_social'
+  });
+  try {
+    const provider = new LinkedInProvider({
+      mode: 'real',
+      config: { linkedin: { clientId: 'id', clientSecret: 'secret', redirectUri: '', authorUrn: '', organizationId: '' } },
+      tokenStore: tmp.store,
+      logger: null,
+      apiBase: srv.baseUrl
+    });
+    await assert.rejects(
+      () => provider.discoverOrganizations(),
+      (err) => err.code === 'BLOCKED_PERMISSION' && /rw_organization_admin/.test(err.message)
+    );
+    assert.equal(calls, 0);
+  } finally {
+    await srv.close();
+    tmp.cleanup();
+  }
+});
+
+test('真实模式：组织 ACL 返回 403 时归类为 BLOCKED_PERMISSION', async () => {
+  const srv = await startServer((req, res) => {
+    res.statusCode = 403;
+    res.setHeader('content-type', 'application/json');
+    res.end(JSON.stringify({ message: 'Not enough permissions to access organizationAcls' }));
+  });
+  const tmp = tempStore({
+    accessToken: 'fixture-token',
+    refreshToken: 'r',
+    expiresAt: Date.now() + 3600_000,
+    scope: 'openid profile w_organization_social rw_organization_admin'
+  });
+  try {
+    const provider = new LinkedInProvider({
+      mode: 'real',
+      config: { linkedin: { clientId: 'id', clientSecret: 'secret', redirectUri: '', authorUrn: '', organizationId: '' } },
+      tokenStore: tmp.store,
+      logger: null,
+      apiBase: srv.baseUrl
+    });
+    await assert.rejects(
+      () => provider.discoverOrganizations(),
+      (err) => err.code === 'BLOCKED_PERMISSION' && err.status === 403
+    );
   } finally {
     await srv.close();
     tmp.cleanup();
@@ -173,12 +251,17 @@ test('真实模式：显式 authorUrn 优先，不触发发现请求', async () 
   }
 });
 
-test('真实模式：无组织配置且发现为空时抛 CONFIG_MISSING', async () => {
+test('真实模式：有 ACL 权限但发现为空时归类为 BLOCKED_PERMISSION', async () => {
   const srv = await startServer((req, res) => {
     res.setHeader('content-type', 'application/json');
     res.end(JSON.stringify({ elements: [] }));
   });
-  const tmp = tempStore({ accessToken: 'fixture-token', refreshToken: 'r', expiresAt: Date.now() + 3600_000 });
+  const tmp = tempStore({
+    accessToken: 'fixture-token',
+    refreshToken: 'r',
+    expiresAt: Date.now() + 3600_000,
+    scope: 'openid profile w_organization_social rw_organization_admin'
+  });
   try {
     const provider = new LinkedInProvider({
       mode: 'real',
@@ -187,7 +270,34 @@ test('真实模式：无组织配置且发现为空时抛 CONFIG_MISSING', async
       logger: null,
       apiBase: srv.baseUrl
     });
-    await assert.rejects(() => provider.resolveAuthorUrn(), (err) => err.code === 'CONFIG_MISSING');
+    await assert.rejects(() => provider.resolveAuthorUrn(), (err) => err.code === 'BLOCKED_PERMISSION');
+  } finally {
+    await srv.close();
+    tmp.cleanup();
+  }
+});
+
+test('真实模式：publish 未显式传入 authorUrn 时拒绝（不隐式解析组织）', async () => {
+  let calls = 0;
+  const srv = await startServer((req, res) => {
+    calls += 1;
+    res.statusCode = 500;
+    res.end('should not be called');
+  });
+  const tmp = tempStore({ accessToken: 'fixture-token', refreshToken: 'r', expiresAt: Date.now() + 3600_000 });
+  try {
+    const provider = new LinkedInProvider({
+      mode: 'real',
+      config: { linkedin: { clientId: 'id', clientSecret: 'secret', redirectUri: '', authorUrn: 'urn:li:organization:1001', organizationId: '1001' } },
+      tokenStore: tmp.store,
+      logger: null,
+      apiBase: srv.baseUrl
+    });
+    await assert.rejects(
+      () => provider.publish({ text: 'test' }),
+      (err) => err.code === 'CONFIG_MISSING' && /authorUrn/.test(err.message)
+    );
+    assert.equal(calls, 0);
   } finally {
     await srv.close();
     tmp.cleanup();

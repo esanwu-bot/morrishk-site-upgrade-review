@@ -42,7 +42,7 @@ api-integration-poc/
 │   ├── 04-ga4-report.mjs         # Data API 报表与错误分类
 │   ├── 05-ga4-measurement-protocol.mjs
 │   └── run-all.mjs
-└── test/                         # node:test 自动化测试（94 个用例，含 fixture）
+└── test/                         # node:test 自动化测试（115 个用例，含 fixture）
 ```
 
 业务层只依赖 `SocialProvider` / `VideoProvider` / `AnalyticsProvider` 三个接口；官方实现与聚合实现可在不改业务代码的前提下替换（退出方案见 `DECISION_MATRIX.md`）。
@@ -58,7 +58,7 @@ api-integration-poc/
 ```bash
 cd research/api-integration-poc
 
-npm test              # 94 个自动化测试
+npm test              # 115 个自动化测试
 npm run demo:all      # 依次运行 5 个 Demo（默认 mock 模式）
 ```
 
@@ -91,19 +91,23 @@ npm run demo:ga4-mp   # 05 Measurement Protocol
    - `.env` 中 `ALLOW_REAL_PUBLISH=true`
    - 命令显式附加 `--confirm-publish`
    - `PUBLISH_TARGET_ALLOWLIST` 配置了该目标（格式 `provider:platform:account`，逗号分隔）
-   - 命令显式指定单一目标 `--provider` / `--platform` / `--account`
+   - 命令显式指定单一目标 `--provider` / `--platform` / `--account`（缺一不可，不提供默认值）
    ```bash
-   node demo/02-social-publish.mjs --provider ayrshare --platform linkedin --account morrishk --confirm-publish
+   # Ayrshare：account 为 Profile Key
+   node demo/02-social-publish.mjs --provider ayrshare --platform linkedin --account profile-abc --confirm-publish
+   # LinkedIn：account 为组织数字 ID，白名单必须与最终 urn:li:organization:{id} 一致
+   node demo/02-social-publish.mjs --provider linkedin --platform linkedin --account 1234567 --confirm-publish
    ```
 
-缺失任一条件时，`assertPublishAllowed()` 会抛 `POLICY_BLOCKED`，不会发起任何发布请求。**全局开关不等于批量授权**：Demo 只发布命令行指定的一个目标，不会遍历平台或账号。
+缺失任一条件时，`assertPublishAllowed()` 会抛 `POLICY_BLOCKED`，不会发起任何发布请求。`account=default` 等占位值不是账号身份，真实模式直接拒绝；平台（platform）只代表渠道，不能代替账号。**全局开关不等于批量授权**：Demo 只发布命令行指定的一个目标，不会遍历平台或账号。
 
 5. GA4 Measurement Protocol 真实写入使用独立开关，不与社媒发布连带：
    ```bash
    ALLOW_REAL_MP=true node demo/05-ga4-measurement-protocol.mjs --confirm-mp
    ```
 
-6. LinkedIn 组织身份需在 `.env` 中提供 `LINKEDIN_AUTHOR_URN`（推荐）或 `LINKEDIN_ORGANIZATION_ID`；二者都为空时会尝试 ACL 枚举，仍为空则报 `CONFIG_MISSING`，不会降级为个人身份发帖。
+6. LinkedIn 组织身份需在 `.env` 中提供 `LINKEDIN_AUTHOR_URN`（推荐）或 `LINKEDIN_ORGANIZATION_ID`。二者都为空且设置 `LINKEDIN_ORG_ADMIN_DISCOVERY=true` 时，才会申请 `rw_organization_admin` 并调用 `GET /rest/organizationAcls` 枚举；缺少该 scope 或枚举为空均报 `BLOCKED_PERMISSION`，不会降级为个人身份发帖。发布 scope `w_organization_social` 与组织发现 scope 是两套权限。
+7. Ayrshare 真实发布必须显式提供 Profile Key；Demo 会在 POST `/api/post` 之前用带 `Profile-Key` 的 `GET /api/user` 确认该 Profile 已关联目标平台，无法确认则拒绝，不发送发布请求。
 
 **建议的首次真实验证顺序**（未获授权前不得执行）：GA4 只读报表 → Mux 测试环境上传 → YouTube 私密上传 → FB/IG 草稿或仅自己可见 → LinkedIn 测试组织页 → 最后才考虑公开发布。
 
@@ -121,7 +125,7 @@ npm run demo:ga4-mp   # 05 Measurement Protocol
 | `NOT_TESTED` | 未验证（含未实现的能力） |
 | `POLICY_BLOCKED` | 被本项目的安全开关主动拦截 |
 
-本轮运行结果：自动化测试 **94/94** 通过（约 4.1 s）；5 个 Demo 全部跑通 Mock 链路；真实接口全部 `BLOCKED_CREDENTIAL`。逐项记录见 [`docs/DEMO_EVIDENCE.md`](docs/DEMO_EVIDENCE.md)。
+本轮运行结果：自动化测试 **115/115** 通过（约 5.4 s）；5 个 Demo 全部跑通 Mock 链路；真实接口全部 `BLOCKED_CREDENTIAL` / `BLOCKED_PERMISSION`。逐项记录见 [`docs/DEMO_EVIDENCE.md`](docs/DEMO_EVIDENCE.md)。
 
 ---
 

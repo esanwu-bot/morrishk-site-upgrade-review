@@ -123,6 +123,62 @@ test('真实模式 runReport 使用 fixture 返回结构', async () => {
   }
 });
 
+test('分页达到上限仍有 nextPageToken 时显式失败，不静默截断', async () => {
+  let calls = 0;
+  const srv = await startServer((req, res) => {
+    calls += 1;
+    res.setHeader('content-type', 'application/json');
+    res.end(JSON.stringify({ ...page1, nextPageToken: `fixture-page-${calls + 1}` }));
+  });
+  try {
+    const provider = new GA4Provider({
+      mode: 'real',
+      config,
+      logger: null,
+      adminBase: `${srv.baseUrl}/v1beta`,
+      dataBase: `${srv.baseUrl}/v1beta`
+    });
+    await assert.rejects(
+      () => provider.listProperties({ maxPages: 3 }),
+      (err) =>
+        err.code === 'PLATFORM_ERROR' &&
+        err.retryable === false &&
+        err.details.pages === 3 &&
+        /不完整/.test(err.message)
+    );
+    assert.equal(calls, 3);
+  } finally {
+    await srv.close();
+  }
+});
+
+test('分页在 maxPages 内正常结束时返回完整列表', async () => {
+  let calls = 0;
+  const srv = await startServer((req, res) => {
+    calls += 1;
+    res.setHeader('content-type', 'application/json');
+    res.end(JSON.stringify(urlSearch(req) === 'fixture-page-2' ? page2 : page1));
+  });
+  try {
+    const provider = new GA4Provider({
+      mode: 'real',
+      config,
+      logger: null,
+      adminBase: `${srv.baseUrl}/v1beta`,
+      dataBase: `${srv.baseUrl}/v1beta`
+    });
+    const properties = await provider.listProperties({ maxPages: 5 });
+    assert.equal(properties.length, 3);
+    assert.equal(calls, 2);
+  } finally {
+    await srv.close();
+  }
+});
+
+function urlSearch(req) {
+  return new URL(req.url, 'http://127.0.0.1').searchParams.get('pageToken');
+}
+
 test('Mock 与真实 listProperties 的结构字段一致', async () => {
   const mock = await new GA4Provider({ mode: 'mock', config, logger: null }).listProperties();
   const real = flattenAccountSummaries(page1);

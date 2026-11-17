@@ -2,7 +2,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| 文档版本 | V1.1（按 Reviewer 复核意见修订） |
+| 文档版本 | V1.2（按 Reviewer 166e542 P1 补充复核意见修订） |
 | 日期 | 2026-11-17 |
 | 适用范围 | 社媒发布、视频上传、GA4 读取（预研） |
 | 依据 | `API_RESEARCH.md` 来源清单 [S1]–[S65] |
@@ -47,18 +47,26 @@
 | 以组织身份发帖 | `w_organization_social` |
 | 读取组织页统计 | `r_organization_social`（需申请） |
 | 以个人身份发帖 | `w_member_social`（`r_member_social` 当前关闭申请） |
+| 枚举/管理组织页 ACL（发现组织） | `rw_organization_admin`（仅 ADMINISTRATOR）或只读的 `r_organization_admin` |
+
+**发布权限与组织发现权限是两套（V1.2 修正）**
+
+- `w_organization_social` 只授予「以组织身份发帖」，**不能**用来调用 organizationAcls 枚举组织。
+- 需要程序化发现授权用户管理的组织时，必须额外申请 `rw_organization_admin`（或只读的 `r_organization_admin`），且授权用户在目标组织页必须是 ADMINISTRATOR。
+- `LINKEDIN_ORG_ADMIN_DISCOVERY` 默认 `false`：默认授权只申请发布 scope；只有明确需要发现组织时才置为 `true`，避免申请超出发布所需的权限。
 
 **审核要求**：Community Management API 需 Development tier 审核，再申请 Standard tier（录屏 + 技术签核）。调用者必须是组织页 ADMINISTRATOR / CONTENT_ADMIN / DIRECT_SPONSORED_CONTENT_POSTER。
 
-**个人身份与组织身份必须分离（V1.1 新增）**
+**个人身份与组织身份必须分离（V1.1 新增，V1.2 补充组织发现权限拆分）**
 
 - `/v2/userinfo` 返回的是**个人**身份（`sub`、`name`、`email`），只能用于确认「谁完成了授权」，**不能**作为组织页发帖的 author。
 - 组织页发帖的 author 必须是 `urn:li:organization:{id}`，且授权用户对该组织页具备管理员类角色。
 - 组织身份来源按以下顺序解析，任一步失败即停止，不猜测、不降级为个人身份发帖：
   1. 配置项 `LINKEDIN_AUTHOR_URN`（最明确，推荐）；
   2. 配置项 `LINKEDIN_ORGANIZATION_ID`，拼为 `urn:li:organization:{id}`；
-  3. 调用 `/v2/organizationAcls?q=roleAssignee&role=ADMINISTRATOR&state=APPROVED` 枚举授权用户可管理的组织；
-  4. 全部为空 → 报 `CONFIG_MISSING`，不发布。
+  3. 调用版本化 REST 接口 `GET /rest/organizationAcls?q=roleAssignee&role=ADMINISTRATOR&state=APPROVED&count=10` 枚举授权用户可管理的组织，请求头必须带 `X-Restli-Protocol-Version: 2.0.0` 与 `LinkedIn-Version: YYYYMM`；响应元素可能使用 `organization` 或 `organizationTarget` 字段；
+  4. 全部为空 → 报 `BLOCKED_PERMISSION`（有权限但无管理员角色），不发布。
+- token 的 scope 不含 `rw_organization_admin` 时，Demo 在**发出任何 ACL 请求之前**直接报 `BLOCKED_PERMISSION`，并说明 `w_organization_social` 不能替代组织发现权限。
 - Mock 模式下的组织对象带有 `verified=false` 与「Mock 组织身份，仅用于演示」标记，**不得**被日志或演示输出表述为「已验证组织」。
 
 ### 2.3 X
@@ -121,6 +129,13 @@
 4. 发布类操作默认关闭真实通道，必须同时满足：`ALLOW_REAL_PUBLISH=true` + CLI `--confirm-publish` + 发布目标命中 `PUBLISH_TARGET_ALLOWLIST` + 显式指定单一目标（`provider:platform:account`）。
 5. GA4 Measurement Protocol 真实写入使用独立开关：`ALLOW_REAL_MP=true` + CLI `--confirm-mp`，与社媒发布开关互不连带。
 6. **全局发布开关不等于批量授权**：即使 `ALLOW_REAL_PUBLISH=true`，Demo 也只发布命令行显式指定的一个目标，不会遍历所有平台/账号。
+7. **真实目标必须显式且唯一（V1.2 新增）**：
+   - `--provider`、`--platform`、`--account` 必须全部显式传入，Demo 不提供任何默认目标；
+   - `account=default|all|*|any|profile` 是占位值，不是账号身份，真实模式下直接拒绝；
+   - 平台（platform）只代表渠道，不能代替账号身份；
+   - 全部白名单与绑定校验都在**发出任何发布请求之前**完成。
+8. **LinkedIn 目标与最终 authorUrn 绑定**：白名单目标 `linkedin:linkedin:{组织数字ID}` 必须与最终 `urn:li:organization:{组织数字ID}` 一致；缺失或不匹配即拒绝，不做隐式解析。
+9. **Ayrshare Profile 绑定**：真实发布时 `Profile-Key` 放在请求头（`Authorization: Bearer <API_KEY>` + `Profile-Key: <key>`）；POST `/api/post` 之前先用 `GET /api/user`（带同一 `Profile-Key`）确认该 Profile 已关联目标平台。若无法确认 Profile、目标平台未关联，或目标平台存在多个账号（无法唯一确定），直接拒绝，不发送发布请求。
 
 ---
 
@@ -175,7 +190,8 @@ POC_MODE=mock
 ALLOW_REAL_PUBLISH=false
 
 # 真实发布目标白名单，逗号分隔，格式 provider:platform:account
-# 例：ayrshare:linkedin:morrishk,linkedin:linkedin:urn:li:organization:1234567
+# account 必须是唯一账号身份：Ayrshare 为 Profile Key，LinkedIn 为组织数字 ID
+# 例：ayrshare:linkedin:profile-abc,linkedin:linkedin:1234567
 PUBLISH_TARGET_ALLOWLIST=
 
 # GA4 Measurement Protocol 真实写入开关（与社媒发布开关独立）
@@ -192,6 +208,11 @@ LINKEDIN_REDIRECT_URI=http://127.0.0.1:8787/callback/linkedin
 # 组织身份（二选一，authorUrn 优先级更高）
 LINKEDIN_ORGANIZATION_ID=
 LINKEDIN_AUTHOR_URN=
+# 版本化 REST API（默认官方域名与 2026-10 版本）
+LINKEDIN_API_BASE=https://api.linkedin.com
+LINKEDIN_API_VERSION=202610
+# 是否额外申请 rw_organization_admin 用于组织发现，默认 false
+LINKEDIN_ORG_ADMIN_DISCOVERY=false
 
 # Mux
 MUX_TOKEN_ID=

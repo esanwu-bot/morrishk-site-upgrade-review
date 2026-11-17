@@ -4,11 +4,16 @@
       "organization": "urn:li:organization:1001",
       "role": "ADMINISTRATOR",
       "state": "APPROVED"
+    },
+    {
+      "organizationTarget": "urn:li:organization:1002",
+      "role": "ADMINISTRATOR",
+      "state": "APPROVED"
     }
   ],
   "paging": {
     "start": 0,
-    "count": 1,
+    "count": 2,
     "links": []
   }
 }

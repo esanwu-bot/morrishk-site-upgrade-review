@@ -47,15 +47,32 @@ async function authorize(provider) {
   return { state, code: url.searchParams.get('code'), returnedState: url.searchParams.get('state') };
 }
 
-test('OAuth 授权地址包含 state 与最小 scope', async () => {
+test('OAuth 授权地址包含 state 与最小发布 scope', async () => {
   const ctx = await makeProvider();
   try {
-    const { authorizationUrl, state } = await ctx.provider.connect();
+    const { authorizationUrl, state, scopes, includeOrgAdmin } = await ctx.provider.connect();
     const url = new URL(authorizationUrl);
     assert.equal(url.pathname, '/authorize');
     assert.equal(url.searchParams.get('state'), state);
     assert.equal(url.searchParams.get('response_type'), 'code');
-    assert.match(url.searchParams.get('scope'), /w_organization_social/);
+    const requested = url.searchParams.get('scope').split(/\s+/);
+    assert.deepEqual(requested, ['openid', 'profile', 'w_organization_social']);
+    assert.deepEqual(scopes, requested);
+    assert.equal(includeOrgAdmin, false);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('组织发现权限 rw_organization_admin 需显式申请，不能默认混入发布授权', async () => {
+  const ctx = await makeProvider();
+  try {
+    const withAdmin = await ctx.provider.connect({ includeOrgAdmin: true });
+    const url = new URL(withAdmin.authorizationUrl);
+    const requested = url.searchParams.get('scope').split(/\s+/);
+    assert.ok(requested.includes('rw_organization_admin'));
+    assert.ok(requested.includes('w_organization_social'));
+    assert.equal(withAdmin.includeOrgAdmin, true);
   } finally {
     await ctx.cleanup();
   }
