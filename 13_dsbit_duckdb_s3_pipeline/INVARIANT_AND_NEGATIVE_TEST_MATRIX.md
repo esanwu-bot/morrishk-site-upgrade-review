@@ -524,7 +524,11 @@ DELETE FROM commits WHERE task_id = 'T';
 | 计数口径 | 20 次上限按 `verify_attempts_reserved`；`verify_attempts_total` 只记录**结果已持久化**的 GET；恒有 `total ≤ reserved` |
 | REC 与 episode | REC 不增加 `episode_attempts`、不检查 10 次 / 60 s；只检查 `reserved < 20` |
 | 状态归属 | `tasks.state` 仍为 `COMMITTED_PENDING_RECEIPT`；`commits.rec_state='unknown'` 为权威；`GET /v1/state` 同时返回两者 |
-| UNKNOWN 后的普通 GET | 仍须先预留（`reserved`/`episode_attempts` 原子 +1、COMMIT）再发 GET；崩溃语义见 N-12n |
+| UNKNOWN 后的 GET 归属 | 属**独立恢复通道**：只 `reserved` + `recovery_attempts` +1，不改 `episode_no/episode_attempts/episode_started_at`，不开启 episode 1 |
+| episode 0 已用满 10 次 | REC UNKNOWN 后恢复通道仍可执行（不依赖 episode 0 剩余次数） |
+| episode 0 已超 60 s | REC UNKNOWN 后恢复通道仍可执行（不受 episode 60 s 窗口约束） |
+| 恢复通道预算 | `recovery_attempts<10`、`recovery_window_s<300`、`reserved<20`；任一耗尽 → observation-only |
+| 恢复通道重启 | `recovery_attempts/recovery_started_at` 持久化，重启不重置、不新增通道 |
 
 ##### N-12m SQLite 预算语义实际执行验证（B1/B5）
 
@@ -545,14 +549,17 @@ DELETE FROM commits WHERE task_id = 'T';
 | 场景 | 步骤 | 断言 |
 |---|---|---|
 | 预留后、GET 前崩溃 | 预留事务 `reserved+1, episode_attempts+1` COMMIT 后关闭连接 | 重启 `reserved`/`episode_attempts` 已 +1、`total` 不变；预算不返还；不得假设请求已发出 |
-| GET 完成、结果未落盘 | 预留后发 GET，模拟返回前关闭连接 | `reserved`/`episode_attempts` 保留、`total` 不变；不重发该次；后续只能用剩余预算重新申请 |
+| GET 已发出、响应未返回 | 预留后发出请求，在收到响应前关闭连接 | `reserved`/`episode_attempts` 保留、`total` 不变；不重发该次；请求是否到达存储不可知 |
+| GET 响应已返回、RR2 未提交 | 模拟响应已收到，但在结果事务提交前关闭连接 | `reserved`/`episode_attempts` 保留、`total` 不变；不重发该次；观察结果未持久化 |
 | 连续重启 | 上述崩溃后重启 3 次 | 不获得额外预算；`reserved`/`episode_attempts` 单调不降 |
-| 总量上限 | `reserved=20` | 不再发任何自动 GET（普通或 REC）；仅 observation-only |
+| 总量上限 | `reserved=20` | 不再发任何自动 GET（普通、REC、恢复通道）；仅 observation-only |
 | episode 上限 | `episode_attempts=10` | 本 episode 不再发 GET；`episode_started_at` 复查；只有第二次 PUT 开启 episode 1 时才清零 |
 | 双连接并发 | 两个连接同时执行带 `reserved < 20 AND episode_attempts < 10` 的 UPDATE | 成功 `changes()=1` 总数不超过剩余预算；不超卖 |
 | 审计口径 | GET 已发出但 RR2 未提交 | `total` 不增；`reserved` 保留；报表不得把 `total` 表述为物理请求总数 |
 | 普通 GET 计 episode | 普通 reconcile GET 预留 | `reserved+1` 且 `episode_attempts+1`；受 10 次 / 60 s 约束 |
 | REC 对照 | REC 预留（发 `in_flight`） | 只 `reserved+1`，`episode_attempts` 不变；不受 10 次 / 60 s 约束，仅受 `reserved<20` |
+| 恢复通道 | REC UNKNOWN 后预留 | `reserved+1`、`recovery_attempts+1`；`episode_no/episode_attempts/episode_started_at` 不变；受 10 次 / 300 s / `reserved<20` 约束 |
+| 恢复通道耗尽 | `recovery_attempts=10` 或 300 s 到期 | 不再发 GET，仅 observation-only；`total ≤ reserved` 保持 |
 
 > 这是测试设计；执行需临时 SQLite（或协调器实现），不进入生产库。
 

@@ -206,6 +206,17 @@
 
 > v1.13 不重新打开 A3/A4、B1、B2–B4、R5、R2–R4/R6 与总体架构；不改生产代码。
 
+### 0.15 第十四轮复核修订（v1.13 → v1.14）
+
+| 编号 | Reviewer 要求 | v1.14 处置 | 位置 |
+|---|---|---|---|
+| **B5-R6-1** | `REC_PENDING_UNKNOWN` 后普通 GET 属于哪个 episode | 定义为**独立恢复通道**：episode 0 已结束、episode 1 未开启，故该状态 GET 不属任何 episode；不修改 `episode_no/episode_attempts/episode_started_at` | §5.2.5.2.1 |
+| **B5-R6-2** | 恢复通道预算/窗口/退出条件 | `recovery_attempts` ≤10、`recovery_window_s`=300、并受 `reserved<20` 约束；预留事务 RV 提交后才发 GET；耗尽 → observation-only；3600 s → 隔离；重启不重置 | §5.2.5.2.1；附件 §9.2/§9.9 |
+| **B5-R6-3** | N-12n 崩溃描述不准确 | 拆为「GET 已发出、响应未返回」与「响应已返回、RR2 未提交」两行；两者均保持 `reserved`/`recovery_attempts`、`total` 不增 | 矩阵 N-12n |
+| **测试** | episode 0 用满/超时后的恢复通道 | N-12l 增「episode 0 已 10 次」「已超 60 s」「恢复通道预算/重启」；N-12n 增恢复通道与耗尽断言 | 矩阵 N-12l/N-12n |
+
+> v1.14 不重新打开 A3/A4、B1、B2–B4、R5、R2–R4/R6 与总体架构；不改生产代码。
+
 ---
 
 ## 1. 文档定位、范围与不做什么
@@ -911,6 +922,8 @@ write_receipt(commit):
 | `receipt_reput_cooldown_s` | 60 | 首次 PUT 200 且读回 ABSENT 后 |
 | `receipt_reconcile_interval_s` | 30 | 后台 reconciler |
 | `receipt_pending_max_s` | 3600 | 从 `pending_since` 起算，超过 → `QUARANTINED` |
+| `recovery_verify_attempts_max` | 10 | **REC_PENDING_UNKNOWN 恢复通道**（不占 episode 额度） |
+| `recovery_window_s` | 300 | **REC_PENDING_UNKNOWN 恢复通道**时间窗 |
 
 **episode 状态机（R1-3f-1，A5）**：
 
@@ -919,8 +932,10 @@ write_receipt(commit):
 | `episode_no` | 0 = 首次 commit 后的 verification；1 = 第二次 PUT 后的最终 verification；**不允许 >1** |
 | `episode_attempts` | 当前 episode 已用 GET 次数（≤10） |
 | `episode_started_at` | 当前 episode 起点（60 s 截止） |
-| `verify_attempts_reserved` | 已消耗的验证预算次数（含已预留但未完成的 REC），**上限 20**（2 × 10） |
+| `verify_attempts_reserved` | 已消耗的验证预算次数（含已预留但未完成的 REC 与恢复通道），**上限 20**（2 × 10） |
 | `verify_attempts_total` | **结果已持久化**的 GET 次数（审计口径；恒 ≤ `verify_attempts_reserved`） |
+| `recovery_attempts` | `REC_PENDING_UNKNOWN` 恢复通道已用 GET 次数（≤10） |
+| `recovery_started_at` | 恢复通道起点（300 s 截止） |
 | `pending_since` | 首次进入 pending 的时间；3600 s 生命周期上限 |
 
 规则：
@@ -928,14 +943,16 @@ write_receipt(commit):
 1. **普通 30 s reconcile 延续当前 episode**：不重置 `episode_attempts` / `episode_started_at`，只继续用剩余次数与剩余时间；
 2. 当前 episode 达到 10 次或 60 s 后**结束**，任务保持 `pending`；`next_retry_at` 供观测，但 **不会自动开启新 episode**；
 3. 仅当满足 §5.2.5.2.1 的全部重写条件并执行**第二次 PUT** 后，才允许 `episode_no: 0 → 1`；它是**最后一个** episode；
-4. 协调器重启：从 SQLite 恢复 `episode_no` / `episode_attempts` / `episode_started_at` / `verify_attempts_reserved` / `verify_attempts_total` / `rec_attempted` / `rec_state`；`rec_state='in_flight'` 一律按 `unknown` 恢复且不重发 REC；**恢复原 episode，不自动新增**；无法恢复时保持 `pending`，走 L1/L2/L3，不通过重启获得新预算；
+4. 协调器重启：从 SQLite 恢复 `episode_no` / `episode_attempts` / `episode_started_at` / `recovery_attempts` / `recovery_started_at` / `verify_attempts_reserved` / `verify_attempts_total` / `rec_attempted` / `rec_state`；`rec_state='in_flight'` 一律按 `unknown` 恢复且不重发 REC；**恢复原 episode / 原恢复通道，不自动新增**；无法恢复时保持 `pending`，走 L1/L2/L3，不通过重启获得新预算；
 5. **20 次上限按 `verify_attempts_reserved` 计**；达到后只允许 **observation-only GET**（见下），不再新 episode；`verify_attempts_total` 只作审计，不单独触发上限；
 6. `pending_since` 的 3600 s 是 commit 生命周期预算，不因 episode 或重启重置。
 
-**普通 verification GET 先预留、后执行（v1.13/B5）**：
+**普通 verification GET 先预留、后执行（v1.14/B5）**：
 
-- 适用范围：episode 0/1 的普通 reconcile GET、`REC_PENDING_UNKNOWN` 的普通 GET；
-- **不适用于 REC**：REC 使用独立预留（只增加 `reserved`，不增加 `episode_attempts`、不受 60 s 窗口约束），见下；两者共同受 `reserved < 20` 约束；
+- 适用范围：**仅 episode 0/1 的普通 reconcile GET**；
+- **不适用于 REC**：REC 使用独立预留（只增加 `reserved`，不增加 `episode_attempts`、不受 60 s 窗口约束），见下；
+- **不适用于 `REC_PENDING_UNKNOWN`**：该状态的普通 GET 使用**独立恢复通道**（`recovery_attempts`，不增加 `episode_attempts`），见下；
+- 三种通道共同受 `verify_attempts_reserved < 20` 约束；
 - **预留事务 RR（发 GET 之前）**：
   ```sql
   UPDATE commits
@@ -961,8 +978,33 @@ write_receipt(commit):
 | RR2 已提交 | +1 | +1 | +1 | 按持久化结果恢复 |
 
 - **episode 保护**：`episode_attempts` 在预留事务内原子 +1；达到 10 后本 episode 不再发 GET；重启不重置；第二次 PUT 成功后开启 episode 1 时才 `episode_attempts=0`、`episode_started_at=now`；
-- **总量保护**：`verify_attempts_reserved=20` 后不再发任何自动 GET（含普通与 REC），只允许 observation-only；
+- **总量保护**：`verify_attempts_reserved=20` 后不再发任何自动 GET（含普通 GET、REC 与恢复通道），只允许 observation-only；
 - **审计口径**：`verify_attempts_total` 仅表示**结果已持久化**的 GET 次数，不等于物理世界已发出的网络请求数；请求已发出但结果未落盘时 `reserved` 保留、`total` 不增，这是有意接受的审计不确定性；精确物理请求数需外部请求日志或遥测，不能仅靠 SQLite 事务跨网络原子记录。
+
+**`REC_PENDING_UNKNOWN` 恢复通道（v1.14/B5）**：
+
+- **通道归属**：episode 0 已结束、episode 1 未开启，因此该状态的普通 GET **不属于 episode 0/1**，而是独立的**恢复验证通道**；不修改 `episode_no`、`episode_attempts`、`episode_started_at`，也不开启 episode 1；
+- **预算**：`recovery_attempts` 上限 10（`recovery_verify_attempts_max`），时间窗 300 s（`recovery_window_s`）；同时受总预算 `verify_attempts_reserved < 20` 约束；
+- **预留事务 RV（发 GET 之前）**：
+  ```sql
+  UPDATE commits
+     SET verify_attempts_reserved = verify_attempts_reserved + 1,
+         recovery_attempts = recovery_attempts + 1,
+         recovery_started_at = COALESCE(recovery_started_at, :now)
+   WHERE task_id = :task_id
+     AND rec_state = 'unknown'
+     AND verify_attempts_reserved < 20
+     AND recovery_attempts < 10
+     AND (recovery_started_at IS NULL OR :now < datetime(recovery_started_at, '+300 seconds'));
+  -- changes() = 1 才发 GET；changes() = 0 → 恢复通道或总预算耗尽，不发 GET
+  COMMIT;
+  ```
+- **结果**：GET 返回后 `verify_attempts_total += 1` 并持久化观察结果；观察到 `WRITTEN` → `SUCCEEDED`，`CONFLICT` → `QUARANTINED`；
+- **退出条件**：
+  - 恢复通道 10 次用完、300 s 到期，或 `reserved=20` → **observation-only**（不发新 GET、不改状态、不提升成功）；
+  - `pending_since` 超过 3600 s → `QUARANTINED(receipt_absent_timeout)`；
+  - 重启恢复 `recovery_attempts` / `recovery_started_at`，不重置、不新增通道；
+- **崩溃语义**：与普通 GET 相同——预留后崩溃不返还预算；GET 已发出/已返回但结果未落盘时 `reserved`/`recovery_attempts` 保留、`total` 不增。
 
 **重写资格检查 REC（B5）**：
 
@@ -1000,9 +1042,9 @@ write_receipt(commit):
 
 **`REC_PENDING_UNKNOWN` 状态（B5）**：
 
-- 不重跑 REC；不开 episode 1；
-- 允许**普通 verification GET**（遵守 v1.12 的「先预留、后执行」：预留事务 `reserved += 1`、`episode_attempts += 1` 并 COMMIT，GET 返回后才 `total += 1`），可因观察到 `WRITTEN` 而转为 `SUCCEEDED`，观察到 `CONFLICT` 转 `QUARANTINED`；
-- `verify_attempts_reserved` 达到 20 后转 **observation-only**（不计数、不改状态、不提升成功）；
+- 不重跑 REC；不开 episode 1；不增加 `episode_attempts`；
+- 允许**恢复通道 verification GET**（遵守 v1.14：预留事务 `reserved += 1`、`recovery_attempts += 1` 并 COMMIT，GET 返回后才 `total += 1`），可因观察到 `WRITTEN` 而转为 `SUCCEEDED`，观察到 `CONFLICT` 转 `QUARANTINED`；
+- `recovery_attempts=10`、`recovery_window_s=300` 到期或 `verify_attempts_reserved=20` 后转 **observation-only**（不计数、不改状态、不提升成功）；
 - `pending_since` 超过 3600 s → `QUARANTINED(receipt_absent_timeout)`；
 - 重启后保持该状态，不重新获得预算。
 
@@ -1015,7 +1057,7 @@ write_receipt(commit):
 - observation 只更新 `last_observed_receipt_state`；若观察到 `WRITTEN`，只告警并提示人工执行一次受审计的 `manual_verify`；
 - `manual_verify` 不计入自动预算，但必须记录操作者、时间与结果；不得由定时任务自动触发。
 
-**预算持久化**：`commits` 行记录 `episode_no`、`episode_attempts`、`episode_started_at`、`verify_attempts_reserved`、`verify_attempts_total`、`put_attempts`、`pending_since`、`next_retry_at`、`rec_attempted`、`rec_state`、`rec_at`；重启不重置。
+**预算持久化**：`commits` 行记录 `episode_no`、`episode_attempts`、`episode_started_at`、`recovery_attempts`、`recovery_started_at`、`verify_attempts_reserved`、`verify_attempts_total`、`put_attempts`、`pending_since`、`next_retry_at`、`rec_attempted`、`rec_state`、`rec_at`；重启不重置。
 
 **PUT 200 后回读 404 的默认行为**：
 

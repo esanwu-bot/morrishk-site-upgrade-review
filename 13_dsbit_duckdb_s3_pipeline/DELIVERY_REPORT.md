@@ -4,10 +4,10 @@
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
 | 交付日期 | 2026-11-17 |
-| 版本 | **v1.13**（第十三轮：B5 REC 与 episode 预算分层、`verify_attempts_total` 术语统一） |
+| 版本 | **v1.14**（第十四轮：B5 `REC_PENDING_UNKNOWN` 独立恢复通道、N-12n 崩溃场景拆分） |
 | 性质 | 设计送审（DESIGN ONLY） |
 | 主文档 | `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md` |
-| Reviewer 结论（第十三轮） | v1.12 为 PASS WITH REQUIRED REVISIONS；B5 计数口径待定向复核；B1/B2–B4 沿用 PASS；契约冻结与 Stage A 仍不批准 |
+| Reviewer 结论（第十四轮） | v1.13 核心 PASS；REC UNKNOWN 后 GET 归属与 N-12n 描述待复核；B1–B4 沿用 PASS；契约冻结与 Stage A 仍不批准 |
 | v1.0 提交 | 设计 `a62c70d644ced735ccfe079b086aca744f142f93`；报告 `ce6ba2db2839cb49a69702d3251482c4b58ba633` |
 | v1.1 设计修订提交 | `f8b8085fa12d57050e176bc8517a5a4856eaceef` |
 | v1.1 报告与校验清单 | `cdc61147387801c1b758deae89bb871467ef92d7` |
@@ -34,7 +34,9 @@
 | v1.12 设计修订提交 | `0308c6f9d20caf2698e4895215c1f3f618d005f8` |
 | v1.12 报告与校验清单 | `cbd4ded9a0b9e5f2da7e9539c2be3c961d849dcf` |
 | v1.13 设计修订提交 | `07c066b9cc1a11337e54e106c27f86fd3039a222` |
-| v1.13 报告与校验清单 | 紧随 v1.13 设计提交（SHA 见 `git log`） |
+| v1.13 报告与校验清单 | `e5637fcbab80245440a528712cb23c33fdd959f9` |
+| v1.14 设计修订提交 | `（提交后回填）` |
+| v1.14 报告与校验清单 | 紧随 v1.14 设计提交（SHA 见 `git log`） |
 | Ds Bit 基线 | `600439a5eee69fb3a1cec2715e37080e48ca9840`（分支 `backup/full-local-20261114`） |
 | 送审仓库任务启动基线 | `0fa9d34` |
 | 送审仓库设计提交直接父提交（v1.0） | `fc4bcc5` |
@@ -255,15 +257,26 @@ v1.1–v1.11 的 Session A 提交只修改上述 `13_` 目录内的文件；**�
 
 > 本轮仍为设计层修订：未改生产代码、未重跑 Ds Bit 测试、未做真实对象存储验证。
 
+### 4.14 第十四轮 B5（v1.14）
+
+| 编号 | Reviewer 要求 | v1.14 处置 | 复核位置 |
+|---|---|---|---|
+| **B5-R6-1** | `REC_PENDING_UNKNOWN` 普通 GET 的 episode 归属 | 定义为**独立恢复通道**：`recovery_attempts` ≤10、`recovery_window_s`=300、受 `reserved<20` 共同约束；不修改 `episode_no/episode_attempts/episode_started_at`，不开启 episode 1 | 主文档 §5.2.5.2.1；附件 §9.2/§9.9 |
+| **B5-R6-2** | 恢复通道的预算/窗口/退出条件 | 预留事务 RV（`reserved+1`、`recovery_attempts+1`）COMMIT 后才发 GET；10 次 / 300 s / reserved 20 任一耗尽 → observation-only；3600 s → 隔离；重启不重置 | 主文档 §5.2.5.2.1 |
+| **B5-R6-3** | N-12n 崩溃描述不准确 | 拆为「GET 已发出、响应未返回」与「响应已返回、RR2 未提交」两行；均保持 `reserved`、`total` 不增 | 矩阵 N-12n |
+| **测试** | episode 0 用满/超时后的恢复通道 | N-12l 增 episode 0 已 10 次、已超 60 s、恢复通道预算/重启；N-12n 增恢复通道与耗尽断言 | 矩阵 N-12l/N-12n |
+
+> 本轮仍为设计层修订：未改生产代码、未重跑 Ds Bit 测试、未做真实对象存储验证。
+
 ---
 
-## 5. 关键架构决策（v1.13）
+## 5. 关键架构决策（v1.14）
 
 1. 批量路径仍是「本地处理 → 大批 Parquet → 上传 → 批量查询」；
 2. DuckDB 仍只做分析查询，单写快照，不是队列/锁/事实源；
 3. 任务分配为**单写协调器 + `lease_generation` + COMMIT 事务**；发租约前先持久化 watermark；
 4. **成功提交点**不是 manifest，而是「协调器 commit 记录 + receipt 一致」；
-5. receipt 四态 + `episode_no≤1` + 一次性 REC；无 CAS 仅首次串行创建、永不重写；**普通 GET** 先预留 `reserved` + `episode_attempts` 并 COMMIT 再执行，返回后才 `total+1`；**REC** 独立预留，只加 `reserved`、不加 `episode_attempts`、不受 10 次 / 60 s 约束；`in_flight` 崩溃按 `unknown` 恢复；`REC_PENDING_UNKNOWN` 是 `COMMITTED_PENDING_RECEIPT` 内部子状态（权威 `commits.rec_state`）；20 次上限按 `reserved`，`total` 只记结果已持久化的 GET；
+5. receipt 四态 + `episode_no≤1` + 一次性 REC；无 CAS 仅首次串行创建、永不重写；**episode 普通 GET** 先预留 `reserved` + `episode_attempts` 并 COMMIT 再执行；**REC** 独立预留，只加 `reserved`、不加 `episode_attempts`；**`REC_PENDING_UNKNOWN`** 使用独立恢复通道（`recovery_attempts` ≤10、`recovery_window_s`=300、`reserved<20`），不占 episode；`in_flight` 崩溃按 `unknown` 恢复；20 次上限按 `reserved`，`total` 只记结果已持久化的 GET；
 6. orphan 事件分 `storage_atomic/coordinator_serialized` 两种模式，总 PUT 次数分别为 ≤3/≤2（含首次），预算持久化在 `events` 行（合法 INSERT + 同事务原子 +1、只减不增、回读不计、`put_started_at`/`last_put_reserved_at` 仅为预留时间）；L3 需 `commit-receipt/v2` 的 `token_key_id`、key registry（`active/verify_only/revoked`）、token 账本、严格相等 generation；
 7. Run Manifest 与 Batch/Partition Manifest 分离，Catalog 只按 part_manifest 计总行数；
 8. `reproducibility_key` v2；`task_id` = `<batch_id>:<sha256(source_sha256 + requested_mpn)>`；
@@ -525,6 +538,23 @@ R1-3 的修订仍需 Reviewer 定向复核；OD-01/OD-02/OD-03/OD-05/OD-19 仍�
 | 契约冻结 / Stage A / 基准 / 试跑 / 生产 | **不批准** |
 
 > v1.13 只改 `13_` 内的 B5 计数口径与测试断言；未改生产代码、未重跑 Ds Bit 测试。
+
+### 9.14 第十四轮（v1.13）
+
+| 项 | 结论 |
+|---|---|
+| Git 与 Session A 边界 | PASS |
+| B1-R3 | 沿用 PASS |
+| B2–B4 | 沿用设计层 PASS |
+| B5-R4 REC 不消耗 episode | 核心 PASS |
+| B5-R5 total 术语 | 核心 PASS |
+| `REC_PENDING_UNKNOWN` 后 GET 归属 | v1.14 已定义独立恢复通道 |
+| N-12n 崩溃场景 | v1.14 已拆分为「响应未返回」与「RR2 未提交」 |
+| R1–R3 总体 | **OPEN**（等待 v1.14 定向复核） |
+| v1.14 状态 | 待 Reviewer 定向复核 |
+| 契约冻结 / Stage A / 基准 / 试跑 / 生产 | **不批准** |
+
+> v1.14 只改 `13_` 内的 B5 恢复通道与 N-12n 描述；未改生产代码、未重跑 Ds Bit 测试。
 
 ---
 
