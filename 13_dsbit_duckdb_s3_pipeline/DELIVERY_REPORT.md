@@ -4,10 +4,10 @@
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
 | 交付日期 | 2026-11-17 |
-| 版本 | **v1.12**（第十二轮：B1 预留时间字段；B5 普通 GET 先预留、episode 保护与审计口径） |
+| 版本 | **v1.13**（第十三轮：B5 REC 与 episode 预算分层、`verify_attempts_total` 术语统一） |
 | 性质 | 设计送审（DESIGN ONLY） |
 | 主文档 | `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md` |
-| Reviewer 结论（第十二轮） | v1.11 为 PASS WITH REQUIRED REVISIONS；B1/B5 待定向复核；B2–B4 沿用 PASS；契约冻结与 Stage A 仍不批准 |
+| Reviewer 结论（第十三轮） | v1.12 为 PASS WITH REQUIRED REVISIONS；B5 计数口径待定向复核；B1/B2–B4 沿用 PASS；契约冻结与 Stage A 仍不批准 |
 | v1.0 提交 | 设计 `a62c70d644ced735ccfe079b086aca744f142f93`；报告 `ce6ba2db2839cb49a69702d3251482c4b58ba633` |
 | v1.1 设计修订提交 | `f8b8085fa12d57050e176bc8517a5a4856eaceef` |
 | v1.1 报告与校验清单 | `cdc61147387801c1b758deae89bb871467ef92d7` |
@@ -32,7 +32,9 @@
 | v1.11 设计修订提交 | `647b4f01876e36dacdd63e372b30d91c18632fc2` |
 | v1.11 报告与校验清单 | `77afeb0b93b02c82c29ee4675208ff8c9b3764ef` |
 | v1.12 设计修订提交 | `0308c6f9d20caf2698e4895215c1f3f618d005f8` |
-| v1.12 报告与校验清单 | 紧随 v1.12 设计提交（SHA 见 `git log`） |
+| v1.12 报告与校验清单 | `cbd4ded9a0b9e5f2da7e9539c2be3c961d849dcf` |
+| v1.13 设计修订提交 | `（提交后回填）` |
+| v1.13 报告与校验清单 | 紧随 v1.13 设计提交（SHA 见 `git log`） |
 | Ds Bit 基线 | `600439a5eee69fb3a1cec2715e37080e48ca9840`（分支 `backup/full-local-20261114`） |
 | 送审仓库任务启动基线 | `0fa9d34` |
 | 送审仓库设计提交直接父提交（v1.0） | `fc4bcc5` |
@@ -235,22 +237,33 @@ v1.1–v1.11 的 Session A 提交只修改上述 `13_` 目录内的文件；**�
 | 编号 | Reviewer 要求 | v1.12 处置 | 复核位置 |
 |---|---|---|---|
 | **B1-R3** | `last_put_started_at` 实为预留时间 | 重命名 `last_put_reserved_at`；`put_started_at` 注释改为「首次预留预算时间」；明确两者都不代表 PUT 已发出/完成 | 主文档 §5.2.5.5.3；附件 §9.2/§9.10 |
-| **B5-R2** | 普通 GET 完成后才占预算，崩溃可绕过 20 次 | 普通与 REC 统一「先预留、后执行」：事务 `reserved+1`、`episode_attempts+1` 并 COMMIT，成功后才发 GET；返回后才 `total+1` | 主文档 §5.2.5.2.1；附件 §9.9 |
+| **B5-R2** | 普通 GET 完成后才占预算，崩溃可绕过 20 次 | 普通 GET「先预留、后执行」：事务 `reserved+1`、`episode_attempts+1` 并 COMMIT，成功后才发 GET；返回后才 `total+1`。REC 的独立预留见 v1.13 | 主文档 §5.2.5.2.1；附件 §9.9 |
 | **B5-R2a** | `episode_attempts` 10 次上限需保护 | 预留事务内原子 +1 并校验 `<10`；崩溃不返还、重启不重置；仅第二次 PUT 开启 episode 1 时清零 | 主文档 §5.2.5.2.1；附件 §9.9 |
 | **B5-R3** | `verify_attempts_total` 审计定义 | 重定义为「结果已持久化的 GET 次数」；明确结果未落盘时 `reserved` 保留、`total` 不增；物理请求数需外部日志 | 主文档 §5.2.5.2.1 |
 | **测试** | 新增崩溃与并发测试 | 新增 N-12n（预留后/GET 后崩溃、连续重启、reserved=20、episode=10、双连接并发、审计口径）；N-12m 增实测 | 矩阵 N-12m/N-12n |
 
 > 本轮仍为设计层修订：未改生产代码、未重跑 Ds Bit 测试、未做真实对象存储验证。
 
+### 4.13 第十三轮 B5（v1.13）
+
+| 编号 | Reviewer 要求 | v1.13 处置 | 复核位置 |
+|---|---|---|---|
+| **B5-R4** | REC 是否消耗 episode 次数口径冲突 | 明确分层：普通 GET 增加 `reserved` + `episode_attempts` 并校验 10 次 / 60 s；REC 只增加 `reserved`（校验 `<20`），不增加 `episode_attempts`、不受 60 s 约束 | 主文档 §5.2.5.2.1；附件 §9.9 |
+| **B5-R4a** | 交付摘要误写「普通与 REC 统一 +episode」 | 修正本报告 §4.12/§5、README §3.12 与主文档摘要；明确 REC 不占 episode 10 次 | `DELIVERY_REPORT.md`；`README.md` |
+| **B5-R5** | REC 段落仍称「实际完成」 | 全文档统一为「**结果已持久化**的 GET 次数」；REC 计数口径同步；明确不代表物理网络请求总数 | 主文档 §5.2.5.2.1；附件 §9.2/§9.9；矩阵 N-12l/N-12m |
+| **测试** | REC 与普通 GET 差异断言 | N-12m REC 崩溃行增 `episode_attempts` 不变；N-12n 增普通 GET 计 episode、REC 对照两行；N-12l 增 REC 不受 10 次 / 60 s 约束 | 矩阵 N-12l/N-12m/N-12n |
+
+> 本轮仍为设计层修订：未改生产代码、未重跑 Ds Bit 测试、未做真实对象存储验证。
+
 ---
 
-## 5. 关键架构决策（v1.12）
+## 5. 关键架构决策（v1.13）
 
 1. 批量路径仍是「本地处理 → 大批 Parquet → 上传 → 批量查询」；
 2. DuckDB 仍只做分析查询，单写快照，不是队列/锁/事实源；
 3. 任务分配为**单写协调器 + `lease_generation` + COMMIT 事务**；发租约前先持久化 watermark；
 4. **成功提交点**不是 manifest，而是「协调器 commit 记录 + receipt 一致」；
-5. receipt 四态 + `episode_no≤1` + 一次性 REC；无 CAS 仅首次串行创建、永不重写；所有自动 verification GET（普通与 REC）**先预留、后执行**：事务内 `reserved+1`、`episode_attempts+1` 并 COMMIT，返回后才 `total+1`；`in_flight` 崩溃按 `unknown` 恢复；`REC_PENDING_UNKNOWN` 是 `COMMITTED_PENDING_RECEIPT` 内部子状态（权威 `commits.rec_state`）；20 次上限按 `reserved`，`total` 只记结果已落盘的 GET；
+5. receipt 四态 + `episode_no≤1` + 一次性 REC；无 CAS 仅首次串行创建、永不重写；**普通 GET** 先预留 `reserved` + `episode_attempts` 并 COMMIT 再执行，返回后才 `total+1`；**REC** 独立预留，只加 `reserved`、不加 `episode_attempts`、不受 10 次 / 60 s 约束；`in_flight` 崩溃按 `unknown` 恢复；`REC_PENDING_UNKNOWN` 是 `COMMITTED_PENDING_RECEIPT` 内部子状态（权威 `commits.rec_state`）；20 次上限按 `reserved`，`total` 只记结果已持久化的 GET；
 6. orphan 事件分 `storage_atomic/coordinator_serialized` 两种模式，总 PUT 次数分别为 ≤3/≤2（含首次），预算持久化在 `events` 行（合法 INSERT + 同事务原子 +1、只减不增、回读不计、`put_started_at`/`last_put_reserved_at` 仅为预留时间）；L3 需 `commit-receipt/v2` 的 `token_key_id`、key registry（`active/verify_only/revoked`）、token 账本、严格相等 generation；
 7. Run Manifest 与 Batch/Partition Manifest 分离，Catalog 只按 part_manifest 计总行数；
 8. `reproducibility_key` v2；`task_id` = `<batch_id>:<sha256(source_sha256 + requested_mpn)>`；
@@ -496,6 +509,22 @@ R1-3 的修订仍需 Reviewer 定向复核；OD-01/OD-02/OD-03/OD-05/OD-19 仍�
 | 契约冻结 / Stage A / 基准 / 试跑 / 生产 | **不批准** |
 
 > v1.12 只改 `13_` 内的 B1/B5 与测试设计；未改生产代码、未重跑 Ds Bit 测试；临时 SQLite 仅验证 SQL/事务与基本并发语义。
+
+### 9.13 第十三轮（v1.12）
+
+| 项 | 结论 |
+|---|---|
+| Git 提交与 Session A 边界 | PASS |
+| B1-R3 时间字段语义 | PASS（可关闭） |
+| B5-R2 普通 GET 先预留 | PASS |
+| B5-R2a episode 预算保护 | PASS（普通 GET） |
+| B5-R3 审计计数定义 | PARTIAL（v1.13 已统一术语） |
+| B5-R4 REC 与 episode 关系 | v1.13 已分层：REC 不占 episode |
+| R1-3 总体 | **OPEN**（等待 v1.13 定向复核） |
+| v1.13 状态 | 待 Reviewer 定向复核 |
+| 契约冻结 / Stage A / 基准 / 试跑 / 生产 | **不批准** |
+
+> v1.13 只改 `13_` 内的 B5 计数口径与测试断言；未改生产代码、未重跑 Ds Bit 测试。
 
 ---
 

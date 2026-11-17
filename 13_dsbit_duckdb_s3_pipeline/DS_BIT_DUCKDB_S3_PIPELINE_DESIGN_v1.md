@@ -3,9 +3,9 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
-| 文档版本 | v1.12（第十二轮：B1 预留时间字段；B5 普通 GET 先预留后执行、episode 预算保护与审计口径） |
+| 文档版本 | v1.13（第十三轮：B5 REC 与 episode 预算关系、`verify_attempts_total` 术语统一） |
 | 日期 | 2026-11-17 |
-| 修订 | v1.12 只补 B1/B5 的预留语义与崩溃测试；A3/A4、B2–B4 保持关闭，R5、R2–R4/R6 与总体架构不动 |
+| 修订 | v1.13 只补 B5 的计数口径与差异断言；A3/A4、B1、B2–B4 保持关闭，R5、R2–R4/R6 与总体架构不动 |
 | 性质 | 架构与实施设计（DESIGN ONLY） |
 | 实现状态 | **未实现**；本文件不含生产代码、不含部署、不含数据迁移 |
 | 基线仓库 | `E:\workspace\icpdf-extractor` |
@@ -177,7 +177,7 @@
 |---|---|---|---|
 | **B1-R1** | 示例 `INSERT` 不是合法 SQL | 改为合法列名 + `VALUES` 形式；INSERT 与 `UPDATE` 在同一事务，提交成功后才发 PUT | §5.2.5.5.3 |
 | **B1-R2** | `last_put_at` 语义易误读 | 重命名为 `last_put_started_at`（最近一次 PUT 的**开始**时间，不代表已完成） | §5.2.5.5.3；附件 §9.2/§9.10 |
-| **B5-R1** | `verify_attempts_total` 同时承担预留与实际请求 | 分离为 `verify_attempts_reserved`（已消耗预算，含 `in_flight`，上限 20）与 `verify_attempts_total`（**已完成**的 GET 次数，审计事实）；REC 先占 reserved，GET 完成后才 +total | §5.2.5.2.1；附件 §9.2/§9.9 |
+| **B5-R1** | `verify_attempts_total` 同时承担预留与实际请求 | 分离为 `verify_attempts_reserved`（已消耗预算，含 `in_flight`，上限 20）与 `verify_attempts_total`（**结果已持久化**的 GET 次数）；REC 先占 reserved，结果提交后才 +total | §5.2.5.2.1；附件 §9.2/§9.9 |
 | **B5-R2** | 断言口径同步 | N-12l 改为分别断言 reserved / total；N-12h1/h2 增 SQL 合法性与 `last_put_started_at` 断言；新增 N-12m SQLite 实际执行验证 | 矩阵 |
 | — | 范围口径 | 交付报告改写为「本轮 Session A 提交未修改 `12_/14_/15_`」，不再用 `edd2f99..HEAD` 整体范围表述 | `DELIVERY_REPORT.md` |
 
@@ -194,6 +194,17 @@
 | **测试** | 普通 GET 与并发崩溃测试 | 新增 N-12n（预留后/GET 后崩溃、连续重启、reserved=20、episode=10、双连接并发）；N-12m 增并发实测 | 矩阵 N-12m/N-12n |
 
 > v1.12 不重新打开 A3/A4、B2–B4、R5、R2–R4/R6 与总体架构；不改生产代码。
+
+### 0.14 第十三轮复核修订（v1.12 → v1.13）
+
+| 编号 | Reviewer 要求 | v1.13 处置 | 位置 |
+|---|---|---|---|
+| **B5-R4** | REC 是否消耗 episode 次数口径冲突 | 明确分层：**普通 GET** 消耗 `reserved` + `episode_attempts`（校验 10 次 / 60 s）；**REC** 只消耗 `reserved`（校验 `<20`），**不增加 `episode_attempts`**、不受 60 s 窗口约束；两者共用 `reserved<20` 上限 | §5.2.5.2.1；附件 §9.9 |
+| **B5-R4a** | 交付摘要误写「普通与 REC 统一 +episode」 | 修正主文档、交付报告与 README 的摘要表述，明确 REC 不占 episode 10 次 | `DELIVERY_REPORT.md` §4.12/§5；`README.md` §3.12 |
+| **B5-R5** | `verify_attempts_total` 在 REC 段落仍称「实际完成」 | 全文档统一为「**结果已持久化**的 GET 次数」；REC 段落同步；明确不代表物理网络请求总数 | §5.2.5.2.1；附件 §9.2/§9.9；矩阵 N-12l/N-12m |
+| **测试** | REC 与普通 GET 差异断言 | N-12m 增「REC 不增加 `episode_attempts`」；N-12n 增「普通 GET 增加 `episode_attempts`」；N-12l 增 REC 不受 60 s 窗口约束的断言 | 矩阵 N-12l/N-12m/N-12n |
+
+> v1.13 不重新打开 A3/A4、B1、B2–B4、R5、R2–R4/R6 与总体架构；不改生产代码。
 
 ---
 
@@ -921,9 +932,10 @@ write_receipt(commit):
 5. **20 次上限按 `verify_attempts_reserved` 计**；达到后只允许 **observation-only GET**（见下），不再新 episode；`verify_attempts_total` 只作审计，不单独触发上限；
 6. `pending_since` 的 3600 s 是 commit 生命周期预算，不因 episode 或重启重置。
 
-**所有自动 verification GET 先预留、后执行（v1.12/B5）**：
+**普通 verification GET 先预留、后执行（v1.13/B5）**：
 
-- 适用范围：episode 0/1 的普通 reconcile GET、`REC_PENDING_UNKNOWN` 的普通 GET；REC 本身沿用同一原则（见下）；
+- 适用范围：episode 0/1 的普通 reconcile GET、`REC_PENDING_UNKNOWN` 的普通 GET；
+- **不适用于 REC**：REC 使用独立预留（只增加 `reserved`，不增加 `episode_attempts`、不受 60 s 窗口约束），见下；两者共同受 `reserved < 20` 约束；
 - **预留事务 RR（发 GET 之前）**：
   ```sql
   UPDATE commits
@@ -956,17 +968,20 @@ write_receipt(commit):
 
 - episode 0 结束且冷却期满足后，允许**一次且仅一次** REC；
 - REC = **1 次 GET**，用于确认当前仍为 `ABSENT`；
-- REC 的 GET **消耗 1 次预算**（`verify_attempts_reserved += 1`），但不占用 episode 1 的 10 次额度；只有结果持久化后才 `verify_attempts_total += 1`；
-- REC 预留的前提是 `verify_attempts_reserved < 20`；预留**只增加 reserved**，不增加 `episode_attempts`；
+- REC 的 GET **消耗 1 次总预算**（`verify_attempts_reserved += 1`），但**不占用 episode 0/1 的 10 次额度**（不增加 `episode_attempts`），也不受 60 s episode 窗口约束；
+- REC 预留的前提只有 `verify_attempts_reserved < 20`；结果持久化后才 `verify_attempts_total += 1`；
 - 持久化字段：`rec_attempted`、`rec_state`、`rec_at`；`rec_state ∈ {in_flight, written, absent, conflict, unknown}`；
-- **执行顺序（v1.11/B5：先预留，后执行，再记实测）**：
+- **执行顺序（v1.13/B5：独立预留 → 执行 → 结果持久化）**：
   1. SQLite 事务：`rec_attempted=1`、`rec_state='in_flight'`、`rec_at=now`、`verify_attempts_reserved = verify_attempts_reserved + 1`，**COMMIT**；
   2. 仅在第 1 步提交成功后，执行**一次** REC GET；
   3. SQLite 事务：写入结果 `written|absent|conflict|unknown`、新的 `rec_at`，并 `verify_attempts_total = verify_attempts_total + 1`，**COMMIT**。
-- **计数口径**：
-  - `verify_attempts_reserved` = 已消耗预算（安全上限，20 次按此计）；
-  - `verify_attempts_total` = 实际完成的 GET 次数（审计事实）；
-  - 普通 verification GET 在完成后同一事务内 `reserved += 1` 且 `total += 1`；REC 的预留提前发生在 `in_flight` 事务中，故崩溃时可能 `reserved = total + 1`。
+- **计数口径（全文档统一）**：
+  - `verify_attempts_reserved` = 已消耗的验证预算，包含预留后未完成的请求；
+  - `verify_attempts_total` = **结果已持久化**的 GET 次数，不代表物理网络请求总数；
+  - 普通 GET：预留事务 `reserved += 1`，结果事务 RR2 `total += 1`；
+  - REC：`in_flight` 事务 `reserved += 1`，结果事务 `total += 1`；
+  - 崩溃时可能 `reserved = total + 1`，属预期而非计数错误。
+- **与 episode 的关系**：REC 不消耗 `episode_attempts`、不检查 10 次 / 60 s；REC 的 `ABSENT` 结果若触发第二次 PUT，才开启 episode 1 并清零 `episode_attempts`。
 - **崩溃恢复**：
   - 第 1 步后、GET 前崩溃：重启见 `rec_state='in_flight'` → 一律按 `UNKNOWN` 处理（改写为 `unknown`），进入 `REC_PENDING_UNKNOWN`，**不得重发 REC**；`reserved` 已消耗、`total` 不增加；
   - GET 已发出、结果未持久化时崩溃：同样按 `in_flight → unknown` 处理，不重发；`reserved` 已消耗、`total` 保持未完成状态；

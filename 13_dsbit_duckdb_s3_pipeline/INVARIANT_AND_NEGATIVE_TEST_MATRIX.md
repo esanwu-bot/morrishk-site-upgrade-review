@@ -521,7 +521,8 @@ DELETE FROM commits WHERE task_id = 'T';
 | 重启 | `rec_attempted=true`，不重复 REC |
 | 崩溃点 1：`in_flight` 已提交、GET 前崩溃 | 重启见 `rec_state='in_flight'` → 按 `unknown` 恢复；REC GET 实际次数 = 0；`verify_attempts_reserved=1`、`verify_attempts_total=0`；进入 `REC_PENDING_UNKNOWN`，不重发 |
 | 崩溃点 2：GET 已返回、结果未持久化 | 重启按 `unknown` 恢复；不重发 REC；`verify_attempts_reserved=1`、`verify_attempts_total=0`（结果未落盘即未完成），重启不重复计数；`rec_at` 保留首次 |
-| 计数口径 | 20 次上限按 `verify_attempts_reserved`；`verify_attempts_total` 只记录已完成 GET；恒有 `total ≤ reserved` |
+| 计数口径 | 20 次上限按 `verify_attempts_reserved`；`verify_attempts_total` 只记录**结果已持久化**的 GET；恒有 `total ≤ reserved` |
+| REC 与 episode | REC 不增加 `episode_attempts`、不检查 10 次 / 60 s；只检查 `reserved < 20` |
 | 状态归属 | `tasks.state` 仍为 `COMMITTED_PENDING_RECEIPT`；`commits.rec_state='unknown'` 为权威；`GET /v1/state` 同时返回两者 |
 | UNKNOWN 后的普通 GET | 仍须先预留（`reserved`/`episode_attempts` 原子 +1、COMMIT）再发 GET；崩溃语义见 N-12n |
 
@@ -533,8 +534,8 @@ DELETE FROM commits WHERE task_id = 'T';
 | 预算并发占用 | 两个连接同时执行带 `put_attempts < :max_puts` 的 UPDATE | 合计成功 `changes()=1` 次数 ≤ `max_puts`；不超卖 |
 | PUT 前崩溃 | 预算 UPDATE 提交后关闭连接（模拟崩溃） | 重启读取 `put_attempts` 已 +1；剩余次数不恢复 |
 | PUT 后回读恢复 | `put_attempts=1`、`event_state='pending'`，仅执行回读 | 回读不改变 `put_attempts`；`last_put_reserved_at` 不变 |
-| REC 崩溃点 1 | 提交 `rec_attempted=1, rec_state='in_flight', reserved+=1` 后关闭连接 | 重启 `in_flight→unknown`；`reserved=1,total=0`；不重发 |
-| REC 崩溃点 2 | 同上并模拟 GET 已返回但第 3 步未提交 | 结果不落盘；`reserved=1,total=0`；重启不重复计数 |
+| REC 崩溃点 1 | 提交 `rec_attempted=1, rec_state='in_flight', reserved+=1` 后关闭连接 | 重启 `in_flight→unknown`；`reserved=1,total=0`；`episode_attempts` 不变；不重发 |
+| REC 崩溃点 2 | 同上并模拟 GET 已返回但第 3 步未提交 | 结果不落盘；`reserved=1,total=0`；`episode_attempts` 不变；重启不重复计数 |
 | 重启幂等 | 重开同一 DB 并重放流程 | `rec_attempted` 保持 1；PUT/REC 次数不增加；`total ≤ reserved` |
 
 > N-12m 是**测试设计**；执行需临时 SQLite 与真实/模拟对象存储，不进入生产库。
@@ -550,6 +551,8 @@ DELETE FROM commits WHERE task_id = 'T';
 | episode 上限 | `episode_attempts=10` | 本 episode 不再发 GET；`episode_started_at` 复查；只有第二次 PUT 开启 episode 1 时才清零 |
 | 双连接并发 | 两个连接同时执行带 `reserved < 20 AND episode_attempts < 10` 的 UPDATE | 成功 `changes()=1` 总数不超过剩余预算；不超卖 |
 | 审计口径 | GET 已发出但 RR2 未提交 | `total` 不增；`reserved` 保留；报表不得把 `total` 表述为物理请求总数 |
+| 普通 GET 计 episode | 普通 reconcile GET 预留 | `reserved+1` 且 `episode_attempts+1`；受 10 次 / 60 s 约束 |
+| REC 对照 | REC 预留（发 `in_flight`） | 只 `reserved+1`，`episode_attempts` 不变；不受 10 次 / 60 s 约束，仅受 `reserved<20` |
 
 > 这是测试设计；执行需临时 SQLite（或协调器实现），不进入生产库。
 

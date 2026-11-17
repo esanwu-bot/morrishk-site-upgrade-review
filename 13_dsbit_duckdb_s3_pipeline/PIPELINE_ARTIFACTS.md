@@ -886,7 +886,7 @@ write_receipt(commit):
 
 **episode 状态机（A5/B5）**：`episode_no ∈ {0,1}`；普通 30 s reconcile **延续当前 episode**（不重置次数/截止）；只有第二次 PUT 后允许 `0→1`（此时 `episode_attempts=0`、`episode_started_at=now`）；重启恢复原 episode，不自动新增；`verify_attempts_reserved` 上限 20（`verify_attempts_total` 为结果已持久化的 GET 审计计数）；`pending_since` 3600 s 生命周期上限。
 
-**普通 verification GET 的预留（B5）**：所有自动 GET（普通与 REC）必须**先预留、后执行**。发 GET 前在同一事务执行：
+**普通 verification GET 的预留（B5）**：普通 reconcile GET（含 `REC_PENDING_UNKNOWN`）必须**先预留、后执行**；REC 使用独立预留（见下），不增加 `episode_attempts`。普通 GET 发请求前在同一事务执行：
 
 ```sql
 UPDATE commits
@@ -903,7 +903,7 @@ COMMIT;
 
 GET 返回后在另一事务中 `verify_attempts_total += 1` 并写入观察结果。崩溃语义：预留后未发 GET → `reserved/episode_attempts` 已消耗、`total` 不变、预算不返还；GET 已完成但结果未落盘 → 不重发该次、`total` 不增；结果落盘后才 `total+1`。
 
-**REC（B5）**：episode 0 结束后允许一次 1 次 GET 的**重写资格检查**；消耗 1 次 `verify_attempts_reserved`，不占 episode 1 的 10 次；**执行顺序**：① SQLite 提交 `rec_attempted=1, rec_state='in_flight', rec_at=now, verify_attempts_reserved+=1` → ② 单次 GET → ③ 提交 `written|absent|conflict|unknown` 且 `verify_attempts_total+=1`；`WRITTEN` 直接成功、`CONFLICT` 隔离、`ABSENT` 且条件全满足才第二次 PUT、`UNKNOWN` 进入 `REC_PENDING_UNKNOWN`（不重跑 REC；普通 GET 仍先预留再执行，返回后 total+1；reserved 20 次后 observation，3600 s 隔离）；`rec_state='in_flight'` 时崩溃一律按 `unknown` 恢复、不重发（reserved 已消耗、total 不增加）；`rec_attempted/rec_state/rec_at` 持久化，重启不重复。`REC_PENDING_UNKNOWN` 是 `COMMITTED_PENDING_RECEIPT` 的内部子状态，`tasks.state` 不变。
+**REC（B5）**：episode 0 结束后允许一次 1 次 GET 的**重写资格检查**；独立预留：消耗 1 次 `verify_attempts_reserved`，**不增加 `episode_attempts`**、不受 10 次 / 60 s 窗口约束，只检查 `reserved < 20`；**执行顺序**：① SQLite 提交 `rec_attempted=1, rec_state='in_flight', rec_at=now, verify_attempts_reserved+=1` → ② 单次 GET → ③ 提交 `written|absent|conflict|unknown` 且 `verify_attempts_total+=1`；`WRITTEN` 直接成功、`CONFLICT` 隔离、`ABSENT` 且条件全满足才第二次 PUT、`UNKNOWN` 进入 `REC_PENDING_UNKNOWN`（不重跑 REC；普通 GET 仍先预留再执行，返回后 total+1；reserved 20 次后 observation，3600 s 隔离）；`rec_state='in_flight'` 时崩溃一律按 `unknown` 恢复、不重发（reserved 已消耗、total 不增加）；`rec_attempted/rec_state/rec_at` 持久化，重启不重复。`REC_PENDING_UNKNOWN` 是 `COMMITTED_PENDING_RECEIPT` 的内部子状态，`tasks.state` 不变。
 
 **无 CAS 的退化（A6）**：仅允许**首次创建**走「GET 404 → 串行 PUT → 回读」，标记 `receipt_write_mode=serialized_no_cas`；**永不重写**；未知结果只读；OD-19 未批准时禁止写入。
 
