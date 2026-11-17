@@ -3,9 +3,9 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
-| 文档版本 | v1.11（第十一轮：B1 INSERT SQL 修正与 `last_put_started_at`；B5 预留计数与实测计数分离） |
+| 文档版本 | v1.12（第十二轮：B1 预留时间字段；B5 普通 GET 先预留后执行、episode 预算保护与审计口径） |
 | 日期 | 2026-11-17 |
-| 修订 | v1.11 只补 B1/B5 的 SQL 与计数语义；A3/A4、B2–B4 保持关闭，R5、R2–R4/R6 与总体架构不动 |
+| 修订 | v1.12 只补 B1/B5 的预留语义与崩溃测试；A3/A4、B2–B4 保持关闭，R5、R2–R4/R6 与总体架构不动 |
 | 性质 | 架构与实施设计（DESIGN ONLY） |
 | 实现状态 | **未实现**；本文件不含生产代码、不含部署、不含数据迁移 |
 | 基线仓库 | `E:\workspace\icpdf-extractor` |
@@ -182,6 +182,18 @@
 | — | 范围口径 | 交付报告改写为「本轮 Session A 提交未修改 `12_/14_/15_`」，不再用 `edd2f99..HEAD` 整体范围表述 | `DELIVERY_REPORT.md` |
 
 > v1.11 不重新打开 A3/A4、B2–B4、R5、R2–R4/R6 与总体架构。
+
+### 0.13 第十二轮复核修订（v1.11 → v1.12）
+
+| 编号 | Reviewer 要求 | v1.12 处置 | 位置 |
+|---|---|---|---|
+| **B1-R3** | `last_put_started_at` 实为预算预留时间 | 重命名为 `last_put_reserved_at`；`put_started_at` 注释统一为「首次预留预算时间」；所有读写点同步 | §5.2.5.5.3；附件 §9.2/§9.10 |
+| **B5-R2** | 普通 GET 完成后才占预算，存在崩溃绕过 20 次窗口 | 所有自动 verification GET（普通与 REC）统一**先预留、后执行**：事务内 `reserved+1` 与 `episode_attempts+1` 提交后才发 GET；完成后才 `total+1` | §5.2.5.2.1 |
+| **B5-R2a** | `episode_attempts` 10 次上限需同等保护 | 单 episode 次数在预预留事务内原子 +1，并校验 `<10`；崩溃不返还、重启不重置 | §5.2.5.2.1 |
+| **B5-R3** | `verify_attempts_total` 审计定义过强 | 重定义为「已持久化结果的 GET 次数」；明确请求已发生但结果未落盘时 `reserved` 保留、`total` 不增，属有意接受的审计不确定性；精确物理请求数需外部请求日志 | §5.2.5.2.1 |
+| **测试** | 普通 GET 与并发崩溃测试 | 新增 N-12n（预留后/GET 后崩溃、连续重启、reserved=20、episode=10、双连接并发）；N-12m 增并发实测 | 矩阵 N-12m/N-12n |
+
+> v1.12 不重新打开 A3/A4、B2–B4、R5、R2–R4/R6 与总体架构；不改生产代码。
 
 ---
 
@@ -897,7 +909,7 @@ write_receipt(commit):
 | `episode_attempts` | 当前 episode 已用 GET 次数（≤10） |
 | `episode_started_at` | 当前 episode 起点（60 s 截止） |
 | `verify_attempts_reserved` | 已消耗的验证预算次数（含已预留但未完成的 REC），**上限 20**（2 × 10） |
-| `verify_attempts_total` | 实际**已完成**的 GET 次数（审计事实；恒 ≤ `verify_attempts_reserved`） |
+| `verify_attempts_total` | **结果已持久化**的 GET 次数（审计口径；恒 ≤ `verify_attempts_reserved`） |
 | `pending_since` | 首次进入 pending 的时间；3600 s 生命周期上限 |
 
 规则：
@@ -909,11 +921,43 @@ write_receipt(commit):
 5. **20 次上限按 `verify_attempts_reserved` 计**；达到后只允许 **observation-only GET**（见下），不再新 episode；`verify_attempts_total` 只作审计，不单独触发上限；
 6. `pending_since` 的 3600 s 是 commit 生命周期预算，不因 episode 或重启重置。
 
+**所有自动 verification GET 先预留、后执行（v1.12/B5）**：
+
+- 适用范围：episode 0/1 的普通 reconcile GET、`REC_PENDING_UNKNOWN` 的普通 GET；REC 本身沿用同一原则（见下）；
+- **预留事务 RR（发 GET 之前）**：
+  ```sql
+  UPDATE commits
+     SET verify_attempts_reserved = verify_attempts_reserved + 1,
+         episode_attempts = episode_attempts + 1,
+         episode_started_at = COALESCE(episode_started_at, :now)
+   WHERE task_id = :task_id
+     AND verify_attempts_reserved < 20
+     AND episode_attempts < 10
+     AND (episode_started_at IS NULL OR :now < datetime(episode_started_at, '+60 seconds'));
+  -- changes() = 1 才允许发 GET；changes() = 0 → 本 episode/总预算已满，不发 GET
+  COMMIT;
+  ```
+- **执行**：预留事务 `COMMIT` 成功后，只发**一次** GET；
+- **结果事务 RR2（GET 返回后）**：`verify_attempts_total = verify_attempts_total + 1`，并持久化观察结果/状态转换，`COMMIT`；
+- **崩溃语义**：
+
+| 崩溃位置 | `reserved` | `episode_attempts` | `total` | 恢复行为 |
+|---|---|---|---|---|
+| 预留事务之前 | 不变 | 不变 | 不变 | 重启可重新申请预算 |
+| 预留事务之后、GET 之前 | +1 | +1 | 不变 | 预算不返还；重启不得假设该请求已发出 |
+| GET 已完成、RR2 之前 | +1 | +1 | 不变 | 不重发该次请求；按未知结果恢复；后续只能用剩余预算重新申请 |
+| RR2 已提交 | +1 | +1 | +1 | 按持久化结果恢复 |
+
+- **episode 保护**：`episode_attempts` 在预留事务内原子 +1；达到 10 后本 episode 不再发 GET；重启不重置；第二次 PUT 成功后开启 episode 1 时才 `episode_attempts=0`、`episode_started_at=now`；
+- **总量保护**：`verify_attempts_reserved=20` 后不再发任何自动 GET（含普通与 REC），只允许 observation-only；
+- **审计口径**：`verify_attempts_total` 仅表示**结果已持久化**的 GET 次数，不等于物理世界已发出的网络请求数；请求已发出但结果未落盘时 `reserved` 保留、`total` 不增，这是有意接受的审计不确定性；精确物理请求数需外部请求日志或遥测，不能仅靠 SQLite 事务跨网络原子记录。
+
 **重写资格检查 REC（B5）**：
 
 - episode 0 结束且冷却期满足后，允许**一次且仅一次** REC；
 - REC = **1 次 GET**，用于确认当前仍为 `ABSENT`；
-- REC 的 GET **消耗 1 次预算**（`verify_attempts_reserved += 1`），但不占用 episode 1 的 10 次额度；只有实际完成后才 `verify_attempts_total += 1`；
+- REC 的 GET **消耗 1 次预算**（`verify_attempts_reserved += 1`），但不占用 episode 1 的 10 次额度；只有结果持久化后才 `verify_attempts_total += 1`；
+- REC 预留的前提是 `verify_attempts_reserved < 20`；预留**只增加 reserved**，不增加 `episode_attempts`；
 - 持久化字段：`rec_attempted`、`rec_state`、`rec_at`；`rec_state ∈ {in_flight, written, absent, conflict, unknown}`；
 - **执行顺序（v1.11/B5：先预留，后执行，再记实测）**：
   1. SQLite 事务：`rec_attempted=1`、`rec_state='in_flight'`、`rec_at=now`、`verify_attempts_reserved = verify_attempts_reserved + 1`，**COMMIT**；
@@ -942,7 +986,7 @@ write_receipt(commit):
 **`REC_PENDING_UNKNOWN` 状态（B5）**：
 
 - 不重跑 REC；不开 episode 1；
-- 允许**普通 verification GET**（完成后 `reserved += 1`、`total += 1`），可因观察到 `WRITTEN` 而转为 `SUCCEEDED`，观察到 `CONFLICT` 转 `QUARANTINED`；
+- 允许**普通 verification GET**（遵守 v1.12 的「先预留、后执行」：预留事务 `reserved += 1`、`episode_attempts += 1` 并 COMMIT，GET 返回后才 `total += 1`），可因观察到 `WRITTEN` 而转为 `SUCCEEDED`，观察到 `CONFLICT` 转 `QUARANTINED`；
 - `verify_attempts_reserved` 达到 20 后转 **observation-only**（不计数、不改状态、不提升成功）；
 - `pending_since` 超过 3600 s → `QUARANTINED(receipt_absent_timeout)`；
 - 重启后保持该状态，不重新获得预算。
@@ -1126,8 +1170,8 @@ event_id = sha256(f"{batch_id}|{task_id}|receipt_without_commit|{receipt_sha256}
   - 单协调器串行写入；GET → 404 → **普通 PUT（同字节）** → 回读；
   - 超时 → GET 回读：同字节 → 成功；不同 → 冲突；404 → 退避后重试普通 PUT；**总 PUT 次数 ≤2（含首次，即最多 1 次重试）**；仍 404 → `unresolved`；
   - **不得宣称存储层原子去重**；若存在第二个协调器，本模式不成立（不属于支持场景）；
-- **事件 PUT 预算持久化（v1.11/B1）**：
-  - **归属**：预算属于 SQLite `events` 表的**事件行**（`event_id` 唯一），字段为 `put_attempts` / `event_state` / `put_started_at` / `last_put_started_at`；**不使用** `commits.put_attempts`（后者只属于 receipt 写入预算）；
+- **事件 PUT 预算持久化（v1.12/B1）**：
+  - **归属**：预算属于 SQLite `events` 表的**事件行**（`event_id` 唯一），字段为 `put_attempts` / `event_state` / `put_started_at`（首次**预留**时间）/ `last_put_reserved_at`（最近一次**预留**时间）；**不使用** `commits.put_attempts`（后者只属于 receipt 写入预算）；
   - **上限**：`max_puts = 3`（`storage_atomic`）/ `2`（`coordinator_serialized`），按事件的 `event_dedup` 模式固定，不随重启改变；
   - **事件行先于 PUT 存在**：首次写入前，在事务 TT 内执行合法 SQL：
     ```sql
@@ -1148,14 +1192,14 @@ event_id = sha256(f"{batch_id}|{task_id}|receipt_without_commit|{receipt_sha256}
     UPDATE events
        SET put_attempts = put_attempts + 1,
            put_started_at = COALESCE(put_started_at, :now),
-           last_put_started_at = :now
+           last_put_reserved_at = :now
      WHERE event_id = :event_id
        AND put_attempts < :max_puts;
     -- changes() = 1 才允许发 PUT；changes() = 0 → 预算耗尽 → event_state='unresolved'
     COMMIT;
     ```
     `INSERT` 与 `UPDATE` 必须在**同一事务**内，`COMMIT` 成功后才发 PUT；否则崩溃后无法证明预算已被占用；
-  - **`last_put_started_at` 语义**：最近一次 PUT 的**开始**时间，不代表 PUT 已完成；完成时间由远端回读结果与 `event_state` 共同判定；
+  - **时间字段语义**：`put_started_at` = 首次**预留**预算时间；`last_put_reserved_at` = 最近一次**预留**时间。两者都**不代表 PUT 已经开始或完成**；真实发送与否以回读结果与 `event_state` 为准；
   - 预算**只减不增**：PUT 前崩溃被占用的次数不退回；
   - **PUT 后 / 回读前崩溃**：重启只做 GET 回读，不新增 PUT、不增加 `put_attempts`；
   - **回读不计预算**：GET 回读（成功、失败、超时、404 退避）不计入 `put_attempts`，也不改变剩余 PUT 次数；

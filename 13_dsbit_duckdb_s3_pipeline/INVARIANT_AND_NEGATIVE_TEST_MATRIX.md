@@ -464,7 +464,7 @@ DELETE FROM commits WHERE task_id = 'T';
 |---|---|
 | 前提 | 存储通过 C1/C2，`event_dedup=storage_atomic` |
 | 断言 | 首次用 `If-None-Match: *`；总 PUT 次数 ≤3（含首次）；412/409 后 GET 比较；超时只回读；仍 ABSENT → `unresolved`，不写入 |
-| 预算持久化 | `events.put_attempts` 在每次 PUT 前原子 +1（`changes()=1` 才发 PUT）；`events.event_state ∈ {pending,written,conflict,unresolved}`；`last_put_started_at` 为 PUT 开始时间，不由回读更新 |
+| 预算持久化 | `events.put_attempts` 在每次 PUT 前原子 +1（`changes()=1` 才发 PUT）；`events.event_state ∈ {pending,written,conflict,unresolved}`；`last_put_reserved_at` 为预算预留时间，不代表 PUT 已发出，且不由回读更新 |
 | SQL 合法性 | `INSERT OR IGNORE INTO events(event_id,task_id,at,event_state,put_attempts) VALUES(?,?,?,'pending',0)` 可执行；INSERT 与 UPDATE 同一事务，COMMIT 后才发 PUT |
 | 重启 | PUT 前崩溃：`put_attempts` 已占用不退回，重启后剩余次数 = 3 − `put_attempts`；PUT 后/回读前崩溃：重启只 GET 回读，不新增 PUT；总 PUT 次数仍 ≤3 |
 | 回读不计预算 | 回读成功/失败/超时/404 退避均不改变 `put_attempts`；仅实际 PUT 计数 |
@@ -475,7 +475,7 @@ DELETE FROM commits WHERE task_id = 'T';
 |---|---|
 | 前提 | 存储未通过 C1/C2 |
 | 断言 | 使用普通 PUT；总 PUT 次数 ≤2（含首次）；不得标记 `storage_atomic`；超时回读；仍 ABSENT → `unresolved` |
-| 预算持久化 | `events.put_attempts` 在每次 PUT 前原子 +1；上限 2；`events` 行与 `commits.put_attempts` 互不混用；`last_put_started_at` 不由回读更新 |
+| 预算持久化 | `events.put_attempts` 在每次 PUT 前原子 +1；上限 2；`events` 行与 `commits.put_attempts` 互不混用；`last_put_reserved_at` 不由回读更新 |
 | SQL 合法性 | 与 N-12h1 相同的合法 INSERT + 事务内 UPDATE；COMMIT 后才发普通 PUT |
 | 重启 | PUT 前崩溃不退回预算；重启后总 PUT 次数仍 ≤2；终态 `written/conflict/unresolved` 不再 PUT |
 | 回读不计预算 | 回读不增加 `put_attempts`，也不获得新的 PUT 次数 |
@@ -523,6 +523,7 @@ DELETE FROM commits WHERE task_id = 'T';
 | 崩溃点 2：GET 已返回、结果未持久化 | 重启按 `unknown` 恢复；不重发 REC；`verify_attempts_reserved=1`、`verify_attempts_total=0`（结果未落盘即未完成），重启不重复计数；`rec_at` 保留首次 |
 | 计数口径 | 20 次上限按 `verify_attempts_reserved`；`verify_attempts_total` 只记录已完成 GET；恒有 `total ≤ reserved` |
 | 状态归属 | `tasks.state` 仍为 `COMMITTED_PENDING_RECEIPT`；`commits.rec_state='unknown'` 为权威；`GET /v1/state` 同时返回两者 |
+| UNKNOWN 后的普通 GET | 仍须先预留（`reserved`/`episode_attempts` 原子 +1、COMMIT）再发 GET；崩溃语义见 N-12n |
 
 ##### N-12m SQLite 预算语义实际执行验证（B1/B5）
 
@@ -531,12 +532,26 @@ DELETE FROM commits WHERE task_id = 'T';
 | 合法 INSERT | 执行 `INSERT OR IGNORE INTO events(event_id,task_id,at,event_state,put_attempts) VALUES(?,?,?,'pending',0)` | 无语法错误；`event_state='pending'`、`put_attempts=0` |
 | 预算并发占用 | 两个连接同时执行带 `put_attempts < :max_puts` 的 UPDATE | 合计成功 `changes()=1` 次数 ≤ `max_puts`；不超卖 |
 | PUT 前崩溃 | 预算 UPDATE 提交后关闭连接（模拟崩溃） | 重启读取 `put_attempts` 已 +1；剩余次数不恢复 |
-| PUT 后回读恢复 | `put_attempts=1`、`event_state='pending'`，仅执行回读 | 回读不改变 `put_attempts`；`last_put_started_at` 不变 |
+| PUT 后回读恢复 | `put_attempts=1`、`event_state='pending'`，仅执行回读 | 回读不改变 `put_attempts`；`last_put_reserved_at` 不变 |
 | REC 崩溃点 1 | 提交 `rec_attempted=1, rec_state='in_flight', reserved+=1` 后关闭连接 | 重启 `in_flight→unknown`；`reserved=1,total=0`；不重发 |
 | REC 崩溃点 2 | 同上并模拟 GET 已返回但第 3 步未提交 | 结果不落盘；`reserved=1,total=0`；重启不重复计数 |
 | 重启幂等 | 重开同一 DB 并重放流程 | `rec_attempted` 保持 1；PUT/REC 次数不增加；`total ≤ reserved` |
 
 > N-12m 是**测试设计**；执行需临时 SQLite 与真实/模拟对象存储，不进入生产库。
+
+##### N-12n 普通 verification GET 的预留与崩溃（B5）
+
+| 场景 | 步骤 | 断言 |
+|---|---|---|
+| 预留后、GET 前崩溃 | 预留事务 `reserved+1, episode_attempts+1` COMMIT 后关闭连接 | 重启 `reserved`/`episode_attempts` 已 +1、`total` 不变；预算不返还；不得假设请求已发出 |
+| GET 完成、结果未落盘 | 预留后发 GET，模拟返回前关闭连接 | `reserved`/`episode_attempts` 保留、`total` 不变；不重发该次；后续只能用剩余预算重新申请 |
+| 连续重启 | 上述崩溃后重启 3 次 | 不获得额外预算；`reserved`/`episode_attempts` 单调不降 |
+| 总量上限 | `reserved=20` | 不再发任何自动 GET（普通或 REC）；仅 observation-only |
+| episode 上限 | `episode_attempts=10` | 本 episode 不再发 GET；`episode_started_at` 复查；只有第二次 PUT 开启 episode 1 时才清零 |
+| 双连接并发 | 两个连接同时执行带 `reserved < 20 AND episode_attempts < 10` 的 UPDATE | 成功 `changes()=1` 总数不超过剩余预算；不超卖 |
+| 审计口径 | GET 已发出但 RR2 未提交 | `total` 不增；`reserved` 保留；报表不得把 `total` 表述为物理请求总数 |
+
+> 这是测试设计；执行需临时 SQLite（或协调器实现），不进入生产库。
 
 ### N-13 任务重试产生重复结果
 
