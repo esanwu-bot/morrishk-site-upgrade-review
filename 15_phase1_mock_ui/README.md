@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-PHASE1-MOCK-001 |
-| 版本 | v1.1（Reviewer B1/B2 修订） |
+| 版本 | v1.2（新增契约候选测试与验收包；Mock UI 资产未改） |
 | 日期 | 2026-11-17 |
 | 性质 | 交互界面 + 本地 Mock；**不是**生产实现、不是契约冻结、不是部署 |
 | 决策依据 | `14_phase0_authority_adjudication/` 中 IQ-01 / IQ-02 / IQ-13 书面裁定；`12_` v1.3 |
@@ -37,8 +37,10 @@
 | `data/mock-products.json` | 8 条构造产品记录（含 2 条待确认） |
 | `data/mock-dictionary.json` | 3 条演示参数定义 |
 | `data/mock-taxonomies.json` | 技术分类树、导航分类树、映射候选行 |
-| `tests/mpn-normalizer.test.js` | 归一化与业务键单元测试 |
-| `tests/mock-api.test.js` | Mock API 与同步重试单元测试 |
+| `tests/mpn-normalizer.test.js` | 归一化与业务键单元测试（22 项） |
+| `tests/mock-api.test.js` | Mock API 与同步重试单元测试（20 项） |
+| `tests/contract-candidate.test.js` | 契约候选一致性测试（19 项，只读 `12_/contract/openapi.candidate.v1.json`） |
+| `ACCEPTANCE_PACKAGE.md` | Phase 1 验收包：8 视图、测试/冒烟/哈希、IQ 清单、契约候选与未获批准项 |
 | `TEST_REPORT.md` | 实际执行的测试与浏览器冒烟结果 |
 | `DELIVERY_REPORT.md` | 交付清单、Diff 摘要、未决项、禁止事项确认 |
 | `SHA256SUMS.txt` | 本目录文件校验清单 |
@@ -59,7 +61,7 @@ python -m http.server 8777 --bind 127.0.0.1
 运行测试：
 
 ```bash
-node --test tests/mpn-normalizer.test.js tests/mock-api.test.js
+node --test tests/mpn-normalizer.test.js tests/mock-api.test.js tests/contract-candidate.test.js
 ```
 
 ---
@@ -143,3 +145,8 @@ key       = "pbk1_" + lowercase_hex(sha256(UTF-8(canonical)))
 3. 游标 `demo_<offset>` 仅用于演示，正式游标形态未裁定（`OPEN`）。
 4. Mock 响应体现契约方向，但契约本身**未冻结**；错误码、分页、字段仍可能调整。
 5. 未实现 Ds Bit 解析、文档上传、发布审批与撤回流程。
+6. Mock 的 `visible_state` 使用 `RELEASED` / `PENDING` / `REVOKED`，是演示简化；
+   契约枚举为 `DRAFT` / `IN_REVIEW` / `RELEASED` / `WITHDRAWN`。该差异是契约冻结阻断项，
+   不得据此修改契约或声称已对齐。
+7. 本目录整体验收状态为 `PENDING_REVIEW`；`PASS_MOCK` 只能由独立 Reviewer 复核后填写，
+   见 `ACCEPTANCE_PACKAGE.md`。

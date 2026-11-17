@@ -3,9 +3,9 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-DSBIT-INT-001 |
-| 版本 | v1.3（落地 IQ-01 / IQ-02 / IQ-13 书面裁定；契约仍未冻结） |
+| 版本 | v1.4（新增 Business API 契约候选稿；状态仍为 `CANDIDATE_NOT_FROZEN`） |
 | 日期 | 2026-11-17 |
-| 修订 | v1.1 处理 R1–R8 与基线说明（`fc4bcc5`）；v1.2 收口 R3/R4/R5/R6/R8（`3816c10`）；v1.2.1 修正 R5 的 60 秒边界（`60b46ba`）；v1.2.2 修正 §1.1 冻结状态表述；v1.3 产品身份改为 `MPN + Brand`、目标改为新平台、业务导航与技术参数分类硬隔离 |
+| 修订 | v1.1 处理 R1–R8 与基线说明（`fc4bcc5`）；v1.2 收口 R3/R4/R5/R6/R8（`3816c10`）；v1.2.1 修正 R5 的 60 秒边界（`60b46ba`）；v1.2.2 修正 §1.1 冻结状态表述；v1.3 产品身份改为 `MPN + Brand`、目标改为新平台、业务导航与技术参数分类硬隔离；v1.4 增加可评审的契约候选（OpenAPI 3.1），不改变任何 `OPEN` 状态 |
 | 性质 | 架构与接口契约设计；**不是**生产实现、不是部署、不是凭证签发 |
 | 状态 | 送 Reviewer 复核 |
 | 决策基线 | `esanwu-bot/morrishk-site-upgrade-review` `main@77137655ed24e3b370eb4fe5c75b68dd708fa9ec` |
@@ -17,6 +17,8 @@
 | 文件 | 说明 |
 |---|---|
 | `Ds Bit ↔ Morrishk Business API Integration Design v1.md` | 主设计文档（16 章 + 附录 A–D） |
+| `API_CONTRACT_CANDIDATE_v1.md` | Business API 契约候选稿（`CANDIDATE_NOT_FROZEN`）：端点、错误码、身份规则、冻结阻断与审批矩阵 |
+| `contract/openapi.candidate.v1.json` | 契约候选的 OpenAPI 3.1 机器可读稿（`x-contract-status=CANDIDATE_NOT_FROZEN`；16 路径 / 13 必需操作） |
 | `API_CONTRACT_EXAMPLES.md` | EX-01 ~ EX-23 请求/响应示例（含 EX-07b/EX-07c 补充；全部为构造样例；产品身份为 `product_business_key`） |
 | `INTEGRATION_OPEN_QUESTIONS.md` | IQ-01 ~ IQ-22 未决问题、证据、选项、建议与裁定记录 |
 | `README.md` | 本文件：基线、文件清单、复核方法、未执行操作声明 |
@@ -130,6 +132,7 @@ sha256sum -c SHA256SUMS.txt
 - [ ] `CONFIRMED` / `PROPOSED` / `OPEN` 三类清单（主文档附录 A）
 - [ ] 当前 vs 拟议差异表（主文档附录 C）
 - [ ] 明确声明未执行生产操作（主文档附录 D、本文件 §5）
+- [ ] 契约候选稿（`API_CONTRACT_CANDIDATE_v1.md` + `contract/openapi.candidate.v1.json`）
 - [ ] SHA-256 校验清单（`SHA256SUMS.txt`）
 
 ---
@@ -148,3 +151,19 @@ Phase 1 的交互界面与 Mock 联调交付在 `15_phase1_mock_ui/`，**不属�
   真实产品发布或撤回、真实分类树初始化、擅自确定未确认的字典定义。
 - Mock 响应只体现契约方向，**不代表**生产 API 已实现或已接通。
 - 正式 `parameter_code`、定义、单位、数据类型与适用范围以 PM 提供的真实种子为准（IQ-02 裁定）。
+
+---
+
+## 8. 契约候选稿（v1.4 新增）
+
+| 项 | 值 |
+|---|---|
+| 文档 | `API_CONTRACT_CANDIDATE_v1.md`（`v1.0-candidate`） |
+| 机器可读稿 | `contract/openapi.candidate.v1.json`（OpenAPI 3.1.0） |
+| 状态 | `CANDIDATE_NOT_FROZEN` |
+| 必需操作 | 12 个 V1_REQUIRED 唯一路径 + `POST /oauth/token` = 13；另有 3 个 V1_OPTIONAL |
+| 冻结阻断 | IQ-05 / IQ-09 / IQ-15 / IQ-21，加 MpnNormalizer 冻结、`visible_state` 枚举协调、PM 字典种子、证据公开范围 |
+
+该候选稿只把主设计文档中已写明的接口**整理为可评审、可机读**的形式，
+**不**新增业务裁定、**不**关闭任何 `OPEN` 项、**不**代表契约冻结或生产实现获批。
+独立 Contract Freeze 评审通过前，任何实现都不得以「契约已冻结」为依据。

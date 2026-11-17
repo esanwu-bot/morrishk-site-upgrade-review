@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-PHASE0-EVIDENCE-001 |
-| 版本 | v1.1（2026-11-17 回填 IQ-01 / IQ-02 / IQ-13 书面裁定；v1.0 证据内容保留） |
+| 版本 | v1.2（2026-11-17 追加签署登记状态与 IQ-05/09/15/21 决策简报；无新增裁定） |
 | 日期 | 2026-11-17 |
 | 调查对象 | Ds Bit 仓库 `E:\workspace\icpdf-extractor`；Morrishk 旧站源码与 schema 审计；Morrishk 新平台 `E:\workspace\独立站\morries\platform` |
 | 关联文档 | `12_dsbit_business_api_integration_design/Ds Bit ↔ Morrishk Business API Integration Design v1.md`（v1.3）；`12_dsbit_business_api_integration_design/INTEGRATION_OPEN_QUESTIONS.md`（v1.3） |
@@ -105,8 +105,9 @@
 | `IQ01_PRODUCT_IDENTITY_ADJUDICATION.md` | 产品身份与 ID 空间证据、重复分析、选项 |
 | `IQ02_TAXONOMY_AUTHORITY_ADJUDICATION.md` | 技术分类归属、种子、体系数量证据与选项 |
 | `PHASE0_OPEN_QUESTIONS_MATRIX.md` | IQ-01..IQ-22 矩阵、阻断关系、建议处理顺序 |
+| `IQ05_IQ09_IQ15_IQ21_DECISION_BRIEFS.md` | 剩余四项 Phase 0 阻断项的决策材料（问题/证据/选项/影响/建议/空裁定记录） |
 | `EVIDENCE_INDEX.md` | 逐条证据：路径、行号、SHA-256、级别、有效性 |
-| `DECISION_REGISTER.md` | 决策登记空表与签署规则 |
+| `DECISION_REGISTER.md` | 决策登记表、签署与验收状态、签署规则 |
 | `SHA256SUMS.txt` | 本目录除自身外全部文件的 SHA-256 |
 
 ---
@@ -150,3 +151,24 @@
 2. 原始证据结论、重复分析、选项与建议**未被删除或改写**；v1.0 的「全部 OPEN」「不含任何已批准决策」等表述是当时状态的如实记录。
 3. 本轮裁定不授权：Business API 契约冻结、生产 API 实现、OAuth2 生产凭证、生产数据库迁移/写入、DuckDB + S3 Stage A、批量解析运行。
 4. 决策依据是 `main@7713765` 的决策/方案证据基线，不是 Ds Bit 生产源码权威；Ds Bit 源码事实仍以 `DSBIT_AUTHORITY_BASELINE.md` 的分支与核验状态为准。
+
+---
+
+## 8. v1.2 决策收尾状态（2026-11-17）
+
+本节只登记状态与索引，不新增任何裁定。
+
+| 项 | 状态 |
+|---|---|
+| IQ-01 / IQ-02 / IQ-13 书面裁定 | 已登记（`DECISION_REGISTER.md` §2.1–2.3） |
+| 三项签署 | **待签署**（签署人未指定，`DECISION_REGISTER.md` §2.4） |
+| 三项独立 Reviewer 验收 | **未完成** |
+| IQ-05 / IQ-09 / IQ-15 / IQ-21 | 仍为 `OPEN`；决策材料见 `IQ05_IQ09_IQ15_IQ21_DECISION_BRIEFS.md` |
+| 契约冻结 | **NO** |
+| 生产实现 | **NOT APPROVED** |
+
+**边界：**
+
+1. 「已登记」不等于「已签署」「已验收」「已生效」。
+2. 决策简报中的建议是分析意见，不是裁定；只有决策人书面结论进入登记表并签署后才生效。
+3. 本包不构成 Business API 契约冻结，也不构成生产 API / OAuth2 / 数据库 / 同步的开工授权。

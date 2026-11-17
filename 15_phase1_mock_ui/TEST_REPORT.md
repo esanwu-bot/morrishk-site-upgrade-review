@@ -5,8 +5,8 @@
 | 日期 | 2026-11-17 |
 | 环境 | Windows 10.0.19045 x64；Node.js v24.21.0；Python 3（仅静态文件服务器）；浏览器经 browser-use 驱动 |
 | 被测对象 | `15_phase1_mock_ui/` |
-| 结论 | 单元测试 42/42 通过；浏览器冒烟 9 项全部通过；**未执行**任何生产接口、数据库或凭证操作 |
-| 修订 | B1/B2 修订后重跑（新增 3 项候选冲突用例 + 4 项搜索非法输入用例）；本节结论由执行 Agent 运行得出，Reviewer 未独立复跑 |
+| 结论 | 单元/契约测试 61/61 通过；浏览器冒烟 9 项全部通过；**未执行**任何生产接口、数据库或凭证操作 |
+| 修订 | v1.2：新增契约候选一致性测试 19 项（合计 61）；v1.1 B1/B2 修订后重跑（新增 3 项候选冲突用例 + 4 项搜索非法输入用例）；本节结论由执行 Agent 运行得出，Reviewer 未独立复跑 |
 
 ---
 
@@ -26,19 +26,19 @@
 
 ```bash
 cd 15_phase1_mock_ui
-node --test tests/mpn-normalizer.test.js tests/mock-api.test.js
+node --test tests/mpn-normalizer.test.js tests/mock-api.test.js tests/contract-candidate.test.js
 ```
 
 实际结果：
 
 ```text
-tests 42
-pass 42
+tests 61
+pass 61
 fail 0
 cancelled 0
 skipped 0
 todo 0
-duration_ms 618.2903
+duration_ms 956.3842
 ```
 
 ### 2.1 归一化与业务键（22 项）
@@ -96,6 +96,34 @@ duration_ms 618.2903
 
 > 同步测试使用 `delayMs=1` 注入等待，验证的是控制流，不是真实网络退避。
 
+### 2.3 契约候选一致性（19 项）
+
+被测对象：`12_dsbit_business_api_integration_design/contract/openapi.candidate.v1.json`（只读）。
+
+| 用例 | 断言 | 结果 |
+|---|---|---|
+| 候选状态 | OpenAPI 3.1.0；`x-contract-status=CANDIDATE_NOT_FROZEN`；描述含 "NOT frozen" | PASS |
+| 端点清单 | 13 个 `V1_REQUIRED` 操作与 3 个 `V1_OPTIONAL` 操作，集合完全一致 | PASS |
+| 只读性 | 除 `POST /oauth/token` 外全部为 GET | PASS |
+| 操作完整性 | `operationId` 唯一且每个操作都有 responses | PASS |
+| 安全声明 | 除 Token 外每个操作都声明 `oauth2`，Token 的 `security=[]` | PASS |
+| Scope 集合 | 恰好 5 个：`product.read` / `category.read` / `evidence.read` / `version.read` / `publish.read` | PASS |
+| 响应包 | `EnvelopeBase.required` 为 `code/message/data/request_id/meta`；错误包为两段 `allOf` | PASS |
+| 错误 meta | 必须含 `error_key` / `retryable` / `degraded_allowed` | PASS |
+| 错误目录 | 20 个稳定 `error_key`，无重复，含 40302/41001/41002/42201/42202 | PASS |
+| 业务键格式 | `^pbk1_[0-9a-f]{64}$`；拒绝 `doc_`、`prd_`、63 位 hex | PASS |
+| 文档身份隔离 | 产品路由与 `Identity` schema 均不含 `document_id` | PASS |
+| DTO 分层 | `Product.required` 含 identity/technical/categories/documents/release/data_version | PASS |
+| 发布闸门 | `gates` 必含 pipeline/content/release；`visible_state` 含 RELEASED/WITHDRAWN | PASS |
+| 冻结阻断 | 登记 IQ-05/09/15/21、MPN-NORM-v1、VISIBLE-STATE-RECONCILIATION | PASS |
+| 阻断状态 | 所有阻断项状态只能是 `OPEN` 或 `PROPOSED`，不得写成已裁定 | PASS |
+| Server 占位 | 仅 `.invalid` 或 `127.0.0.1`，无生产域名 | PASS |
+| Token 形状 | 必填 `access_token/token_type/expires_in/scope`；`expires_in=900` | PASS |
+| 搜索语义 | 含 mpn/brand/mpn_match/release_state；release_state 为 RELEASED/REVOKED/PENDING | PASS |
+| 分类边门禁 | `internal_only` 存在；特殊门禁说明含 `INSUFFICIENT_SCOPE` | PASS |
+
+> 契约测试只验证**候选稿内部一致性**与“未冻结”声明，不验证生产 API 行为，也不构成契约冻结。
+
 ---
 
 ## 3. 浏览器冒烟（RUN）
@@ -134,6 +162,8 @@ python -m http.server 8777 --bind 127.0.0.1
 | 无网络依赖 | 页面仅 `fetch` 本地 `data/*.json`；Mock API 全部在内存 | 通过（代码审阅） |
 | 13_ 产品身份口径 | 只读 grep（基线 `8c45f63`，当前 HEAD `5fa7c5c` 同）：`product_id = prod-<document_id>` 被描述为**单文档内**成立，跨文档归并列 `OPEN_DECISIONS.md:134` **OD-11** `OPEN` | 未发现与 IQ-01 冲突的跨系统身份定义；OD-11 属 Ds Bit 内部产品族/版本/文档归并，不在 IQ-01 解决范围 |
 | 13_ 未被修改 | `git status --porcelain -- 13_dsbit_duckdb_s3_pipeline` 为空 | 通过 |
+| 契约候选哈希 | `sha256sum 12_/contract/openapi.candidate.v1.json` = `fdeec48e…e71023`，与候选文档一致 | 通过 |
+| 契约未冻结 | OpenAPI `x-contract-status` 与文档状态均为 `CANDIDATE_NOT_FROZEN` | 通过 |
 
 ---
 
@@ -166,7 +196,7 @@ python -m http.server 8777 --bind 127.0.0.1
 ```bash
 # 单元测试
 cd 15_phase1_mock_ui
-node --test tests/mpn-normalizer.test.js tests/mock-api.test.js
+node --test tests/mpn-normalizer.test.js tests/mock-api.test.js tests/contract-candidate.test.js
 
 # 浏览器
 python -m http.server 8777 --bind 127.0.0.1
