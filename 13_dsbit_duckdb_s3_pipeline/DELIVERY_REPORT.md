@@ -4,26 +4,30 @@
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
 | 交付日期 | 2026-11-17 |
+| 版本 | **v1.1**（按 Reviewer R1–R6 修订） |
 | 性质 | 设计送审（DESIGN ONLY） |
 | 主文档 | `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md` |
-| 送审包提交 | `a62c70d644ced735ccfe079b086aca744f142f93` |
-| 后续提交 | 本报告与更新后的 `SHA256SUMS.txt` 为同包第二次提交（`git log` 可查） |
+| Reviewer 结论 | 提交完整性 PASS；架构方向 PASS；数据契约 REVISIONS REQUIRED；P0 OPEN；**Stage A 未批准** |
+| v1.0 提交 | 设计 `a62c70d644ced735ccfe079b086aca744f142f93`；报告 `ce6ba2db2839cb49a69702d3251482c4b58ba633` |
+| v1.1 提交 | 设计修订：`（提交后回填）`；报告与校验清单：`（随本次提交）` |
 | Ds Bit 基线 | `600439a5eee69fb3a1cec2715e37080e48ca9840`（分支 `backup/full-local-20261114`） |
-| 送审仓库基线 | `main`，本包提交前为 `0fa9d34` |
+| 送审仓库任务启动基线 | `0fa9d34` |
+| 送审仓库设计提交直接父提交（v1.0） | `fc4bcc5` |
 
 ---
 
-## 1. 当前代码与设计基线
+## 1. 基线（区分两个概念）
 
-- 仓库：`E:\workspace\icpdf-extractor`
-- 分支：`backup/full-local-20261114`
-- HEAD：`600439a5eee69fb3a1cec2715e37080e48ca9840`
-- 工作树：不干净（`deploy/dsb/*` 已暂存；`workbench/b2b/serve_b2b.py`、`deploy/dsb/evidence/`、`docs/g0_evidence/` 未跟踪）
-- 关键基线文档：
-  - `lake/README.md`（Stage B 单件血缘 Demo）
-  - `docs/New_Gate_受控灰度方案.md`（并发/超时/冻结口径）
-  - `docs/SLICE6_INTEGRATION_PLAN.md`（Parser 集成边界）
-  - Morrishk 技术方案 v1.2 §7（Ds Bit 参数化、B0–B3 批次）
+| 概念 | SHA | 说明 |
+|---|---|---|
+| Ds Bit 代码基线 | `600439a5…` | 本轮只读检查的代码快照；工作树不干净 |
+| 送审仓库**任务启动时**基线 | `0fa9d34` | 开始本轮设计时远端 HEAD |
+| v1.0 设计提交的**直接父提交** | `fc4bcc5` | 从该提交比较，变更只有 `13_` 目录 |
+| v1.0 设计提交 | `a62c70d` | 7 个文件 |
+| v1.0 报告提交 | `ce6ba2d` | 新增报告 + 更新校验清单 |
+
+> v1.0 报告曾把 `0fa9d34` 写成唯一基线，导致从 `0fa9d34` 比较时看到 `12_` 的并发改动。
+> v1.1 明确区分「任务启动基线」与「直接父提交」：**没有证据表明设计提交修改了 `12_`**。
 
 ---
 
@@ -31,15 +35,16 @@
 
 目录：`13_dsbit_duckdb_s3_pipeline/`
 
-| 文件 | 行数 | 作用 |
+| 文件 | 作用 | v1.1 变更 |
 |---|---|---|
-| `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md` | 1274 | 主设计（18 章 + 附录 A–C） |
-| `PIPELINE_ARTIFACTS.md` | 547 | 目录布局、Manifest v2、Parquet、DuckDB SQL、状态机、重试 |
-| `INVARIANT_AND_NEGATIVE_TEST_MATRIX.md` | 311 | 10 条不变量 + 15 项负向测试 |
-| `BENCHMARK_AND_COST_PLANS.md` | 341 | Stage A/B/C、全量外推、成本方法 |
-| `OPEN_DECISIONS.md` | 235 | OD-01 ~ OD-18 |
-| `README.md` | 121 | 送审说明、复核路径、未执行操作 |
-| `SHA256SUMS.txt` | 7 | 本目录校验清单（含本报告） |
+| `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md` | 主设计（18 章 + 附录） | 新增 §0.2 修订记录；重写 §5.2 并发协议、§5.4.1 key v2、§5.6 两级 Manifest、§7.2 对账、§10.1.1 真实存储测试、§10.2 样本池 |
+| `PIPELINE_ARTIFACTS.md` | 目录、Manifest、Parquet、DuckDB、状态机、协调器 | 重写：两级 Manifest 示例、part_manifest、Q8、协调器协议、完整 SHA task_id |
+| `INVARIANT_AND_NEGATIVE_TEST_MATRIX.md` | 不变量与负向测试 | 新增 I-11/I-12；N-12 拆 a–d；新增 N-16–N-20 |
+| `BENCHMARK_AND_COST_PLANS.md` | 三阶段与成本 | 新增真实存储 C1–C10；样本池 P/Q；五类失败率；协调器拓扑 |
+| `OPEN_DECISIONS.md` | 未决事项 | OD-03 给出协调器方案；OD-05 上调 P0；新增 OD-19/OD-20 |
+| `README.md` | 送审说明 | 版本 v1.1、基线区分、R1–R6 索引、结论更新 |
+| `SHA256SUMS.txt` | 校验清单 | 随本报告更新 |
+| `DELIVERY_REPORT.md` | 本文件 | v1.1 重写 |
 
 完整性校验：
 
@@ -52,89 +57,128 @@ sha256sum -c SHA256SUMS.txt
 
 ## 3. 变更文件列表
 
-本包只新增上述目录，**未修改**：
+v1.1 只修改上述 `13_` 目录内的文件；**未修改**：
 
 - Ds Bit 仓库任何文件；
-- 送审仓库既有目录（`00_`–`12_`）；
-- `10_scope_confirmation/` 下的未跟踪 `.docx`（不属于本任务，未 add）。
+- 送审仓库 `00_`–`12_` 既有目录；
+- `10_scope_confirmation/` 下未跟踪的 `.docx`。
 
 ---
 
-## 4. 关键架构决策
+## 4. Reviewer R1–R6 响应
 
-1. **批量路径**：Worker 本地处理 → 按批次生成大批 Parquet → 上传对象存储 → DuckDB 批量查询。拒绝 DuckDB 直扫 56 万个远程小文件。
-2. **DuckDB 边界**：只做分析查询；单写者构建不可变快照；不是队列、不是锁、不是多写库、不是事实源。
-3. **任务状态**：不可变批次清单 + 确定性分片 + 追加事件日志 + 租约；不引入 Redis/数据库队列。
-4. **三层不可变**：Raw 内容寻址只增；Parse 以 `run_id` 为执行身份；Eval 以 Gold 版本 + 评估器指纹冻结。
-5. **指纹**：`parser_fingerprint` 必须运行时计算（修正 `lake` 硬编码），与 `config_hash`、`dependency_lock_sha256` 一起构成可复现条件。
+| 编号 | Reviewer 问题 | v1.1 处置 | 复核位置 |
+|---|---|---|---|
+| **R1** | 任务领取/租约/接管/fencing 未形成可证明协议；分片与条件写两套语义并存 | 改为**单写协调器 + 租约代次 + 两阶段提交**；删除「分片承担互斥」；补 N-12a–d、N-19/N-20 | 主文档 §5.2；`PIPELINE_ARTIFACTS.md` §6/§9；矩阵 N-12a–d/N-20 |
+| **R2** | Run Manifest 与 Batch Parquet 行数口径冲突，可能重复累计 | 拆分 Run Manifest 与 Batch/Partition Manifest；三级对账等式；N-19 固定「2 run 共享 1 文件只计一次」 | 主文档 §5.6/§7.2；附件 §2/§3；矩阵 I-11/N-19 |
+| **R3** | 1000 份样本筛选与 S5 矛盾；失败率分母不清 | 拆为 P（950）+ Q（50）；五类比率各有分母；≤2% 只约束 P | 主文档 §10.2；计划 §2；矩阵无改动 |
+| **R4** | `reproducibility_key` 未覆盖 `table_params_sha256`、依赖锁 | 升级 v2，纳入表参数、依赖锁、DPI、Python、平台族、`requested_mpn`；区分审计字段 | 主文档 §5.4.1；附件 §2；矩阵 N-16–N-18 |
+| **R5** | `task_id` 用 SHA 前 16 位，存在碰撞 | 改为完整 64 位 SHA-256；同 ID 不同内容即致命错误 | 主文档 §5.2.2；附件 §1；矩阵无改动 |
+| **R6** | MinIO 不能代替真实对象存储 | Stage A 增加真实存储 C1–C10；MinIO 仅开发；OD-05 上调 P0；新增 OD-19 fallback | 主文档 §10.1.1；计划 §1.3；`OPEN_DECISIONS.md` OD-05/OD-19 |
+
+> 以上是**设计层闭合**，不代表 Reviewer 已认可；每项仍需 Reviewer 在下一轮判定。
 
 ---
 
-## 5. 已实现与拟议的区别
+## 5. 关键架构决策（v1.1）
+
+1. 批量路径仍是「本地处理 → 大批 Parquet → 上传 → 批量查询」；
+2. DuckDB 仍只做分析查询，单写快照，不是队列/锁/事实源；
+3. 任务分配改为**单写协调器 + `lease_generation` + COMMIT 事务 + committed 标记**；
+4. **成功提交点**不是 manifest，而是「协调器事务 + committed.json」；
+5. Run Manifest 与 Batch/Partition Manifest 分离，Catalog 只按 part_manifest 计总行数；
+6. `reproducibility_key` v2 覆盖所有影响结果的输入；
+7. `task_id` 使用完整 SHA-256；
+8. Stage A 必须在最终选型存储上通过 C1–C10。
+
+---
+
+## 6. 已实现与拟议的区别
 
 | 部分 | 状态 |
 |---|---|
 | `lake/` 单件三层 Demo | 已实现（`7d8ab3f`）；本次实跑 4 个脚本 |
+| 协调器 / 租约 / fencing / 提交裁决 | 未实现 |
 | 对象存储上传/下载 | 未实现 |
-| 任务/租约/续跑/死信 | 未实现 |
-| 运行时指纹 | 未实现（Demo 硬编码） |
-| Parquet 分区/合并 | 未实现（Demo 每 run 一个文件） |
-| Catalog 快照 | 未实现（Demo 重建即删） |
-| Eval 按文档扩展 | 未实现（Demo 固定单样本） |
-| 其余设计 | 拟议（PROPOSED） |
+| 真实存储一致性 C1–C10 | 未执行 |
+| 运行时 Parser 指纹 | 未实现（Demo 硬编码） |
+| `reproducibility_key` v2 | 未实现（Demo 为 v1 三字段） |
+| 两级 Manifest / part_manifest | 未实现 |
+| Parquet 分区/合并、Catalog 快照 | 未实现 |
+| 其余设计 | PROPOSED |
 
 ---
 
-## 6. 测试结果
+## 7. 测试结果
+
+v1.1 **只改设计文档，未改代码**；以下结果仍来自 v1.0 的同一代码快照：
 
 | 测试 | 结果 |
 |---|---|
 | `python -m pytest -q` | **893 passed, 1 failed, 2 xfailed**（236.67 s） |
-| 失败项 | `tests/unit/test_assembly.py::test_a1_10_pipeline_py_is_byte_identical_to_the_authorised_snapshot`：实际 `86c00549…`，期望 `3394bb66…` |
-| `python lake/_verify_lineage.py` | 2 个 run，失败 0 |
-| `python lake/_query_demo.py` | Q1–Q4 正常；1448 candidates / 14 tables / 11 pages / 1025 value cells；PK=1 / UNIQUE=0 |
-| `python lake/_negative_tests.py` | 3/3 PASS |
-| `python lake/_s3_connectivity_test.py --local` | 2896 行，103 ms |
-| `python lake/_s3_connectivity_test.py --s3` | 未执行（无凭据，脚本按设计退出码 2） |
+| 失败项 | `test_a1_10_pipeline_py_is_byte_identical_to_the_authorised_snapshot`：实际 `86c005…`，期望 `3394bb…` |
+| `lake/_verify_lineage.py` | 2 runs，0 失败 |
+| `lake/_query_demo.py` | Q1–Q4 正常；1448 candidates / 14 tables / 11 pages / 1025 value cells |
+| `lake/_negative_tests.py` | 3/3 PASS |
+| `lake/_s3_connectivity_test.py --local` | 2896 行，103 ms |
+| 真实 S3 | 未执行（无凭据、无桶） |
 
-> 失败的 A1-10 不是本次改动引入的：`pipeline.py` 最后变更为 `2bb1c78 C2`，工作树未修改该文件。
-> 它是本设计的前置阻断项 OD-02，已写入主文档与 `OPEN_DECISIONS.md`。
-
----
-
-## 7. 未解决问题
-
-- **P0**：OD-01 对象存储选型/区域；OD-02 `pipeline.py` 授权快照；OD-03 任务领取机制。
-- **P1**：OD-04 ~ OD-12（对象锁、MinIO 与大件、ID/指纹归一化、指纹范围、状态事实源、质量门阈值、Gold 权威来源、产品级 ID、扫描版处理）。
-- **P2**：OD-13 ~ OD-18（单价、保留策略、对象数量、权限、合规、审核产能）。
-
-完整表见 `OPEN_DECISIONS.md`。
+> 不能把这套结果写成「全套测试通过」：A1-W1 授权快照不一致仍然存在。
 
 ---
 
-## 8. 生产操作确认
+## 8. 未解决问题
+
+P0（5 项）：
+
+- OD-01 对象存储选型/区域；
+- OD-02 `pipeline.py` 授权快照不一致；
+- OD-03 协调器方案待 Reviewer 确认；
+- OD-05 真实存储一致性 + 大件实测；
+- OD-19 条件写 fallback。
+
+P1/P2 见 `OPEN_DECISIONS.md`。OD-16（权限/凭据）虽为 P2，但任何上传实现前必须落地。
+
+---
+
+## 9. 评审结论与边界
+
+Reviewer 的 v1 结论被原样保留：
+
+| 项 | 结论 |
+|---|---|
+| 提交完整性 | PASS |
+| 架构方向 | PASS |
+| 数据契约完整性 | REVISIONS REQUIRED（v1.1 已响应） |
+| P0 决策 | OPEN |
+| Stage A 启动 | **NOT APPROVED** |
+
+本包**不批准**：设计冻结、Stage A 实现、1000 份基准、3–5 万试跑、任何生产操作。
+
+---
+
+## 10. 生产操作确认
 
 **本次没有执行任何生产操作。** 具体地：
 
-1. 未部署 Ds Bit 或 Morrishk 服务；
-2. 未启动 `serve_parser.py` / `serve_b2b.py`；
-3. 未访问 `dsb.0668xgwl.com`；
-4. 未创建、配置或连接任何对象存储桶；
-5. 未批量解析，未处理 1000 份或 3–5 万份数据；
-6. 未修改任何生产数据库、URL、canonical、301 或 Gold；
-7. 未调用 LLM、未做自动 Repair、未回写 Gold；
-8. 未采购 ECS 或对象存储资源；
-9. 未做数据库迁移；
-10. 未修改 Ds Bit 仓库的代码、配置或运行产物。
+1. 未部署、未启动任何服务；
+2. 未访问 `dsb.0668xgwl.com`；
+3. 未创建、配置或连接任何对象存储桶；
+4. 未批量解析，未处理 1000 份或 3–5 万份数据；
+5. 未修改任何生产数据库、URL、canonical、301 或 Gold；
+6. 未调用 LLM、未做自动 Repair、未回写 Gold；
+7. 未采购 ECS 或对象存储资源；
+8. 未做数据库迁移；
+9. 未修改 Ds Bit 仓库的代码、配置或运行产物。
 
 本次只做：只读文件检查、只读 `git` 查询、只读/临时目录的本地验证脚本、送审仓库内的设计文档提交。
 
 ---
 
-## 9. 下一步建议
+## 11. 下一步建议
 
-1. Reviewer 先处理三项 P0（OD-01 ~ OD-03），特别是 OD-02；
-2. 批准后按主文档 §10.1 做 Stage A（含 MinIO 真实读写与 5 项负向测试）；
-3. Stage A 通过后再申请 1000 份基准；
-4. 1000 份通过后再申请 3–5 万试跑；
+1. Reviewer 复核 R1–R6 是否闭合，尤其是协调器协议与两级 Manifest；
+2. 裁定 P0（OD-01/02/03/05/19）；
+3. 批准后才启动 Stage A（含真实存储 C1–C10）；
+4. Stage A 通过后再申请 1000 份基准；
 5. 568,830 全量只按实测吞吐与成本外推，不预先承诺时间与金额。

@@ -3,8 +3,9 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-DSBIT-LAKE-001 |
-| 文档版本 | v1.0（首轮送审，未冻结） |
+| 文档版本 | v1.1（按 Reviewer R1–R6 修订；仍未冻结） |
 | 日期 | 2026-11-17 |
+| 修订 | v1.1 闭合 R1–R6，详见 §0.2；不改变三层架构与验证节奏 |
 | 性质 | 架构与实施设计（DESIGN ONLY） |
 | 实现状态 | **未实现**；本文件不含生产代码、不含部署、不含数据迁移 |
 | 基线仓库 | `E:\workspace\icpdf-extractor` |
@@ -33,6 +34,20 @@
 | **技术骨架**：三层血缘 Demo | 仓库 `lake/`（commit `7d8ab3f`，README 与 4 个脚本） | 作为 Raw / Parse / Eval 的最小可运行原型与四条不变量来源 |
 
 二者**都不是**生产实现，也不构成对批量的证明。
+
+### 0.2 修订记录（v1.0 → v1.1）
+
+| 编号 | Reviewer 问题 | v1.1 处置 | 位置 |
+|---|---|---|---|
+| **R1** | 任务领取/租约/接管/fencing 未形成可证明的互斥协议；分片与条件写两套语义并存 | 改为**单写协调器 + 租约代次（fencing token）+ 成功提交两阶段**；删除「确定性分片承担互斥」的表述；补 N-12a–N-12d 与 N-19 | §5.2、§8.2、`PIPELINE_ARTIFACTS.md` §6/§9 |
+| **R2** | Run Manifest 与 Batch Parquet 行数口径冲突，Catalog 可能重复累计 | 拆分 **Run Manifest** 与 **Batch/Partition Manifest**；给出三级对账等式与「2 run 共享 1 文件只计一次」测试 | §5.6、§7.2–§7.3、`PIPELINE_ARTIFACTS.md` §2–§3 |
+| **R3** | 1000 份样本「有文本层」筛选与 S5「无文本层 50 份」自相矛盾；失败率门槛分母不清 | 拆为 **可解析池 P（950）** 与 **预期拒绝池 Q（50）**；分列五类比率与各自分母；≤2% 只适用于「有效输入处理失败率」 | §10.2、`BENCHMARK_AND_COST_PLANS.md` §2 |
+| **R4** | `reproducibility_key` 未纳入 `table_params_sha256`、`dependency_lock_sha256` | 升级 **v2**，并显式纳入 `effective_dpi`、`python_version`、`platform_family`、`requested_mpn`；区分「进入 key」与「仅审计」字段 | §5.4.1、`PIPELINE_ARTIFACTS.md` §2 |
+| **R5** | `task_id` 使用 SHA-256 前 16 位，存在碰撞与状态覆盖风险 | 改为 **完整 64 位 SHA-256**；并保留「同 ID 不同内容即致命错误」的检测 | §5.2、`PIPELINE_ARTIFACTS.md` §1 |
+| **R6** | 真实对象存储语义不能由 MinIO 代替 | Stage A 增加 **真实存储一致性测试**（选定厂商）；MinIO 只作开发环境；补 OD-19 | §10.1.1、`OPEN_DECISIONS.md` OD-19 |
+| — | `DELIVERY_REPORT.md` 把 `0fa9d34` 写成设计提交基线 | 区分为「任务启动时基线 `0fa9d34`」与「设计提交直接父提交 `fc4bcc5`」 | `DELIVERY_REPORT.md` §1、`README.md` §2 |
+
+本修订**不改变**：Raw/Parse/Eval 三层、DuckDB 只做分析、单件 → 1000 份 → 3–5 万 → 全量外推的节奏。只闭合任务并发正确性、Manifest 契约、基准统计口径、可复现键四个契约问题。
 
 ---
 
@@ -259,20 +274,22 @@ tests/unit/test_assembly.py::test_a1_10_pipeline_py_is_byte_identical_to_the_aut
 #### PROPOSED（本文设计，未实现）
 
 1. Raw 层对象布局、内容寻址、条件写、对象版本、损坏恢复。
-2. Parse 层 Worker 模型、任务租约、分片、断点续跑、幂等、四类指纹、Manifest v2。
+2. Parse 层 Worker 模型、协调器任务分配、租约、断点续跑、幂等、四类指纹、Manifest v2。
 3. Eval 层 Gold 版本化、字段级/结构/证据完整性指标、人工审核记录、质量门。
 4. DuckDB 职责边界、Parquet 分区与合并、本地暂存、快照发布、并发限制。
 5. 调度与基础设施：本地 / MinIO / ECS / 对象存储 / 日志 / 失败队列 / 成本方法。
-6. 10 条数据不变量、15 项负向测试、三级性能验证、成本公式。
+6. 12 条数据不变量、15 项必测 + 5 项回归负向测试、三级性能验证、成本公式。
 7. 对 `lake/` 的升级路径与必须删除的硬编码。
 
 #### OPEN（需裁定）
 
-见 `OPEN_DECISIONS.md`。其中阻断级（P0）三项：
+见 `OPEN_DECISIONS.md`。其中阻断级（P0）五项：
 
 - **OD-01**：对象存储选型与区域（决定能否同区直读、成本与合规）。
 - **OD-02**：`pipeline.py` 授权快照不一致（决定能否冻结 Parser 指纹）。
-- **OD-03**：任务领取机制（确定性分片 vs 条件写抢占）在目标对象存储上的可用性。
+- **OD-03**：任务领取机制——v1.1 已选定「单写协调器 + 租约代次」，待 Reviewer 确认。
+- **OD-05**：真实对象存储一致性 C1–C10 与大件实测（v1.1 上调为 P0）。
+- **OD-19**：条件写不支持时的 fallback（v1.1 新增）。
 
 ---
 
@@ -282,10 +299,11 @@ tests/unit/test_assembly.py::test_a1_10_pipeline_py_is_byte_identical_to_the_aut
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
-│ 控制面（无独立数据库）                                              │
-│  批次清单（不可变 JSONL）· 分片 · 租约 · 事件日志 · 死信 · 墓碑      │
+│ 控制面：单写协调器 Coordinator（单进程 + 本地 SQLite WAL）          │
+│  批次清单（不可变 JSONL）· 租约代次 · 事件日志 · 死信 · 墓碑          │
+│  不是数据库服务器，不是 DuckDB，不是 Redis/Kafka/Celery              │
 └───────────────┬────────────────────────────────────────────────────┘
-                │ 读取任务 / 写回状态
+                │ lease / heartbeat / commit（私有网络）
 ┌───────────────▼────────────────────────────────────────────────────┐
 │ 计算面：Worker（2–4 台 ECS，8 vCPU / 16 GB 起）                     │
 │  单件子进程 parse_pdf → 本地暂存 → Parquet → 上传 → Manifest         │
@@ -323,10 +341,10 @@ PDF 字节
 
 ```
 批次清单（tasks.jsonl，不可变）
-  → 按 sha256 分片到 N 个 Worker（确定性，无协调）
-  → 每 Worker 串行/小并发处理自己的分片
+  → 协调器按任务队列动态发放租约（generation 单调递增）
+  → 每 Worker 小并发处理拿到的任务
   → 每 1000 份（或 256 MB）刷一个 Parquet 分片并上传
-  → 每完成一个分片，写事件日志检查点
+  → 每完成一个任务，协调器写 commit / Worker 写事件检查点
   → 批次结束：构建快照 + 全量 lineage 校验 + 汇总指标
 ```
 
@@ -357,14 +375,19 @@ PDF 字节
 | D-02 | DuckDB 不是队列、不是锁、不是多写库、不是事实源 | PROPOSED | §7.1；避免把分析引擎当 OLTP |
 | D-03 | 原始 PDF 以完整 SHA-256 内容寻址，只增不改 | PROPOSED（Demo 已实现） | `lake/_build_lake.py:107-133` |
 | D-04 | Parse 以 `run_id` 为执行身份，`reproducibility_key` 为可复现条件 | PROPOSED（Demo 已实现） | `lake/_build_lake.py:229-249` |
-| D-05 | 任务状态用「不可变批次清单 + 确定性分片 + 追加事件 + 租约」，不引入队列服务器 | PROPOSED | §5.2；2–4 台规模不需要中间件 |
-| D-06 | 发布顺序：blob → parquet → manifest → 任务成功；manifest 是提交点 | PROPOSED | §5.5；缺失即失败 |
+| D-05 | 任务分配由**单写协调器**负责（租约 + 追加事件）；不引入队列服务器，也不把分片当互斥 | PROPOSED | §5.2；单写事务即互斥（R1） |
+| D-06 | 发布顺序：blob → parquet → Run Manifest → 协调器 COMMIT → committed.json；成功提交点是「协调器事务 + committed 标记」 | PROPOSED | §5.5；缺任一即失败 |
 | D-07 | 历史结果只增不改；压缩/合并产生新对象与新快照，不覆盖旧对象 | PROPOSED | §7.5；可审计 |
 | D-08 | 每次查询必须绑定 `snapshot_id` | PROPOSED | 不变量 9 |
 | D-09 | Parser 指纹必须运行时计算，禁止硬编码 | PROPOSED | 修正 `lake/_build_lake.py:58` |
 | D-10 | 失败重试必须带 `attempt` 与独立 `run_id`，结果不合并、不覆盖 | PROPOSED | 不变量 8 |
 | D-11 | 删除一律改为墓碑；对象存储开启版本化与保留策略 | PROPOSED | 不变量 10 |
 | D-12 | 不引入独立数据库服务器、不引入 Redis/Kafka/Celery | PROPOSED | 规模与运维成本；任务书要求 |
+| D-13 | 协调器是批次内唯一的租约写者；Worker 只申请/续租/提交，不自行接管 | PROPOSED | R1；单写 SQLite 事务 |
+| D-14 | 租约带单调 `lease_generation`（fencing token）；事件与提交必须携带并校验 | PROPOSED | R1；阻止旧 Worker 复活提交 |
+| D-15 | `reproducibility_key` 升级 v2，覆盖 PDF / Parser / 配置 / 表参数 / 依赖锁 / DPI / Python / 平台族 | PROPOSED | R4 |
+| D-16 | Run Manifest 与 Batch/Partition Manifest 分离；Catalog 只按批次清单累计文件行数 | PROPOSED | R2 |
+| D-17 | Stage A 必须在最终选定的对象存储上做一致性测试；MinIO 只作开发环境 | PROPOSED | R6 |
 
 ---
 
@@ -411,6 +434,8 @@ s3://<bucket>/dsbit-lake/v1/raw/
 ```
 
 **为什么先临时名、后改名**：避免对象存储里出现「半个 PDF」。条件写保证并发上传同一内容时只有一个成功，其余识别为重复。
+
+> 若最终选型不支持条件写（C1/C2/C5 不通过），按 OD-19 的 fallback 执行；**不得静默降级**为「先 HEAD 后 PUT」的竞态写法。
 
 ### 4.4 不可变保护（三层）
 
@@ -480,40 +505,109 @@ s3://<bucket>/dsbit-lake/v1/raw/
 - Parser 代码与依赖**按批次冻结**：Worker 启动时计算一次 `parser_fingerprint` 与配置哈希，整批不允许变化；变化即停止接新任务（见 §5.4）。
 - 本地工作区：`/data/work/<batch_id>/<task_id>/`，任务结束（成功或失败）后清理；只保留日志与必要证据。
 
-### 5.2 任务领取与状态持久化
+### 5.2 任务领取、租约与状态持久化
 
 **明确：DuckDB 不承担任务队列职责。** 任务状态不写入 `catalog.duckdb`，也不以 DuckDB 作为并发控制。
 
-**任务来源**：批次清单是不可变 JSONL：
+#### 5.2.1 角色与唯一写者
+
+| 角色 | 职责 | 是否可写租约 |
+|---|---|---|
+| Coordinator（协调器） | 批次内唯一的任务分配者：发租约、续租、过期判定、接管、成功提交裁决 | **是（唯一）** |
+| Worker | 申请租约、执行解析、上传产物、提交成功 | 否 |
+| 对象存储 | 不可变产物 + 事件检查点 + 协调器快照 | 不参与互斥裁决 |
+
+- 协调器是**单进程 + 本地 SQLite（WAL）**，不是数据库服务器，不是 DuckDB，不是 Redis/Celery（D-12/D-13）。
+- 单写 SQLite 事务提供互斥；所有租约与提交裁决在同一事务内完成。
+- 协调器每 30 s 把状态快照写到 `control/coordinator/<batch_id>/state-<seq>.json`；对象存储只做检查点，不做并发控制。
+
+#### 5.2.2 任务身份（修订 R5）
 
 ```
-control/batches/<batch_id>/tasks.jsonl
-  每行：{task_id, batch_id, document_sha256, source_uri, priority, shard, created_at}
+task_id = <batch_id>:<完整 64 位 sha256>
 ```
 
-**分片（默认）**：
+- 不再使用前 16 位；`task_id` 的唯一性由完整 SHA-256 保证。
+- 生成批次时若 `task_id` 已存在但 `document_sha256` 不同 → 致命错误，批次拒绝生成。
+- 同一 PDF 的重复输入是两条 task 记录，但共享同一个 raw 对象；是否跳过解析由 `reproducibility_key` 判断。
+
+#### 5.2.3 租约协议（fencing）
+
+| 字段 | 含义 |
+|---|---|
+| `lease_generation` | 每个 task 单调递增的整数；每次重新发租约 +1 |
+| `worker_id` | 当前持有者 |
+| `expires_at` | 租约到期时间（默认 90 s） |
+| `heartbeat` | Worker 每 15 s 续租；协调器只在 generation 匹配时延长 |
 
 ```
-shard = crc32(document_sha256) % shard_count
+Worker → Coordinator: HELLO(batch_id, worker_id, plan_epoch)
+Coordinator → Worker: LEASE(task_id, generation=g, expires_at=now+90s)
+Worker: 执行 parse_pdf
+Worker → Coordinator: HEARTBEAT(task_id, g)          # 每 15 s
+Coordinator: 仅当 current_generation == g 时延长 expires_at
+Worker → Coordinator: COMMIT(task_id, g, manifest_sha256)
+Coordinator: BEGIN
+               SELECT generation, committed FROM tasks WHERE task_id = ?
+               if generation != g        -> ROLLBACK, 409 STALE_LEASE
+               if committed is not null  -> ROLLBACK, 409 ALREADY_COMMITTED
+               INSERT commit(task_id, g, manifest_sha256, token)
+             COMMIT
+Coordinator → Worker: {token}
+Worker → 对象存储: PUT control/tasks/<task_id>/committed.json
+                   {generation: g, token, manifest_sha256, run_id}
 ```
 
-- 2–4 台 Worker 时，`shard_count = worker_count`，每台只处理自己的分片；
-- 无中央协调、无抢占、无锁；重启后重扫自己的分片，已完成的任务通过事件日志/结果对象跳过；
-- 扩容时重新分片需要新的批次（或支持 `shard_count` 变更并重算，代价是重复扫描，不重复解析——见幂等）。
+**硬性规则**：
 
-**备选**：对象存储条件写抢占（`PUT control/tasks/<task_id>/claim If-None-Match: *`）。优点是可动态扩容；缺点是依赖各 S3 实现的 `If-None-Match` 语义，且每次领取多一次请求。列入 OD-03，默认不启用。
+1. 旧 Worker 恢复后，若 `g` 已被协调器递增，**不得**再写 `committed.json`；即使它已上传 manifest，也不构成成功（没有 committed 标记）。
+2. 协调器拒绝过期 generation 的 HEARTBEAT/COMMIT，返回 `409 STALE_LEASE` 与当前持有者；Worker 必须立即停止并清理本地工作区。
+3. `committed.json` 只由持有当前 generation 的 Worker 写；协调器只在事务内签发 token，因此同一 task 最多一个成功标记。
+4. 对象存储不参与互斥裁决；即使条件写不可用，也不影响「同一 task 最多一个成功」。
+5. 协调器不依赖对象存储条件写；它靠单进程 + SQLite 事务。
 
-**状态存储（事件溯源）**：
+#### 5.2.4 租约过期与接管
+
+- 协调器每 5 s 扫描 `expires_at < now` 的租约 → 标记 `LEASE_EXPIRED`，`lease_generation += 1`，任务回到可分配；
+- 接管只由协调器发起；Worker 不得自行接管；
+- 接管事件写 `{from_worker, to_worker, old_generation, new_generation}`；
+- 旧 Worker 的任何后续 HEARTBEAT/COMMIT 都因 generation 不匹配被拒绝。
+
+#### 5.2.5 协调器崩溃与恢复
+
+| 场景 | 处置 |
+|---|---|
+| 协调器进程崩溃 | Worker 心跳失败 → 租约到期 → 任务暂停；不产生成功标记 |
+| 协调器重启 | 从本地 SQLite + 最近快照恢复；过期租约按 §5.2.4 处理 |
+| SQLite 丢失 | 从 `control/tasks/*/committed.json` + 事件日志重建「已提交」集合；无法判定的任务标 `QUARANTINED`，不猜 |
+| 协调器状态不确定 | **关闭当前批次**，用未完成任务生成新的 recovery 批次（新 `batch_id`）；旧批次只读，不再发租约 |
+
+- 恢复批次中的 `task_id` 带新 `batch_id`，不会与旧批次状态文件冲突；
+- 旧 Worker 若仍在跑，只能写旧批次的 committed 标记，不影响新批次；
+- 两个批次的同一 PDF 可能各解析一次，但**可区分**（不同 `batch_id`/`run_id`），由 canonical 视图选择最早成功者。
+
+#### 5.2.6 为什么不用「确定性分片」或「S3 条件写抢占」
+
+| 方案 | 问题 |
+|---|---|
+| 确定性分片 | 只解决「谁先拿到」，不解决「旧 Worker 复活后继续提交」；没有 fencing，无法证明互斥 |
+| S3 条件写抢占 | 依赖各厂商 `If-None-Match` 语义；租约续期/接管仍需额外状态；对象存储不擅长高频 CAS |
+| 两者并存 | 语义模糊，正是 R1 指出的问题；v1.1 已删除 |
+
+分片仅可作为**批次生成时的静态分组/采样**（例如把 1000 份分成 4 组便于人工查看），**不承担互斥**。
+
+#### 5.2.7 状态存储
 
 ```
-control/events/<batch_id>/<shard>-<worker_id>.jsonl   # 追加写，定期上传
-control/tasks/<task_id>/final.json                    # 仅终态（成功/永久失败/隔离）
+control/coordinator/<batch_id>/state-<seq>.json   # 协调器检查点（单写）
+control/events/<batch_id>/<worker_id>.jsonl       # Worker 追加事件，定期上传
+control/tasks/<task_id>/final.json                # 终态（协调器确认后写）
+control/tasks/<task_id>/committed.json            # 成功标记（含 generation + token）
 ```
 
-- 事件是不可变事实：`{event_id, task_id, attempt, from, to, at, worker_id, run_id, error_class}`；
-- 当前状态 = 按 `task_id` 折叠事件，取最大 `(at, event_seq)`；
-- 每 30 s 或每 100 条事件上传一次分片日志；崩溃最多丢失一个窗口的事件，任务会被重新领取；
-- 重复领取是安全的：结果按 `run_id` 唯一、按内容寻址，不会覆盖。
+- 事件是不可变事实：`{event_id, task_id, attempt, generation, from, to, at, worker_id, run_id, error_class}`；
+- 当前状态以协调器 SQLite 为准；事件与 committed 标记用于审计与重建；
+- 每 30 s 或每 100 条事件上传一次 Worker 日志；崩溃最多丢失一个窗口的事件，任务会按租约过期重新分配。
 
 ### 5.3 并发、超时与资源
 
@@ -552,28 +646,92 @@ src/icpdf/__init__.py
 
 **为什么不用 commit SHA**：`lake/README.md:35-37` 已说明——v2 复跑跑在「修复已写好但未提交」的工作树上，commit SHA 描述不了那份字节。
 
+#### 5.4.1 `reproducibility_key` v2（修订 R4）
+
+v1（`lake`）只用 `sha256(source | parser_fingerprint | config_hash)`，**不足以**表达「同输入、同代码、同配置、同依赖」：依赖锁或表参数变化时，key 可能不变，从而被 canonical 视图错误合并。v1.1 升级为 v2：
+
+```text
+reproducibility_key = sha256( canonical_json({
+  "v": 2,
+  "source_sha256": ...,
+  "requested_mpn": ...,
+  "parser_fingerprint": ...,
+  "config_hash": ...,
+  "table_params_sha256": ...,
+  "dependency_lock_sha256": ...,
+  "effective_dpi": ...,
+  "python_version": "3.13.15",
+  "platform_family": "linux|windows|darwin"
+}) )
+```
+
+| 字段 | 是否进入 key | 理由 |
+|---|---|---|
+| `source_sha256` | 是 | 输入字节 |
+| `requested_mpn` | 是 | 改变 `product.json` 与候选归属上下文 |
+| `parser_fingerprint` | 是 | 代码字节 |
+| `config_hash` | 是 | 配置字节 |
+| `table_params_sha256` | 是 | 表格参数子集；显式纳入，避免只依赖 `config_hash` |
+| `dependency_lock_sha256` | 是 | 依赖版本（PyMuPDF 等）影响渲染与抽取 |
+| `effective_dpi` | 是 | CLI 可覆盖 `render_dpi`，`config_hash` 捕获不到 |
+| `python_version` | 是 | 解释器行为可能影响浮点与解析 |
+| `platform_family` | 是 | 渲染/字体/浮点差异；先严格纳入，若跨平台一致性实测通过再评估放宽 |
+| `platform`（全串）、`hostname`、`worker_id`、`run_id`、时间戳 | 否，仅审计 | 不影响结果，只用于定位 |
+
+- `reproducibility_key_version = 2` 必须写入 Manifest；
+- v1（`lake`）数据迁移：按 v2 重算 key，不修改旧记录，新增 `key_v2` 列/字段；
+- canonical 视图按 `(reproducibility_key, status='complete')` 取最早 `created_at`；
+- 测试：仅改变 `table_params_sha256`、仅改变依赖锁、仅改变 DPI，key 都必须变化（N-16 / N-17 / N-18）。
+
 ### 5.5 上传与提交顺序（提交点）
 
 ```
 1. 解析产物 JSON 逐个按内容寻址上传（幂等；同名同字节直接跳过）
 2. candidates/tables/documents 行写入本地 Arrow 缓冲；达阈值 → 写 Parquet → 上传
-3. 计算 manifest，上传 parse/runs/<run_id>/manifest.json（If-None-Match: *）
-4. 写 task 事件 SUCCEEDED（携带 manifest_sha256、parquet 文件列表）
+3. 计算 Run Manifest，上传 parse/runs/<run_id>/manifest.json（If-None-Match: *）
+4. 向 Coordinator 提交 COMMIT(task_id, lease_generation, manifest_sha256)
+5. 协调器事务通过后返回 token；Worker 写 control/tasks/<task_id>/committed.json
+6. 写 task 事件 SUCCEEDED（携带 generation、token、manifest_sha256、parquet 贡献）
 ```
 
-**Manifest 是提交点**：没有 manifest 的 run 一律视为未成功；Eval 与 Catalog 都拒绝消费。步骤 1–2 产生的孤儿 blob/parquet 允许存在（内容寻址，后续可按引用计数清理，但**不自动删除**）。
+**成功提交点不是 Manifest，而是「协调器事务 + committed.json」**：
 
-### 5.6 Manifest v2 格式
+- Manifest 只证明「这次 run 的产物齐了」，不证明它是该任务的唯一成功者；
+- 只有持有当前 `lease_generation` 的 Worker 才能拿到 token 并写 committed 标记；
+- 没有 committed 标记的 run 一律视为未成功；Eval 与 Catalog 都拒绝消费；
+- 步骤 1–3 产生的孤儿 blob/parquet 允许存在（内容寻址，后续按引用计数归档，但**不自动删除**）。
 
-见 `PIPELINE_ARTIFACTS.md` §2（完整示例）。要点：
+### 5.6 两级 Manifest（修订 R2）
 
-- 顶层 `schema = lakehouse/run-manifest/v2`；
-- `identity`：`run_id` / `task_id` / `attempt` / `worker_id`；
-- `reproducibility`：`reproducibility_key`（四元组哈希）、`source_sha256`、`parser_fingerprint`、`config_hash`、`dependency_lock_sha256`、`python_version`、`platform`；
+v1.0 把「单 run 计数」与「批次 Parquet 总行数」混在同一个 Manifest 示例中（`1448` vs `1,448,000`），会导致 Catalog 对同一批次文件重复累计 N 次。v1.1 拆分：
+
+| 对象 | 键 | 记录内容 | 不记录 |
+|---|---|---|---|
+| **Run Manifest** | `parse/runs/<run_id>/manifest.json` | 单 run 的产物、`candidate_count`、`parquet_contribution`（本 run 写入的行数）、`batch_partition` 引用 | **不记录**批次 Parquet 文件总行数 |
+| **Batch/Partition Manifest** | `parse/tables/table=<t>/batch=<id>/part_manifest.json` | 该分区文件列表、每个文件 SHA-256/字节/行数、`total_rows`、`rows_by_run`（run → 行数） | 不记录单 run 的业务指标 |
+
+**对账等式**（Catalog 构建时必须全部成立）：
+
+```text
+SUM(part_manifest.total_rows)
+  == SUM(part_manifest.rows_by_run.values())
+  == SUM(run_manifest.parquet_contribution)
+```
+
+- Catalog 只从 `part_manifest` 累计文件总行数；
+- Run Manifest 只用于单 run 查询与贡献核对；
+- 禁止「每个 run 引用同一文件，然后按引用次数累加文件行数」；
+- 测试：2 个 run 共享 1 个 Parquet 文件（`total_rows=2896`，两个 `parquet_contribution=1448`），Catalog 总行数必须是 **2896**，不是 5792（N-19）。
+
+Run Manifest 要点：
+
+- `schema = lakehouse/run-manifest/v2`；
+- `identity`：`run_id` / `task_id` / `attempt` / `worker_id` / `lease_generation` / `commit_token`；
+- `reproducibility`：`reproducibility_key`（v2）、`reproducibility_key_version=2`、`source_sha256`、`requested_mpn`、`parser_fingerprint`、`config_hash`、`table_params_sha256`、`dependency_lock_sha256`、`effective_dpi`、`python_version`、`platform_family`；
 - `source`：桶、键、字节、`version_id`、`etag`；
 - `artifacts`：每个产物的 `name` / `sha256` / `bytes` / `object_key`；
-- `parquet`：每张表的文件列表与行数；
-- `counts`：页数、表数、候选数；
+- `parquet_contribution`：本 run 对每张表的行数贡献 + `part_manifest` 的键与 SHA-256；
+- `counts`：页数、表数、候选数（单 run）；
 - `timings`：各阶段耗时；
 - `status`：`complete` / `partial`（partial 不得被 Eval 消费）。
 
@@ -581,12 +739,14 @@ src/icpdf/__init__.py
 
 | 场景 | 行为 |
 |---|---|
-| 同一任务被重复领取 | 先查 `control/tasks/<task_id>/final.json`；已成功则跳过 |
-| 同一输入 + 同一指纹 + 同一配置已成功 | 查 Catalog/对象存储中的 `reproducibility_key`；命中则 `SKIPPED_DUPLICATE`，记录 `canonical_run_id` |
-| 解析中断（进程被杀） | 本地工作区丢弃；已上传的 blob 可复用；任务重试产生新 `run_id`（新 `attempt`） |
-| 上传中断 | 用 multipart resume 或整文件重传；已存在同字节则跳过 |
-| Worker 重启 | 重扫分片；已成功任务跳过；未完成任务按事件日志恢复 |
-| 批次中途代码变化 | 指纹漂移 → 停止接新任务，已在跑的任务完成或标记；不允许同一批次混用两个指纹 |
+| 同一任务被重复领取 | 协调器只在租约过期后重新分配，并递增 `lease_generation`；Worker 不得自行重领 |
+| 旧 Worker 恢复 | 其 generation 已过期；HEARTBEAT/COMMIT 被拒；不得写 committed 标记 |
+| 同一 `reproducibility_key` 已成功 | 提交前查询；命中则 `SKIPPED_DUPLICATE`，记录 `canonical_run_id` |
+| 解析中断（进程被杀） | 本地工作区丢弃；已上传 blob 可复用；重试产生新 `run_id`（新 `attempt`） |
+| 上传中断 | multipart resume 或整文件重传；已存在同字节则跳过 |
+| Worker 重启 | 向协调器重新注册；旧租约按 §5.2.4 处理 |
+| 协调器重启 | 从 SQLite + 快照恢复；已提交任务不重发 |
+| 批次中途代码变化 | 指纹漂移 → 停止接新任务；不允许同一批次混用两个指纹 |
 
 ---
 
@@ -710,10 +870,28 @@ src/icpdf/__init__.py
 
 ```
 parse/tables/table=candidates/batch=<batch_id>/part-00001.parquet
+parse/tables/table=candidates/batch=<batch_id>/part_manifest.json
 parse/tables/table=documents/batch=<batch_id>/part-00001.parquet
+parse/tables/table=documents/batch=<batch_id>/part_manifest.json
 parse/tables/table=tables/batch=<batch_id>/part-00001.parquet
+parse/tables/table=tables/batch=<batch_id>/part_manifest.json
 eval/tables/table=metrics/batch=<batch_id>/part-00001.parquet
+eval/tables/table=metrics/batch=<batch_id>/part_manifest.json
 ```
+
+**两级清单与对账（修订 R2）**：
+
+- `part_manifest.json` 是该分区**唯一的文件总行数**权威；
+- Run Manifest 只记录 `parquet_contribution`（本 run 的行数）与 `part_manifest` 引用；
+- Catalog 对账必须满足：
+
+```text
+SUM(part_manifest.total_rows)
+  == SUM(part_manifest.rows_by_run.values())
+  == SUM(run_manifest.parquet_contribution)
+```
+
+- 2 个 run 共享 1 个文件时，`total_rows` 只算一次（2896），不是按引用次数累加（5792）。
 
 **分区决策（PROPOSED）**：
 
@@ -730,8 +908,10 @@ eval/tables/table=metrics/batch=<batch_id>/part-00001.parquet
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | `run_id` | VARCHAR | 外键到 parse manifest |
-| `task_id` | VARCHAR | 任务 |
+| `batch_id` | VARCHAR | 批次 |
+| `task_id` | VARCHAR | 任务（完整 SHA） |
 | `attempt` | INTEGER | 第几次尝试 |
+| `lease_generation` | INTEGER | 提交时的租约代次（审计） |
 | `source_sha256` | VARCHAR | 原始字节 |
 | `candidate_id` | VARCHAR | 候选 |
 | `document_id` / `table_id` / `row_id` / `cell_id` | VARCHAR | 既有 ID |
@@ -747,6 +927,7 @@ eval/tables/table=metrics/batch=<batch_id>/part-00001.parquet
 
 - **写入侧**：本地 Arrow 缓冲，达到 256 MB 或 1000 份即刷一个文件；
 - **合并侧**：批次结束扫描分区，若平均文件 < 64 MB 或文件数 > 4，重写为更大的 `part-000NN.parquet`；
+- **清单同步**：合并后生成新的 `part_manifest.json`（新 `total_rows`、新 `rows_by_run`、新文件哈希），新快照只引用新清单；旧清单保留；
 - **不覆盖**：合并产物使用新文件名与新 `snapshot_id`；旧文件保留，快照 manifest 只引用新文件；
 - **不跨批次合并**：批次是审计边界；跨批次合并会让「某批次到底跑了什么」不可回答；
 - **清理**：不自动删除旧文件；由保留策略（OD-14）统一处理。
@@ -801,10 +982,17 @@ catalog/snapshots/<snapshot_id>/
     "manifest_prefix": "parse/runs/",
     "manifest_count": 1000,
     "max_run_created_at": "2026-11-17T02:10:00Z",
-    "parquet_files": [
-      {"key": "parse/tables/table=candidates/batch=B1-.../part-00001.parquet",
-       "sha256": "...", "bytes": 123456789, "rows": 1234567}
+    "part_manifests": [
+      {"table": "candidates",
+       "key": "parse/tables/table=candidates/batch=B1-.../part_manifest.json",
+       "sha256": "...", "total_rows": 1448000, "run_contributions": 1000}
     ]
+  },
+  "row_reconciliation": {
+    "part_total_rows": 1448000,
+    "run_contribution_sum": 1448000,
+    "delta": 0,
+    "checked": true
   },
   "tables": {"raw_docs": 1000, "parse_runs": 1000, "eval_results": 0},
   "schema_version": "lakehouse/catalog/v1"
@@ -838,7 +1026,9 @@ SET preserve_insertion_order = false;
 - Q3 按批次/角色聚合；
 - Q4 证据完整性；
 - Q5 失败与重试；
-- Q6 快照自校验（文件哈希与行数）。
+- Q6 快照自校验（文件哈希与行数）；
+- Q7 重复输入比例；
+- Q8 三级行数对账（part_manifest / rows_by_run / run contribution）。
 
 ---
 
@@ -851,6 +1041,7 @@ SET preserve_insertion_order = false;
 | 开发（本机） | 写代码、单件调试 | Windows + Python 3.13 | 本地磁盘 | 不连生产桶；不批量 |
 | 本地验证 | S3 语义、断点续跑 | 本机 + MinIO（Docker） | MinIO 本地卷 | 仅测试数据；**本轮未安装**（OD-05） |
 | 云端 Worker | 1000 份 / 3–5 万试跑 | 2–4 × ECS 8 vCPU / 16 GB | 本地 NVMe 200–500 GB | 同区对象存储；私有网络 |
+| 协调器 | 任务分配 / 租约 / 提交裁决 | 1 × 2 vCPU / 4 GB（可与 Worker-01 同机） | 本地 SSD（SQLite WAL） | 单进程；不是数据库服务器 |
 | 对象存储 | 事实存储 | — | S3 兼容桶，版本化 | 私有、加密、同区 |
 | 分析节点 | 构建快照 / 查询 | 1 × 8 vCPU / 32 GB（建议） | 同上 | 单写者 |
 
@@ -858,10 +1049,11 @@ SET preserve_insertion_order = false;
 
 ### 8.2 任务状态持久化
 
-- 事实：`control/` 下的不可变批次清单 + 追加事件日志 + 终态文件；
-- 本地缓存：Worker 可用 SQLite（WAL）保存「已处理 task_id」以加速重启，但**不是权威**；
-- 恢复：以对象存储事件为准重放；
-- 不引入 Redis / Kafka / Celery / 独立数据库（D-12）。
+- **权威**：协调器的本地 SQLite（单写，WAL）保存 task / lease / commit 三张表；
+- **检查点**：协调器每 30 s 写 `control/coordinator/<batch_id>/state-<seq>.json`；
+- **审计事实**：Worker 事件日志 + `committed.json` + `final.json`；
+- **恢复**：协调器重启先读 SQLite；若 SQLite 丢失，从 committed 标记与事件日志重建已提交集合；无法判定的任务 `QUARANTINED`；
+- **不引入** Redis / Kafka / Celery / 独立数据库（D-12）；协调器不是数据库服务器，只是一个有状态进程。
 
 ### 8.3 日志与监控
 
@@ -884,8 +1076,8 @@ SET preserve_insertion_order = false;
 
 ### 8.5 资源弹性
 
-- 2–4 台固定 Worker 足够 3–5 万试跑；不做自动扩缩容（避免分片重算）；
-- 扩容通过「新批次 + 新分片数」实现；
+- 2–4 台固定 Worker 足够 3–5 万试跑；不做自动扩缩容；
+- 扩容通过新增 Worker 向协调器注册实现，不需要重新分片或重建批次；
 - 停机不丢任务：事件日志 + 结果对象 + 幂等重扫。
 
 ### 8.6 成本核算（方法）
@@ -920,6 +1112,8 @@ SET preserve_insertion_order = false;
 | I-8 | 失败重试不产生不可区分的重复结果 | `attempt` 编号 + 独立 `run_id` + `canonical_of` 字段；查询视图标记 primary | N-13 |
 | I-9 | DuckDB 查询结果可定位到快照 | 每次查询绑定 `snapshot_id`；快照 manifest 列文件哈希 | Q6；N-11 |
 | I-10 | 删除/失效/重处理必须审计 | 只写墓碑，不物理删除；墓碑含原因、操作者、时间、替代版本 | N-15 |
+| I-11 | 批次 Parquet 行数只统计一次 | 两级 Manifest；Catalog 按 `part_manifest.total_rows` 计，不按 run 引用次数累加；三级对账 | Q8；N-19 |
+| I-12 | 同一 task 最多一个成功标记 | 协调器 `commits.task_id` 主键；COMMIT 事务校验 `lease_generation`；旧代次 409 | N-12a–N-12d；N-20 |
 
 ---
 
@@ -940,32 +1134,75 @@ SET preserve_insertion_order = false;
 | S3 | 仅本地模式 | MinIO 真实读写（OD-05） |
 | Lineage | 本地通过 | 扩展到对象存储与快照 |
 
-**验收**：`verify_lineage` 在对象存储模式通过；`snapshot_id` 可定位；负向测试 N-01/N-02/N-07/N-14/N-15 通过；全程无覆盖、无删除。
+#### 10.1.1 真实对象存储一致性测试（修订 R6）
+
+MinIO 只能证明「S3 兼容 API 的常见子集」，不能证明最终选定的 DO Spaces / OSS 行为一致。Stage A 必须在**最终选型**的存储上跑下表；任一项不通过，Stage A 不通过：
+
+| # | 测试 | 期望 |
+|---|---|---|
+| C1 | `PUT` 新键 + `If-None-Match: *` | 首次 200；同键再写 412/409，旧对象不变 |
+| C2 | 两个并发客户端同时 `PUT` 同键（带条件头） | 恰好一个成功；另一个 412/409 |
+| C3 | `PUT` 同键不带条件头（版本化开启） | 产生新 VersionId，旧版本仍可读 |
+| C4 | Multipart 上传中途失败 | 未完成分片不可见；可 resume 或 abort；不产生半个对象 |
+| C5 | Multipart 完成后条件写 | 与 C1 语义一致，或明确记录不支持并启用 fallback |
+| C6 | Versioning / VersionId | 可列出历史版本、按 VersionId 读取、删除标记可恢复 |
+| C7 | HEAD / GET 回读 | ContentLength、ETag、SHA-256 与本地一致 |
+| C8 | 一致性 | 写入后立即 HEAD/GET 可见；若为最终一致，记录等待窗口与重试策略 |
+| C9 | 错误码 | 412/409/403/404/5xx 与文档一致，客户端映射正确 |
+| C10 | 请求 ID | 响应含可审计的 request id，可写入 `attempt.json` |
+
+**Fallback（若 C1/C2/C5 不成立）**：
+
+- 任务互斥已由协调器保证，不依赖对象存储；
+- Raw 写入改为「唯一临时键 + 由协调器串行复制到目标键 + 写后 HEAD 校验」；
+- 任何 fallback 必须写入 OD-19 并经 Reviewer 批准，**不得静默降级**。
+
+**验收**：`verify_lineage` 在对象存储模式通过；`snapshot_id` 可定位；负向测试 N-01/N-02/N-07/N-14/N-15 通过；C1–C10 通过；全程无覆盖、无删除。
 
 ### 10.2 阶段 B：1000 份基准
 
-**样本**：从 `document_asset` 中按 `FetchStatus=1 且 HasTextLayer=1` 抽取 1000 份，分层：
+**样本池（修订 R3）**：两个独立池，合计 1000 份。
 
-| 分层 | 页数 | 份数（建议） |
+| 池 | 筛选 | 份数 | 用途 |
+|---|---|---|---|
+| **P 可解析池** | `FetchStatus=1 AND HasTextLayer=1` | **950** | 测解析质量、吞吐、证据完整性 |
+| **Q 预期拒绝池** | 无文本层 / 扫描 / 加密 / 0 页 | **50** | 测拒绝路径与错误分类，不参与质量分母 |
+
+P 分层：
+
+| 分层 | 页数 | 份数 |
 |---|---|---|
-| S1 | ≤ 20 | 300 |
-| S2 | 21–50 | 300 |
-| S3 | 51–100 | 250 |
-| S4 | > 100 | 100 |
-| S5 | 无文本层/扫描 | 50（预期拒绝） |
+| S1 | ≤ 20 | 280 |
+| S2 | 21–50 | 280 |
+| S3 | 51–100 | 240 |
+| S4 | > 100 | 150 |
+| 合计 | — | **950** |
 
-**每件测量**：墙钟耗时、CPU 时间、峰值 RSS、临时磁盘、9 个产物字节数、Parquet 字节数、上传字节/请求数、重试次数、错误类别。
+Q 单独抽样 50 份，不按页数分层；Q 中的 PDF 不进入「可解析率」统计。
 
-**汇总**：P50/P90/P95/max、吞吐（份/小时/机）、失败率、重试率、重复率、证据完整率、血缘通过率、DuckDB 查询延迟（Q1–Q6）。
+**五类比率（分母必须写明）**：
+
+| 指标 | 分子 | 分母 |
+|---|---|---|
+| 预期输入拒绝率 | Q 中按预期 `INVALID_INPUT` 的数量 | 50（Q） |
+| 有效输入处理失败率 | P 中非 `SUCCEEDED`（不含预期拒绝） | 950（P） |
+| 基础设施失败率 | P 中 `OBJECT_STORE_*` / `NETWORK_*` / `DISK_FULL` | 950（P） |
+| Parser 异常率 | P 中 `PARSER_EXCEPTION` | 950（P） |
+| 重试率 | P 中 `attempt > 1` | 950（P） |
 
 **通过门槛（PROPOSED，需 Reviewer 确认，OD-09）**：
 
 - 血缘校验 100% 通过；
 - 证据完整率 100%（发布口径）；
-- 失败率 ≤ 2%，重试率 ≤ 5%；
+- 三级行数对账 0 差异（Q8）；
+- **有效输入处理失败率 ≤ 2%（分母 950，不含 Q）**；
+- 基础设施失败率 ≤ 1%，Parser 异常率 ≤ 1%；
+- 重试率 ≤ 5%；
+- Q 的预期拒绝率 ≥ 95%（50 份中至少 48 份被正确拒绝即通过，不按失败计）；
 - P95 解析耗时 ≤ 超时阈值的 50%；
-- Parquet 写入与查询无丢行（行数对账一致）；
 - 单件存储成本与单件耗时进入可外推区间。
+
+> v1.0 把 Q 的预期拒绝计入总失败率，导致「系统行为完全正确时失败率也至少 5%」；v1.1 起 Q 单独统计，≤2% 只约束 P。
 
 **产出**：`benchmark_1000_report.json` + 逐件 CSV + 命令记录 + 环境快照；不可覆盖。
 
@@ -975,10 +1212,10 @@ SET preserve_insertion_order = false;
 |---|---|
 | Worker | 2–4 × 8 vCPU / 16 GB；同区对象存储 |
 | 并发 | 每机 4 起，按 Stage B 的 RSS/耗时实测调整 |
-| 分片 | `crc32(sha256) % worker_count` |
+| 任务分配 | 协调器动态发放租约；**不按分片静态切割** |
 | 批处理 | 每 1000 份一个 `batch_id`；每批结束构建快照 |
-| 断点续跑 | 事件日志 + 结果对象；重启重扫分片 |
-| 数据校验 | 全量 lineage + 每批 1% 人工抽检 + 行数对账 |
+| 断点续跑 | 租约 + committed 标记 + 协调器 SQLite；重启后重新注册 |
+| 数据校验 | 全量 lineage + 每批 1% 人工抽检 + 三级行数对账 |
 | 停止条件 | 失败率 > 5% 持续 30 min；指纹漂移；磁盘 > 90%；单位成本 > 预估 120%；任一血缘失败 |
 | 回滚 | 停止 Worker；不发布新快照；保留全部数据；写墓碑标记批次失效；不删除对象 |
 
@@ -999,25 +1236,33 @@ SET preserve_insertion_order = false;
 
 ## 11. 负向测试（摘要）
 
-完整 15 项见 `INVARIANT_AND_NEGATIVE_TEST_MATRIX.md` §2。覆盖任务书全部要求：
+完整矩阵见 `INVARIANT_AND_NEGATIVE_TEST_MATRIX.md` §2。任务书要求的 15 项全部覆盖，另补 5 项针对 R1/R2/R4 的回归：
 
 | 编号 | 场景 | 期望 |
 |---|---|---|
 | N-01 | 上传后 SHA 校验失败 | 不提交 raw；`INVALID_INPUT`；无 manifest |
 | N-02 | 相同 PDF 重复上传 | 单对象；第二次 `DUPLICATE`；不重复解析 |
 | N-03 | 对象存储暂时不可用 | 退避重试；任务可运行；无半成品 |
-| N-04 | Worker 执行中断 | 租约过期 → 重试；脏工作区清理 |
-| N-05 | Worker 重启 | 跳过已完成；恢复未完成 |
+| N-04 | Worker 执行中断 | 租约过期 → 协调器递增 generation → 重派；脏工作区清理 |
+| N-05 | Worker 重启 | 向协调器重新注册；已提交任务跳过；未提交任务重新领租约 |
 | N-06 | Parse 结果写入失败 | 无 manifest → 不成功；重试 |
 | N-07 | Manifest 不完整 | 校验拒绝；Eval 拒绝 |
 | N-08 | Parser 版本变化 | 指纹变化；新 run；旧 run 不动 |
 | N-09 | 配置指纹变化 | 批次停止接新任务；新批新配置 |
 | N-10 | Parquet 损坏 | 查询失败；快照校验发现；可从产物重建 |
 | N-11 | DuckDB 查询失败 | 明确报错；不返回部分结果 |
-| N-12 | 同一任务并发执行 | 条件写/分片保证只有一个成功；其余退出 |
-| N-13 | 重试产生重复结果 | 多 `run_id`、多 `attempt`；`canonical` 唯一 |
+| N-12a | 两 Worker 同时申请同一 task | 协调器只发一个租约；另一个排队或转下一任务 |
+| N-12b | 旧 Worker 恢复后提交（generation 已过期） | 协调器返回 409 `STALE_LEASE`；旧 Worker 不写 committed |
+| N-12c | 协调器崩溃后重启 | 过期租约递增 generation 重派；已提交不重发；无重复成功 |
+| N-12d | 协调器不可达超过 TTL | Worker 停止任务；不写 committed；不产生成功 |
+| N-13 | 重试产生重复结果 | 多 `run_id`、多 `attempt`、多 `lease_generation`；canonical 唯一 |
 | N-14 | Eval 引用不存在的 Parse | `ManifestMissing`；退出码非 0 |
 | N-15 | Raw 对象被意外覆盖 | 条件写/版本化拒绝；校验发现篡改 |
+| N-16 | 仅 `table_params_sha256` 变化 | `reproducibility_key` 必须变化；canonical 不合并 |
+| N-17 | 仅 `dependency_lock_sha256` 变化 | `reproducibility_key` 必须变化 |
+| N-18 | 仅 `effective_dpi` 变化 | `reproducibility_key` 必须变化 |
+| N-19 | 2 run 共享 1 个 Parquet 文件 | Catalog 总行数只计一次（2896，不是 5792） |
+| N-20 | 协调器状态丢失后重建 | 从 committed 标记重建已提交集合；无法判定的任务 `QUARANTINED` |
 
 ---
 
@@ -1027,21 +1272,24 @@ SET preserve_insertion_order = false;
 
 ```
 PENDING
-  → CLAIMED (租约获取)
+  → CLAIMED (协调器发租约 generation=g)
   → RUNNING
-      → SUCCEEDED
-      → FAILED_RETRYABLE → (退避) → CLAIMED
+      → SUCCEEDED (协调器 COMMIT + committed.json)
+      → FAILED_RETRYABLE → (退避) → PENDING
       → FAILED_PERMANENT
       → TIMED_OUT → FAILED_RETRYABLE (≤ max) / FAILED_PERMANENT
-      → LEASE_EXPIRED → CLAIMED
+      → LEASE_EXPIRED (协调器判定) → PENDING (generation=g+1)
+      → STALE_ABORTED (Worker 收到 409 STALE_LEASE)
   → SKIPPED_DUPLICATE (同 repro key 已成功)
   → INVALID_INPUT (PDF 非法/加密/无页/无文本层)
   → QUARANTINED (证据/血缘/对象冲突)
   → TOMBSTONED (批次失效/人工撤销)
 ```
 
-终态：`SUCCEEDED`、`FAILED_PERMANENT`、`INVALID_INPUT`、`QUARANTINED`、`TOMBSTONED`、`SKIPPED_DUPLICATE`。
-每个转换必须写事件；不得存在「隐含成功」。
+- `STALE_ABORTED` 是 **Worker 侧中止事件**，任务本身回到 `PENDING`（由协调器重派），不是终态；
+- `CLAIMED` 只由协调器写入；Worker 不得自行置位；
+- 终态：`SUCCEEDED`、`FAILED_PERMANENT`、`INVALID_INPUT`、`QUARANTINED`、`TOMBSTONED`、`SKIPPED_DUPLICATE`；
+- 每个转换必须写事件（含 `lease_generation`）；不得存在「隐含成功」。
 
 ---
 
@@ -1050,15 +1298,17 @@ PENDING
 | 类别 | 例子 | 重试 | 退避 | 最大次数 |
 |---|---|---|---|---|
 | 瞬时基础设施 | 对象存储 5xx、网络超时、DNS | 是 | 60 s / 300 s / 900 s + 抖动 | 3 |
-| Worker 崩溃/被杀 | 租约过期、进程退出 | 是 | 立即（新 worker） | 3 |
+| Worker 崩溃/被杀 | 租约过期、进程退出 | 是 | 立即（新 generation） | 3 |
 | 解析超时 | 180 s/大件阈值 | 是（仅前 2 次） | 300 s | 2 |
+| 租约失效 | 协调器返回 409 `STALE_LEASE` | 否（Worker 立即中止） | — | 由协调器重派 |
+| 协调器不可达 | 心跳/提交超时 | 否（暂停，不提交） | 重连探测 | 由协调器恢复 |
 | 输入非法 | 非 PDF、加密、0 页、无文本层 | 否 | — | 1（直接终态） |
 | 代码/配置错误 | 指纹漂移、配置非法 | 否 | — | 1（批次停止） |
 | 证据/血缘冲突 | 哈希不符、对象冲突 | 否 | — | 1（隔离） |
 
-- 重试**不覆盖**旧 run；每次独立 `run_id` + `attempt`；
-- 重试队列与主队列分离，避免抖动放大；
-- 死信必须包含：任务、最后一次错误、所有 attempt 的 `run_id`、日志键、证据键。
+- 重试**不覆盖**旧 run；每次独立 `run_id` + `attempt` + 新 `lease_generation`；
+- 重试队列由协调器维护，与正常分配分离，避免抖动放大；
+- 死信必须包含：任务、最后一次错误、所有 attempt 的 `run_id` 与 `generation`、日志键、证据键。
 
 ---
 
@@ -1092,11 +1342,13 @@ PENDING
 
 ### 15.3 实现启动的前置条件
 
-1. Reviewer 对 `OPEN_DECISIONS.md` 的 P0 项给出裁定；
-2. `pipeline.py` 授权快照问题关闭（OD-02）；
-3. 对象存储与区域确定（OD-01）；
-4. Stage A 的对象存储模式验收通过；
-5. 任何实现单独立项，不沿用本设计的「送审」状态。
+1. **R1–R6 全部闭合**（本 v1.1 已给出设计，仍需 Reviewer 逐项确认）；
+2. Reviewer 对 `OPEN_DECISIONS.md` 的 P0 项给出裁定（OD-01 / OD-02 / OD-03 / OD-05 / OD-19）；
+3. `pipeline.py` 授权快照问题关闭（OD-02）；
+4. 对象存储与区域确定（OD-01）；
+5. 真实对象存储一致性测试 C1–C10 通过（§10.1.1）；
+6. Stage A 的对象存储模式验收通过；
+7. 任何实现单独立项，不沿用本设计的「送审」状态。
 
 ---
 
@@ -1134,6 +1386,7 @@ PENDING
 | R-08 | 审核人力不足 | 数据积压 | 分层抽检 + 质量门 + 不做全量人工 |
 | R-09 | 跨区分层存储 | 延迟与出口费 | 同区；跨区只做异步归档 |
 | R-10 | 设计被当成实现 | 过早承诺 | 文档全篇标注 DESIGN ONLY；不写完成日期 |
+| R-11 | 协调器是单点 | 批次暂停（不是数据错误） | 租约过期 + 重启恢复；状态不确定时开 recovery 批次 |
 
 ---
 
@@ -1156,20 +1409,25 @@ PENDING
 ### 18.3 Git commit SHA
 
 - Ds Bit 基线：`600439a5eee69fb3a1cec2715e37080e48ca9840`
-- 本送审包提交：见 `DELIVERY_REPORT.md`（提交后写入实际 SHA，不预先编造）
+- 送审仓库**任务启动时基线**：`0fa9d34`（开始本轮设计时的远端 HEAD）
+- 送审仓库**设计提交的直接父提交**：`fc4bcc5`（`a62c70d` 的父提交）
+- 本送审包提交：v1.0 为 `a62c70d` / 报告 `ce6ba2d`；v1.1 的实际 SHA 见 `DELIVERY_REPORT.md`（提交后写入，不预先编造）
+
+> 从 `0fa9d34` 比较到 `a62c70d` 会看到 `12_` 目录的并发改动；从直接父提交 `fc4bcc5` 比较，变更只有 `13_` 目录。两个基线必须分开写，避免审计歧义。
 
 ### 18.4 变更文件列表
 
-本轮只新增 `13_dsbit_duckdb_s3_pipeline/` 目录，不修改 Ds Bit 仓库、不修改送审仓库既有目录。
+v1.0 新增 `13_dsbit_duckdb_s3_pipeline/` 目录；v1.1 只修订该目录内文件，不修改 Ds Bit 仓库、不修改送审仓库既有目录。
 具体文件见 `SHA256SUMS.txt`。
 
 ### 18.5 关键架构决策
 
-D-01 ～ D-12（§3.4）。最关键的三个：
+D-01 ～ D-17（§3.4）。最关键的四个：
 
 1. 批量采用「本地 → 大批 Parquet → 上传 → 批量查询」，拒绝直扫远程小文件；
 2. DuckDB 只做分析，单写者 + 不可变快照，不做队列/锁/多写库；
-3. 任务状态用批次清单 + 分片 + 事件日志 + 租约，不引入独立数据库或队列服务器。
+3. 任务分配由**单写协调器 + 租约代次 + 两阶段提交**完成，不引入独立数据库或队列服务器；
+4. Run Manifest 与 Batch/Partition Manifest 分离，行数三级对账，避免重复累计。
 
 ### 18.6 已实现与拟议的区别
 
@@ -1177,9 +1435,10 @@ D-01 ～ D-12（§3.4）。最关键的三个：
 |---|---|
 | `lake/` 单件三层 Demo | **已实现**（commit `7d8ab3f`）；本次实际运行 4 个脚本 |
 | 对象存储上传/下载 | **未实现** |
-| 任务队列/租约/断点续跑 | **未实现** |
+| 协调器 / 租约 / fencing / 提交裁决 | **未实现** |
 | 指纹运行时计算 | **未实现**（Demo 为硬编码） |
-| Parquet 分区/合并 | **未实现**（Demo 每 run 一个文件） |
+| `reproducibility_key` v2 | **未实现**（Demo 为 v1 三字段） |
+| Parquet 分区/合并 / part_manifest | **未实现**（Demo 每 run 一个文件） |
 | Catalog 快照 | **未实现**（Demo 重建即删） |
 | Eval 按文档扩展 | **未实现**（Demo 固定单样本） |
 | 本文其余设计 | **PROPOSED** |
@@ -1196,13 +1455,17 @@ D-01 ～ D-12（§3.4）。最关键的三个：
 | `lake/_s3_connectivity_test.py --local` | 103 ms，2896 行 |
 | 真实 S3 | 未测试（无凭据、无桶） |
 
+> v1.1 只改设计文档，未改代码、未重跑上述测试；测试结果仍为 v1.0 同一基线快照的结果。
+
 ### 18.8 未解决问题
 
-见 `OPEN_DECISIONS.md`（18 项）。P0：
+见 `OPEN_DECISIONS.md`（20 项）。P0：
 
 - OD-01 对象存储选型/区域；
 - OD-02 `pipeline.py` 授权快照不一致；
-- OD-03 任务领取机制在目标对象存储上的可用性。
+- OD-03 任务领取机制——v1.1 已给出协调器方案，待 Reviewer 确认后关闭；
+- OD-05 MinIO / 大件与真实存储验证（v1.1 上调为 P0）；
+- OD-19 条件写不支持时的 fallback（v1.1 新增）。
 
 ### 18.9 生产操作确认
 
@@ -1267,8 +1530,8 @@ Select-String -Path workbench\serve_parser.py -Pattern "ICEX_PARSE_TIMEOUT|ICEX_
 | Raw | 原始 PDF 字节层，内容寻址，只读 |
 | Parse | 一次解析执行的结果层，run 级不可变 |
 | Eval | 评估层，Gold 版本化 + 指标 + 归因 + 审核 |
-| `reproducibility_key` | `sha256(source_sha256 | parser_fingerprint | config_hash)`，表示「同输入、同代码、同配置」 |
+| `reproducibility_key` | v2：`sha256(canonical_json(source_sha256, requested_mpn, parser_fingerprint, config_hash, table_params_sha256, dependency_lock_sha256, effective_dpi, python_version, platform_family))`，表示「同输入、同代码、同配置、同依赖、同渲染条件」 |
 | `run_id` | 唯一执行身份；同条件重复执行产生不同 `run_id` |
 | `snapshot_id` | Catalog 快照身份；查询必须绑定 |
 | 墓碑（tombstone） | 逻辑失效记录；不物理删除对象 |
-| 分片（shard） | 按 `sha256` 取模分配到 Worker，无中央协调 |
+| 协调器（coordinator） | 批次内唯一的任务分配与提交裁决者；单进程 + SQLite；不是数据库服务器 |

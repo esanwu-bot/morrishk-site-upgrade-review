@@ -13,13 +13,14 @@
 
 ```
 Raw 写入（条件写）
-  → 任务事件
+  → 协调器租约（generation）
   → Worker 解析
   → 产物上传（内容寻址）
   → Parquet 写入
-  → Manifest v2（提交点）
+  → Run Manifest v2
+  → 协调器 COMMIT + committed.json
   → Eval（Gold v1 + 评估器指纹）
-  → Catalog 快照
+  → Catalog 快照（三级行数对账）
   → DuckDB 只读查询
   → verify_lineage
 ```
@@ -30,20 +31,41 @@ Raw 写入（条件写）
 |---|---|---|---|
 | Raw | `lake/raw_layer/<sha>` 本地目录 | 对象存储键 + 条件写 | `lake/_build_lake.py:107-133` |
 | Parse | `parse_pdf()` 已产出 9 JSON | 上传 + Manifest v2 | `pipeline.py:136-188` |
-| Parquet | 每 run 一个文件 | 批量缓冲 + 分区键 | `_build_lake.py:181-214` |
-| Catalog | 本地 `.duckdb`，重建即删 | 快照目录 + manifest | `_build_lake.py:355-449` |
+| 协调器 | 无 | 单进程 + SQLite + 租约/提交 | 主文档 §5.2、`PIPELINE_ARTIFACTS.md` §9 |
+| Parquet | 每 run 一个文件 | 批量缓冲 + 分区键 + part_manifest | `_build_lake.py:181-214` |
+| Catalog | 本地 `.duckdb`，重建即删 | 快照目录 + manifest + 行数对账 | `_build_lake.py:355-449` |
 | Eval | 单样本固定路径 | 按文档扩展 | `_build_lake.py:299-352` |
-| S3 | 仅 `--local` 通过 | MinIO 真实读写 | `_s3_connectivity_test.py` |
+| S3 | 仅 `--local` 通过 | MinIO 开发验证 + **真实存储 C1–C10** | `_s3_connectivity_test.py` |
 | Lineage | 本地通过 | 对象存储 + 快照 | `_verify_lineage.py` |
 
-### 1.3 验收清单
+### 1.3 真实存储一致性（R6）
 
-- [ ] 同一 PDF 两次执行：2 个 `run_id`，1 个 raw 对象，2 条 parse manifest；
+MinIO 只用于开发；Stage A 必须在**最终选型**存储上完成 C1–C10（清单见主文档 §10.1.1）：
+
+| # | 检查 | 通过条件 |
+|---|---|---|
+| C1 | 条件写新键 | 首次 200；同键再写 412/409 |
+| C2 | 并发同键条件写 | 恰好一个成功 |
+| C3 | 无条件覆盖 + 版本化 | 产生新 VersionId，旧版本可读 |
+| C4 | Multipart 中断 | 不产生半个对象 |
+| C5 | Multipart 条件写 | 语义与 C1 一致，或有批准的 fallback |
+| C6 | Versioning / VersionId | 历史版本可列出与读取 |
+| C7 | HEAD / GET 回读 | ETag / 字节 / SHA 一致 |
+| C8 | 一致性 | 写后立即可见，或记录等待窗口 |
+| C9 | 错误码 | 412/409/403/404/5xx 映射正确 |
+| C10 | 请求 ID | 可记录到 `attempt.json` |
+
+### 1.4 验收清单
+
+- [ ] 同一 PDF 两次执行：2 个 `run_id`、2 个 `lease_generation`，1 个 raw 对象，2 条 Run Manifest；
+- [ ] 旧 generation 提交被 409 拒绝，且不写 committed 标记（N-12b）；
 - [ ] 篡改 raw 1 bit：`verify_lineage` 失败，退出码非 0；
 - [ ] 删除 manifest 但保留 eval：加载失败（`ManifestMissing`）；
 - [ ] 快照中的 Parquet 被改 1 bit：校验失败，查询不返回少行；
+- [ ] 2 run 共享 1 个 Parquet：Catalog 总行数只计一次（N-19）；
 - [ ] 所有查询日志带 `snapshot_id`；
-- [ ] N-01 / N-02 / N-07 / N-14 / N-15 通过；
+- [ ] N-01 / N-02 / N-07 / N-12b / N-14 / N-15 / N-19 通过；
+- [ ] C1–C10 在真实存储上通过；
 - [ ] 全程无对象被覆盖、无对象被删除（除临时目录）。
 
 **通过后**才可进入 Stage B。Stage A 不产生任何质量结论。
@@ -52,25 +74,32 @@ Raw 写入（条件写）
 
 ## 2. 阶段 B：1000 份基准
 
-### 2.1 样本设计
+### 2.1 样本设计（修订 R3）
 
-来源：`document_asset` 中 `FetchStatus=1 且 HasTextLayer=1` 的去重 PDF。
+v1.0 的筛选条件 `FetchStatus=1 且 HasTextLayer=1` 与「S5 无文本层 50 份」自相矛盾。v1.1 拆为两个独立池：
 
-| 分层 | 页数 | 目标份数 | 目的 |
+| 池 | 筛选 | 份数 | 用途 | 是否进入质量分母 |
+|---|---|---|---|---|
+| **P 可解析池** | `FetchStatus=1 AND HasTextLayer=1` | **950** | 解析质量、吞吐、证据完整性 | 是 |
+| **Q 预期拒绝池** | 无文本层 / 扫描 / 加密 / 0 页 | **50** | 拒绝路径、错误分类 | 否（单独统计） |
+
+P 分层：
+
+| 分层 | 页数 | 份数 | 目的 |
 |---|---|---|---|
-| S1 | ≤ 20 | 300 | 常见短 datasheet |
-| S2 | 21–50 | 300 | 主流 datasheet |
-| S3 | 51–100 | 250 | 长文档、跨页表 |
-| S4 | > 100 | 100 | 大件与超时风险 |
-| S5 | 无文本层/扫描 | 50 | 预期拒绝，验证 `INVALID_INPUT` |
-| 合计 | — | **1000** | — |
+| S1 | ≤ 20 | 280 | 常见短 datasheet |
+| S2 | 21–50 | 280 | 主流 datasheet |
+| S3 | 51–100 | 240 | 长文档、跨页表 |
+| S4 | > 100 | 150 | 大件与超时风险 |
+| 合计 | — | **950** | — |
 
 抽样规则：
 
-- 按 `sha256` 排序后等距抽样，避免按厂商聚集；
-- 记录抽样种子与完整 `task_id` 列表，保证可复现；
+- P 与 Q 各自独立按 `sha256` 排序后等距抽样；
+- 记录抽样种子、池标记与完整 `task_id` 列表；
 - 不挑选「已知解析成功」的样本；
-- 允许同一 PDF 的重复输入进入，用于测重复率。
+- 允许同一 PDF 的重复输入进入 P，用于测重复率；
+- Q 的 PDF 不进入「可解析率」与「有效输入处理失败率」的分子/分母。
 
 ### 2.2 逐件测量项
 
@@ -83,22 +112,31 @@ Raw 写入（条件写）
 | 5 | 临时磁盘峰值（MB） | 工作区 `du` 采样 |
 | 6 | PDF 字节 | Raw 元数据 |
 | 7 | 9 个 JSON 产物字节 | Manifest `artifacts[].bytes` |
-| 8 | Parquet 字节 | 分区 `part_index.json` |
+| 8 | Parquet 字节 | `part_manifest.json` |
 | 9 | 上传字节 / 请求数 | S3 客户端计数器 |
 | 10 | 页数 / 表数 / 候选数 | Manifest `counts` |
-| 11 | 重试次数 / 错误类 | 任务事件 |
+| 11 | 重试次数 / 错误类 / `lease_generation` | 任务事件 |
 | 12 | 证据完整率 | Parquet 查询 Q4 |
 | 13 | 血缘校验结果 | `verify_lineage` |
-| 14 | 查询耗时（Q1–Q7） | 查询日志 |
+| 14 | 查询耗时（Q1–Q8） | 查询日志 |
+| 15 | 池标记（P/Q） | 批次清单 |
 
-### 2.3 汇总口径
+### 2.3 汇总口径（修订 R3）
+
+| 指标 | 分子 | 分母 |
+|---|---|---|
+| 预期输入拒绝率 | Q 中按预期 `INVALID_INPUT` | 50 |
+| 有效输入处理失败率 | P 中非 `SUCCEEDED` | 950 |
+| 基础设施失败率 | P 中 `OBJECT_STORE_*` / `NETWORK_*` / `DISK_FULL` | 950 |
+| Parser 异常率 | P 中 `PARSER_EXCEPTION` | 950 |
+| 重试率 | P 中 `attempt > 1` | 950 |
+| 重复率 | `1 - unique_sha256 / P_inputs` | — |
 
 - 分位数：P50 / P90 / P95 / max，按分层与总体分别给；
 - 吞吐：`成功文档数 ÷ 总墙钟小时`，同时给「每机」与「全批」；
-- 失败率：`非 SUCCEEDED ÷ 总数`；重试率：`attempt > 1 的文档 ÷ 总数`；
-- 重复率：`1 - unique_sha256 / total_inputs`；
 - 单件成本：`阶段总成本 ÷ 成功文档数`；
-- 所有比率必须给分子分母，不只给百分比。
+- 所有比率必须给分子分母，不只给百分比；
+- **禁止**把 Q 的预期拒绝计入「有效输入处理失败率」。
 
 ### 2.4 通过门槛（PROPOSED，待确认）
 
@@ -106,10 +144,13 @@ Raw 写入（条件写）
 |---|---|---|
 | 血缘校验 | 100% | 停止，修链路 |
 | 证据完整率 | 100% | 停止，修解析/落库 |
-| 失败率 | ≤ 2% | 分析错误类；不可重试错误需逐类解释 |
-| 重试率 | ≤ 5% | 分析存储/超时 |
+| 三级行数对账（Q8） | 0 差异 | 停止，修写入 |
+| **有效输入处理失败率（分母 950）** | ≤ 2% | 分析错误类；不可重试错误需逐类解释 |
+| 基础设施失败率（分母 950） | ≤ 1% | 分析存储/网络 |
+| Parser 异常率（分母 950） | ≤ 1% | 修代码后重跑 |
+| 重试率（分母 950） | ≤ 5% | 分析存储/超时 |
+| Q 预期拒绝率（分母 50） | ≥ 95% | 检查拒绝路径；不按失败计 |
 | P95 解析耗时 | ≤ 超时阈值的 50% | 调整超时或并发 |
-| Parquet 行数对账 | 完全一致 | 停止，修写入 |
 | Q1 单 run 链路查询 | ≤ 5 s（1000 份规模） | 检查分区与文件数 |
 | Q3 批次聚合 | ≤ 10 s（1000 份规模） | 检查文件大小与字典编码 |
 | 单件存储（不含 PNG） | ≤ 8 MB | 检查产物是否可压缩 |
@@ -122,11 +163,13 @@ Raw 写入（条件写）
 
 ```
 benchmark/1000/
-  plan.json                 # 样本、分层、种子
-  per_doc.csv               # 14 项逐件指标
-  summary.json              # 分位数、吞吐、失败/重试/重复率
-  query_log.jsonl           # Q1–Q7 耗时
+  plan.json                 # 样本池 P/Q、分层、种子、plan_epoch
+  per_doc.csv               # 15 项逐件指标
+  summary.json              # 分位数、吞吐、五类失败率
+  query_log.jsonl           # Q1–Q8 耗时
   lineage_report.json       # 全量校验结果
+  row_reconciliation.json   # 三级行数对账
+  storage_conformance.json  # C1–C10（Stage A 产出，复用于环境指纹）
   env_snapshot.json         # Python/DuckDB/PyArrow/OS/对象存储端点（脱敏）
 ```
 
@@ -141,9 +184,9 @@ benchmark/1000/
 | 组件 | 规格 | 数量 | 说明 |
 |---|---|---|---|
 | Worker | 8 vCPU / 16 GB / 本地 NVMe 200–500 GB | 2–4 | 与现有 G0 环境同规格参考 |
+| 协调器 | 2 vCPU / 4 GB / 本地 SSD | 1 | 单进程 + SQLite WAL；不是数据库服务器 |
 | 对象存储 | 同区、私有、版本化 | 1 桶 | 不与计算跨区 |
 | 分析节点 | 8 vCPU / 32 GB | 1 | 构建快照；可与 1 台 Worker 复用但在批次间隙运行 |
-| 调度 | 无独立服务 | — | 批次清单 + 分片 |
 
 ### 3.2 并发策略
 
@@ -152,6 +195,8 @@ benchmark/1000/
 3. 若 RSS > 内存 70% 或 P95 > 超时阈值 50%，每次降 1，最低 2；
 4. 若 P95 明显低于阈值且 RSS < 50%，可每次升 1，最高 = vCPU；
 5. 并发调整必须写入批次事件，便于复盘。
+
+> 任务分配由协调器动态发放租约；**不使用静态分片**。扩容只需新增 Worker 并注册，不需要重新分片。
 
 ### 3.3 资源规格选择依据
 
@@ -184,9 +229,10 @@ benchmark/1000/
 
 ### 3.5 断点续跑
 
+- 协调器 SQLite 保存 task / lease / commit；每 30 s 检查点；
 - 每任务终态写 `control/tasks/<task_id>/final.json`；
-- 每 30 s / 100 条事件上传分片日志；
-- Worker 重启后重扫分片，`SUCCEEDED` 跳过；
+- 每 30 s / 100 条事件上传 Worker 事件日志；
+- Worker 重启后向协调器重新注册；已提交任务跳过；未提交任务按租约过期重派；
 - 批次级检查点：每 1000 份构建一次快照，崩溃后不必从头恢复；
 - 恢复后先跑 `verify_lineage` 抽样，再继续。
 
@@ -330,12 +376,15 @@ D  = 1,129 / (4 × 24 × 0.8) ≈ 14.7 天
 
 在跑 1000 份之前，必须逐项确认：
 
+- [ ] R1–R6 已由 Reviewer 确认闭合；
 - [ ] OD-02 已关闭（`pipeline.py` 授权快照问题有书面结论）；
 - [ ] OD-01 已定（对象存储与区域）；
-- [ ] 批次 `plan.json` 已固定 `parser_fingerprint` / `config_hash` / `dependency_lock_sha256`；
+- [ ] OD-05 / OD-19 已定（真实存储 C1–C10 与 fallback）；
+- [ ] 批次 `plan.json` 已固定 `parser_fingerprint` / `config_hash` / `table_params_sha256` / `dependency_lock_sha256` / `coordinator_epoch`；
 - [ ] 桶已开启版本化，Worker 无删除权限；
 - [ ] Stage A 的对象存储模式验收通过；
-- [ ] 负向测试 N-01/N-02/N-07/N-14/N-15 通过；
+- [ ] 负向测试 N-01/N-02/N-07/N-12b/N-14/N-15/N-19 通过；
+- [ ] 样本池 P（950）与 Q（50）已分别抽样并记录；
 - [ ] 已知基线样本（V101）可作为对照，且结果与 `lake/` 一致；
 - [ ] 日志、指标、死信目录可写；
 - [ ] 停止条件与回滚脚本已演练（在临时环境）。

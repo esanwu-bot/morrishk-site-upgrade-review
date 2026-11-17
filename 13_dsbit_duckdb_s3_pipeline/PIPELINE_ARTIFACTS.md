@@ -1,7 +1,10 @@
-# 流水线构件：对象布局、Manifest、Parquet、DuckDB、状态机与重试
+# 流水线构件：对象布局、两级 Manifest、Parquet、DuckDB、状态机与协调器
 
 本文件是主文档的附件，所有示例均为 `PROPOSED` 构造样例，**不是**真实运行产物。
 唯一可复核的真实产物是 `lake/` 中的 V101 单件 Demo（见主文档 §2.7）。
+
+v1.1 变更：任务身份改为完整 SHA-256（R5）；Run Manifest 与 Batch/Partition Manifest 分离（R2）；
+`reproducibility_key` v2（R4）；新增协调器协议（R1）；新增真实存储一致性测试引用（R6）。
 
 ---
 
@@ -13,26 +16,31 @@ s3://<bucket>/dsbit-lake/v1/
 │  ├─ pdf/<aa>/<sha256>.pdf                     # 原始 PDF，内容寻址
 │  └─ meta/<aa>/<sha256>.json                   # RAW.json
 ├─ parse/
-│  ├─ runs/<run_id>/manifest.json               # 提交点
+│  ├─ runs/<run_id>/manifest.json               # Run Manifest（单 run）
 │  ├─ runs/<run_id>/config_snapshot.json
-│  ├─ runs/<run_id>/attempt.json                # 任务/尝试元数据
+│  ├─ runs/<run_id>/attempt.json                # 任务/尝试/租约/fencing 元数据
 │  ├─ blobs/<aa>/<sha256>/<artifact_name>       # 9 个 JSON 产物，内容寻址
 │  └─ tables/
 │     ├─ table=candidates/batch=<batch_id>/part-00001.parquet
+│     ├─ table=candidates/batch=<batch_id>/part_manifest.json
 │     ├─ table=documents/batch=<batch_id>/part-00001.parquet
-│     └─ table=tables/batch=<batch_id>/part-00001.parquet
+│     ├─ table=documents/batch=<batch_id>/part_manifest.json
+│     ├─ table=tables/batch=<batch_id>/part-00001.parquet
+│     └─ table=tables/batch=<batch_id>/part_manifest.json
 ├─ eval/
 │  ├─ gold/<gold_version>/GOLD_MANIFEST.json
 │  ├─ gold/<gold_version>/<gold_files>.csv
 │  ├─ results/<eval_id>.json
 │  ├─ attribution/<eval_id>.csv
 │  ├─ reviews/<batch_id>/reviews.jsonl          # 追加
-│  └─ tables/table=metrics/batch=<batch_id>/part-00001.parquet
+│  └─ tables/table=metrics/batch=<batch_id>/{part-00001.parquet, part_manifest.json}
 ├─ control/
 │  ├─ batches/<batch_id>/tasks.jsonl            # 不可变批次清单
-│  ├─ batches/<batch_id>/plan.json              # 批次元数据（样本、分片数、指纹）
-│  ├─ events/<batch_id>/<shard>-<worker_id>.jsonl
-│  ├─ tasks/<task_id>/final.json                # 仅终态
+│  ├─ batches/<batch_id>/plan.json              # 批次元数据（样本池、协调器 epoch、指纹）
+│  ├─ coordinator/<batch_id>/state-<seq>.json   # 协调器检查点（单写）
+│  ├─ events/<batch_id>/<worker_id>.jsonl       # Worker 事件（追加，定期上传）
+│  ├─ tasks/<task_id>/final.json                # 终态（协调器确认）
+│  ├─ tasks/<task_id>/committed.json            # 成功标记（generation + token）
 │  ├─ deadletter/<batch_id>/<task_id>.json
 │  └─ tombstones/<kind>/<key>/<ts>.json
 ├─ catalog/
@@ -41,6 +49,7 @@ s3://<bucket>/dsbit-lake/v1/
 │     └─ manifest.json
 └─ logs/
    ├─ worker/<date>/<worker_id>.jsonl
+   ├─ coordinator/<date>.jsonl
    └─ query/<date>.jsonl
 ```
 
@@ -49,11 +58,13 @@ s3://<bucket>/dsbit-lake/v1/
 | 名称 | 规则 | 示例 |
 |---|---|---|
 | 前缀目录 `<aa>` | `sha256` 前 2 位十六进制 | `05/059d448c…` |
-| `run_id` | `<doc8>-<UTC>-a<attempt>-<rand4>` | `doc-059d448c-20261117T021103Z-a1-7f3c` |
+| `run_id` | `<doc8>-<UTC>-a<attempt>-g<generation>-<rand4>` | `doc-059d448c-20261117T021103Z-a1-g1-7f3c` |
 | `batch_id` | `<plan>-<UTC>` | `B1-20261117T020000Z` |
-| `eval_id` | `<run_id>__<gold_version>__<evalfp8>` | `doc-059d…-a1-7f3c__gold_v1.0.0__a1b2c3d4` |
+| `eval_id` | `<run_id>__<gold_version>__<evalfp8>` | `doc-059d…-g1-7f3c__gold_v1.0.0__a1b2c3d4` |
 | `snapshot_id` | `snap-<UTC>-<rand8>` | `snap-20261117T021500Z-9f3c1a2b` |
-| `task_id` | `<batch_id>:<sha256 前 16 位>` | `B1-20261117T020000Z:059d448c5a34a4b1` |
+| `task_id` | `<batch_id>:<完整 64 位 sha256>` | `B1-20261117T020000Z:059d448c5a34a4b1f45f02038f5076b82633f372372a15c395940803dc7f3a2b` |
+
+**R5 说明**：v1.0 的 `task_id` 用 SHA 前 16 位；v1.1 改为完整 64 位。生成批次时若同一 `task_id` 已存在但 `document_sha256` 不同，视为致命冲突，拒绝生成。
 
 ### 1.2 单件对象数量预算
 
@@ -61,24 +72,27 @@ s3://<bucket>/dsbit-lake/v1/
 |---|---|---|
 | Raw PDF + RAW.json | 2 | 1,137,660 |
 | 9 个 JSON blob | 9（内容相同可复用） | ≤ 5,120,000 |
-| Manifest + 配置 + attempt | 3 | 1,706,490 |
+| Run Manifest + 配置 + attempt | 3 | 1,706,490 |
+| 任务终态 / committed | 2 | 1,137,660 |
 | Parquet（按 1000 份/文件/表） | 3 ÷ 1000 | ≈ 1,707 |
-| 合计 | ≈ 14（不含 Parquet） | **≈ 800 万对象** |
+| part_manifest | 3 ÷ 1000 | ≈ 1,707 |
+| 合计 | ≈ 16（不含批次级对象） | **≈ 910 万对象** |
 
-> 这是选择「按批次打包 Parquet」而不是「每 run 一个 Parquet」的直接原因：后者会额外增加 568,830 个对象。
-> 800 万对象对一个桶是可管理的，但 list/生命周期规则必须按前缀设计，不能全桶扫描。
+> 对象数比 v1.0 多约 100 万，主要来自每个任务两份小状态文件。若担心 list/请求成本，可把 `final.json` / `committed.json` 合并为每 Worker 一个追加日志；该选择列入 OD-15。
 
 ---
 
-## 2. Manifest v2 示例
+## 2. 两级 Manifest
+
+### 2.1 Run Manifest（单 run）
 
 `parse/runs/<run_id>/manifest.json`：
 
 ```json
 {
   "schema": "lakehouse/run-manifest/v2",
-  "run_id": "doc-059d448c-20261117T021103Z-a1-7f3c",
-  "task_id": "B1-20261117T020000Z:059d448c5a34a4b1",
+  "run_id": "doc-059d448c-20261117T021103Z-a1-g1-7f3c",
+  "task_id": "B1-20261117T020000Z:059d448c5a34a4b1f45f02038f5076b82633f372372a15c395940803dc7f3a2b",
   "attempt": 1,
   "batch_id": "B1-20261117T020000Z",
   "created_at": "2026-11-17T02:11:03Z",
@@ -86,22 +100,25 @@ s3://<bucket>/dsbit-lake/v1/
 
   "identity": {
     "worker_id": "worker-02",
+    "lease_generation": 1,
+    "commit_token": "ct-9f3c1a2b7d4e",
     "run_id_role": "唯一执行身份；同条件重复执行必须产生新 run_id 且全部保留"
   },
 
   "reproducibility": {
-    "reproducibility_key": "8a88bf9479cfcd2f6e344e19cfa46ee0ad48a8659ba17f8dfff2733d83c07194",
-    "role": "可复现条件 = sha256(source_sha256|parser_fingerprint|config_hash)",
+    "reproducibility_key_version": 2,
+    "reproducibility_key": "b7d1c0e5…",
+    "role": "v2 = sha256(canonical_json(source, requested_mpn, parser_fp, config, table_params, deps, dpi, python, platform_family))",
     "source_sha256": "059d448c5a34a4b1f45f02038f5076b82633f372372a15c395940803dc7f3a2b",
+    "requested_mpn": "LM358",
     "parser_fingerprint": "7e70c1f801004c54667b062934efdce28fb5624f461da9bd1625d62872132dca",
     "config_hash": "ab9f12527767c7dffe670f4b49e516202f224902af996a73eb155aaa420d3d5c",
     "table_params_sha256": "82d4df4d1cb3cac9741831b0db36e19fa80c1829abc18b3f8b1ab4ee1c6b9f0a",
     "dependency_lock_sha256": "5c1f...",
+    "effective_dpi": 150,
     "python_version": "3.13.15",
-    "platform": "Linux-6.8.0-x86_64",
-    "icpdf_version": "0.1.0",
-    "parser_version": "0.1.0-phase1",
-    "contract_version": "data-contract/v0.2"
+    "platform_family": "linux",
+    "audit": {"platform": "Linux-6.8.0-x86_64", "hostname": "worker-02"}
   },
 
   "parser_fingerprint_scope": {
@@ -143,14 +160,14 @@ s3://<bucket>/dsbit-lake/v1/
      "object_key": "parse/blobs/c3/…/geometry.json"}
   ],
 
-  "parquet": {
+  "parquet_contribution": {
     "table": "candidates",
     "batch_id": "B1-20261117T020000Z",
-    "files": [
-      {"key": "parse/tables/table=candidates/batch=B1-20261117T020000Z/part-00001.parquet",
-       "sha256": "…", "bytes": 512000000, "rows": 1448000}
-    ],
-    "row_count": 1448
+    "rows": 1448,
+    "part_manifest": {
+      "key": "parse/tables/table=candidates/batch=B1-20261117T020000Z/part_manifest.json",
+      "sha256": "…"
+    }
   },
 
   "counts": {
@@ -171,14 +188,56 @@ s3://<bucket>/dsbit-lake/v1/
 }
 ```
 
-**校验规则（Manifest 不完整即拒绝）**：
+**关键点（R2）**：
 
-1. 必填：`schema`、`run_id`、`reproducibility.reproducibility_key`、`source_sha256`、`parser_fingerprint`、`config_hash`、`source.key`、`source.bytes`、`artifacts`、`counts.page_count`。
+- `counts.candidate_count` 与 `parquet_contribution.rows` 都是**单 run** 的 1448；
+- Run Manifest **不记录**批次 Parquet 文件的总行数；
+- 批次总行数只在 `part_manifest.json` 中维护；
+- `lease_generation` 与 `commit_token` 证明该 run 是协调器确认的成功者。
+
+**校验规则（不完整即拒绝）**：
+
+1. 必填：`schema`、`run_id`、`task_id`、`attempt`、`lease_generation`、`commit_token`、`reproducibility.reproducibility_key`、`reproducibility_key_version`、`source_sha256`、`parser_fingerprint`、`config_hash`、`table_params_sha256`、`dependency_lock_sha256`、`effective_dpi`、`source.key`、`source.bytes`、`artifacts`、`parquet_contribution`、`counts.page_count`。
 2. `status` 必须为 `complete` 才可被 Eval 消费；`partial` 只用于诊断。
-3. `artifacts` 中每一项 `object_key` 必须能被 HEAD 到，且字节数一致。
+3. `artifacts` 中每一项 `object_key` 必须能 HEAD 到，且字节数一致。
 4. `source_sha256` 必须等于 `source.key` 的文件名（去掉 `.pdf`）。
-5. `reproducibility_key` 必须能由三个字段重算得到。
-6. Manifest 自身的 SHA-256 记录在 `attempt.json` 与任务事件中；上传后用 GET 回读校验。
+5. `reproducibility_key` 必须能由 v2 字段重算得到。
+6. 协调器的 commit 记录必须存在且 `generation`/`token` 与 manifest 一致；否则该 manifest 只是孤儿。
+7. Manifest 自身 SHA-256 记录在 `attempt.json` 与任务事件中；上传后 GET 回读校验。
+
+### 2.2 Batch / Partition Manifest
+
+`parse/tables/table=<t>/batch=<batch_id>/part_manifest.json`：
+
+```json
+{
+  "schema": "lakehouse/part-manifest/v1",
+  "table": "candidates",
+  "batch_id": "B1-20261117T020000Z",
+  "created_at": "2026-11-17T02:20:00Z",
+  "files": [
+    {"name": "part-00001.parquet", "sha256": "…", "bytes": 28332, "rows": 2896}
+  ],
+  "total_rows": 2896,
+  "rows_by_run": {
+    "doc-059d448c-20261117T021103Z-a1-g1-7f3c": 1448,
+    "doc-059d448c-20261117T021118Z-a1-g2-9a1b": 1448
+  },
+  "compaction": {"generation": 1, "previous": null}
+}
+```
+
+**对账等式**：
+
+```text
+SUM(part_manifest.total_rows)
+  == SUM(part_manifest.rows_by_run.values())
+  == SUM(run_manifest.parquet_contribution.rows)
+```
+
+- 2 个 run 共享 1 个文件时，`total_rows=2896`，两个 run 各 1448；
+- Catalog 只按 `part_manifest` 计一次，不能按 run 引用次数累加；
+- 测试 N-19 固定该行为。
 
 ---
 
@@ -188,8 +247,7 @@ s3://<bucket>/dsbit-lake/v1/
 
 ```
 parse/tables/table=candidates/batch=B1-20261117T020000Z/part-00001.parquet
-parse/tables/table=documents/batch=B1-20261117T020000Z/part-00001.parquet
-parse/tables/table=tables/batch=B1-20261117T020000Z/part-00001.parquet
+parse/tables/table=candidates/batch=B1-20261117T020000Z/part_manifest.json
 ```
 
 - 只按 `batch` 一级分区；**不加** `year=/month=/day=`，避免文件过小。
@@ -203,9 +261,10 @@ parse/tables/table=tables/batch=B1-20261117T020000Z/part-00001.parquet
 | 列 | 类型 | 可空 | 说明 |
 |---|---|---|---|
 | `run_id` | VARCHAR | 否 | 外键 |
-| `task_id` | VARCHAR | 否 | 任务 |
-| `attempt` | INTEGER | 否 | 尝试序号 |
 | `batch_id` | VARCHAR | 否 | 批次 |
+| `task_id` | VARCHAR | 否 | 任务（完整 SHA） |
+| `attempt` | INTEGER | 否 | 尝试序号 |
+| `lease_generation` | INTEGER | 否 | 提交时的租约代次 |
 | `source_sha256` | VARCHAR | 否 | 原始字节 |
 | `candidate_id` | VARCHAR | 否 | 既有 ID |
 | `document_id` | VARCHAR | 否 | 既有 ID |
@@ -226,13 +285,11 @@ parse/tables/table=tables/batch=B1-20261117T020000Z/part-00001.parquet
 
 **documents**
 
-`run_id, task_id, attempt, batch_id, source_sha256, document_id, page_count, table_count, candidate_count, parser_fingerprint, config_hash, created_at`
+`run_id, batch_id, task_id, attempt, lease_generation, source_sha256, document_id, page_count, table_count, candidate_count, parser_fingerprint, config_hash, created_at`
 
 **tables**
 
-`run_id, task_id, attempt, batch_id, source_sha256, document_id, table_id, page_number, page_end, row_count, column_count, header_rows, table_type, visual_boundary_status, reconstruction_status`
-
-> 列定义与现有 `domain` 字段保持一致；新增的只有 `task_id` / `attempt` / `batch_id`。
+`run_id, batch_id, task_id, attempt, lease_generation, source_sha256, document_id, table_id, page_number, page_end, row_count, column_count, header_rows, table_type, visual_boundary_status, reconstruction_status`
 
 ### 3.3 写入参数
 
@@ -241,7 +298,7 @@ pq.write_table(
     table,
     path,
     compression="zstd",
-    row_group_size=128 * 1024 * 1024 // 64,   # 约 128 MB 行组，按实际行宽调整
+    row_group_size=128 * 1024 * 1024 // 64,
     use_dictionary=["column_role", "role_source", "candidate_type",
                     "extraction_method", "source_text_type", "reconstruction_status"],
     write_statistics=True,
@@ -259,20 +316,23 @@ pq.write_table(
 
 1. 读取该分区全部行；
 2. 写 `part-<新序号>.parquet`（新键，不覆盖）；
-3. 新快照 manifest 只引用新文件；
-4. 旧文件保留，写墓碑说明「已被快照 X 取代」，不删除。
+3. 生成新的 `part_manifest.json`（新 `total_rows`、新 `rows_by_run`、新文件哈希）；
+4. 新快照只引用新清单；旧清单与旧文件保留，写墓碑说明「已被快照 X 取代」。
 
 **不跨批次合并**：批次是审计边界。
 
 ### 3.5 行数对账
 
-每次写入与合并后记录：
+每次写入与合并后更新 `part_manifest.json`。Catalog 构建时：
 
-```json
-{"part": "part-00001.parquet", "rows": 1448000, "sha256": "...", "bytes": 512000000}
+```text
+part_total_rows      = SUM(part_manifest.total_rows)
+rows_by_run_sum      = SUM(part_manifest.rows_by_run.values())
+run_contribution_sum = SUM(run_manifest.parquet_contribution.rows)
+要求 part_total_rows == rows_by_run_sum == run_contribution_sum
 ```
 
-Catalog 构建时 SUM(rows) 必须等于 manifest 中 `row_count` 之和；不一致即中止发布。
+任一不等 → 中止发布，写 `row_reconciliation.delta`，不生成快照。
 
 ---
 
@@ -289,9 +349,10 @@ Catalog 构建时 SUM(rows) 必须等于 manifest 中 `row_count` 之和；不�
 ```json
 {
   "schema": "lakehouse/attempt/v1",
-  "task_id": "B1-20261117T020000Z:059d448c5a34a4b1",
-  "run_id": "doc-059d448c-20261117T021103Z-a1-7f3c",
+  "task_id": "B1-20261117T020000Z:059d448c...",
+  "run_id": "doc-059d448c-20261117T021103Z-a1-g1-7f3c",
   "attempt": 1,
+  "lease_generation": 1,
   "worker_id": "worker-02",
   "started_at": "2026-11-17T02:10:42Z",
   "finished_at": "2026-11-17T02:11:03Z",
@@ -300,9 +361,12 @@ Catalog 构建时 SUM(rows) 必须等于 manifest 中 `row_count` 之和；不�
     {"name": "raw_head", "ok": true, "ms": 31},
     {"name": "parse_pdf", "ok": true, "ms": 16800},
     {"name": "upload_blobs", "ok": true, "ms": 2400},
-    {"name": "manifest", "ok": true, "ms": 12}
+    {"name": "coordinator_commit", "ok": true, "ms": 12},
+    {"name": "committed_marker", "ok": true, "ms": 18}
   ],
   "manifest_sha256": "…",
+  "commit_token": "ct-9f3c1a2b7d4e",
+  "s3_request_id": "…",
   "log_key": "logs/worker/2026-11-17/worker-02.jsonl"
 }
 ```
@@ -314,7 +378,6 @@ Catalog 构建时 SUM(rows) 必须等于 manifest 中 `row_count` 之和；不�
 所有查询必须绑定 `snapshot_id`；以下用 `:snapshot` 表示快照目录。
 
 ```sql
--- 打开快照（只读）
 -- duckdb.connect('<snapshot>/catalog.duckdb', read_only=True)
 ```
 
@@ -325,6 +388,7 @@ SELECT  e.run_id,
         e.source_sha256,
         p.parser_fingerprint,
         p.config_hash,
+        p.table_params_sha256,
         p.dependency_lock_sha256,
         r.object_key        AS raw_key,
         r.bytes             AS raw_bytes,
@@ -402,7 +466,7 @@ SELECT  count(*)                    AS files,
 FROM    snapshot_files;
 ```
 
-`snapshot_files` 由 Catalog 构建器从快照 manifest 生成，与 `catalog.duckdb` 同一快照；查询前先比对该表与对象 HEAD 结果。
+`snapshot_files` 由 Catalog 构建器从快照 manifest 生成；与对象 HEAD 结果比对。
 
 ### Q7 重复输入比例
 
@@ -413,6 +477,27 @@ SELECT  count(*)                                AS raw_objects,
 FROM    raw_docs;
 ```
 
+### Q8 三级行数对账（R2）
+
+```sql
+SELECT  pm.batch_id,
+        pm.table,
+        sum(pm.total_rows)                                      AS part_total_rows,
+        (SELECT sum(v)
+         FROM (SELECT unnest(rows_by_run) AS v FROM part_manifests pm2
+               WHERE pm2.batch_id = pm.batch_id AND pm2.table = pm.table)) AS rows_by_run_sum,
+        (SELECT sum(parquet_contribution_rows)
+         FROM run_contributions rc
+         WHERE rc.batch_id = pm.batch_id AND rc.table = pm.table) AS run_contribution_sum,
+        part_total_rows - rows_by_run_sum                       AS delta1,
+        part_total_rows - run_contribution_sum                  AS delta2
+FROM    part_manifests pm
+GROUP BY pm.batch_id, pm.table
+HAVING  delta1 <> 0 OR delta2 <> 0;
+```
+
+> 返回 0 行才算对账通过。具体表名以 Catalog 构建器实现为准；语义固定为三级相等。
+
 ---
 
 ## 6. Worker 状态机
@@ -421,15 +506,16 @@ FROM    raw_docs;
 
 | 状态 | 含义 | 终态 |
 |---|---|---|
-| `PENDING` | 在批次清单中，未被领取 | 否 |
-| `CLAIMED` | 已取得租约 | 否 |
+| `PENDING` | 在批次清单中，未分配或已过期 | 否 |
+| `CLAIMED` | 协调器已发租约（含 `lease_generation`） | 否 |
 | `RUNNING` | 子进程执行中 | 否 |
-| `SUCCEEDED` | manifest 已发布且校验通过 | 是 |
+| `SUCCEEDED` | 协调器 COMMIT + committed.json | 是 |
 | `SKIPPED_DUPLICATE` | 同 `reproducibility_key` 已有成功结果 | 是 |
 | `INVALID_INPUT` | PDF 非法/加密/0 页/无文本层 | 是 |
 | `FAILED_RETRYABLE` | 可重试失败，等待退避 | 否 |
 | `TIMED_OUT` | 超时被杀 | 否（可转重试或永久） |
-| `LEASE_EXPIRED` | 租约到期，任务可被重新领取 | 否 |
+| `LEASE_EXPIRED` | 协调器判定租约过期 | 否（可重派） |
+| `STALE_ABORTED` | Worker 收到 409 `STALE_LEASE` 后中止 | 否（任务回 PENDING） |
 | `FAILED_PERMANENT` | 不可重试失败或超过最大次数 | 是 |
 | `QUARANTINED` | 证据/血缘/对象冲突，需人工 | 是 |
 | `TOMBSTONED` | 批次失效或人工撤销 | 是 |
@@ -438,18 +524,20 @@ FROM    raw_docs;
 
 | 从 | 事件 | 到 | 条件 |
 |---|---|---|---|
-| PENDING | `claim` | CLAIMED | 分片匹配或条件写成功 |
+| PENDING | `grant`（协调器） | CLAIMED | 协调器事务成功；generation +1 |
 | CLAIMED | `start` | RUNNING | 本地工作区就绪 |
-| RUNNING | `manifest_ok` | SUCCEEDED | Manifest 校验 + 上传回读通过 |
+| RUNNING | `commit_ok` | SUCCEEDED | 协调器事务签发 token + committed.json 写入并回读 |
 | RUNNING | `duplicate_found` | SKIPPED_DUPLICATE | 查到同 repro key 的成功 run |
 | RUNNING | `invalid_input` | INVALID_INPUT | 魔数/加密/页数/文本层 |
 | RUNNING | `retryable_error` | FAILED_RETRYABLE | 网络/存储/资源 |
 | RUNNING | `timeout` | TIMED_OUT | 超过阈值并杀进程 |
+| RUNNING | `stale_lease` | STALE_ABORTED | 协调器返回 409 |
 | TIMED_OUT | `schedule_retry` | FAILED_RETRYABLE | attempt < max |
 | TIMED_OUT | `give_up` | FAILED_PERMANENT | attempt ≥ max |
 | FAILED_RETRYABLE | `backoff_elapsed` | PENDING | 退避到期 |
-| CLAIMED/RUNNING | `lease_expired` | LEASE_EXPIRED | 租约超时（Worker 崩溃） |
-| LEASE_EXPIRED | `reclaim` | CLAIMED | 另一 Worker 领取 |
+| CLAIMED/RUNNING | `lease_expired`（协调器） | LEASE_EXPIRED | `expires_at < now` |
+| LEASE_EXPIRED | `grant`（协调器） | CLAIMED | generation +1 |
+| STALE_ABORTED | `requeue`（协调器） | PENDING | 旧 Worker 已停止 |
 | RUNNING | `evidence_conflict` | QUARANTINED | 哈希不符/对象冲突/血缘失败 |
 | any | `tombstone` | TOMBSTONED | 批次撤销（需审计） |
 
@@ -458,21 +546,22 @@ FROM    raw_docs;
 ```json
 {
   "event_id": "ev-01J9Z3K7Q8V6N5M4L3K2J1H0G9",
-  "task_id": "B1-20261117T020000Z:059d448c5a34a4b1",
+  "task_id": "B1-20261117T020000Z:059d448c...",
   "attempt": 1,
+  "lease_generation": 1,
   "from": "PENDING",
   "to": "CLAIMED",
   "at": "2026-11-17T02:10:40Z",
   "worker_id": "worker-02",
   "run_id": null,
   "error_class": null,
-  "evidence": {"claim_mode": "shard"}
+  "evidence": {"grant_mode": "coordinator"}
 }
 ```
 
-- `event_id` 为 ULID/时间有序 ID，保证同一分片日志内可排序；
+- `event_id` 为 ULID/时间有序 ID；
 - 事件只追加，不修改；
-- 状态折叠规则：同一 `task_id` 取 `(at, event_seq)` 最大者。
+- 状态以协调器 SQLite 为准；事件用于审计与重建。
 
 ---
 
@@ -484,9 +573,11 @@ FROM    raw_docs;
 |---|---|---|---|---|
 | `OBJECT_STORE_5XX` | 是 | 60/300/900 s + 抖动 | 3 | 不写半成品 |
 | `NETWORK_TIMEOUT` | 是 | 同上 | 3 | 区分连接/读取 |
-| `WORKER_CRASH` | 是 | 立即 | 3 | 租约过期触发 |
+| `WORKER_CRASH` | 是 | 立即（新 generation） | 3 | 租约过期触发 |
 | `PARSE_TIMEOUT` | 是 | 300 s | 2 | 大件阈值见 OD-05 |
 | `DISK_FULL` | 是 | 300 s | 2 | 清理后可重试 |
+| `STALE_LEASE` | 否 | — | — | Worker 立即中止；协调器重派 |
+| `COORDINATOR_UNREACHABLE` | 否 | — | — | 暂停；不提交；重连 |
 | `PDF_INVALID` | 否 | — | 1 | 魔数/加密/0 页 |
 | `NO_TEXT_LAYER` | 否 | — | 1 | 本轮不做 OCR |
 | `PARSER_EXCEPTION` | 否 | — | 1 | 代码错误，需修代码 |
@@ -497,11 +588,11 @@ FROM    raw_docs;
 
 ### 7.2 去重与 canonical
 
-- 每次 attempt 独立 `run_id`；
-- `parse_runs` 增加 `attempt` 与 `canonical_of`（可空）；
+- 每次 attempt 独立 `run_id`（含 `g<generation>`）；
+- `parse_runs` 增加 `attempt`、`lease_generation`、`canonical_of`（可空）；
 - 视图 `v_canonical_runs`：同一 `reproducibility_key` 下，取 `status='complete'` 且 `created_at` 最小的一条为 canonical；
 - 统计与发布默认只读 canonical；历史 attempt 保留可查；
-- **禁止**用新结果覆盖 canonical 记录；需要替换时写墓碑并产生新 canonical。
+- **禁止**用新结果覆盖 canonical 记录。
 
 ### 7.3 死信
 
@@ -509,39 +600,140 @@ FROM    raw_docs;
 control/deadletter/<batch_id>/<task_id>.json
 ```
 
-内容：任务、每次 attempt 的 `run_id`、错误类、最后 200 行日志键、证据键、建议处置。
+内容：任务、每次 attempt 的 `run_id` / `generation` / 错误类、最后 200 行日志键、证据键、建议处置。
 死信不自动重试；人工处理后以新批次重跑。
 
 ---
 
 ## 8. 批次清单示例
 
-`control/batches/<batch_id>/tasks.jsonl`（一行一个任务，不可变）：
+`control/batches/<batch_id>/tasks.jsonl`：
 
 ```json
-{"task_id":"B1-20261117T020000Z:059d448c5a34a4b1","batch_id":"B1-20261117T020000Z","document_sha256":"059d448c5a34a4b1f45f02038f5076b82633f372372a15c395940803dc7f3a2b","source_uri":"https://.../LM358.pdf","priority":42,"shard":1,"created_at":"2026-11-17T02:00:00Z"}
-{"task_id":"B1-20261117T020000Z:9ef667389897f02d","batch_id":"B1-20261117T020000Z","document_sha256":"9ef667389897f02dae8d94e8c3daecbe8cbd2ab45f4d62e1db1c474544180075","source_uri":"https://.../ADS1299.pdf","priority":38,"shard":0,"created_at":"2026-11-17T02:00:00Z"}
+{"task_id":"B1-20261117T020000Z:059d448c5a34a4b1f45f02038f5076b82633f372372a15c395940803dc7f3a2b","batch_id":"B1-20261117T020000Z","document_sha256":"059d448c5a34a4b1f45f02038f5076b82633f372372a15c395940803dc7f3a2b","pool":"P","source_uri":"https://.../LM358.pdf","priority":42,"created_at":"2026-11-17T02:00:00Z"}
 ```
 
 `plan.json`：
 
 ```json
 {
-  "schema": "lakehouse/batch-plan/v1",
+  "schema": "lakehouse/batch-plan/v2",
   "batch_id": "B1-20261117T020000Z",
   "created_at": "2026-11-17T02:00:00Z",
-  "sample": {"source": "document_asset", "filter": "FetchStatus=1 AND HasTextLayer=1",
-             "requested": 1000, "actual": 1000},
-  "shard_count": 2,
+  "coordinator_epoch": 1,
+  "sample": {
+    "pool_p": {"source": "document_asset", "filter": "FetchStatus=1 AND HasTextLayer=1",
+               "requested": 950, "actual": 950},
+    "pool_q": {"source": "document_asset", "filter": "HasTextLayer=0 OR scan=true OR encrypted=true",
+               "requested": 50, "actual": 50}
+  },
   "pinned": {
     "parser_fingerprint": "…",
     "config_hash": "…",
+    "table_params_sha256": "…",
     "dependency_lock_sha256": "…"
   },
-  "limits": {"max_attempts": 3, "timeout_base_s": 180, "timeout_per_page_s": 6},
+  "limits": {"max_attempts": 3, "timeout_base_s": 180, "timeout_per_page_s": 6,
+             "lease_ttl_s": 90, "heartbeat_s": 15},
   "owner": "乙方",
   "status": "open"
 }
 ```
 
-> `pinned` 是批次级冻结：Worker 启动时比对，不一致即拒绝接单。
+> v1.1 删除 `shard_count`：任务分配由协调器动态发放，不再静态分片。
+> `plan.json` 的 `pinned` 是批次级冻结；Worker 启动时比对，不一致即拒绝接单。
+
+---
+
+## 9. 协调器协议（v1.1 新增）
+
+### 9.1 部署
+
+- 单进程；本地 SQLite（WAL）；可选独立 2 vCPU / 4 GB 实例；
+- 只监听私有网络；Worker 通过 `COORDINATOR_URL` 连接；
+- 不是数据库服务器、不是 DuckDB、不是队列中间件。
+
+### 9.2 表结构（SQLite）
+
+```sql
+CREATE TABLE tasks (
+  task_id TEXT PRIMARY KEY,
+  batch_id TEXT NOT NULL,
+  document_sha256 TEXT NOT NULL,
+  state TEXT NOT NULL,
+  attempt INTEGER NOT NULL DEFAULT 0,
+  generation INTEGER NOT NULL DEFAULT 0,
+  owner TEXT,
+  expires_at TEXT,
+  run_id TEXT,
+  error_class TEXT,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE commits (
+  task_id TEXT PRIMARY KEY,
+  generation INTEGER NOT NULL,
+  manifest_sha256 TEXT NOT NULL,
+  token TEXT NOT NULL,
+  run_id TEXT NOT NULL,
+  committed_at TEXT NOT NULL
+);
+
+CREATE TABLE events (
+  seq INTEGER PRIMARY KEY AUTOINCREMENT,
+  task_id TEXT NOT NULL,
+  attempt INTEGER,
+  generation INTEGER,
+  from_state TEXT,
+  to_state TEXT,
+  at TEXT NOT NULL,
+  worker_id TEXT,
+  error_class TEXT
+);
+```
+
+### 9.3 接口（语义）
+
+| 方法 | 路径 | 作用 |
+|---|---|---|
+| POST | `/v1/hello` | Worker 注册，校验 `batch_id` / `plan_epoch` / 指纹 |
+| POST | `/v1/lease` | 申请一个任务；返回 `task_id, generation, expires_at` |
+| POST | `/v1/heartbeat` | 续租；generation 不匹配返回 409 |
+| POST | `/v1/commit` | 提交成功；事务内检查 generation 与 committed；返回 token 或 409 |
+| GET | `/v1/state/<task_id>` | 查询当前状态（审计/排障） |
+| POST | `/v1/close` | 关闭批次；生成 recovery 批次所需未完成清单 |
+
+### 9.4 不变量
+
+1. `generation` 只增不减；每次重新发租约 +1；
+2. `commits.task_id` 主键唯一 → 一个 task 最多一个成功；
+3. `commit` 必须在同一事务内完成「校验 generation → 插入 commit」；
+4. 旧 generation 的任何心跳/提交都返回 409；
+5. 协调器重启后，过期租约按 §5.2.4 处理；
+6. 协调器状态不确定时，**不猜测**，关闭批次并开 recovery 批次。
+
+### 9.5 序列示例（正常）
+
+```
+W: POST /v1/hello {batch, worker, plan_epoch: 1}
+C: 200 {lease_ttl_s: 90}
+W: POST /v1/lease {worker}
+C: 200 {task_id: T, generation: 1, expires_at: ...}
+W: parse...
+W: POST /v1/heartbeat {task: T, generation: 1}       (每 15 s)
+C: 200
+W: POST /v1/commit {task: T, generation: 1, manifest_sha256: M}
+C: 200 {token: ct-...}
+W: PUT control/tasks/T/committed.json {generation:1, token:ct-..., manifest_sha256:M, run_id:R}
+```
+
+### 9.6 序列示例（旧 Worker 恢复）
+
+```
+W1: generation=1, 网络中断
+C: 租约过期；generation=2 分配给 W2
+W1: 恢复，POST /v1/commit {generation:1}
+C: 409 STALE_LEASE {current_owner: W2, current_generation: 2}
+W1: 停止；不写 committed.json；本地工作区清理
+W1 已上传的 manifest 成为孤儿，不被 Eval/Catalog 消费
+```
