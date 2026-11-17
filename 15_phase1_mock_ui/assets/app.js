@@ -231,6 +231,7 @@
       identity_state: aggregate.identity_state,
       reason: aggregate.reason,
       mpn_norms: aggregate.mpn_norms,
+      brand_norms: aggregate.brand_norms,
       keys: aggregate.keys
     }, null, 2);
   }

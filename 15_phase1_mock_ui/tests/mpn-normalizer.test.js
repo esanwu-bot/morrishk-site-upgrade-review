@@ -169,6 +169,35 @@ test("normalizeCandidates flags conflicting MPNs as PENDING_CONFLICT", () => {
   assert.equal(out.keys.length, 2);
 });
 
+test("normalizeCandidates treats an empty candidate list as invalid", () => {
+  const out = N.normalizeCandidates([]);
+  assert.equal(out.identity_state, "INVALID");
+  assert.equal(out.reason, "NO_CANDIDATES");
+  assert.deepEqual(out.mpn_norms, []);
+  assert.deepEqual(out.keys, []);
+});
+
+test("normalizeCandidates flags MPN conflict even when one candidate lacks brand", () => {
+  const out = N.normalizeCandidates([
+    { mpn_raw: "LM358DR", brand_raw: "Example Semiconductor" },
+    { mpn_raw: "LM358D", brand_raw: null }
+  ]);
+  assert.equal(out.identity_state, "PENDING_CONFLICT");
+  assert.equal(out.reason, "CONFLICTING_IDENTITY");
+  assert.equal(out.mpn_norms.length, 2);
+});
+
+test("normalizeCandidates flags same MPN with different brands as conflict", () => {
+  const out = N.normalizeCandidates([
+    { mpn_raw: "LM358DR", brand_raw: "Example Semiconductor" },
+    { mpn_raw: "LM358DR", brand_raw: "Texas Instruments" }
+  ]);
+  assert.equal(out.identity_state, "PENDING_CONFLICT");
+  assert.deepEqual(out.mpn_norms, ["LM358DR"]);
+  assert.equal(out.brand_norms.length, 2);
+  assert.equal(out.keys.length, 2);
+});
+
 test("normalizeCandidates propagates PENDING_BRAND and INVALID", () => {
   assert.equal(
     N.normalizeCandidates([{ mpn_raw: "XYZ123", brand_raw: null }]).identity_state,

@@ -199,20 +199,30 @@
 
   function normalizeCandidates(candidates) {
     var normalized = (candidates || []).map(function (c) { return normalizeIdentity(c); });
-    var confirmed = normalized.filter(function (n) { return n.identity_state === "CONFIRMED"; });
     var distinctMpn = {};
+    var distinctBrand = {};
     var distinctKeys = {};
-    confirmed.forEach(function (n) {
-      distinctMpn[n.mpn_norm] = true;
-      distinctKeys[n.product_business_key] = true;
+    normalized.forEach(function (n) {
+      if (n.mpn_norm) distinctMpn[n.mpn_norm] = true;
+      if (n.brand_norm) distinctBrand[n.brand_norm] = true;
+      if (n.product_business_key) distinctKeys[n.product_business_key] = true;
     });
 
     var state = "CONFIRMED";
     var reason = null;
-    if (normalized.some(function (n) { return n.identity_state === "INVALID"; })) {
+    if (!normalized.length) {
+      // No candidate carries an identity; never report CONFIRMED.
+      state = "INVALID";
+      reason = "NO_CANDIDATES";
+    } else if (normalized.some(function (n) { return n.identity_state === "INVALID"; })) {
       state = "INVALID";
       reason = "INVALID_INPUT";
-    } else if (Object.keys(distinctMpn).length > 1 || Object.keys(distinctKeys).length > 1) {
+    } else if (Object.keys(distinctMpn).length > 1 ||
+               Object.keys(distinctBrand).length > 1 ||
+               Object.keys(distinctKeys).length > 1) {
+      // Compare every usable MPN and Brand, including candidates still
+      // missing a Brand: a mixed PENDING_BRAND candidate must not hide an
+      // MPN conflict.
       state = "PENDING_CONFLICT";
       reason = "CONFLICTING_IDENTITY";
     } else if (normalized.some(function (n) { return n.identity_state === "PENDING_BRAND"; })) {
@@ -225,6 +235,7 @@
       reason: reason,
       candidates: normalized,
       mpn_norms: Object.keys(distinctMpn),
+      brand_norms: Object.keys(distinctBrand),
       keys: Object.keys(distinctKeys)
     };
   }

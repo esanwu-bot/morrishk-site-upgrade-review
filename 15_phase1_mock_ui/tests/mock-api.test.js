@@ -99,6 +99,59 @@ test("search requires brand before matching", () => {
   assert.equal(res.body.meta.error_key, "PRODUCT_IDENTITY_INCOMPLETE");
 });
 
+test("search rejects an MPN containing illegal control characters", () => {
+  const res = makeApi().searchProducts({
+    mpn: "LM358\u0007DR",
+    brand: "Example Semiconductor"
+  });
+  assert.equal(res.http_status, 400);
+  assert.equal(res.body.code, 40001);
+  assert.equal(res.body.meta.error_key, "INVALID_ARGUMENT");
+  assert.equal(res.body.meta.field, "mpn");
+  assert.equal(res.body.meta.reason, "ILLEGAL_CHAR");
+  assert.equal(res.body.data, null);
+});
+
+test("search rejects an MPN that is empty after normalization", () => {
+  const res = makeApi().searchProducts({
+    mpn: " \u3000 ",
+    brand: "Example Semiconductor"
+  });
+  assert.equal(res.http_status, 400);
+  assert.equal(res.body.code, 40001);
+  assert.equal(res.body.meta.error_key, "INVALID_ARGUMENT");
+  assert.equal(res.body.meta.field, "mpn");
+  assert.equal(res.body.meta.reason, "EMPTY_MPN");
+  assert.equal(res.body.data, null);
+});
+
+test("search rejects a brand containing illegal control characters", () => {
+  const res = makeApi().searchProducts({
+    mpn: "LM358DR",
+    brand: "Example\u0000Semiconductor"
+  });
+  assert.equal(res.http_status, 400);
+  assert.equal(res.body.code, 40001);
+  assert.equal(res.body.meta.error_key, "INVALID_ARGUMENT");
+  assert.equal(res.body.meta.field, "brand");
+  assert.equal(res.body.meta.reason, "ILLEGAL_CHAR");
+  assert.equal(res.body.data, null);
+});
+
+test("search treats a whitespace-only brand as incomplete identity", () => {
+  const res = makeApi().searchProducts({
+    mpn: "LM358DR",
+    brand: "  \u00A0\u3000"
+  });
+  assert.equal(res.http_status, 422);
+  assert.equal(res.body.code, 42201);
+  assert.equal(res.body.meta.error_key, "PRODUCT_IDENTITY_INCOMPLETE");
+  assert.equal(res.body.data.identity_state, "PENDING_BRAND");
+  assert.equal(res.body.data.mpn_norm, "LM358DR");
+  assert.equal(res.body.data.brand_norm, null);
+  assert.deepEqual(res.body.meta.missing, ["brand"]);
+});
+
 test("search normalizes input and returns exact identity only", () => {
   const res = makeApi().searchProducts({
     mpn: "  lm358dr  ",

@@ -5,15 +5,16 @@
 | 交付编号 | MRH-PHASE1-MOCK-001 / MRH-DSBIT-INT-001 v1.3 |
 | 日期 | 2026-11-17 |
 | 决策基线 | `esanwu-bot/morrishk-site-upgrade-review` `main@77137655ed24e3b370eb4fe5c75b68dd708fa9ec` |
-| 交付时仓库 HEAD | `696f2ab4b9f9f852e502490ea84a5f38cae7f652`（Session A 的 `13_` 提交；本交付在其之上，未改写历史） |
+| 本交付父提交 | `edd2f99`（Session A 的 `13_` 回填提交，仅改 `13_`）；首版提交 `fb0189b` 的父提交为 `8c45f63`；未改写任何历史 |
 | 本轮批准 | IQ-01 / IQ-02 / IQ-13 裁定；Phase 1 UI 与 Mock 联调；**未**批准契约冻结与任何生产接入 |
-| Reviewer 验收 | **PENDING**（本报告不构成自验收） |
+| 修订 | v1.1 按 Reviewer B1（候选冲突漏判）、B2（搜索非法输入）、B3（基线/问题编号）修订；`13_` 未修改 |
+| Reviewer 验收 | **PENDING**（本报告不构成自验收；Reviewer 未独立复跑 42/42 与 9 项冒烟） |
 
 ---
 
 ## 1. 修改文件清单
 
-### 1.1 已跟踪文件（相对 `696f2ab` 的工作树改动）
+### 1.1 已跟踪文件（相对 `8c45f63` 的工作树改动）
 
 ```text
 12_dsbit_business_api_integration_design/API_CONTRACT_EXAMPLES.md                       | 185 +++++---
@@ -29,26 +30,28 @@
 14_phase0_authority_adjudication/SHA256SUMS.txt                                         |  10 +-
 ```
 
-`git diff --stat` 合计：11 个文件，728 insertions(+)，245 deletions(-)。
+`git diff --stat 8c45f63` 合计：11 个文件，727 insertions(+)，245 deletions(-)。
 
 ### 1.2 新增目录（未跟踪 → 本次提交）
 
-`15_phase1_mock_ui/` 共 12 个文件（含本报告新增后）：
+`15_phase1_mock_ui/` 共 14 个文件（含 `SHA256SUMS.txt`）：
 
 | 文件 | 行数 | 说明 |
 |---|---:|---|
-| `index.html` | 251 | 8 视图单页 |
-| `assets/mpn-normalizer.js` | 241 | `MPN-NORM-v1` + 纯 JS SHA-256 |
-| `assets/mock-api.js` | 446 | Mock API 与同步模拟 |
-| `assets/app.js` | 553 | 视图控制器 |
+| `index.html` | 251 | 8 视图单页（脚本缓存版本 `?v=2/3`） |
+| `assets/mpn-normalizer.js` | 252 | `MPN-NORM-v1` + 纯 JS SHA-256 |
+| `assets/mock-api.js` | 470 | Mock API 与同步模拟 |
+| `assets/app.js` | 554 | 视图控制器 |
 | `assets/styles.css` | 263 | 样式 |
 | `data/mock-products.json` | 439 | 8 条演示产品 |
 | `data/mock-dictionary.json` | 50 | 3 条演示参数 |
 | `data/mock-taxonomies.json` | 154 | 两套分类 + 映射 |
-| `tests/mpn-normalizer.test.js` | 181 | 19 项测试 |
-| `tests/mock-api.test.js` | 214 | 16 项测试 |
+| `tests/mpn-normalizer.test.js` | 210 | 22 项测试（含 B1 边界） |
+| `tests/mock-api.test.js` | 267 | 20 项测试（含 B2 非法输入） |
 | `README.md` | — | 运行、演示、规则与边界 |
 | `TEST_REPORT.md` | — | 实际测试结果 |
+| `DELIVERY_REPORT.md` | — | 本报告 |
+| `SHA256SUMS.txt` | — | 文件校验清单 |
 
 逐文件 SHA-256 见 `15_phase1_mock_ui/SHA256SUMS.txt`；未跟踪文件相对基线的 Diff 即“整文件新增”，无需逐 hunk 展开。
 
@@ -83,14 +86,16 @@
 
 按 Session B 明确指令「不修改 Session A 的 13_ 文件」，本轮**未修改** `13_dsbit_duckdb_s3_pipeline/` 任何文件。
 
-只读一致性检查（`HEAD 696f2ab`）：
+只读一致性检查（父提交 `edd2f99`；`OPEN_DECISIONS.md` 行号在该提交下核对）：
 
-- `13_` §286 描述 `product_id = prod-<document_id>` **只在单文档内成立**；§287 明确「不存在跨文档产品主键」；
-- `OPEN_DECISIONS.md` OD-22 仍将跨文档产品身份列为 `OPEN`。
+- `DS_BIT_DUCKDB_S3_PIPELINE_DESIGN_v1.md:286` 描述 `product_id = prod-<document_id>` **只在单文档内成立**；`:287` 明确「不存在跨文档产品主键」；
+- `OPEN_DECISIONS.md:134` **OD-11「产品级 ID 与跨文档归并」** 仍将跨文档产品身份列为 `OPEN`（`:138` 为问题陈述）。
 
 结论：`13_` 描述的是 Ds Bit **解析流水线内部**对象，未把 `prod-{document_id}` 定义为 Morrishk 跨系统产品身份，故与 IQ-01 不冲突。但 `13_` 尚未写入 IQ-01 的跨系统身份结论（`MPN + Brand`）。
 
-**待决策人确认**：是否需要在 `13_` 增加一行指向 IQ-01 的交叉引用、并将 OD-22 在“跨系统身份”语境下标记为已由 IQ-01 回答（流水线内部跨文档键仍可独立 OPEN）。该动作会修改 Session A 文件，未获授权前不执行。
+**范围澄清**：IQ-01 只解决**跨系统业务身份**（Morrishk ↔ Ds Bit 之间用什么键对齐产品）；OD-11 讨论的是 **Ds Bit 内部**的产品族/多版本/多文档归并与主键设计。两者不是同一问题，OD-11 不因 IQ-01 自动关闭，仍需 Ds Bit 侧独立决策。
+
+**待决策人确认**：是否需要在 `13_` 增加一行指向 IQ-01 的交叉引用（流水线内部跨文档键仍可独立 OPEN）。该动作会修改 Session A 文件，未获 Session A / 决策人授权前不执行。
 
 ---
 
@@ -103,10 +108,12 @@ cd 15_phase1_mock_ui
 node --test tests/mpn-normalizer.test.js tests/mock-api.test.js
 ```
 
-结果：`tests 35 / pass 35 / fail 0`，耗时 548.909ms（Node v24.21.0）。
+结果：`tests 42 / pass 42 / fail 0`，耗时 618.2903ms（Node v24.21.0）。
 
-浏览器冒烟（`python -m http.server 8777` + browser-use）：9 项全部通过，覆盖产品详情、
-归一化边界、冲突聚合、待确认队列、字典内存编辑、两套分类、Mock API 六类状态、同步重试序列。
+浏览器冒烟（`python -m http.server 8777` + browser-use，修订后重新执行）：9 项全部通过，覆盖产品详情、
+归一化边界、冲突聚合（含 `brand_norms`）、待确认队列、字典内存编辑、两套分类、Mock API 非法输入与正常搜索、同步重试序列。
+
+> B1/B2/B3 为 Reviewer 提出、由执行 Agent 修复并自测；Reviewer 未独立复跑上述数字。
 
 详细断言与逐步观察见 `15_phase1_mock_ui/TEST_REPORT.md`。
 
@@ -142,7 +149,7 @@ node --test tests/mpn-normalizer.test.js tests/mock-api.test.js
 |---|---|---|---|
 | 1 | Business API 契约冻结 | 未批准 | 本轮仅落地业务裁定 |
 | 2 | `MpnNormalizer` 规则是否最终批准 | PROPOSED | 规则已版本化并测试，仍待 Reviewer/决策人确认 |
-| 3 | `13_` 是否补 IQ-01 交叉引用 / OD-22 收口 | 待决定 | 需授权修改 Session A 文件 |
+| 3 | `13_` 是否补 IQ-01 交叉引用 | 待决定 | 需 Session A / 决策人授权；OD-11（Ds Bit 内部归并）不属 IQ-01 范围，仍独立 OPEN |
 | 4 | 技术参数字典正式种子 | 待 PM | 现仅有 `DEMO_FIXTURE` |
 | 5 | `pd_model` 生成列改造与唯一键 | OPEN | 设计已提出，未实施 |
 | 6 | 其他 19 项 IQ | OPEN | 见 `12_/INTEGRATION_OPEN_QUESTIONS.md` |
@@ -175,7 +182,7 @@ node --test tests/mpn-normalizer.test.js tests/mock-api.test.js
 1. 校验 `14_` 三项裁定记录与签署状态；
 2. 通读 `12_` 主文档 §5.3、§6.2、§6.8、§7.1、§7.8.1、§9.4.2、§12.2；
 3. 确认 `API_CONTRACT_EXAMPLES.md` 中不存在把 `document_id` / `prod-` 当产品身份的示例；
-4. 运行 `node --test`，核对 35/35；
+4. 运行 `node --test`，核对 42/42；
 5. 启动静态服务器，按 §6 步骤抽查 6 个交互；
 6. 校验三份 `SHA256SUMS.txt`；
 7. 判断 `13_` 交叉引用是否需要在获得授权后补充。

@@ -168,6 +168,29 @@
       });
     }
 
+    function incompleteIdentity(mpnRaw, mpnNorm, brandRaw) {
+      return envelope(422, {
+        code: 42201,
+        message: "Product identity is incomplete: exact search requires brand",
+        data: {
+          product_business_key: null,
+          identity_state: "PENDING_BRAND",
+          mpn_raw: mpnRaw,
+          mpn_norm: mpnNorm,
+          brand_raw: brandRaw,
+          brand_norm: null,
+          normalizer_version: Normalizer.VERSION
+        },
+        meta: {
+          error_key: "PRODUCT_IDENTITY_INCOMPLETE",
+          retryable: false,
+          degraded_allowed: false,
+          missing: ["brand"],
+          fixture: "DEMO_FIXTURE"
+        }
+      });
+    }
+
     function searchProducts(query) {
       query = query || {};
       var mpn = query.mpn;
@@ -181,31 +204,32 @@
           fixture: "DEMO_FIXTURE"
         });
       }
-      if (!brand) {
-        return envelope(422, {
-          code: 42201,
-          message: "Product identity is incomplete: exact search requires brand",
-          data: {
-            product_business_key: null,
-            identity_state: "PENDING_BRAND",
-            mpn_raw: mpn,
-            mpn_norm: null,
-            brand_raw: null,
-            brand_norm: null,
-            normalizer_version: Normalizer.VERSION
-          },
-          meta: {
-            error_key: "PRODUCT_IDENTITY_INCOMPLETE",
-            retryable: false,
-            degraded_allowed: false,
-            missing: ["brand"],
-            fixture: "DEMO_FIXTURE"
-          }
+
+      var wantedMpn = Normalizer.normalizeValue(mpn);
+      if (!wantedMpn.ok || wantedMpn.value === "") {
+        return errorEnvelope(400, 40001, "mpn is not a valid normalized value", "INVALID_ARGUMENT", {
+          field: "mpn",
+          reason: wantedMpn.ok ? "EMPTY_MPN" : wantedMpn.reason,
+          fixture: "DEMO_FIXTURE"
         });
       }
 
-      var wantedMpn = Normalizer.normalizeValue(mpn);
+      if (!brand) {
+        return incompleteIdentity(mpn, wantedMpn.value, null);
+      }
+
       var wantedBrand = Normalizer.normalizeValue(brand);
+      if (!wantedBrand.ok) {
+        return errorEnvelope(400, 40001, "brand is not a valid normalized value", "INVALID_ARGUMENT", {
+          field: "brand",
+          reason: wantedBrand.reason,
+          fixture: "DEMO_FIXTURE"
+        });
+      }
+      if (wantedBrand.value === "") {
+        return incompleteIdentity(mpn, wantedMpn.value, brand);
+      }
+
       var matches = products.filter(function (p) {
         return p.identity_state === "CONFIRMED" &&
           p.identity.mpn_norm === wantedMpn.value &&

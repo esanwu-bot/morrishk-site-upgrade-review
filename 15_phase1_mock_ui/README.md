@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 交付编号 | MRH-PHASE1-MOCK-001 |
-| 版本 | v1.0 |
+| 版本 | v1.1（Reviewer B1/B2 修订） |
 | 日期 | 2026-11-17 |
 | 性质 | 交互界面 + 本地 Mock；**不是**生产实现、不是契约冻结、不是部署 |
 | 决策依据 | `14_phase0_authority_adjudication/` 中 IQ-01 / IQ-02 / IQ-13 书面裁定；`12_` v1.3 |
@@ -75,7 +75,8 @@ node --test tests/mpn-normalizer.test.js tests/mock-api.test.js
    观察 trim、空白折叠、大写；点击「载入边界样例」，观察零宽字符移除、
    全角空格折叠、Unicode 连字符转 ASCII `-`（`LM–358DR → LM-358DR`）。
 4. **冲突检测**：右侧候选表固定演示 `LM358DR`、` lm358dr `、`LM358D` 三条；
-   前两条归一为同一身份，第三条产生第二个键，聚合状态为 `PENDING_CONFLICT`。
+   前两条归一为同一身份，第三条产生第二个键，聚合状态为 `PENDING_CONFLICT`
+   （输出同时列出 `mpn_norms` / `brand_norms` / `keys`）。
 5. **身份冲突队列**：显示 `PENDING_BRAND`（缺 Brand）与 `PENDING_CONFLICT`（互斥 MPN）；
    操作按钮禁用，标注「待 Phase 2 人工确认」。
 6. **技术参数字典**：表格显示治理字段；点击一行加载到编辑区，修改 `display_name` /
@@ -85,7 +86,10 @@ node --test tests/mpn-normalizer.test.js tests/mock-api.test.js
 8. **平台映射**：显示 `product_business_key`、MPN、Brand、`platform_model_id`（内部）、
    `mapping_status` / `mapping_source`；`NE555P` 无平台 ID、状态 `PROPOSED`。
 9. **Mock API**：选择场景后发送，查看请求行（Token 已 REDACTED）与响应包。
-   覆盖 200 / 401 / 403 / 404 / 409 / 410 / 422 / 429 / 503、搜索与分页。
+   覆盖 200 / 401 / 403 / 404 / 409 / 410 / 422 / 429 / 503、搜索与分页；
+   搜索场景可验证非法输入：MPN 含控制字符或归一后为空 → `400 INVALID_ARGUMENT`
+   （`field=mpn`），Brand 含控制字符 → `400 INVALID_ARGUMENT`（`field=brand`），
+   Brand 缺失或归一后为空 → `422 PRODUCT_IDENTITY_INCOMPLETE`。
 10. **同步与重试**：`pageSize=2`、`failAtPage=2`、`maxRetries=2`，运行后依次出现
     `OK → ERROR 503 → ERROR 503 → OK → DONE`，重试停留在同一页，退避 300/600ms。
 
@@ -102,7 +106,8 @@ node --test tests/mpn-normalizer.test.js tests/mock-api.test.js
 | 连接符 | Unicode 破折号（U+2010–U+2015、U+2212、U+FF0D）转为 ASCII `-`；保留 `- / _ .` |
 | 品牌后缀 | 不剥离、不做别名合并 |
 | 空值 | MPN 为空 → `INVALID`；Brand 缺失/为空 → `PENDING_BRAND` |
-| 冲突 | 同一来源出现多个 `mpn_norm` → `PENDING_CONFLICT`，不自动合并 |
+| 冲突 | 候选集中出现多个 `mpn_norm`、多个 `brand_norm` 或多个业务键 → `PENDING_CONFLICT`，不自动合并；判定覆盖**所有可归一候选**，包括缺 Brand 的候选 |
+| 空候选集 | `normalizeCandidates([])` → `INVALID` / `NO_CANDIDATES`，不返回 `CONFIRMED` |
 | 原始值 | 始终保留 `mpn_raw` / `brand_raw` 与 `normalizer_version` |
 
 业务键：
