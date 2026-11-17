@@ -3,8 +3,9 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-INT-001 |
-| 版本 | v1.0（首版送审，未冻结） |
+| 版本 | v1.1（按 Reviewer 复核意见修订，未冻结） |
 | 日期 | 2026-11-17 |
+| 修订记录 | v1.0 首版送审（提交 `0fa9d34`）；v1.1 处理 R1–R8 与基线时效性说明，见 §1.5 |
 | 范围 | 架构与接口契约设计；不含生产实现、生产部署、生产凭证 |
 | 上游依据 | 本任务书；`09_current_state_inventory/`；`02_technical_design/morrishk_technical_plan_v1.2.md`；`platform/docs/phase1/03-api-contract.yaml`；`mysql_schema_audit/`；Ds Bit 项目仓库（`E:\workspace\icpdf-extractor`，含前台 `workbench/`）与本地 Stub 源码 |
 | 下游用途 | Phase 0 契约冻结输入；Phase 1/2 开发依据；Reviewer 独立复核对象 |
@@ -76,6 +77,23 @@
 4. 公开页面只消费 `RELEASE_APPROVED` 产品与 `PUBLISHED` 分类。
 5. Ds Bit 故障时页面无感，后台告警。
 
+### 1.4 v1.1 修订记录（回应 Reviewer）
+
+| 编号 | 复核意见 | 本版处理 |
+|---|---|---|
+| R1 | 410 降级策略自相矛盾 | 按 `error_key` 拆分：`PRODUCT_RELEASE_REVOKED` → `degraded_allowed=false`，立即停止展示；`CATEGORY_RETIRED` → `degraded_allowed=true`，保留旧分类页/历史映射，不新建归属。见 §4.7、§5.8、§8.3、§10.4、EX-10、EX-13 |
+| R2 | Scope 只允许读 `PUBLISHED`，但 DEPRECATED 又要求保留期内 200 | `product.category.read` 明确可读保留期内的 `DEPRECATED`（不含 `DRAFT`/`REVIEWED`）；保留期后 `410 CATEGORY_RETIRED`；`DEPRECATED` 永不可用于新归属。见 §4.4 规则 5、§7.5.6、§7.7 |
+| R3 | ULID 长度与示例 ID 不一致 | 统一为 `<type>_<26 字符 Crockford Base32 ULID>`，总长 ≤32；DB 列 `VARCHAR(32)`；全部示例 ID 重新校验。见 §5.3 |
+| R4 | 产品分类端点权限边界不完整 | 明确 `GET /products/{id}/categories` 需 `product.category.read` **且**产品 `RELEASE_APPROVED`；内部读取未发布边需 `product.publish.read` + `internal_only=true`。见 §4.4 规则 4、§7.4、EX-07 / EX-07b |
+| R5 | OAuth2 Token 机制未定义 | v1 采用 **opaque Token**（256 位随机、服务端哈希存储、可撤回、≤60 秒缓存）；v1 不支持 JWT/JWKS。见 §4.3 |
+| R6 | `invalid_scope` 状态码不一致 | 按 RFC 6749 §5.2 统一为 `400`；首选 `client_secret_basic`；两种认证方式不得同时使用。见 §4.5、§12.1 |
+| R7 | 只读 API 中出现未定义的 412 | 删除 `412 ETAG_MISMATCH`；`If-None-Match` 命中一律 `304`。见 §4.7、§5.8、§8.3 |
+| R8 | 合并/拆分后产品分类边需保留历史 | 边永不物理删除，新增 `valid_to` / `superseded_by_edge_id` / `superseded_at` / `change_reason` / `data_version`；API 只返回当前有效且 `APPROVED` 的边。见 §7.2.3、§7.2.4 |
+| — | 证据基线时效性 | 新增基线说明：`CONFIRMED` 仅限 `600439a5…` 快照；Phase 0 冻结前须在权威分支干净提交上复核五项。见 §2.1 |
+| — | 端点数量口径 | V1 必需分类端点修正为 **7 个**（含 `GET /taxonomies/{id}`）。见 §7.4 |
+
+本次修订**不新增**任何实现、部署或生产操作。
+
 ---
 
 ## 2. 现状与证据基线
@@ -98,6 +116,23 @@
 > S1 的工作树包含 17 个已暂存新增/修改文件与未跟踪文件（`workbench/b2b/serve_b2b.py`、
 > `deploy/dsb/evidence/`、`docs/g0_evidence/`）。本次**未做 commit、未做 stash、未修改工作树**。
 > 因此 `serve_b2b.py` 只能作为"本地文件存在"的证据，不能作为"已交付代码"的证据。
+
+> **基线时效性（回应 Reviewer 复核意见）**
+>
+> S1 的证据取自本地分支 `backup/full-local-20261114` 的 HEAD
+> `600439a5eee69fb3a1cec2715e37080e48ca9840`，且工作树不干净。因此本文件所有 `CONFIRMED`
+> **仅表示在该代码快照下确认的事实**，不代表 Ds Bit 当前权威分支或未来生产状态。
+>
+> **Phase 0 冻结前**，必须在 Ds Bit 权威分支的干净提交上重新核对以下五项；任一项不成立，
+> 对应 `CONFIRMED` 降级为 `OPEN`，并更新 §2.2、§2.5 与附录 A：
+>
+> 1. 产品身份模型（`Product` 的标识与多版本语义）；
+> 2. 产品全局 ID 唯一性（跨批次是否稳定）；
+> 3. 解析器输出与证据模型（详见 `src/icpdf/domain/evidence.py` 的结构是否仍一致）；
+> 4. 静态 B2B 桩状态（`serve_b2b.py` 是否仍为本地 stub、是否已进入版本库）；
+> 5. 数据库 / 审核 / 版本 / 发布后端进度（是否仍为 `NOT_IMPLEMENTED`）。
+>
+> 本次交付**未执行**上述复核，也不构成对权威分支现状的断言。
 
 ### 2.2 Ds Bit 项目仓库已确认事实（`CONFIRMED`）
 
@@ -321,8 +356,18 @@
 | 提前刷新 | 剩余 TTL ≤ 120 秒时刷新 | 避免边界过期 |
 | 时钟偏差 | 允许 60 秒 | 服务端与客户端均校验 |
 | 并发获取 | 单飞（single-flight） | 见 §4.6 |
-| Token 内容 | `sub=client_id`、`scope`、`iat`、`exp`、`jti`、`aud` | 不放入业务敏感信息 |
-| 撤销 | RFC 7009 `/oauth/revoke` 或管理端禁用 | 撤销后 Resource Server 立即拒绝 |
+| Token 形态 | **opaque Token**（不透明随机串） | 见下方决策 |
+| 撤销 | RFC 7009 `/oauth/revoke` 或管理端禁用 | 撤销后下一次请求即拒绝 |
+
+**Token 形态决策（`PROPOSED`，回应 R5）**
+
+v1 采用 **opaque Token**，不使用 JWT：
+
+- `access_token` 为 256 位密码学随机数，Base64URL 编码；不含任何可解析声明。
+- 服务端在 `oauth_access_token` 表中保存：`token_hash`（SHA-256，不存明文）、`client_id`、`scope`、`iat`、`exp`、`jti`、`aud`、`revoked_at`。
+- Resource Server 每次请求按 `token_hash` 查表并校验 `exp` / `revoked_at`；允许最长 60 秒的进程内缓存，但撤回后必须在 60 秒内全网生效。
+- 撤销通过 `revoked_at` 立即生效，不需要维护 JWT 黑名单，也不引入 JWKS 与密钥轮换。
+- v1 **不**支持 JWT / JWKS；若未来需要无状态校验，在 v2 单独设计签名算法、`kid` 轮换与撤销名单（`FUTURE`）。
 
 **Token 不得**：
 
@@ -335,10 +380,10 @@
 | Scope | 允许的 API | 数据权限 |
 |---|---|---|
 | `product.read` | `GET /products/{id}`、`GET /products/search` | 仅 `RELEASE_APPROVED` 产品的业务 DTO |
-| `product.category.read` | 全部 `/taxonomies/*`、`/categories/*` | 仅 `PUBLISHED` 分类；不含产品参数 |
+| `product.category.read` | 全部 `/taxonomies/*`、`/categories/*`，以及 `GET /products/{id}/categories` | `PUBLISHED` 分类正常读取；`DEPRECATED` 分类在保留期内可读（含 `merged_into` / `split_into`）；`DRAFT` / `REVIEWED` 不可见；不含产品参数 |
 | `product.evidence.read` | `GET /products/{id}/evidence` | 证据引用与短原文；不含 PDF 二进制 |
 | `product.version.read` | `GET /products/{id}/versions`、`GET /taxonomies/{id}/version`、`/changes` | 版本号、变更记录、时间戳 |
-| `product.publish.read` | `GET /products/{id}/status`；`product.read` 的 `include_unreleased=true` | 未发布产品的门禁状态与内部可见数据 |
+| `product.publish.read` | `GET /products/{id}/status`；`product.read` 的 `include_unreleased=true`；`GET /products/{id}/categories` 读取未发布产品边 | 未发布产品的门禁状态与内部可见数据 |
 
 规则：
 
@@ -346,21 +391,36 @@
 2. 默认最小授权：Morrishk 站点同步使用 `product.read product.category.read product.evidence.read product.version.read`；
    `product.publish.read` 仅授予内部审核/运维客户端。
 3. 缺失 scope 返回 `403 INSUFFICIENT_SCOPE`，不回退、不静默降级。
+4. **`GET /products/{id}/categories` 同时受产品发布门禁约束（回应 R4）**：
+   - 普通客户端（仅有 `product.category.read`）只能读取 `RELEASE_APPROVED` 产品的 `APPROVED` 分类边；
+   - 产品未发布时返回 `403 PRODUCT_NOT_RELEASED`，不得通过该端点绕过产品详情 API 的门禁；
+   - 需要读取未发布产品边的内部客户端，必须额外持有 `product.publish.read`，并在响应中标记 `internal_only=true`。
+5. `DEPRECATED` 分类的读取规则（回应 R2）：
+   - 保留期内 `GET /categories/{id}` 返回 `200`，`status=DEPRECATED`、`is_active=false`，并带迁移信息；
+   - 保留期结束后返回 `410 CATEGORY_RETIRED`；
+   - 无论是否在保留期，`DEPRECATED` 分类都**不得**用于新建产品归属（写入侧规则，v1 无写端点）。
 
 ### 4.5 Token 端点
 
 ```
 POST /oauth/token
+Authorization: Basic base64(client_id:client_secret)
 Content-Type: application/x-www-form-urlencoded
 
 grant_type=client_credentials
-&client_id=morrishk-prod
-&client_secret=***
 &scope=product.read product.category.read
 ```
 
+**客户端认证方式（回应 R6）**：
+
+- 首选 `client_secret_basic`（HTTP Basic）；`client_id` / `client_secret` 不放进表单体。
+- `client_secret_post`（表单体传凭据）仅允许在 `stub` 模式或明确受控的内网环境使用。
+- **同一次请求不得同时使用两种认证方式**；同时出现时返回 `400 invalid_request`。
+- 认证失败不区分"client 不存在"与"secret 错误"，统一 `401 invalid_client`。
+
 成功：`200`，返回 `access_token`、`token_type`、`expires_in`、`scope`。
-失败：`400 invalid_request`、`401 invalid_client`、`403 invalid_scope`。
+失败：`400 invalid_request`、`400 invalid_scope`、`401 invalid_client`、`400 unsupported_grant_type`。
+（`invalid_scope` 按 RFC 6749 §5.2 统一为 `400`，不再使用 `403`。）
 
 详细示例见 `API_CONTRACT_EXAMPLES.md` EX-01 / EX-02。
 
@@ -385,8 +445,8 @@ grant_type=client_credentials
 | `403 INSUFFICIENT_SCOPE` | 不重试，告警 | 否 | 是 |
 | `403 PRODUCT_NOT_RELEASED` | 不重试；保留本地已发布版本 | 否 | 是 |
 | `404` | 不重试；标记资源不存在 | 否 | 视资源而定 |
-| `410` | 不重试；下架/撤回处理 | 否 | 否（必须停止展示） |
-| `412 ETAG_MISMATCH` | 重新拉取最新版本 | 是（一次） | 是 |
+| `410 PRODUCT_RELEASE_REVOKED` | 不重试；立即停止公开展示该产品技术数据 | 否 | **否**（不得继续读缓存展示） |
+| `410 CATEGORY_RETIRED` | 不重试；停止该分类的新同步 | 否 | 是（保留旧分类页与历史映射，不得新建归属） |
 | `429` | 按 `Retry-After` 等待 | 是 | 是 |
 | `5xx` | 指数退避 + 抖动，最多 3 次 | 是 | 是 |
 | 网络不可达 | 熔断 | 恢复探测 | 是 |
@@ -448,7 +508,9 @@ grant_type=client_credentials
 | 项 | 规范 |
 |---|---|
 | 字段名 | `snake_case` |
-| ID | 字符串；新资源使用 ULID（26 字符，字典序有序）；不使用自增整数作为对外 ID |
+| ID | 字符串；新资源使用 **`<type>_<ULID>`**：类型前缀 + 下划线 + 26 字符 Crockford Base32 ULID（大小写敏感，统一大写）；总长度 ≤ 32；不使用自增整数作为对外 ID |
+| ID 前缀 | `tax_` / `cat_` / `prd_` / `edg_` / `ev_` / `par_` / `doc_` / `rel_` / `apr_` / `chg_` / `req_`；前缀只用于可读性，**不参与**唯一性判断 |
+| 数据库长度 | 所有保存对外 ID 的列使用 `VARCHAR(32)`（不是 26），为前缀预留空间 |
 | 布尔 | `true` / `false`，不使用 0/1 |
 | 数值参数 | 以**字符串**返回 `value/min/typ/max`，避免浮点精度丢失；`unit` 单独字段 |
 | 空值 | 明确 `null` 或省略；不返回空字符串表示"未知" |
@@ -500,7 +562,7 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
   "code": 0,
   "message": "ok",
   "data": {},
-  "request_id": "req_01J8Z9K2V3",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQRT",
   "meta": {}
 }
 ```
@@ -512,7 +574,7 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
   "code": 40302,
   "message": "Product data is not released",
   "data": null,
-  "request_id": "req_01J8Z9K2V3",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQRT",
   "meta": {
     "error_key": "PRODUCT_NOT_RELEASED",
     "retryable": false,
@@ -549,9 +611,8 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
 | 404 | 40402 | `CATEGORY_NOT_FOUND` | 分类不存在 | 否 | 视情况 |
 | 404 | 40403 | `TAXONOMY_NOT_FOUND` | 分类体系不存在 | 否 | 视情况 |
 | 409 | 40901 | `VERSION_CONFLICT` | 版本冲突 | 是（重新拉取） | 是 |
-| 410 | 41001 | `PRODUCT_RELEASE_REVOKED` | 发布已撤回 | 否 | **否** |
-| 410 | 41002 | `CATEGORY_RETIRED` | 分类已永久停用 | 否 | 是（保留旧页） |
-| 412 | 41201 | `ETAG_MISMATCH` | 前置条件失败 | 是（一次） | 是 |
+| 410 | 41001 | `PRODUCT_RELEASE_REVOKED` | 发布已撤回，必须停止展示 | 否 | **否**（不得继续用产品缓存） |
+| 410 | 41002 | `CATEGORY_RETIRED` | 分类已过保留期 | 否 | 是（保留旧分类页与历史映射） |
 | 413 | 41301 | `TREE_TOO_LARGE` | 树超出上限 | 否（改 flat） | 是 |
 | 429 | 42901 | `RATE_LIMITED` | 限流 | 是 | 是 |
 | 500 | 50001 | `INTERNAL_ERROR` | 内部错误 | 是 | 是 |
@@ -656,7 +717,7 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
 
 ```json
 {
-  "product_id": "prd_01J8Z9K2V3",
+  "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMNPQRS",
   "identity": {
     "mpn": "LM358DR",
     "mpn_norm": "LM358DR",
@@ -669,7 +730,7 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
     "parameter_set_version": 7,
     "parameters": [
       {
-        "parameter_id": "par_01J8...",
+        "parameter_id": "par_01J8H000000000000000000000",
         "name": "Supply Voltage",
         "category": "ELECTRICAL",
         "value": null,
@@ -679,7 +740,7 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
         "unit": "V",
         "conditions": "TA = 25 C",
         "verification_status": "VERIFIED",
-        "evidence_ids": ["ev_01J8..."]
+        "evidence_ids": ["ev_01J8J000000000000000000000"]
       }
     ],
     "normalization": {
@@ -688,10 +749,10 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
     }
   },
   "categories": {
-    "taxonomy_id": "tax_01J8...",
+    "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMNPQRS",
     "refs": [
       {
-        "category_id": "cat_01J8...",
+        "category_id": "cat_01J8C000000000000000000000",
         "role": "PRIMARY",
         "assigned_at": "2026-11-10T08:00:00Z"
       }
@@ -700,7 +761,7 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
   },
   "documents": [
     {
-      "document_id": "doc_01J8...",
+      "document_id": "doc_01J8N000000000000000000000",
       "document_sha256": "059d448c5a34a4b1...",
       "document_type": "datasheet",
       "page_count": 24
@@ -708,7 +769,7 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
   ],
   "release": {
     "content_version": 7,
-    "release_id": "rel_01J8...",
+    "release_id": "rel_01J8P000000000000000000000",
     "release_version": 3,
     "released_at": "2026-11-12T10:00:00Z"
   },
@@ -748,7 +809,7 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
 
 ```json
 {
-  "product_id": "prd_01J8Z9K2V3",
+  "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMNPQRS",
   "gates": {
     "pipeline": {
       "state": "PASS",
@@ -758,11 +819,11 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
     "content": {
       "state": "APPROVED",
       "approved_at": "2026-11-12T09:30:00Z",
-      "approval_ref": "apr_01J8..."
+      "approval_ref": "apr_01J8T000000000000000000000"
     },
     "release": {
       "state": "APPROVED",
-      "release_id": "rel_01J8...",
+      "release_id": "rel_01J8P000000000000000000000",
       "release_version": 3,
       "released_at": "2026-11-12T10:00:00Z"
     }
@@ -794,11 +855,11 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
 
 ```json
 {
-  "product_id": "prd_01J8Z9K2V3",
+  "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMNPQRS",
   "document_sha256": "059d448c5a34a4b1...",
   "items": [
     {
-      "evidence_id": "ev_01J8...",
+      "evidence_id": "ev_01J8J000000000000000000000",
       "evidence_type": "CELL_TEXT",
       "page_number": 7,
       "table_id": "tbl_3",
@@ -867,7 +928,7 @@ Morrishk 侧已经有对应的前端 `ApiError` 解析逻辑（`platform/web/src
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `taxonomy_id` | string(26) | ULID，永久稳定，不复用 |
+| `taxonomy_id` | string(32) | ULID，永久稳定，不复用 |
 | `taxonomy_code` | string(64) | 稳定业务编码，如 `electronic-components`；发布后不可改 |
 | `name` | string(200) | 展示名 |
 | `description` | text | 体系说明 |
@@ -884,9 +945,9 @@ API 支持多体系，是为了未来扩展，不代表 v1 必须启用多个。
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `category_id` | string(26) | ULID；永久稳定；改名不变；不复用 |
-| `taxonomy_id` | string(26) | 所属体系 |
-| `parent_id` | string(26)? | 父节点；`null` 为根 |
+| `category_id` | string(32) | ULID；永久稳定；改名不变；不复用 |
+| `taxonomy_id` | string(32) | 所属体系 |
+| `parent_id` | string(32)? | 父节点；`null` 为根 |
 | `category_code` | string(64) | 稳定编码；发布后不可改；用于外部映射 |
 | `name` | string(200) | 名称 |
 | `slug` | string(120) | **建议值**，不是权威 URL；Morrishk 可不用 |
@@ -899,7 +960,7 @@ API 支持多体系，是为了未来扩展，不代表 v1 必须启用多个。
 | `aliases` | object[] | `{lang, value}`；同义词/旧名 |
 | `external_codes` | object[] | `{scheme, code}`；如 `morrishk_legacy` |
 | `status` | enum | `DRAFT` / `REVIEWED` / `PUBLISHED` / `DEPRECATED` |
-| `merged_into` | string(26)? | 合并目标；仅 `DEPRECATED` 时可有 |
+| `merged_into` | string(32)? | 合并目标；仅 `DEPRECATED` 时可有 |
 | `split_into` | string[] | 拆分目标；仅 `DEPRECATED` 时可有 |
 | `created_at` / `updated_at` | datetime | |
 | `published_at` / `deprecated_at` | datetime? | |
@@ -909,22 +970,30 @@ API 支持多体系，是为了未来扩展，不代表 v1 必须启用多个。
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `edge_id` | string(26) | ULID |
-| `product_id` | string(26) | 产品 |
-| `taxonomy_id` | string(26) | 体系 |
-| `category_id` | string(26) | 分类 |
+| `edge_id` | string(32) | `<type>_<ULID>`；边身份永不复用 |
+| `product_id` | string(32) | 产品 |
+| `taxonomy_id` | string(32) | 体系 |
+| `category_id` | string(32) | 分类 |
 | `role` | enum | `PRIMARY` / `SECONDARY` |
 | `assignment_source` | enum | `PARSER` / `RULE` / `MANUAL` |
 | `confidence` | decimal(5,2)? | 0–100；`MANUAL` 可为空 |
 | `status` | enum | `PROPOSED` / `APPROVED` / `REJECTED` |
+| `valid_from` | datetime | 边生效时间 |
+| `valid_to` | datetime? | 边失效时间；`NULL` 表示当前有效 |
+| `superseded_by_edge_id` | string(32)? | 替代边；分类合并/拆分导致的迁移 |
+| `superseded_at` | datetime? | 被替代时间 |
+| `change_reason` | string(64)? | `CATEGORY_MERGED` / `CATEGORY_SPLIT` / `MANUAL_REASSIGN` 等 |
+| `data_version` | integer | 边级版本 |
 | `created_at` / `updated_at` | datetime | |
 
 规则：
 
-- 一个产品在同一 taxonomy 下**最多一个 `PRIMARY`**（`PROPOSED`，`OPEN` IQ-04）。
+- 一个产品在同一 taxonomy 下**最多一个当前有效的 `PRIMARY`**（`valid_to IS NULL` 且 `status=APPROVED`）（`PROPOSED`，`OPEN` IQ-04）。
 - 允许一个产品属于多个分类（多对多）。
-- 只有 `APPROVED` 的边才对业务客户端可见。
-- 产品详情 API 只返回 `APPROVED` 的边。
+- 只有**当前有效**（`valid_to IS NULL`）且 `APPROVED` 的边才对业务客户端可见。
+- 产品详情 API 只返回当前有效、`APPROVED` 的边；历史边可通过内部审计读取，不对外暴露。
+- **边不物理删除（回应 R8）**：重新分配、分类合并、分类拆分都采用"旧边置 `valid_to` + `superseded_by_edge_id`，新边另建"的方式；任何历史时刻都可还原。
+- 同一产品在同一 taxonomy 下的历史 `PRIMARY` 边可以存在多条，但同一时间只能有一条 `valid_to IS NULL`（应用层保证；MySQL 5.6 无部分唯一索引）。
 
 #### 7.2.4 分类 ID 的稳定性规则
 
@@ -933,8 +1002,8 @@ API 支持多体系，是为了未来扩展，不代表 v1 必须启用多个。
 | 分类 ID 是否长期稳定 | 是。`category_id` 一经发布永不复用、永不改变 |
 | 改名是否影响 ID | 否。改名只增加 `data_version` 与 `updated_at` |
 | 移动父节点是否影响 ID | 否。`path_ids`/`path_codes` 变化，ID 不变 |
-| 合并 | 源节点保留，`status=DEPRECATED`、`merged_into=目标`、`is_active=false`；产品边迁到目标；源节点在一段保留期内仍可解析 |
-| 拆分 | 源节点 `DEPRECATED`、`split_into=[...]`；产品边需人工重新分配，不自动推断 |
+| 合并 | 源节点保留，`status=DEPRECATED`、`merged_into=目标`、`is_active=false`；**旧产品边不删除**：置 `valid_to`、`superseded_by_edge_id`、`change_reason='CATEGORY_MERGED'`，再为目标分类新建边（需 `APPROVED`）；源节点在保留期内仍可解析 |
+| 拆分 | 源节点 `DEPRECATED`、`split_into=[...]`；旧边置 `valid_to` + `change_reason='CATEGORY_SPLIT'`；产品边需人工重新分配，不自动推断 |
 | 停用 | `is_active=false`、`status=DEPRECATED`、无 `merged_into`；不自动重定向 |
 | 硬删除 | 禁止在仍被引用时硬删除；保留期后可返回 `410 CATEGORY_RETIRED` |
 
@@ -976,17 +1045,21 @@ API 支持多体系，是为了未来扩展，不代表 v1 必须启用多个。
 | `GET /taxonomies/{taxonomy_id}/tree` | `FUTURE` | 独立全量树快照；v1 用 `categories?mode=tree` |
 | `POST /taxonomies/...`（写） | `FUTURE` | v1 只读 |
 
-**V1 最小端点集（建议）**：
+**V1 最小端点集（7 个，全部 `V1_REQUIRED`）**：
 
 1. `GET /taxonomies`
-2. `GET /taxonomies/{id}/version`
-3. `GET /taxonomies/{id}/categories?updated_since=&cursor=`
-4. `GET /categories/{id}`
-5. `GET /categories/{id}/children`
-6. `GET /products/{id}/categories`
+2. `GET /taxonomies/{id}`
+3. `GET /taxonomies/{id}/version`
+4. `GET /taxonomies/{id}/categories?updated_since=&cursor=`
+5. `GET /categories/{id}`
+6. `GET /categories/{id}/children`
+7. `GET /products/{id}/categories`（同时受 `product.category.read` 与产品发布门禁约束，见 §4.4 规则 4）
 
 `changes` 与 `ancestors` 为 `V1_OPTIONAL`；若 Phase 0 决定要支持自动识别合并/拆分，
 则 `changes` 升级为 `V1_REQUIRED`。
+
+> 口径说明：§7.4 端点表中 `GET /taxonomies/{taxonomy_id}` 为 `V1_REQUIRED`，
+> 因此 V1 必需分类端点总数是 **7**，不是 6。
 
 ### 7.5 分类响应结构（示例见 `API_CONTRACT_EXAMPLES.md`）
 
@@ -994,13 +1067,13 @@ API 支持多体系，是为了未来扩展，不代表 v1 必须启用多个。
 
 ```json
 {
-  "taxonomy_id": "tax_01J8Z9K2V3",
+  "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMNPQRS",
   "taxonomy_code": "electronic-components",
   "name": "Electronic Components",
   "description": "Technical taxonomy for semiconductor and passive components",
   "taxonomy_version": 42,
   "status": "PUBLISHED",
-  "root_category_ids": ["cat_01J8A", "cat_01J8B"],
+  "root_category_ids": ["cat_01J8A000000000000000000000", "cat_01J8B000000000000000000000"],
   "created_at": "2026-10-01T00:00:00Z",
   "updated_at": "2026-11-15T06:00:00Z",
   "published_at": "2026-10-02T00:00:00Z"
@@ -1015,15 +1088,15 @@ API 支持多体系，是为了未来扩展，不代表 v1 必须启用多个。
 
 ```json
 {
-  "category_id": "cat_01J8A",
-  "taxonomy_id": "tax_01J8Z9K2V3",
+  "category_id": "cat_01J8A000000000000000000000",
+  "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMNPQRS",
   "parent_id": null,
   "category_code": "integrated-circuits",
   "name": "Integrated Circuits",
   "slug": "integrated-circuits",
   "description": "Monolithic integrated circuits",
   "level": 1,
-  "path_ids": ["cat_01J8A"],
+  "path_ids": ["cat_01J8A000000000000000000000"],
   "path_codes": ["integrated-circuits"],
   "is_active": true,
   "sort_order": 10,
@@ -1046,11 +1119,11 @@ API 支持多体系，是为了未来扩展，不代表 v1 必须启用多个。
 
 ```json
 {
-  "product_id": "prd_01J8Z9K2V3",
-  "taxonomy_id": "tax_01J8Z9K2V3",
+  "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMNPQRS",
+  "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMNPQRS",
   "categories": [
     {
-      "category_id": "cat_01J8C",
+      "category_id": "cat_01J8C000000000000000000000",
       "role": "PRIMARY",
       "assignment_source": "MANUAL",
       "confidence": null,
@@ -1064,12 +1137,12 @@ API 支持多体系，是为了未来扩展，不代表 v1 必须启用多个。
 
 ```json
 {
-  "taxonomy_id": "tax_01J8Z9K2V3",
+  "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMNPQRS",
   "taxonomy_version": 42,
   "status": "PUBLISHED",
   "published_at": "2026-11-15T06:00:00Z",
   "etag": "\"sha256:9f2c...\"",
-  "last_change_id": "chg_01J8..."
+  "last_change_id": "chg_01J8F000000000000000000000"
 }
 ```
 
@@ -1077,18 +1150,18 @@ API 支持多体系，是为了未来扩展，不代表 v1 必须启用多个。
 
 ```json
 {
-  "taxonomy_id": "tax_01J8Z9K2V3",
+  "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMNPQRS",
   "since_version": 40,
   "taxonomy_version": 42,
   "changes": [
     {
-      "change_id": "chg_01J8A",
+      "change_id": "chg_01J8A000000000000000000000",
       "taxonomy_version": 41,
       "event": "CATEGORY_MERGED",
       "occurred_at": "2026-11-14T02:00:00Z",
-      "category_id": "cat_01J8X",
+      "category_id": "cat_01J8X000000000000000000000",
       "payload": {
-        "merged_into": "cat_01J8Y",
+        "merged_into": "cat_01J8Y000000000000000000000",
         "reason": "duplicate definition"
       }
     }
@@ -1103,10 +1176,10 @@ API 支持多体系，是为了未来扩展，不代表 v1 必须启用多个。
 
 ```json
 {
-  "category_id": "cat_01J8X",
+  "category_id": "cat_01J8X000000000000000000000",
   "status": "DEPRECATED",
   "is_active": false,
-  "merged_into": "cat_01J8Y",
+  "merged_into": "cat_01J8Y000000000000000000000",
   "deprecated_at": "2026-11-14T02:00:00Z",
   "data_version": 9
 }
@@ -1158,8 +1231,8 @@ API 支持多体系，是为了未来扩展，不代表 v1 必须启用多个。
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | `id` | BIGINT UNSIGNED | 自增主键 |
-| `dsbit_taxonomy_id` | VARCHAR(26) | Ds Bit 体系 ID |
-| `dsbit_category_id` | VARCHAR(26) | Ds Bit 分类 ID |
+| `dsbit_taxonomy_id` | VARCHAR(32) | Ds Bit 体系 ID |
+| `dsbit_category_id` | VARCHAR(32) | Ds Bit 分类 ID |
 | `morrishk_target` | ENUM('LEGACY_SNSII','PLATFORM_PD') | 目标库/表域 |
 | `morrishk_category_id` | INT UNSIGNED | 目标分类 ID |
 | `mapping_type` | ENUM('EXACT','PARENT','AGGREGATE','SEO_LANDING','MANUAL') | 映射类型 |
@@ -1279,13 +1352,14 @@ else: visible_state = DRAFT
 | 产品不存在 | 404 | `40401 PRODUCT_NOT_FOUND` | ID 无效或从未存在 |
 | 产品存在但未发布，且客户端无 `product.publish.read` | 403 | `40302 PRODUCT_NOT_RELEASED` | **不返回 404**，避免消费方误判为删除；返回 `retryable=false`、`degraded_allowed=true` |
 | 产品存在但未发布，客户端有 `product.publish.read` | 200 | `0` | 返回未发布 DTO，附 `visible_state` |
-| 产品曾发布但已撤回 | 410 | `41001 PRODUCT_RELEASE_REVOKED` | 消费方必须停止公开展示；`degraded_allowed=false` |
-| 分类未发布 | 403 | `40303 CATEGORY_NOT_PUBLISHED` | 有 `product.category.read` 但分类未 `PUBLISHED` |
+| 产品曾发布但已撤回 | 410 | `41001 PRODUCT_RELEASE_REVOKED` | 消费方必须停止公开展示；`retryable=false`、`degraded_allowed=false`；**不得**继续读产品缓存或技术数据 |
+| 分类为 `DRAFT` / `REVIEWED` | 403 | `40303 CATEGORY_NOT_PUBLISHED` | 有 `product.category.read` 但不满足可见性 |
 | 分类不存在 | 404 | `40402 CATEGORY_NOT_FOUND` | |
-| 分类已停用但保留期 | 200 | `0` | `status=DEPRECATED`，带 `merged_into` |
-| 分类保留期结束 | 410 | `41002 CATEGORY_RETIRED` | |
+| 分类已停用但仍在保留期 | 200 | `0` | `status=DEPRECATED`，带 `merged_into` / `split_into`；允许读取用于历史映射迁移 |
+| 分类保留期结束 | 410 | `41002 CATEGORY_RETIRED` | `retryable=false`、`degraded_allowed=true`；允许保留旧分类页与历史映射，**不得**新建产品归属 |
+| 读取未发布产品的分类边（无 `product.publish.read`） | 403 | `40302 PRODUCT_NOT_RELEASED` | `/products/{id}/categories` 同样受产品发布门禁约束 |
 | scope 不足 | 403 | `40301 INSUFFICIENT_SCOPE` | |
-| ETag 不匹配 | 412 | `41201 ETAG_MISMATCH` | 客户端重新拉取 |
+| 条件请求命中 | 304 | `NOT_MODIFIED` | `If-None-Match` 命中；无响应体；不是错误 |
 
 **为什么不把"未发布"设计成 404**：Morrishk 需要区分"还没发布（继续用本地旧版本/等待）"
 与"不存在（应删除本地记录）"与"已撤回（必须立即下架）"。404 无法表达这三种语义。
@@ -1293,8 +1367,9 @@ else: visible_state = DRAFT
 ### 8.4 默认返回什么状态的数据
 
 - `product.read` 默认：**仅 `RELEASE_APPROVED`**。
-- `product.category.read` 默认：**仅 `PUBLISHED`** 分类。
+- `product.category.read` 默认：**`PUBLISHED` 分类，以及在保留期内的 `DEPRECATED` 分类**；`DRAFT` / `REVIEWED` 不可见。
 - `product.evidence.read`：仅 `RELEASE_APPROVED` 产品的证据。
+- `GET /products/{id}/categories`：产品必须 `RELEASE_APPROVED`（除非另有 `product.publish.read`），且只返回 `APPROVED` 边。
 - `product.version.read`：版本元数据可读，但不含未发布参数值。
 - `product.publish.read`：可读未发布状态与数据，用于内部审核。
 
@@ -1437,7 +1512,7 @@ private function recordSuccess(): void;
 | 列 | 类型 | 说明 |
 |---|---|---|
 | `id` | BIGINT UNSIGNED AUTO_INCREMENT | PK |
-| `sync_key` | VARCHAR(64) | 唯一；如 `taxonomy:tax_...`、`products`、`edges` |
+| `sync_key` | VARCHAR(64) | 唯一；如 `taxonomy:tax_<ULID>`、`products`、`edges` |
 | `resource_type` | VARCHAR(32) | `TAXONOMY` / `PRODUCT` / `EDGE` |
 | `resource_id` | VARCHAR(64) NULL | 体系/产品 ID |
 | `cursor` | VARCHAR(255) NULL | 分页游标 |
@@ -1456,7 +1531,7 @@ private function recordSuccess(): void;
 | 列 | 类型 | 说明 |
 |---|---|---|
 | `id` | BIGINT UNSIGNED AUTO_INCREMENT | PK |
-| `dsbit_product_id` | VARCHAR(26) | Ds Bit 产品 ID |
+| `dsbit_product_id` | VARCHAR(32) | Ds Bit 产品 ID |
 | `mpn` | VARCHAR(64) | 原始型号 |
 | `mpn_norm` | VARCHAR(64) | 归一化型号 |
 | `legacy_product_id` | INT UNSIGNED NULL | `snsii_product.id` |
@@ -1478,9 +1553,9 @@ private function recordSuccess(): void;
 | 列 | 类型 | 说明 |
 |---|---|---|
 | `id` | BIGINT UNSIGNED AUTO_INCREMENT | PK |
-| `dsbit_product_id` | VARCHAR(26) | 唯一 |
+| `dsbit_product_id` | VARCHAR(32) | 唯一 |
 | `content_version` | INT UNSIGNED | |
-| `release_id` | VARCHAR(26) NULL | |
+| `release_id` | VARCHAR(32) NULL | |
 | `visible_state` | VARCHAR(16) | `RELEASED` / `WITHDRAWN` 等 |
 | `payload` | MEDIUMTEXT | 规范化 JSON |
 | `payload_sha256` | CHAR(64) | 校验 |
@@ -1498,10 +1573,10 @@ private function recordSuccess(): void;
 | 列 | 类型 | 说明 |
 |---|---|---|
 | `id` | BIGINT UNSIGNED AUTO_INCREMENT | PK |
-| `taxonomy_id` | VARCHAR(26) | |
+| `taxonomy_id` | VARCHAR(32) | |
 | `taxonomy_version` | INT UNSIGNED | |
-| `category_id` | VARCHAR(26) | |
-| `parent_id` | VARCHAR(26) NULL | |
+| `category_id` | VARCHAR(32) | |
+| `parent_id` | VARCHAR(32) NULL | |
 | `category_code` | VARCHAR(64) | |
 | `name` | VARCHAR(200) | |
 | `slug` | VARCHAR(120) NULL | |
@@ -1837,13 +1912,16 @@ Morrishk 侧 `yii dsbit/health` 只检查 Token 获取与一个轻量端点。
 | OA-01 | 正常获取 Token | 有效 client | POST `/oauth/token` | 200；`access_token`、`expires_in`、`scope` | NONE | 是 |
 | OA-02 | 无效 secret | 错误 secret | 同上 | 401 `invalid_client`；不泄露细节 | NONE | 是 |
 | OA-03 | 无效 client_id | 不存在 client | 同上 | 401 `invalid_client` | NONE | 是 |
-| OA-04 | scope 超授权 | 请求未注册 scope | 同上 | 400/403 `invalid_scope` | NONE | 是 |
+| OA-04 | scope 超授权 | 请求未注册 scope | 同上 | 400 `invalid_scope`（RFC 6749 §5.2） | NONE | 是 |
 | OA-05 | Token 过期 | 短 TTL | 过期后调用 API | 401 `TOKEN_EXPIRED`；客户端刷新一次成功 | NONE | 是 |
 | OA-06 | 已撤销 Token | 撤销 | 调用 API | 401 `INVALID_TOKEN` | NONE | 是 |
 | OA-07 | 客户端禁用 | 禁用 | 获取 Token | 401；已有 Token 被拒 | NONE | 是 |
 | OA-08 | 并发获取 Token | 10 并发 | 同时请求 | 只签发少量 Token；无风暴；无错误 | NONE | 是 |
 | OA-09 | 日志脱敏 | 正常调用 | 检查日志 | 无 secret/token | NONE | 是 |
 | OA-10 | Stub 隔离 | `mode=real` 指向 stub | 启动 | 拒绝启动/拒绝响应 | NONE | 是 |
+| OA-11 | 认证方式混用 | 同时带 Basic 与 body secret | 同上 | 400 `invalid_request`；不签发 | NONE | 是 |
+| OA-12 | opaque Token 校验 | 任意修改 1 字节 | 调用 API | 401 `INVALID_TOKEN` | NONE | 是 |
+| OA-13 | 撤回即时生效 | 服务端 `revoked_at` | 撤回后 61 秒内调用 | 401 `INVALID_TOKEN`（缓存上限 60 秒） | NONE | 是 |
 
 ### 12.2 产品 API
 
@@ -1881,7 +1959,10 @@ Morrishk 侧 `yii dsbit/health` 只检查 Token 获取与一个轻量端点。
 | CT-11 | 停用 | `DEPRECATED` | GET | 200 + 状态；不 404 | NONE | 是 |
 | CT-12 | 合并 | `merged_into` | GET + 同步 | 返回合并目标；映射 `STALE` | NONE | 是 |
 | CT-13 | 拆分 | `split_into` | 同步 | 映射 `STALE`；需人工 | NONE | 是 |
-| CT-14 | 产品多分类 | 多边 | GET `/products/{id}/categories` | 多分类；至多一个 `PRIMARY` | NONE | 是 |
+| CT-14 | 产品多分类 | 产品 `RELEASE_APPROVED`，多边 | GET `/products/{id}/categories` | 多分类；至多一个 `PRIMARY` | NONE | 是 |
+| CT-14a | 产品分类门禁 | 产品仅 `PIPELINE_PASS` | GET `/products/{id}/categories` | 403 `PRODUCT_NOT_RELEASED`；不返回任何边 | NONE | 是 |
+| CT-14b | 仅分类 scope | 无 `product.publish.read` | GET 未发布产品的分类 | 403；不得绕过产品详情门禁 | NONE | 是 |
+| CT-14c | 内部读取未发布边 | `product.publish.read` | 同上 + `internal_only=true` | 200；仅内部可见 | NONE | 是 |
 | CT-15 | 无映射分类 | 新分类 | 同步 | `UNMAPPED` 队列；不自动映射 | NONE | 是 |
 | CT-16 | 循环父子 | 构造环 | 同步 | 拒绝整批；告警 | NONE | 是 |
 | CT-17 | 保留期后 | 过期 | GET | 410 `CATEGORY_RETIRED` | NONE | 是 |
@@ -1926,7 +2007,7 @@ Morrishk 侧 `yii dsbit/health` 只检查 Token 获取与一个轻量端点。
 
 | 阶段 | 目标 | 交付 | 退出条件 | 授权 |
 |---|---|---|---|---|
-| Phase 0 | 契约冻结 | 本文件 + `API_CONTRACT_EXAMPLES.md` + `INTEGRATION_OPEN_QUESTIONS.md` | Reviewer 通过；OPEN 问题有裁定 | 本轮 |
+| Phase 0 | 契约冻结 | 本文件 + `API_CONTRACT_EXAMPLES.md` + `INTEGRATION_OPEN_QUESTIONS.md` | Reviewer 通过；OPEN 问题有裁定；**并在 Ds Bit 权威分支干净提交上复核 §2.1 基线五项**（见 §2.1 基线时效性） | 本轮 |
 | Phase 1 | Ds Bit 本地 Stub | 契约一致的本地 OAuth2 桩、产品只读 API、分类只读 API、V101 静态数据、Mock 测试 | 本地测试通过；`x_local_static_stub` 标记齐全；无真实解析 | 需单独授权 |
 | Phase 2 | Morrishk Yii2 Client | `services/DsBitClient.php`、Token 缓存、产品/分类同步、本地表、降级 | 本地联调通过；无生产库写入 | 需单独授权 |
 | Phase 3 | 本地集成验证 | 端到端 Mock、分类映射验证、详情页验证、SEO URL 回归、发布状态验证 | 测试矩阵通过；URL/canonical 无变化 | 需单独授权 |
@@ -2133,7 +2214,7 @@ Phase 4 只是规划，不代表获得生产授权。
   "error": {
     "code": "PRODUCT_NOT_RELEASED",
     "message": "Product data is not released",
-    "request_id": "req_xxx",
+    "request_id": "req_<ULID>",
     "retryable": false
   }
 }
@@ -2146,7 +2227,7 @@ Phase 4 只是规划，不代表获得生产授权。
   "code": 40302,
   "message": "Product data is not released",
   "data": null,
-  "request_id": "req_xxx",
+  "request_id": "req_<ULID>",
   "meta": {
     "error_key": "PRODUCT_NOT_RELEASED",
     "retryable": false,

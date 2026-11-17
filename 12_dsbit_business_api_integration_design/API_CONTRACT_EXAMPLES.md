@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-INT-001-EX |
-| 版本 | v1.0（首版送审，未冻结） |
+| 版本 | v1.1（同步 R1–R8 修订；未冻结） |
 | 日期 | 2026-11-17 |
 | 关联文档 | `Ds Bit ↔ Morrishk Business API Integration Design v1.md`（主文档） |
 | 状态 | 全部 `PROPOSED` / 构造示例 |
@@ -15,7 +15,9 @@
 >   不代表任何真实器件的解析结果，也不得作为数据正确性的证据。
 > - `client_secret`、`access_token` 一律以 `***` / `<REDACTED>` 表示；本文档不含任何真实凭据。
 > - Base URL 使用占位域名 `https://dsbit.example.com/api/v1`；实际域名见主文档 §5.1（`OPEN` IQ-10）。
-> - 示例 ID 采用 26 字符 ULID 形式（前缀 `prd_` / `cat_` / `tax_` / `ev_` / `rel_` 等为可读性添加）。
+> - 示例 ID 采用 **`<type>_<ULID>`**：前缀（`prd_` / `cat_` / `tax_` / `ev_` / `rel_` 等）
+>   加下划线，再接 26 字符 Crockford Base32 ULID（统一大写）；总长度不超过 32。
+>   前缀不参与唯一性判断；示例中的后缀均为合法 ULID（主文档 §5.3）。
 
 ---
 
@@ -30,6 +32,7 @@
 | EX-05 | 分类树（`mode=tree`） | §5.5 / §7.5.2 |
 | EX-06 | 单分类 + 父子引用 | §7.5.3 |
 | EX-07 | 产品分类归属（边） | §7.5.4 |
+| EX-07b | 产品分类归属：未发布产品 403 | §4.4 / §7.4 |
 | EX-08 | 分类版本 | §7.5.5 / §7.6 |
 | EX-09 | 分类变更 | §7.3 / §7.5.5 |
 | EX-10 | 分类停用 / 合并 / 410 | §7.5.6 |
@@ -66,7 +69,7 @@ POST /oauth/token HTTP/1.1
 Host: dsbit.example.com
 Content-Type: application/x-www-form-urlencoded
 Accept: application/json
-X-Request-Id: req_01J8Z9K2V3
+X-Request-Id: req_01J8Z9K2V3ABCDEFGHJKMNPQRT
 
 grant_type=client_credentials
 &client_id=morrishk-staging
@@ -80,7 +83,7 @@ grant_type=client_credentials
 Content-Type: application/json; charset=utf-8
 Cache-Control: no-store
 Pragma: no-cache
-X-Request-Id: req_01J8Z9K2V3
+X-Request-Id: req_01J8Z9K2V3ABCDEFGHJKMNPQRT
 ```
 
 ```json
@@ -112,7 +115,7 @@ X-Request-Id: req_01J8Z9K2V3
 {
   "error": "invalid_client",
   "error_description": "Client authentication failed",
-  "request_id": "req_01J8Z9K2V4"
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQRV"
 }
 ```
 
@@ -124,7 +127,7 @@ X-Request-Id: req_01J8Z9K2V3
 {
   "error": "invalid_scope",
   "error_description": "Requested scope exceeds client registration",
-  "request_id": "req_01J8Z9K2V5"
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQRW"
 }
 ```
 
@@ -136,7 +139,7 @@ X-Request-Id: req_01J8Z9K2V3
 {
   "error": "invalid_request",
   "error_description": "grant_type is required",
-  "request_id": "req_01J8Z9K2V6"
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQRX"
 }
 ```
 
@@ -153,7 +156,7 @@ GET /api/v1/taxonomies?status=PUBLISHED&limit=50 HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 Accept: application/json
-X-Request-Id: req_01J8Z9K2V7
+X-Request-Id: req_01J8Z9K2V3ABCDEFGHJKMNPQRY
 ```
 
 **响应 `200 OK`**
@@ -165,15 +168,15 @@ X-Request-Id: req_01J8Z9K2V7
   "data": {
     "items": [
       {
-        "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMN",
+        "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMNPQRS",
         "taxonomy_code": "electronic-components",
         "name": "Electronic Components",
         "description": "Technical taxonomy for semiconductor and passive components",
         "taxonomy_version": 42,
         "status": "PUBLISHED",
         "root_category_ids": [
-          "cat_01J8A0000000000000000000",
-          "cat_01J8B0000000000000000000"
+          "cat_01J8A000000000000000000000",
+          "cat_01J8B000000000000000000000"
         ],
         "created_at": "2026-10-01T00:00:00Z",
         "updated_at": "2026-11-15T06:00:00Z",
@@ -181,7 +184,7 @@ X-Request-Id: req_01J8Z9K2V7
       }
     ]
   },
-  "request_id": "req_01J8Z9K2V7",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQRY",
   "meta": {
     "limit": 50,
     "next_cursor": null,
@@ -199,7 +202,7 @@ X-Request-Id: req_01J8Z9K2V7
 **请求**
 
 ```http
-GET /api/v1/taxonomies/tax_01J8Z9K2V3ABCDEFGHJKMN HTTP/1.1
+GET /api/v1/taxonomies/tax_01J8Z9K2V3ABCDEFGHJKMNPQRS HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 If-None-Match: "sha256:9f2c0b7d..."
@@ -210,7 +213,7 @@ If-None-Match: "sha256:9f2c0b7d..."
 ```http
 ETag: "sha256:9f2c0b7d..."
 Last-Modified: Sat, 15 Nov 2026 06:00:00 GMT
-X-Request-Id: req_01J8Z9K2V8
+X-Request-Id: req_01J8Z9K2V3ABCDEFGHJKMNPQRZ
 X-Data-Version: 42
 X-Taxonomy-Version: 42
 Cache-Control: private, max-age=0, must-revalidate
@@ -221,21 +224,21 @@ Cache-Control: private, max-age=0, must-revalidate
   "code": 0,
   "message": "ok",
   "data": {
-    "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMN",
+    "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMNPQRS",
     "taxonomy_code": "electronic-components",
     "name": "Electronic Components",
     "description": "Technical taxonomy for semiconductor and passive components",
     "taxonomy_version": 42,
     "status": "PUBLISHED",
     "root_category_ids": [
-      "cat_01J8A0000000000000000000",
-      "cat_01J8B0000000000000000000"
+      "cat_01J8A000000000000000000000",
+      "cat_01J8B000000000000000000000"
     ],
     "created_at": "2026-10-01T00:00:00Z",
     "updated_at": "2026-11-15T06:00:00Z",
     "published_at": "2026-10-02T00:00:00Z"
   },
-  "request_id": "req_01J8Z9K2V8",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQRZ",
   "meta": {}
 }
 ```
@@ -249,7 +252,7 @@ Cache-Control: private, max-age=0, must-revalidate
 **请求**
 
 ```http
-GET /api/v1/taxonomies/tax_01J8Z9K2V3ABCDEFGHJKMN/categories?mode=tree&depth=2&max_nodes=5000 HTTP/1.1
+GET /api/v1/taxonomies/tax_01J8Z9K2V3ABCDEFGHJKMNPQRS/categories?mode=tree&depth=2&max_nodes=5000 HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -261,17 +264,17 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 0,
   "message": "ok",
   "data": {
-    "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMN",
+    "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMNPQRS",
     "taxonomy_version": 42,
     "mode": "tree",
     "nodes": [
       {
-        "category_id": "cat_01J8A0000000000000000000",
+        "category_id": "cat_01J8A000000000000000000000",
         "category_code": "integrated-circuits",
         "name": "Integrated Circuits",
         "slug": "integrated-circuits",
         "level": 1,
-        "path_ids": ["cat_01J8A0000000000000000000"],
+        "path_ids": ["cat_01J8A000000000000000000000"],
         "path_codes": ["integrated-circuits"],
         "is_active": true,
         "sort_order": 10,
@@ -279,14 +282,14 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
         "data_version": 5,
         "children": [
           {
-            "category_id": "cat_01J8C0000000000000000000",
+            "category_id": "cat_01J8C000000000000000000000",
             "category_code": "amplifiers",
             "name": "Amplifiers",
             "slug": "amplifiers",
             "level": 2,
             "path_ids": [
-              "cat_01J8A0000000000000000000",
-              "cat_01J8C0000000000000000000"
+              "cat_01J8A000000000000000000000",
+              "cat_01J8C000000000000000000000"
             ],
             "path_codes": ["integrated-circuits", "amplifiers"],
             "is_active": true,
@@ -299,7 +302,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
       }
     ]
   },
-  "request_id": "req_01J8Z9K2V9",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQR0",
   "meta": {
     "mode": "tree",
     "depth": 2,
@@ -316,7 +319,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 41301,
   "message": "Tree exceeds limits; use mode=flat with cursor",
   "data": null,
-  "request_id": "req_01J8Z9K2VA",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQR1",
   "meta": {
     "error_key": "TREE_TOO_LARGE",
     "retryable": false,
@@ -335,7 +338,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 **请求**
 
 ```http
-GET /api/v1/categories/cat_01J8C0000000000000000000 HTTP/1.1
+GET /api/v1/categories/cat_01J8C000000000000000000000 HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -347,17 +350,17 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 0,
   "message": "ok",
   "data": {
-    "category_id": "cat_01J8C0000000000000000000",
-    "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMN",
-    "parent_id": "cat_01J8A0000000000000000000",
+    "category_id": "cat_01J8C000000000000000000000",
+    "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMNPQRS",
+    "parent_id": "cat_01J8A000000000000000000000",
     "category_code": "amplifiers",
     "name": "Amplifiers",
     "slug": "amplifiers",
     "description": "Signal amplification devices",
     "level": 2,
     "path_ids": [
-      "cat_01J8A0000000000000000000",
-      "cat_01J8C0000000000000000000"
+      "cat_01J8A000000000000000000000",
+      "cat_01J8C000000000000000000000"
     ],
     "path_codes": ["integrated-circuits", "amplifiers"],
     "is_active": true,
@@ -378,21 +381,21 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
     "published_at": "2026-10-06T00:00:00Z",
     "data_version": 3,
     "parent": {
-      "category_id": "cat_01J8A0000000000000000000",
+      "category_id": "cat_01J8A000000000000000000000",
       "category_code": "integrated-circuits",
       "name": "Integrated Circuits",
       "level": 1
     },
     "children": [
       {
-        "category_id": "cat_01J8D0000000000000000000",
+        "category_id": "cat_01J8D000000000000000000000",
         "category_code": "general-purpose-op-amps",
         "name": "General Purpose Op Amps",
         "level": 3
       }
     ]
   },
-  "request_id": "req_01J8Z9K2VB",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQR2",
   "meta": {
     "children_truncated": false,
     "children_max_inline": 200
@@ -409,7 +412,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8Z9K2V3ABCDEFGHJKMN/categories HTTP/1.1
+GET /api/v1/products/prd_01J8Z9K2V3ABCDEFGHJKMNPQRS/categories HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -421,12 +424,12 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 0,
   "message": "ok",
   "data": {
-    "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMN",
-    "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMN",
+    "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMNPQRS",
+    "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMNPQRS",
     "taxonomy_version": 42,
     "categories": [
       {
-        "category_id": "cat_01J8D0000000000000000000",
+        "category_id": "cat_01J8D000000000000000000000",
         "category_code": "general-purpose-op-amps",
         "role": "PRIMARY",
         "assignment_source": "MANUAL",
@@ -435,7 +438,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
         "assigned_at": "2026-11-10T08:00:00Z"
       },
       {
-        "category_id": "cat_01J8E0000000000000000000",
+        "category_id": "cat_01J8E000000000000000000000",
         "category_code": "low-power-op-amps",
         "role": "SECONDARY",
         "assignment_source": "PARSER",
@@ -445,7 +448,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
       }
     ]
   },
-  "request_id": "req_01J8Z9K2VC",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQR3",
   "meta": {}
 }
 ```
@@ -455,6 +458,37 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 - 只返回 `status=APPROVED` 的边。
 - 同一 `taxonomy_id` 下最多一个 `PRIMARY`（`OPEN` IQ-04）。
 - 这里的 `category_id` 是 **Ds Bit 分类 ID**，绝不能直接写入 `snsii_product.BigCat/SmallCat`。
+- **授权门禁（回应 R4）**：调用者需要 `product.category.read`，且产品必须为 `RELEASE_APPROVED`；
+  该端点不得绕过产品详情门禁。未发布产品在无 `product.publish.read` 时返回 403（见 EX-07b）。
+
+## EX-07b 产品分类归属：未发布产品被拒（构造样例）
+
+**请求**
+
+```http
+GET /api/v1/products/prd_01J8Z9K2V3ABCDEFGHJKMNPQRT/categories HTTP/1.1
+Host: dsbit.example.com
+Authorization: Bearer <REDACTED_ACCESS_TOKEN>
+```
+
+**响应 `403 Forbidden`**
+
+```json
+{
+  "code": 40302,
+  "message": "product is not released for external access",
+  "data": null,
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQR4",
+  "meta": {
+    "error_key": "PRODUCT_NOT_RELEASED",
+    "retryable": false,
+    "degraded_allowed": true
+  }
+}
+```
+
+说明：仅持 `product.category.read` 时无法读取未发布产品的分类边；内部客户端需同时具备
+`product.publish.read` 并显式传 `internal_only=true`（主文档 §4.4 规则 4）。
 
 ---
 
@@ -463,7 +497,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 **请求**
 
 ```http
-GET /api/v1/taxonomies/tax_01J8Z9K2V3ABCDEFGHJKMN/version HTTP/1.1
+GET /api/v1/taxonomies/tax_01J8Z9K2V3ABCDEFGHJKMNPQRS/version HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -475,14 +509,14 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 0,
   "message": "ok",
   "data": {
-    "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMN",
+    "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMNPQRS",
     "taxonomy_version": 42,
     "status": "PUBLISHED",
     "published_at": "2026-11-15T06:00:00Z",
     "etag": "\"sha256:9f2c0b7d...\"",
-    "last_change_id": "chg_01J8F0000000000000000000"
+    "last_change_id": "chg_01J8F000000000000000000000"
   },
-  "request_id": "req_01J8Z9K2VD",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQR4",
   "meta": {}
 }
 ```
@@ -496,7 +530,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 **请求**
 
 ```http
-GET /api/v1/taxonomies/tax_01J8Z9K2V3ABCDEFGHJKMN/changes?since_version=40&limit=50 HTTP/1.1
+GET /api/v1/taxonomies/tax_01J8Z9K2V3ABCDEFGHJKMNPQRS/changes?since_version=40&limit=50 HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -508,27 +542,27 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 0,
   "message": "ok",
   "data": {
-    "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMN",
+    "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMNPQRS",
     "since_version": 40,
     "taxonomy_version": 42,
     "changes": [
       {
-        "change_id": "chg_01J8F0000000000000000000",
+        "change_id": "chg_01J8F000000000000000000000",
         "taxonomy_version": 41,
         "event": "CATEGORY_MERGED",
         "occurred_at": "2026-11-14T02:00:00Z",
-        "category_id": "cat_01J8X0000000000000000000",
+        "category_id": "cat_01J8X000000000000000000000",
         "payload": {
-          "merged_into": "cat_01J8Y0000000000000000000",
+          "merged_into": "cat_01J8Y000000000000000000000",
           "reason": "duplicate definition"
         }
       },
       {
-        "change_id": "chg_01J8G0000000000000000000",
+        "change_id": "chg_01J8G000000000000000000000",
         "taxonomy_version": 42,
         "event": "CATEGORY_RENAMED",
         "occurred_at": "2026-11-15T06:00:00Z",
-        "category_id": "cat_01J8C0000000000000000000",
+        "category_id": "cat_01J8C000000000000000000000",
         "payload": {
           "old_name": "Amplifier",
           "new_name": "Amplifiers"
@@ -536,7 +570,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
       }
     ]
   },
-  "request_id": "req_01J8Z9K2VE",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQR5",
   "meta": {
     "limit": 50,
     "next_cursor": null,
@@ -556,7 +590,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 **请求**
 
 ```http
-GET /api/v1/categories/cat_01J8X0000000000000000000 HTTP/1.1
+GET /api/v1/categories/cat_01J8X000000000000000000000 HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -568,26 +602,26 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 0,
   "message": "ok",
   "data": {
-    "category_id": "cat_01J8X0000000000000000000",
-    "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMN",
-    "parent_id": "cat_01J8A0000000000000000000",
+    "category_id": "cat_01J8X000000000000000000000",
+    "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMNPQRS",
+    "parent_id": "cat_01J8A000000000000000000000",
     "category_code": "op-amps-legacy",
     "name": "Op Amps (Legacy)",
     "level": 2,
     "path_ids": [
-      "cat_01J8A0000000000000000000",
-      "cat_01J8X0000000000000000000"
+      "cat_01J8A000000000000000000000",
+      "cat_01J8X000000000000000000000"
     ],
     "path_codes": ["integrated-circuits", "op-amps-legacy"],
     "is_active": false,
     "status": "DEPRECATED",
-    "merged_into": "cat_01J8Y0000000000000000000",
+    "merged_into": "cat_01J8Y000000000000000000000",
     "split_into": [],
     "deprecated_at": "2026-11-14T02:00:00Z",
     "updated_at": "2026-11-14T02:00:00Z",
     "data_version": 9
   },
-  "request_id": "req_01J8Z9K2VF",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQR6",
   "meta": {}
 }
 ```
@@ -599,11 +633,11 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 41002,
   "message": "Category retired",
   "data": {
-    "category_id": "cat_01J8X0000000000000000000",
+    "category_id": "cat_01J8X000000000000000000000",
     "retired_at": "2027-05-13T00:00:00Z",
-    "merged_into": "cat_01J8Y0000000000000000000"
+    "merged_into": "cat_01J8Y000000000000000000000"
   },
-  "request_id": "req_01J8Z9K2VG",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQR7",
   "meta": {
     "error_key": "CATEGORY_RETIRED",
     "retryable": false,
@@ -627,7 +661,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8Z9K2V3ABCDEFGHJKMN HTTP/1.1
+GET /api/v1/products/prd_01J8Z9K2V3ABCDEFGHJKMNPQRS HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 Accept: application/json
@@ -638,7 +672,7 @@ Accept: application/json
 ```http
 ETag: "sha256:7a1d3e9b..."
 X-Data-Version: 7
-X-Request-Id: req_01J8Z9K2VH
+X-Request-Id: req_01J8Z9K2V3ABCDEFGHJKMNPQR8
 ```
 
 ```json
@@ -646,7 +680,7 @@ X-Request-Id: req_01J8Z9K2VH
   "code": 0,
   "message": "ok",
   "data": {
-    "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMN",
+    "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMNPQRS",
     "identity": {
       "mpn": "LM358DR",
       "mpn_norm": "LM358DR",
@@ -659,7 +693,7 @@ X-Request-Id: req_01J8Z9K2VH
       "parameter_set_version": 7,
       "parameters": [
         {
-          "parameter_id": "par_01J8H0000000000000000000",
+          "parameter_id": "par_01J8H000000000000000000000",
           "name": "Supply Voltage",
           "category": "ELECTRICAL",
           "value": null,
@@ -669,10 +703,10 @@ X-Request-Id: req_01J8Z9K2VH
           "unit": "V",
           "conditions": "TA = 25 C",
           "verification_status": "VERIFIED",
-          "evidence_ids": ["ev_01J8J0000000000000000000"]
+          "evidence_ids": ["ev_01J8J000000000000000000000"]
         },
         {
-          "parameter_id": "par_01J8K0000000000000000000",
+          "parameter_id": "par_01J8K000000000000000000000",
           "name": "Input Offset Voltage",
           "category": "ELECTRICAL",
           "value": null,
@@ -682,7 +716,7 @@ X-Request-Id: req_01J8Z9K2VH
           "unit": "mV",
           "conditions": "VCC = 5 V, TA = 25 C",
           "verification_status": "AUDITED",
-          "evidence_ids": ["ev_01J8M0000000000000000000"]
+          "evidence_ids": ["ev_01J8M000000000000000000000"]
         }
       ],
       "normalization": {
@@ -691,10 +725,10 @@ X-Request-Id: req_01J8Z9K2VH
       }
     },
     "categories": {
-      "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMN",
+      "taxonomy_id": "tax_01J8Z9K2V3ABCDEFGHJKMNPQRS",
       "refs": [
         {
-          "category_id": "cat_01J8D0000000000000000000",
+          "category_id": "cat_01J8D000000000000000000000",
           "role": "PRIMARY",
           "assigned_at": "2026-11-10T08:00:00Z"
         }
@@ -703,7 +737,7 @@ X-Request-Id: req_01J8Z9K2VH
     },
     "documents": [
       {
-        "document_id": "doc_01J8N0000000000000000000",
+        "document_id": "doc_01J8N000000000000000000000",
         "document_sha256": "059d448c5a34a4b1e0f1c2d3b4a5968778695a4b3c2d1e0f9a8b7c6d5e4f3a21",
         "document_type": "datasheet",
         "page_count": 24
@@ -711,14 +745,14 @@ X-Request-Id: req_01J8Z9K2VH
     ],
     "release": {
       "content_version": 7,
-      "release_id": "rel_01J8P0000000000000000000",
+      "release_id": "rel_01J8P000000000000000000000",
       "release_version": 3,
       "released_at": "2026-11-12T10:00:00Z"
     },
     "updated_at": "2026-11-12T10:00:00Z",
     "data_version": 7
   },
-  "request_id": "req_01J8Z9K2VH",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQR8",
   "meta": {}
 }
 ```
@@ -737,7 +771,7 @@ X-Request-Id: req_01J8Z9K2VH
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8Q0000000000000000000 HTTP/1.1
+GET /api/v1/products/prd_01J8Q000000000000000000000 HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -749,10 +783,10 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 40302,
   "message": "Product data is not released",
   "data": {
-    "product_id": "prd_01J8Q0000000000000000000",
+    "product_id": "prd_01J8Q000000000000000000000",
     "visible_state": "PENDING"
   },
-  "request_id": "req_01J8Z9K2VJ",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQR9",
   "meta": {
     "error_key": "PRODUCT_NOT_RELEASED",
     "retryable": false,
@@ -774,7 +808,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8R0000000000000000000 HTTP/1.1
+GET /api/v1/products/prd_01J8R000000000000000000000 HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -786,13 +820,13 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 41001,
   "message": "Product release revoked",
   "data": {
-    "product_id": "prd_01J8R0000000000000000000",
-    "release_id": "rel_01J8S0000000000000000000",
+    "product_id": "prd_01J8R000000000000000000000",
+    "release_id": "rel_01J8S000000000000000000000",
     "release_version": 2,
     "revoked_at": "2026-11-16T00:00:00Z",
     "reason_code": "CONTENT_WITHDRAWN"
   },
-  "request_id": "req_01J8Z9K2VK",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQRA",
   "meta": {
     "error_key": "PRODUCT_RELEASE_REVOKED",
     "retryable": false,
@@ -810,7 +844,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8Z9K2V3ABCDEFGHJKMN/status HTTP/1.1
+GET /api/v1/products/prd_01J8Z9K2V3ABCDEFGHJKMNPQRS/status HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -822,7 +856,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 0,
   "message": "ok",
   "data": {
-    "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMN",
+    "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMNPQRS",
     "gates": {
       "pipeline": {
         "state": "PASS",
@@ -832,11 +866,11 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
       "content": {
         "state": "APPROVED",
         "approved_at": "2026-11-12T09:30:00Z",
-        "approval_ref": "apr_01J8T0000000000000000000"
+        "approval_ref": "apr_01J8T000000000000000000000"
       },
       "release": {
         "state": "APPROVED",
-        "release_id": "rel_01J8P0000000000000000000",
+        "release_id": "rel_01J8P000000000000000000000",
         "release_version": 3,
         "released_at": "2026-11-12T10:00:00Z"
       }
@@ -850,7 +884,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
     },
     "updated_at": "2026-11-12T10:00:00Z"
   },
-  "request_id": "req_01J8Z9K2VM",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQRB",
   "meta": {}
 }
 ```
@@ -864,7 +898,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8Z9K2V3ABCDEFGHJKMN/versions?limit=2 HTTP/1.1
+GET /api/v1/products/prd_01J8Z9K2V3ABCDEFGHJKMNPQRS/versions?limit=2 HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -876,7 +910,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 0,
   "message": "ok",
   "data": {
-    "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMN",
+    "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMNPQRS",
     "items": [
       {
         "content_version": 7,
@@ -898,7 +932,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
       }
     ]
   },
-  "request_id": "req_01J8Z9K2VN",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQRC",
   "meta": {
     "limit": 2,
     "next_cursor": "eyJ2Ijo2fQ",
@@ -916,7 +950,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8Z9K2V3ABCDEFGHJKMN/evidence HTTP/1.1
+GET /api/v1/products/prd_01J8Z9K2V3ABCDEFGHJKMNPQRS/evidence HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 ```
@@ -928,11 +962,11 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "code": 0,
   "message": "ok",
   "data": {
-    "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMN",
+    "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMNPQRS",
     "document_sha256": "059d448c5a34a4b1e0f1c2d3b4a5968778695a4b3c2d1e0f9a8b7c6d5e4f3a21",
     "items": [
       {
-        "evidence_id": "ev_01J8J0000000000000000000",
+        "evidence_id": "ev_01J8J000000000000000000000",
         "evidence_type": "CELL_TEXT",
         "page_number": 7,
         "table_id": "tbl_3",
@@ -945,7 +979,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
       }
     ]
   },
-  "request_id": "req_01J8Z9K2VP",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQRD",
   "meta": {
     "truncated": false
   }
@@ -977,7 +1011,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
   "data": {
     "items": [
       {
-        "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMN",
+        "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMNPQRS",
         "mpn": "LM358DR",
         "mpn_norm": "LM358DR",
         "manufacturer": "Example Semiconductor",
@@ -988,7 +1022,7 @@ Authorization: Bearer <REDACTED_ACCESS_TOKEN>
       }
     ]
   },
-  "request_id": "req_01J8Z9K2VQ",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQRE",
   "meta": {"limit": 10, "next_cursor": null, "has_more": false}
 }
 ```
@@ -1006,7 +1040,7 @@ GET /api/v1/products/search?updated_since=2026-11-12T00:00:00Z&release_state=REL
   "data": {
     "items": [
       {
-        "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMN",
+        "product_id": "prd_01J8Z9K2V3ABCDEFGHJKMNPQRS",
         "mpn": "LM358DR",
         "mpn_norm": "LM358DR",
         "visible_state": "RELEASED",
@@ -1015,7 +1049,7 @@ GET /api/v1/products/search?updated_since=2026-11-12T00:00:00Z&release_state=REL
       }
     ]
   },
-  "request_id": "req_01J8Z9K2VR",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQRF",
   "meta": {
     "limit": 200,
     "next_cursor": "eyJ2Ijo3LCJpZCI6InByZF8wMUo4In0",
@@ -1037,14 +1071,14 @@ GET /api/v1/products/search?updated_since=2026-11-15T00:00:00Z&release_state=REV
   "data": {
     "items": [
       {
-        "product_id": "prd_01J8R0000000000000000000",
+        "product_id": "prd_01J8R000000000000000000000",
         "mpn": "EXAMPLE-999",
         "visible_state": "REVOKED",
         "revoked_at": "2026-11-16T00:00:00Z"
       }
     ]
   },
-  "request_id": "req_01J8Z9K2VS",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQRG",
   "meta": {"limit": 200, "next_cursor": null, "has_more": false}
 }
 ```
@@ -1062,7 +1096,7 @@ GET /api/v1/products/search?updated_since=2026-11-15T00:00:00Z&release_state=REV
   "code": 40001,
   "message": "limit must be between 1 and 200",
   "data": null,
-  "request_id": "req_01J8Z9K2VT",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQRH",
   "meta": {
     "error_key": "INVALID_ARGUMENT",
     "retryable": false,
@@ -1079,7 +1113,7 @@ GET /api/v1/products/search?updated_since=2026-11-15T00:00:00Z&release_state=REV
   "code": 40002,
   "message": "Unknown query parameter: foo",
   "data": null,
-  "request_id": "req_01J8Z9K2VV",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQRJ",
   "meta": {
     "error_key": "UNKNOWN_FILTER",
     "retryable": false,
@@ -1096,7 +1130,7 @@ GET /api/v1/products/search?updated_since=2026-11-15T00:00:00Z&release_state=REV
   "code": 40401,
   "message": "Product not found",
   "data": null,
-  "request_id": "req_01J8Z9K2VW",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQRK",
   "meta": {
     "error_key": "PRODUCT_NOT_FOUND",
     "retryable": false,
@@ -1112,7 +1146,7 @@ GET /api/v1/products/search?updated_since=2026-11-15T00:00:00Z&release_state=REV
   "code": 50001,
   "message": "Internal server error",
   "data": null,
-  "request_id": "req_01J8Z9K2VX",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQRM",
   "meta": {
     "error_key": "INTERNAL_ERROR",
     "retryable": true,
@@ -1130,7 +1164,7 @@ GET /api/v1/products/search?updated_since=2026-11-15T00:00:00Z&release_state=REV
 **请求**
 
 ```http
-GET /api/v1/products/prd_01J8Z9K2V3ABCDEFGHJKMN HTTP/1.1
+GET /api/v1/products/prd_01J8Z9K2V3ABCDEFGHJKMNPQRS HTTP/1.1
 Host: dsbit.example.com
 Authorization: Bearer <REDACTED_ACCESS_TOKEN>
 If-None-Match: "sha256:7a1d3e9b..."
@@ -1141,7 +1175,7 @@ If-None-Match: "sha256:7a1d3e9b..."
 ```http
 ETag: "sha256:7a1d3e9b..."
 X-Data-Version: 7
-X-Request-Id: req_01J8Z9K2VY
+X-Request-Id: req_01J8Z9K2V3ABCDEFGHJKMNPQRN
 ```
 
 无响应体。
@@ -1159,7 +1193,7 @@ Retry-After: 12
 X-RateLimit-Limit: 60
 X-RateLimit-Remaining: 0
 X-RateLimit-Reset: 1763352000
-X-Request-Id: req_01J8Z9K2VZ
+X-Request-Id: req_01J8Z9K2V3ABCDEFGHJKMNPQRP
 ```
 
 ```json
@@ -1167,7 +1201,7 @@ X-Request-Id: req_01J8Z9K2VZ
   "code": 42901,
   "message": "Rate limit exceeded",
   "data": null,
-  "request_id": "req_01J8Z9K2VZ",
+  "request_id": "req_01J8Z9K2V3ABCDEFGHJKMNPQRP",
   "meta": {
     "error_key": "RATE_LIMITED",
     "retryable": true,
@@ -1198,8 +1232,8 @@ INSERT INTO dsbit_category_mapping (
   valid_from, valid_to,
   created_at, updated_at
 ) VALUES (
-  'tax_01J8Z9K2V3ABCDEFGHJKMN',
-  'cat_01J8D0000000000000000000',
+  'tax_01J8Z9K2V3ABCDEFGHJKMNPQRS',
+  'cat_01J8D000000000000000000000',
   'LEGACY_SNSII', 102,
   'EXACT', 1,
   'APPROVED', 'MANUAL',
@@ -1222,8 +1256,8 @@ INSERT INTO dsbit_category_mapping (
   valid_from, valid_to,
   created_at, updated_at
 ) VALUES (
-  'tax_01J8Z9K2V3ABCDEFGHJKMN',
-  'cat_01J8E0000000000000000000',
+  'tax_01J8Z9K2V3ABCDEFGHJKMNPQRS',
+  'cat_01J8E000000000000000000000',
   'LEGACY_SNSII', 102,
   'AGGREGATE', 0,
   'PROPOSED', 'SEED',
@@ -1246,8 +1280,8 @@ INSERT INTO dsbit_category_mapping (
   valid_from, valid_to,
   created_at, updated_at
 ) VALUES (
-  'tax_01J8Z9K2V3ABCDEFGHJKMN',
-  'cat_01J8G0000000000000000000',
+  'tax_01J8Z9K2V3ABCDEFGHJKMNPQRS',
+  'cat_01J8G000000000000000000000',
   'LEGACY_SNSII', 0,
   'MANUAL', 0,
   'UNMAPPED', 'IMPORT',
@@ -1280,9 +1314,9 @@ INSERT INTO dsbit_sync_state (
   last_error_key, last_error_at,
   consecutive_failures, status, updated_at
 ) VALUES (
-  'taxonomy:tax_01J8Z9K2V3ABCDEFGHJKMN',
+  'taxonomy:tax_01J8Z9K2V3ABCDEFGHJKMNPQRS',
   'TAXONOMY',
-  'tax_01J8Z9K2V3ABCDEFGHJKMN',
+  'tax_01J8Z9K2V3ABCDEFGHJKMNPQRS',
   NULL,
   '"sha256:9f2c0b7d..."',
   '42',

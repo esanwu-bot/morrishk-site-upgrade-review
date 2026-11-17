@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-INT-001-OQ |
-| 版本 | v1.0（首版送审，未冻结） |
+| 版本 | v1.1（与主文档同步版本号；问题与裁定状态未变） |
 | 日期 | 2026-11-17 |
 | 关联文档 | `Ds Bit ↔ Morrishk Business API Integration Design v1.md`（主文档）；`API_CONTRACT_EXAMPLES.md` |
 | 状态 | 全部 `OPEN`；本文档**不做**单方裁定，只登记问题、证据、选项与建议 |
