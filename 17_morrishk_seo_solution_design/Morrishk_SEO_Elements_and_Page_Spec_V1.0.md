@@ -6,8 +6,15 @@
 | 编制日期 | 2026-11-19 |
 | 适用项目 | morrishk.net 升级项目 · 前台技术 SEO |
 | 当前状态 | **待 Reviewer 审核**；不是需求冻结、不是开发批准、不是上线授权 |
-| 配套文件 | `Morrishk_SEO_Elements_and_Page_Spec_V1.0.xlsx`、`Morrishk_SEO_Evidence_Index_V1.0.md` |
+| 配套文件 | `Morrishk_SEO_Elements_and_Page_Spec_V1.0.xlsx`、`Morrishk_SEO_Evidence_Index_V1.0.md`、`Morrishk_SEO_SelfCheck_V1.0.md`、`Morrishk_SEO_Sheet2_Row_Stats_V1.0.csv` |
 | 参考样本 | `E:\workspace\seocases\lcsc.com\seo元素及其作用一览表.xlsx`（只参考元素组织方式与分析深度，不照搬栏目与业务结构） |
+
+## 0. Reviewer 初审修订记录（2026-11-19）
+
+1. Sheet 2 增加“裁定依赖/签署状态”列；逐行统计 308 条，明确当前状态/证据等级/优先级三个维度独立、各自合计 308。
+2. 修正 IQ-01/IQ-02 的状态表达：`DECIDED`（已登记）但未签署、未独立验收；仅作设计依据，正式生效待签署；7 条依赖行逐行标记。
+3. 新增程序化自检 `Morrishk_SEO_SelfCheck_V1.0.md` 与 308 行明细 `Morrishk_SEO_Sheet2_Row_Stats_V1.0.csv`；不修改应用代码、不改变 SEO 方案范围。
+4. 未改变页面类型、元素数量、验收清单与待确认事项范围。
 
 ---
 
@@ -29,7 +36,7 @@
 12. 新平台工程 `E:\workspace\独立站\morries\platform`（Next.js 16 组件层与路由辅助，尚无 `page.tsx` / `layout.tsx`）
 13. 用户提供的 LCSC SEO Excel 截图与任务书
 
-资料优先级：已确认项目决策与客户范围 > 已批准页面规划 > 实际代码现状 > 本 Agent 规划建议。LCSC 仅作参考。
+资料优先级：已确认项目决策与客户范围 > 已批准页面规划 > 实际代码现状 > 本 Agent 规划建议。IQ-01/IQ-02 属于“已登记、未签署”的裁定，只能作为当前设计依据，正式生效待签署；不作为已正式批准的项目决策。LCSC 仅作参考。
 
 ---
 
@@ -82,7 +89,7 @@
 
 ### 3.3 商品详情与发布门禁
 
-- 商品业务身份为 `(mpn_norm, brand_norm)`，不是 document_id（IQ-01 §9.1）。
+- 商品业务身份为 `(mpn_norm, brand_norm)`，不是 document_id（IQ-01 §9.1）。**该裁定目前为 DECIDED（已登记）、未签署、未独立验收；本规范仅将其作为设计依据，正式生效待签署。**
 - 只有满足 `RELEASE_APPROVED` 的商品可作为正式公开详情页；`PIPELINE_PASS`、`CONTENT_APPROVED` 不得等同发布（总规划 §2；09 库存清单 §5）。
 - 当前服务端三层门禁尚无持久化实现，仅有 HTML 原型演示（09 库存清单:174-179）；因此“发布门禁”在本规范中标记为待确认/待开发。
 - PDP 索引按 Tier A–E 执行：A/B 进 Sitemap；C 可索引但不进 Sitemap；D `noindex,follow`；E 保留可索引但不进 Sitemap（技术方案 §8.4）。
@@ -90,7 +97,7 @@
 ### 3.4 URL 与历史兼容
 
 - Morrishk 自己控制公开 URL、canonical 与 301。
-- `category_id`、`document_id` 不进入公开 URL；业务导航分类与技术参数分类严格分离（IQ-02 §10.1）。
+- `category_id`、`document_id` 不进入公开 URL；业务导航分类与技术参数分类严格分离（IQ-02 §10.1）。**该裁定目前为 DECIDED（已登记）、未签署、未独立验收；本规范仅将其作为设计依据，正式生效待签署。**
 - 分类映射变化不得自动触发 URL 变更或 301；301 只用于人工确认的语义等价迁移。
 - 旧站 URL 为 `.html` 形态（如 `/products/{8位ID}/{PartUrl}.html`），新站 URL 形态变化必须依赖独立 `legacy-url-redirects.csv`；当前该文件只有表头/注释，无实际映射，标记为待确认。
 - 未知商品/分类必须返回 404/410，不得返回 200 软 404；旧站 `die('error')` 行为必须在迁移中修复。
@@ -128,7 +135,7 @@
 | Sheet | 内容 | 规模 |
 |---|---|---|
 | 1-项目SEO总览 | 11 类页面：用途、归属、索引、Canonical、Schema、OG、多语言、Sitemap、优先级、规划状态、待确认 | 11 行 |
-| 2-页面SEO元素明细 | 11 类页面 × 28 项 = 308 条；每条含标签、示例、作用、必需性、实现位置、数据源、验收方法、当前状态、证据等级、优先级 | 308 行 |
+| 2-页面SEO元素明细 | 11 类页面 × 28 项 = 308 条；每条含标签、示例、作用、必需性、实现位置、数据源、验收方法、当前状态、证据等级、优先级、裁定依赖/签署状态 | 308 行 |
 | 3-Title与Description规划 | 每类页面的 Title/Description 模板、示例、变量、长度、重复风险、生成位置、验收 | 11 行 |
 | 4-JSON-LD结构化数据规划 | Organization、WebSite、BreadcrumbList、CollectionPage、ItemList、Product、Offer、Article、AboutPage、ContactPage 及不适用项 | 15 行 |
 | 5-URL与索引规则 | Home、PLP、Category、PDP、Search、Brand、Inquiry、Blog、Static、分页、筛选、删除、Sitemap、robots、发布门禁、旧 URL 迁移 | 19 行 |
@@ -152,11 +159,13 @@
 
 ### 5.2 证据等级（Sheet 2“证据等级”）
 
-- `已确认`：项目资料/决策明确规定（如技术方案 §8.3.2、IQ-01）。
+- `已确认`：项目资料/规则明确规定；**只表示资料依据存在，不等于已签署、已批准、已实现或已验收**。
 - `现状已实现`：有实际代码证据；`Evidence Index` 给出文件与行号。
 - `规划建议`：Agent 根据项目需求提出，未获批准。
 - `待确认`：缺少项目决策或业务资料。
 - `不适用`：该页面类型不需要该元素。
+
+> 说明：证据等级是“依据类型”，不是审批状态。依赖 IQ-01/IQ-02 的行在 Sheet 2 最后一列另标“已登记未签署”，不因证据等级为 `已确认` 而视为正式批准。
 
 ### 5.3 本轮代码证据边界
 
@@ -164,6 +173,28 @@
 - “已有”仅表示代码快照中存在；“线上实时可用”未被验证，不写成本轮结论。
 - Next.js 前台 `platform/web/src/app` 当前只有 `globals.css`，没有 `page.tsx`/`layout.tsx`；因此所有 Next.js SEO 输出均为“待开发”。
 - 旧站 sitemap/robots 命令存在，但快照中无生成后的 `sitemap/` 目录，线上是否运行未验证（FE-49）。
+
+### 5.4 统计口径（Sheet 2，308 行逐行统计）
+
+**维度关系：**“当前状态”“证据等级”“优先级”是三个独立维度，每行在每个维度各取一个值。同一维度内互斥（合计 308）；跨维度不是互斥关系（同一行可以同时是“部分已有 + 现状已实现 + P1”）。
+
+| 维度 | 取值与计数 | 合计 |
+|---|---|---|
+| 当前状态 | 已有 71；部分已有 93；待开发 106；待确认 11；不适用 27 | 308 |
+| 证据等级 | 现状已实现 164；已确认 95；规划建议 11；待确认 11；不适用 27 | 308 |
+| 优先级 | P0 106；P1 141；P2 61 | 308 |
+
+**关于 IQ 依赖：**共 **7 条**（PDP 4 + CATEGORY 3）依赖 IQ-01/IQ-02，已在 Sheet 2“裁定依赖/签署状态”列标注“已登记未签署”。按证据等级拆分：`已确认 95` 中有 **5 条**、`现状已实现 164` 中有 **2 条**；其余 `已确认 90` 条与 `现状已实现 162` 条不依赖 IQ 裁定。`已确认` 只表示资料依据存在，**不表示裁定已签署或项目已批准**。
+
+逐行明细见 `Morrishk_SEO_Sheet2_Row_Stats_V1.0.csv`（308 行，含每行状态/证据/优先级/IQ 标记）；程序化自检见 `Morrishk_SEO_SelfCheck_V1.0.md`。
+
+### 5.5 IQ-01 / IQ-02 裁定状态
+
+- IQ-01（MPN + Brand 产品身份）与 IQ-02（业务导航分类与技术分类分离）当前均为 **`DECIDED`（已登记）、未签署、未独立验收**；`DECIDED` ≠ 已签署 ≠ 已验收。
+- 本规范仅将两项裁定作为**当前设计依据**，用于说明身份/分类的预期方向；**正式生效待签署**。
+- Sheet 2 中受影响的行：PDP 的 Canonical、JSON-LD、URL 规范化、重复内容控制；CATEGORY 的 Canonical、URL 规范化、重复内容控制，共 7 行，最后一列标记“IQ-01/IQ-02 已登记未签署”。
+- 在获得书面签署前：不得据 IQ 裁定执行 URL 变更、301、数据迁移或生产实现；若裁定调整或撤回，上述 7 行必须重新评审。
+- 依据：`14_phase0_authority_adjudication/IQ01_PRODUCT_IDENTITY_ADJUDICATION.md` §9（“独立 Reviewer 验收未完成，签署待补”）、`IQ02_TAXONOMY_AUTHORITY_ADJUDICATION.md` §10（同前）、`16_contract_freeze_readiness/FREEZE_READINESS_REVIEW.md`（`NOT_READY`）。
 
 ---
 
@@ -203,11 +234,9 @@
 | 页面类型 | **11** |
 | 每页元素 | **28** |
 | 元素明细总条数 | **308** |
-| 现状已实现（含代码证据） | **164** 条（164/308，53.2%） |
-| 已确认规则 | **95** 条 |
-| 规划建议 | **11** 条 |
-| 待确认项（元素级） | **11** 条 |
-| 不适用项 | **27** 条 |
+| 当前状态 | 已有 71 / 部分已有 93 / 待开发 106 / 待确认 11 / 不适用 27 |
+| 证据等级 | 现状已实现 164 / 已确认 95 / 规划建议 11 / 待确认 11 / 不适用 27 |
+| 其中 IQ 依赖行 | **7**（PDP 4 + CATEGORY 3，均标“已登记未签署”） |
 | 优先级 | P0 106 / P1 141 / P2 61 |
 | 验收检查项 | **37** 项 |
 | URL/索引规则 | **19** 条 |
@@ -217,12 +246,14 @@
 
 自检结果：
 
-1. 11 类页面均有独立 28 项分析，无空白必填字段。
-2. Title/Description/Schema/Canonical/Hreflang 无相互矛盾；第一阶段 hreflang 统一标记“不适用（仅 en）”。
-3. 商品详情发布门禁已写入 PDP、URL 规则、验收清单与待确认项，未被绕过。
-4. 旧 URL 兼容要求已纳入 URL 规则与待确认项；映射清单缺失被明确标注。
-5. 所有“现状已实现”均在 Evidence Index 中给出文件/行号或章节。
-6. 工作簿可正常打开、筛选、编辑；Markdown 与 Excel 页面范围一致。
+1. 11 类页面 × 28 项 = 308 行；Sheet 2 序号 1–308 连续，无空白必填字段。
+2. 三个统计维度各自合计 308；维度内互斥，跨维度不互斥（见 §5.4）。
+3. `已确认 95` 中含 5 条 IQ 依赖、`现状已实现 164` 中含 2 条 IQ 依赖；7 条均标“已登记未签署”，不再把 IQ 裁定写成正式批准。
+4. Title/Description/Schema/Canonical/Hreflang 无相互矛盾；第一阶段 hreflang 统一标记“不适用（仅 en）”。
+5. 商品详情发布门禁已写入 PDP、URL 规则、验收清单与待确认项，未被绕过。
+6. 旧 URL 兼容要求已纳入 URL 规则与待确认项；映射清单缺失被明确标注。
+7. 所有“现状已实现”均在 Evidence Index 中给出文件/行号或章节。
+8. 程序化自检（打开工作簿、公式/筛选/冻结/完整性、308 行统计）见 `Morrishk_SEO_SelfCheck_V1.0.md`，逐行数据见 CSV；不以截图或口头结果替代。
 
 ---
 
@@ -232,7 +263,7 @@
 2. 开发按 `2-页面SEO元素明细` 的实现位置与验收方法落地；`3`/`4` 提供文案与 Schema 模板。
 3. 开发/测试按 `7-SEO验收清单` 逐项验收；状态默认“待验收”，不得口头通过。
 4. 任何涉及 URL、canonical、301、Sitemap、发布门禁、语言清单的改动，先解决 `8-待确认与冲突` 中对应项，再由 Reviewer 审核。
-5. `规划建议` 不等于已批准需求；`已确认` 只代表资料有明确规定，不代表已实现或已验收。
+5. `规划建议` 不等于已批准需求；`已确认` 只代表资料有明确规定，不代表已签署、已实现或已验收。IQ-01/IQ-02 为已登记未签署裁定，正式生效待签署。
 
 ---
 
@@ -241,7 +272,7 @@
 - 本轮未修改任何 Next.js/Yii2/Ds Bit 业务代码、数据库、URL、生产路由、Nginx/CDN/WAF。
 - 未生成或执行任何 301，未向搜索引擎提交 URL，未修改 sitemap。
 - 不承诺搜索排名、收录速度、自然流量或询盘数量。
-- 不把“已实现”写成“已验收”；不把 `PASS_MOCK` 写成契约冻结；不把 `PIPELINE_PASS` 写成发布资格。
+- 不把“已实现”写成“已验收”；不把 `PASS_MOCK` 写成契约冻结；不把 `PIPELINE_PASS` 写成发布资格；不把已登记未签署的 IQ 裁定写成正式批准。
 - 本文件为送审稿；Reviewer 审核通过前，不宣布 SEO 方案冻结或进入开发实施。
 
 ---
@@ -251,6 +282,8 @@
 1. `Morrishk_SEO_Elements_and_Page_Spec_V1.0.xlsx`
 2. `Morrishk_SEO_Elements_and_Page_Spec_V1.0.md`（本文件）
 3. `Morrishk_SEO_Evidence_Index_V1.0.md`
-4. `SHA256SUMS.txt`（三份交付文件的 SHA-256）
+4. `Morrishk_SEO_SelfCheck_V1.0.md`（程序化自检报告）
+5. `Morrishk_SEO_Sheet2_Row_Stats_V1.0.csv`（308 行逐行统计）
+6. `SHA256SUMS.txt`（上述交付文件的 SHA-256）
 
 保存目录：`E:\workspace\独立站\morrishk-site-upgrade-review\17_morrishk_seo_solution_design`

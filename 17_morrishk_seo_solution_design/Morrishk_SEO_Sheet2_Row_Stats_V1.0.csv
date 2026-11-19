@@ -1,0 +1,309 @@
+﻿序号,页面类型代码,页面类型,SEO功能点,当前状态,证据等级,优先级,裁定依赖/签署状态
+1,HOME,首页 Home,HTML lang 与 dir,已有,现状已实现,P1,—
+2,HOME,首页 Home,字符编码,已有,现状已实现,P2,—
+3,HOME,首页 Home,移动端视口,已有,现状已实现,P2,—
+4,HOME,首页 Home,页面标题 Title,已有,现状已实现,P0,—
+5,HOME,首页 Home,Meta Description,已有,现状已实现,P0,—
+6,HOME,首页 Home,Meta Robots,待开发,已确认,P0,—
+7,HOME,首页 Home,Canonical 规范链接,待开发,已确认,P0,—
+8,HOME,首页 Home,Hreflang 多语言互指,不适用,不适用,P1,—
+9,HOME,首页 Home,Open Graph 社交元数据,待开发,已确认,P0,—
+10,HOME,首页 Home,Twitter Card,待开发,规划建议,P2,—
+11,HOME,首页 Home,JSON-LD 结构化数据,待开发,已确认,P0,—
+12,HOME,首页 Home,面包屑结构化数据,不适用,不适用,P1,—
+13,HOME,首页 Home,页面主标题 H1,部分已有,现状已实现,P0,—
+14,HOME,首页 Home,H2/H3 标题层级,部分已有,现状已实现,P2,—
+15,HOME,首页 Home,图片 Alt,部分已有,现状已实现,P1,—
+16,HOME,首页 Home,图片尺寸、格式与加载策略,部分已有,现状已实现,P1,—
+17,HOME,首页 Home,内部链接与导航,已有,现状已实现,P1,—
+18,HOME,首页 Home,可见面包屑导航,不适用,不适用,P2,—
+19,HOME,首页 Home,分页关系与分页 URL,不适用,不适用,P1,—
+20,HOME,首页 Home,XML Sitemap,部分已有,现状已实现,P1,—
+21,HOME,首页 Home,Robots.txt,部分已有,现状已实现,P1,—
+22,HOME,首页 Home,HTTP 状态码,部分已有,现状已实现,P0,—
+23,HOME,首页 Home,301、404、410 规则,待开发,已确认,P0,—
+24,HOME,首页 Home,SSR/预渲染与首屏 HTML 可抓取性,部分已有,现状已实现,P0,—
+25,HOME,首页 Home,页面性能与 Core Web Vitals,待确认,待确认,P1,—
+26,HOME,首页 Home,URL 规范化,部分已有,现状已实现,P0,—
+27,HOME,首页 Home,重复内容控制,待开发,已确认,P0,—
+28,HOME,首页 Home,结构化数据校验,待开发,已确认,P1,—
+29,PLP,商品列表页 Product Listing,HTML lang 与 dir,已有,现状已实现,P1,—
+30,PLP,商品列表页 Product Listing,字符编码,已有,现状已实现,P2,—
+31,PLP,商品列表页 Product Listing,移动端视口,已有,现状已实现,P2,—
+32,PLP,商品列表页 Product Listing,页面标题 Title,已有,现状已实现,P0,—
+33,PLP,商品列表页 Product Listing,Meta Description,已有,现状已实现,P0,—
+34,PLP,商品列表页 Product Listing,Meta Robots,待开发,已确认,P0,—
+35,PLP,商品列表页 Product Listing,Canonical 规范链接,待开发,已确认,P0,—
+36,PLP,商品列表页 Product Listing,Hreflang 多语言互指,不适用,不适用,P1,—
+37,PLP,商品列表页 Product Listing,Open Graph 社交元数据,待开发,已确认,P1,—
+38,PLP,商品列表页 Product Listing,Twitter Card,待开发,规划建议,P2,—
+39,PLP,商品列表页 Product Listing,JSON-LD 结构化数据,待开发,已确认,P1,—
+40,PLP,商品列表页 Product Listing,面包屑结构化数据,待开发,已确认,P1,—
+41,PLP,商品列表页 Product Listing,页面主标题 H1,已有,现状已实现,P0,—
+42,PLP,商品列表页 Product Listing,H2/H3 标题层级,部分已有,现状已实现,P2,—
+43,PLP,商品列表页 Product Listing,图片 Alt,部分已有,现状已实现,P1,—
+44,PLP,商品列表页 Product Listing,图片尺寸、格式与加载策略,部分已有,现状已实现,P1,—
+45,PLP,商品列表页 Product Listing,内部链接与导航,已有,现状已实现,P1,—
+46,PLP,商品列表页 Product Listing,可见面包屑导航,已有,现状已实现,P2,—
+47,PLP,商品列表页 Product Listing,分页关系与分页 URL,部分已有,现状已实现,P1,—
+48,PLP,商品列表页 Product Listing,XML Sitemap,部分已有,现状已实现,P1,—
+49,PLP,商品列表页 Product Listing,Robots.txt,部分已有,现状已实现,P1,—
+50,PLP,商品列表页 Product Listing,HTTP 状态码,部分已有,现状已实现,P0,—
+51,PLP,商品列表页 Product Listing,301、404、410 规则,待开发,已确认,P0,—
+52,PLP,商品列表页 Product Listing,SSR/预渲染与首屏 HTML 可抓取性,部分已有,现状已实现,P0,—
+53,PLP,商品列表页 Product Listing,页面性能与 Core Web Vitals,待确认,待确认,P1,—
+54,PLP,商品列表页 Product Listing,URL 规范化,部分已有,现状已实现,P0,—
+55,PLP,商品列表页 Product Listing,重复内容控制,待开发,已确认,P0,—
+56,PLP,商品列表页 Product Listing,结构化数据校验,待开发,已确认,P1,—
+57,CATEGORY,商品分类页 Category,HTML lang 与 dir,已有,现状已实现,P1,—
+58,CATEGORY,商品分类页 Category,字符编码,已有,现状已实现,P2,—
+59,CATEGORY,商品分类页 Category,移动端视口,已有,现状已实现,P2,—
+60,CATEGORY,商品分类页 Category,页面标题 Title,已有,现状已实现,P0,—
+61,CATEGORY,商品分类页 Category,Meta Description,已有,现状已实现,P0,—
+62,CATEGORY,商品分类页 Category,Meta Robots,待开发,已确认,P0,—
+63,CATEGORY,商品分类页 Category,Canonical 规范链接,待开发,已确认,P0,IQ-02 已登记未签署
+64,CATEGORY,商品分类页 Category,Hreflang 多语言互指,不适用,不适用,P1,—
+65,CATEGORY,商品分类页 Category,Open Graph 社交元数据,待开发,已确认,P1,—
+66,CATEGORY,商品分类页 Category,Twitter Card,待开发,规划建议,P2,—
+67,CATEGORY,商品分类页 Category,JSON-LD 结构化数据,待开发,已确认,P1,—
+68,CATEGORY,商品分类页 Category,面包屑结构化数据,待开发,已确认,P1,—
+69,CATEGORY,商品分类页 Category,页面主标题 H1,待开发,已确认,P0,—
+70,CATEGORY,商品分类页 Category,H2/H3 标题层级,部分已有,现状已实现,P2,—
+71,CATEGORY,商品分类页 Category,图片 Alt,部分已有,现状已实现,P1,—
+72,CATEGORY,商品分类页 Category,图片尺寸、格式与加载策略,部分已有,现状已实现,P1,—
+73,CATEGORY,商品分类页 Category,内部链接与导航,已有,现状已实现,P1,—
+74,CATEGORY,商品分类页 Category,可见面包屑导航,已有,现状已实现,P2,—
+75,CATEGORY,商品分类页 Category,分页关系与分页 URL,部分已有,现状已实现,P1,—
+76,CATEGORY,商品分类页 Category,XML Sitemap,部分已有,现状已实现,P1,—
+77,CATEGORY,商品分类页 Category,Robots.txt,部分已有,现状已实现,P1,—
+78,CATEGORY,商品分类页 Category,HTTP 状态码,部分已有,现状已实现,P0,—
+79,CATEGORY,商品分类页 Category,301、404、410 规则,待开发,已确认,P0,—
+80,CATEGORY,商品分类页 Category,SSR/预渲染与首屏 HTML 可抓取性,部分已有,现状已实现,P0,—
+81,CATEGORY,商品分类页 Category,页面性能与 Core Web Vitals,待确认,待确认,P1,—
+82,CATEGORY,商品分类页 Category,URL 规范化,部分已有,现状已实现,P0,IQ-02 已登记未签署
+83,CATEGORY,商品分类页 Category,重复内容控制,待开发,已确认,P0,IQ-02 已登记未签署
+84,CATEGORY,商品分类页 Category,结构化数据校验,待开发,已确认,P1,—
+85,PDP,商品详情页 Product Detail,HTML lang 与 dir,已有,现状已实现,P1,—
+86,PDP,商品详情页 Product Detail,字符编码,已有,现状已实现,P2,—
+87,PDP,商品详情页 Product Detail,移动端视口,已有,现状已实现,P2,—
+88,PDP,商品详情页 Product Detail,页面标题 Title,已有,现状已实现,P0,—
+89,PDP,商品详情页 Product Detail,Meta Description,已有,现状已实现,P0,—
+90,PDP,商品详情页 Product Detail,Meta Robots,待开发,已确认,P0,—
+91,PDP,商品详情页 Product Detail,Canonical 规范链接,待开发,已确认,P0,IQ-01 已登记未签署
+92,PDP,商品详情页 Product Detail,Hreflang 多语言互指,不适用,不适用,P1,—
+93,PDP,商品详情页 Product Detail,Open Graph 社交元数据,待开发,已确认,P1,—
+94,PDP,商品详情页 Product Detail,Twitter Card,待开发,规划建议,P2,—
+95,PDP,商品详情页 Product Detail,JSON-LD 结构化数据,待开发,已确认,P0,IQ-01 已登记未签署
+96,PDP,商品详情页 Product Detail,面包屑结构化数据,待开发,已确认,P1,—
+97,PDP,商品详情页 Product Detail,页面主标题 H1,部分已有,现状已实现,P0,—
+98,PDP,商品详情页 Product Detail,H2/H3 标题层级,部分已有,现状已实现,P2,—
+99,PDP,商品详情页 Product Detail,图片 Alt,部分已有,现状已实现,P1,—
+100,PDP,商品详情页 Product Detail,图片尺寸、格式与加载策略,部分已有,现状已实现,P1,—
+101,PDP,商品详情页 Product Detail,内部链接与导航,已有,现状已实现,P1,—
+102,PDP,商品详情页 Product Detail,可见面包屑导航,已有,现状已实现,P2,—
+103,PDP,商品详情页 Product Detail,分页关系与分页 URL,不适用,不适用,P1,—
+104,PDP,商品详情页 Product Detail,XML Sitemap,部分已有,现状已实现,P0,—
+105,PDP,商品详情页 Product Detail,Robots.txt,部分已有,现状已实现,P1,—
+106,PDP,商品详情页 Product Detail,HTTP 状态码,部分已有,现状已实现,P0,—
+107,PDP,商品详情页 Product Detail,301、404、410 规则,待开发,已确认,P0,—
+108,PDP,商品详情页 Product Detail,SSR/预渲染与首屏 HTML 可抓取性,部分已有,现状已实现,P0,—
+109,PDP,商品详情页 Product Detail,页面性能与 Core Web Vitals,待确认,待确认,P1,—
+110,PDP,商品详情页 Product Detail,URL 规范化,部分已有,现状已实现,P0,IQ-01 已登记未签署
+111,PDP,商品详情页 Product Detail,重复内容控制,待开发,已确认,P0,IQ-01 已登记未签署
+112,PDP,商品详情页 Product Detail,结构化数据校验,待开发,已确认,P1,—
+113,SEARCH,搜索结果页 Search Results,HTML lang 与 dir,已有,现状已实现,P1,—
+114,SEARCH,搜索结果页 Search Results,字符编码,已有,现状已实现,P2,—
+115,SEARCH,搜索结果页 Search Results,移动端视口,已有,现状已实现,P2,—
+116,SEARCH,搜索结果页 Search Results,页面标题 Title,已有,现状已实现,P2,—
+117,SEARCH,搜索结果页 Search Results,Meta Description,待开发,已确认,P2,—
+118,SEARCH,搜索结果页 Search Results,Meta Robots,待开发,已确认,P0,—
+119,SEARCH,搜索结果页 Search Results,Canonical 规范链接,待开发,已确认,P1,—
+120,SEARCH,搜索结果页 Search Results,Hreflang 多语言互指,不适用,不适用,P1,—
+121,SEARCH,搜索结果页 Search Results,Open Graph 社交元数据,待开发,已确认,P2,—
+122,SEARCH,搜索结果页 Search Results,Twitter Card,待开发,规划建议,P2,—
+123,SEARCH,搜索结果页 Search Results,JSON-LD 结构化数据,不适用,不适用,P1,—
+124,SEARCH,搜索结果页 Search Results,面包屑结构化数据,不适用,不适用,P1,—
+125,SEARCH,搜索结果页 Search Results,页面主标题 H1,待开发,已确认,P0,—
+126,SEARCH,搜索结果页 Search Results,H2/H3 标题层级,部分已有,现状已实现,P2,—
+127,SEARCH,搜索结果页 Search Results,图片 Alt,部分已有,现状已实现,P1,—
+128,SEARCH,搜索结果页 Search Results,图片尺寸、格式与加载策略,部分已有,现状已实现,P1,—
+129,SEARCH,搜索结果页 Search Results,内部链接与导航,已有,现状已实现,P1,—
+130,SEARCH,搜索结果页 Search Results,可见面包屑导航,已有,现状已实现,P2,—
+131,SEARCH,搜索结果页 Search Results,分页关系与分页 URL,部分已有,现状已实现,P1,—
+132,SEARCH,搜索结果页 Search Results,XML Sitemap,不适用,不适用,P1,—
+133,SEARCH,搜索结果页 Search Results,Robots.txt,部分已有,现状已实现,P1,—
+134,SEARCH,搜索结果页 Search Results,HTTP 状态码,部分已有,现状已实现,P0,—
+135,SEARCH,搜索结果页 Search Results,301、404、410 规则,待开发,已确认,P0,—
+136,SEARCH,搜索结果页 Search Results,SSR/预渲染与首屏 HTML 可抓取性,部分已有,现状已实现,P1,—
+137,SEARCH,搜索结果页 Search Results,页面性能与 Core Web Vitals,待确认,待确认,P1,—
+138,SEARCH,搜索结果页 Search Results,URL 规范化,部分已有,现状已实现,P0,—
+139,SEARCH,搜索结果页 Search Results,重复内容控制,待开发,已确认,P0,—
+140,SEARCH,搜索结果页 Search Results,结构化数据校验,不适用,不适用,P1,—
+141,BRAND_LIST,品牌/制造商列表 Brand List,HTML lang 与 dir,已有,现状已实现,P1,—
+142,BRAND_LIST,品牌/制造商列表 Brand List,字符编码,已有,现状已实现,P2,—
+143,BRAND_LIST,品牌/制造商列表 Brand List,移动端视口,已有,现状已实现,P2,—
+144,BRAND_LIST,品牌/制造商列表 Brand List,页面标题 Title,已有,现状已实现,P0,—
+145,BRAND_LIST,品牌/制造商列表 Brand List,Meta Description,待开发,已确认,P0,—
+146,BRAND_LIST,品牌/制造商列表 Brand List,Meta Robots,待开发,已确认,P0,—
+147,BRAND_LIST,品牌/制造商列表 Brand List,Canonical 规范链接,待开发,已确认,P0,—
+148,BRAND_LIST,品牌/制造商列表 Brand List,Hreflang 多语言互指,不适用,不适用,P1,—
+149,BRAND_LIST,品牌/制造商列表 Brand List,Open Graph 社交元数据,待开发,已确认,P1,—
+150,BRAND_LIST,品牌/制造商列表 Brand List,Twitter Card,待开发,规划建议,P2,—
+151,BRAND_LIST,品牌/制造商列表 Brand List,JSON-LD 结构化数据,待开发,已确认,P1,—
+152,BRAND_LIST,品牌/制造商列表 Brand List,面包屑结构化数据,待开发,已确认,P1,—
+153,BRAND_LIST,品牌/制造商列表 Brand List,页面主标题 H1,待开发,已确认,P0,—
+154,BRAND_LIST,品牌/制造商列表 Brand List,H2/H3 标题层级,部分已有,现状已实现,P2,—
+155,BRAND_LIST,品牌/制造商列表 Brand List,图片 Alt,部分已有,现状已实现,P1,—
+156,BRAND_LIST,品牌/制造商列表 Brand List,图片尺寸、格式与加载策略,部分已有,现状已实现,P1,—
+157,BRAND_LIST,品牌/制造商列表 Brand List,内部链接与导航,已有,现状已实现,P1,—
+158,BRAND_LIST,品牌/制造商列表 Brand List,可见面包屑导航,已有,现状已实现,P2,—
+159,BRAND_LIST,品牌/制造商列表 Brand List,分页关系与分页 URL,不适用,不适用,P1,—
+160,BRAND_LIST,品牌/制造商列表 Brand List,XML Sitemap,部分已有,现状已实现,P1,—
+161,BRAND_LIST,品牌/制造商列表 Brand List,Robots.txt,部分已有,现状已实现,P1,—
+162,BRAND_LIST,品牌/制造商列表 Brand List,HTTP 状态码,部分已有,现状已实现,P0,—
+163,BRAND_LIST,品牌/制造商列表 Brand List,301、404、410 规则,待开发,已确认,P0,—
+164,BRAND_LIST,品牌/制造商列表 Brand List,SSR/预渲染与首屏 HTML 可抓取性,部分已有,现状已实现,P0,—
+165,BRAND_LIST,品牌/制造商列表 Brand List,页面性能与 Core Web Vitals,待确认,待确认,P1,—
+166,BRAND_LIST,品牌/制造商列表 Brand List,URL 规范化,部分已有,现状已实现,P0,—
+167,BRAND_LIST,品牌/制造商列表 Brand List,重复内容控制,待开发,已确认,P0,—
+168,BRAND_LIST,品牌/制造商列表 Brand List,结构化数据校验,待开发,已确认,P1,—
+169,BRAND_DETAIL,品牌/制造商详情 Brand Detail,HTML lang 与 dir,已有,现状已实现,P1,—
+170,BRAND_DETAIL,品牌/制造商详情 Brand Detail,字符编码,已有,现状已实现,P2,—
+171,BRAND_DETAIL,品牌/制造商详情 Brand Detail,移动端视口,已有,现状已实现,P2,—
+172,BRAND_DETAIL,品牌/制造商详情 Brand Detail,页面标题 Title,已有,现状已实现,P0,—
+173,BRAND_DETAIL,品牌/制造商详情 Brand Detail,Meta Description,待开发,已确认,P0,—
+174,BRAND_DETAIL,品牌/制造商详情 Brand Detail,Meta Robots,待开发,已确认,P0,—
+175,BRAND_DETAIL,品牌/制造商详情 Brand Detail,Canonical 规范链接,待开发,已确认,P0,—
+176,BRAND_DETAIL,品牌/制造商详情 Brand Detail,Hreflang 多语言互指,不适用,不适用,P1,—
+177,BRAND_DETAIL,品牌/制造商详情 Brand Detail,Open Graph 社交元数据,待开发,已确认,P1,—
+178,BRAND_DETAIL,品牌/制造商详情 Brand Detail,Twitter Card,待开发,规划建议,P2,—
+179,BRAND_DETAIL,品牌/制造商详情 Brand Detail,JSON-LD 结构化数据,待开发,已确认,P1,—
+180,BRAND_DETAIL,品牌/制造商详情 Brand Detail,面包屑结构化数据,待开发,已确认,P1,—
+181,BRAND_DETAIL,品牌/制造商详情 Brand Detail,页面主标题 H1,待开发,已确认,P0,—
+182,BRAND_DETAIL,品牌/制造商详情 Brand Detail,H2/H3 标题层级,部分已有,现状已实现,P2,—
+183,BRAND_DETAIL,品牌/制造商详情 Brand Detail,图片 Alt,部分已有,现状已实现,P1,—
+184,BRAND_DETAIL,品牌/制造商详情 Brand Detail,图片尺寸、格式与加载策略,部分已有,现状已实现,P1,—
+185,BRAND_DETAIL,品牌/制造商详情 Brand Detail,内部链接与导航,已有,现状已实现,P1,—
+186,BRAND_DETAIL,品牌/制造商详情 Brand Detail,可见面包屑导航,待开发,已确认,P2,—
+187,BRAND_DETAIL,品牌/制造商详情 Brand Detail,分页关系与分页 URL,部分已有,现状已实现,P1,—
+188,BRAND_DETAIL,品牌/制造商详情 Brand Detail,XML Sitemap,部分已有,现状已实现,P1,—
+189,BRAND_DETAIL,品牌/制造商详情 Brand Detail,Robots.txt,部分已有,现状已实现,P1,—
+190,BRAND_DETAIL,品牌/制造商详情 Brand Detail,HTTP 状态码,部分已有,现状已实现,P0,—
+191,BRAND_DETAIL,品牌/制造商详情 Brand Detail,301、404、410 规则,待开发,已确认,P0,—
+192,BRAND_DETAIL,品牌/制造商详情 Brand Detail,SSR/预渲染与首屏 HTML 可抓取性,部分已有,现状已实现,P0,—
+193,BRAND_DETAIL,品牌/制造商详情 Brand Detail,页面性能与 Core Web Vitals,待确认,待确认,P1,—
+194,BRAND_DETAIL,品牌/制造商详情 Brand Detail,URL 规范化,部分已有,现状已实现,P0,—
+195,BRAND_DETAIL,品牌/制造商详情 Brand Detail,重复内容控制,待开发,已确认,P0,—
+196,BRAND_DETAIL,品牌/制造商详情 Brand Detail,结构化数据校验,待开发,已确认,P1,—
+197,INQUIRY,询价/RFQ 及成功页,HTML lang 与 dir,已有,现状已实现,P1,—
+198,INQUIRY,询价/RFQ 及成功页,字符编码,已有,现状已实现,P2,—
+199,INQUIRY,询价/RFQ 及成功页,移动端视口,已有,现状已实现,P2,—
+200,INQUIRY,询价/RFQ 及成功页,页面标题 Title,已有,现状已实现,P2,—
+201,INQUIRY,询价/RFQ 及成功页,Meta Description,已有,现状已实现,P2,—
+202,INQUIRY,询价/RFQ 及成功页,Meta Robots,待开发,已确认,P0,—
+203,INQUIRY,询价/RFQ 及成功页,Canonical 规范链接,待开发,已确认,P1,—
+204,INQUIRY,询价/RFQ 及成功页,Hreflang 多语言互指,不适用,不适用,P1,—
+205,INQUIRY,询价/RFQ 及成功页,Open Graph 社交元数据,待开发,已确认,P2,—
+206,INQUIRY,询价/RFQ 及成功页,Twitter Card,待开发,规划建议,P2,—
+207,INQUIRY,询价/RFQ 及成功页,JSON-LD 结构化数据,不适用,不适用,P1,—
+208,INQUIRY,询价/RFQ 及成功页,面包屑结构化数据,不适用,不适用,P1,—
+209,INQUIRY,询价/RFQ 及成功页,页面主标题 H1,待开发,已确认,P0,—
+210,INQUIRY,询价/RFQ 及成功页,H2/H3 标题层级,部分已有,现状已实现,P2,—
+211,INQUIRY,询价/RFQ 及成功页,图片 Alt,部分已有,现状已实现,P1,—
+212,INQUIRY,询价/RFQ 及成功页,图片尺寸、格式与加载策略,部分已有,现状已实现,P1,—
+213,INQUIRY,询价/RFQ 及成功页,内部链接与导航,已有,现状已实现,P1,—
+214,INQUIRY,询价/RFQ 及成功页,可见面包屑导航,待开发,已确认,P2,—
+215,INQUIRY,询价/RFQ 及成功页,分页关系与分页 URL,不适用,不适用,P1,—
+216,INQUIRY,询价/RFQ 及成功页,XML Sitemap,不适用,不适用,P1,—
+217,INQUIRY,询价/RFQ 及成功页,Robots.txt,部分已有,现状已实现,P1,—
+218,INQUIRY,询价/RFQ 及成功页,HTTP 状态码,部分已有,现状已实现,P0,—
+219,INQUIRY,询价/RFQ 及成功页,301、404、410 规则,待开发,已确认,P0,—
+220,INQUIRY,询价/RFQ 及成功页,SSR/预渲染与首屏 HTML 可抓取性,部分已有,现状已实现,P1,—
+221,INQUIRY,询价/RFQ 及成功页,页面性能与 Core Web Vitals,待确认,待确认,P1,—
+222,INQUIRY,询价/RFQ 及成功页,URL 规范化,部分已有,现状已实现,P0,—
+223,INQUIRY,询价/RFQ 及成功页,重复内容控制,待开发,已确认,P0,—
+224,INQUIRY,询价/RFQ 及成功页,结构化数据校验,不适用,不适用,P1,—
+225,BLOG_LIST,内容列表 Blog/Tag,HTML lang 与 dir,已有,现状已实现,P1,—
+226,BLOG_LIST,内容列表 Blog/Tag,字符编码,已有,现状已实现,P2,—
+227,BLOG_LIST,内容列表 Blog/Tag,移动端视口,已有,现状已实现,P2,—
+228,BLOG_LIST,内容列表 Blog/Tag,页面标题 Title,已有,现状已实现,P0,—
+229,BLOG_LIST,内容列表 Blog/Tag,Meta Description,待开发,已确认,P0,—
+230,BLOG_LIST,内容列表 Blog/Tag,Meta Robots,待开发,已确认,P0,—
+231,BLOG_LIST,内容列表 Blog/Tag,Canonical 规范链接,待开发,已确认,P0,—
+232,BLOG_LIST,内容列表 Blog/Tag,Hreflang 多语言互指,不适用,不适用,P1,—
+233,BLOG_LIST,内容列表 Blog/Tag,Open Graph 社交元数据,待开发,已确认,P1,—
+234,BLOG_LIST,内容列表 Blog/Tag,Twitter Card,待开发,规划建议,P2,—
+235,BLOG_LIST,内容列表 Blog/Tag,JSON-LD 结构化数据,待开发,已确认,P1,—
+236,BLOG_LIST,内容列表 Blog/Tag,面包屑结构化数据,待开发,已确认,P1,—
+237,BLOG_LIST,内容列表 Blog/Tag,页面主标题 H1,待开发,已确认,P0,—
+238,BLOG_LIST,内容列表 Blog/Tag,H2/H3 标题层级,部分已有,现状已实现,P2,—
+239,BLOG_LIST,内容列表 Blog/Tag,图片 Alt,部分已有,现状已实现,P1,—
+240,BLOG_LIST,内容列表 Blog/Tag,图片尺寸、格式与加载策略,部分已有,现状已实现,P1,—
+241,BLOG_LIST,内容列表 Blog/Tag,内部链接与导航,已有,现状已实现,P1,—
+242,BLOG_LIST,内容列表 Blog/Tag,可见面包屑导航,已有,现状已实现,P2,—
+243,BLOG_LIST,内容列表 Blog/Tag,分页关系与分页 URL,部分已有,现状已实现,P1,—
+244,BLOG_LIST,内容列表 Blog/Tag,XML Sitemap,部分已有,现状已实现,P1,—
+245,BLOG_LIST,内容列表 Blog/Tag,Robots.txt,部分已有,现状已实现,P1,—
+246,BLOG_LIST,内容列表 Blog/Tag,HTTP 状态码,部分已有,现状已实现,P0,—
+247,BLOG_LIST,内容列表 Blog/Tag,301、404、410 规则,待开发,已确认,P0,—
+248,BLOG_LIST,内容列表 Blog/Tag,SSR/预渲染与首屏 HTML 可抓取性,部分已有,现状已实现,P0,—
+249,BLOG_LIST,内容列表 Blog/Tag,页面性能与 Core Web Vitals,待确认,待确认,P1,—
+250,BLOG_LIST,内容列表 Blog/Tag,URL 规范化,部分已有,现状已实现,P0,—
+251,BLOG_LIST,内容列表 Blog/Tag,重复内容控制,待开发,已确认,P0,—
+252,BLOG_LIST,内容列表 Blog/Tag,结构化数据校验,待开发,已确认,P1,—
+253,BLOG_ARTICLE,文章详情 Blog Article,HTML lang 与 dir,已有,现状已实现,P1,—
+254,BLOG_ARTICLE,文章详情 Blog Article,字符编码,已有,现状已实现,P2,—
+255,BLOG_ARTICLE,文章详情 Blog Article,移动端视口,已有,现状已实现,P2,—
+256,BLOG_ARTICLE,文章详情 Blog Article,页面标题 Title,已有,现状已实现,P0,—
+257,BLOG_ARTICLE,文章详情 Blog Article,Meta Description,待开发,已确认,P0,—
+258,BLOG_ARTICLE,文章详情 Blog Article,Meta Robots,待开发,已确认,P0,—
+259,BLOG_ARTICLE,文章详情 Blog Article,Canonical 规范链接,待开发,已确认,P0,—
+260,BLOG_ARTICLE,文章详情 Blog Article,Hreflang 多语言互指,不适用,不适用,P1,—
+261,BLOG_ARTICLE,文章详情 Blog Article,Open Graph 社交元数据,待开发,已确认,P1,—
+262,BLOG_ARTICLE,文章详情 Blog Article,Twitter Card,待开发,规划建议,P2,—
+263,BLOG_ARTICLE,文章详情 Blog Article,JSON-LD 结构化数据,待开发,已确认,P1,—
+264,BLOG_ARTICLE,文章详情 Blog Article,面包屑结构化数据,待开发,已确认,P1,—
+265,BLOG_ARTICLE,文章详情 Blog Article,页面主标题 H1,已有,现状已实现,P0,—
+266,BLOG_ARTICLE,文章详情 Blog Article,H2/H3 标题层级,部分已有,现状已实现,P2,—
+267,BLOG_ARTICLE,文章详情 Blog Article,图片 Alt,部分已有,现状已实现,P1,—
+268,BLOG_ARTICLE,文章详情 Blog Article,图片尺寸、格式与加载策略,部分已有,现状已实现,P1,—
+269,BLOG_ARTICLE,文章详情 Blog Article,内部链接与导航,已有,现状已实现,P1,—
+270,BLOG_ARTICLE,文章详情 Blog Article,可见面包屑导航,已有,现状已实现,P2,—
+271,BLOG_ARTICLE,文章详情 Blog Article,分页关系与分页 URL,不适用,不适用,P1,—
+272,BLOG_ARTICLE,文章详情 Blog Article,XML Sitemap,部分已有,现状已实现,P1,—
+273,BLOG_ARTICLE,文章详情 Blog Article,Robots.txt,部分已有,现状已实现,P1,—
+274,BLOG_ARTICLE,文章详情 Blog Article,HTTP 状态码,部分已有,现状已实现,P0,—
+275,BLOG_ARTICLE,文章详情 Blog Article,301、404、410 规则,待开发,已确认,P0,—
+276,BLOG_ARTICLE,文章详情 Blog Article,SSR/预渲染与首屏 HTML 可抓取性,部分已有,现状已实现,P0,—
+277,BLOG_ARTICLE,文章详情 Blog Article,页面性能与 Core Web Vitals,待确认,待确认,P1,—
+278,BLOG_ARTICLE,文章详情 Blog Article,URL 规范化,部分已有,现状已实现,P0,—
+279,BLOG_ARTICLE,文章详情 Blog Article,重复内容控制,待开发,已确认,P0,—
+280,BLOG_ARTICLE,文章详情 Blog Article,结构化数据校验,待开发,已确认,P1,—
+281,STATIC_PAGE,静态信息页 Static Page,HTML lang 与 dir,已有,现状已实现,P1,—
+282,STATIC_PAGE,静态信息页 Static Page,字符编码,已有,现状已实现,P2,—
+283,STATIC_PAGE,静态信息页 Static Page,移动端视口,已有,现状已实现,P2,—
+284,STATIC_PAGE,静态信息页 Static Page,页面标题 Title,已有,现状已实现,P0,—
+285,STATIC_PAGE,静态信息页 Static Page,Meta Description,待开发,已确认,P0,—
+286,STATIC_PAGE,静态信息页 Static Page,Meta Robots,待开发,已确认,P0,—
+287,STATIC_PAGE,静态信息页 Static Page,Canonical 规范链接,待开发,已确认,P0,—
+288,STATIC_PAGE,静态信息页 Static Page,Hreflang 多语言互指,不适用,不适用,P1,—
+289,STATIC_PAGE,静态信息页 Static Page,Open Graph 社交元数据,待开发,已确认,P1,—
+290,STATIC_PAGE,静态信息页 Static Page,Twitter Card,待开发,规划建议,P2,—
+291,STATIC_PAGE,静态信息页 Static Page,JSON-LD 结构化数据,待开发,已确认,P1,—
+292,STATIC_PAGE,静态信息页 Static Page,面包屑结构化数据,待开发,已确认,P1,—
+293,STATIC_PAGE,静态信息页 Static Page,页面主标题 H1,已有,现状已实现,P0,—
+294,STATIC_PAGE,静态信息页 Static Page,H2/H3 标题层级,部分已有,现状已实现,P2,—
+295,STATIC_PAGE,静态信息页 Static Page,图片 Alt,部分已有,现状已实现,P1,—
+296,STATIC_PAGE,静态信息页 Static Page,图片尺寸、格式与加载策略,部分已有,现状已实现,P1,—
+297,STATIC_PAGE,静态信息页 Static Page,内部链接与导航,已有,现状已实现,P1,—
+298,STATIC_PAGE,静态信息页 Static Page,可见面包屑导航,已有,现状已实现,P2,—
+299,STATIC_PAGE,静态信息页 Static Page,分页关系与分页 URL,不适用,不适用,P1,—
+300,STATIC_PAGE,静态信息页 Static Page,XML Sitemap,部分已有,现状已实现,P1,—
+301,STATIC_PAGE,静态信息页 Static Page,Robots.txt,部分已有,现状已实现,P1,—
+302,STATIC_PAGE,静态信息页 Static Page,HTTP 状态码,部分已有,现状已实现,P0,—
+303,STATIC_PAGE,静态信息页 Static Page,301、404、410 规则,待开发,已确认,P0,—
+304,STATIC_PAGE,静态信息页 Static Page,SSR/预渲染与首屏 HTML 可抓取性,部分已有,现状已实现,P0,—
+305,STATIC_PAGE,静态信息页 Static Page,页面性能与 Core Web Vitals,待确认,待确认,P1,—
+306,STATIC_PAGE,静态信息页 Static Page,URL 规范化,部分已有,现状已实现,P0,—
+307,STATIC_PAGE,静态信息页 Static Page,重复内容控制,待开发,已确认,P0,—
+308,STATIC_PAGE,静态信息页 Static Page,结构化数据校验,待开发,已确认,P1,—

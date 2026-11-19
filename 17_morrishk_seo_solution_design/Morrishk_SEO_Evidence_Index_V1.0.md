@@ -11,7 +11,8 @@
 
 | 等级 | 含义 |
 |---|---|
-| `CONFIRMED` | 项目资料/决策明确规定 |
+| `CONFIRMED` | 项目资料/决策已明确规定；不等于已签署、已批准或已实现 |
+| `DECIDED_UNSIGNED` | 裁定已登记（DECIDED），但未签署、未独立验收；只能作为当前设计依据，正式生效待签署 |
 | `IMPLEMENTED_SNAPSHOT` | 本地代码快照中存在；不等于线上实时可用 |
 | `PROPOSED` | Agent 规划建议，未获批准 |
 | `PENDING` | 缺少项目决策/资料，不能开发 |
@@ -46,8 +47,8 @@
 | E-13 | SEO 现状条目：Title/Description 已有；Canonical/OG/JSON-LD 未具备；hreflang 部分；Sitemap/robots 已具备未确认上线 | `Morrishk_功能范围确认书_V1.0.md` FR-1-044…FR-1-050、FR-3-005/006 | 现状与范围 | CONFIRMED |
 | E-14 | 五种语言、语言路由前缀与互指 | `Morrishk_功能范围确认书_V1.0.md` FR-5-039/041 | 多语言范围 | CONFIRMED（清单未列名） |
 | E-15 | 商品详情页、搜索、询价为主链路；升级不得破坏既有 URL/内容/询盘 | `Morrishk_功能范围确认书_V1.0.md` §4、§7 | URL 兼容红线 | CONFIRMED |
-| E-16 | 产品业务键：MPN + Brand；document_id 不得作为产品身份 | `IQ01_PRODUCT_IDENTITY_ADJUDICATION.md` §9.1–9.2 | PDP 身份/URL/去重 | CONFIRMED（登记未签署） |
-| E-17 | 业务导航分类与技术参数分类严格分离；不共享 ID | `IQ02_TAXONOMY_AUTHORITY_ADJUDICATION.md` §10.1 | 分类 URL/SEO 分类 | CONFIRMED（登记未签署） |
+| E-16 | 产品业务键：MPN + Brand；document_id 不得作为产品身份 | `IQ01_PRODUCT_IDENTITY_ADJUDICATION.md` §9.1–9.2（§9 明示“独立 Reviewer 验收未完成，签署待补”） | PDP 身份/URL/去重 | DECIDED_UNSIGNED：仅设计依据，正式生效待签署 |
+| E-17 | 业务导航分类与技术参数分类严格分离；不共享 ID | `IQ02_TAXONOMY_AUTHORITY_ADJUDICATION.md` §10.1（§10 明示“独立 Reviewer 验收未完成，签署待补”） | 分类 URL/SEO 分类 | DECIDED_UNSIGNED：仅设计依据，正式生效待签署 |
 | E-18 | 技术分类体系数量、生命周期、category_code 仍开放 | `IQ02_TAXONOMY_AUTHORITY_ADJUDICATION.md` §10.5 | 分类 410/404 待确认 | PENDING |
 | E-19 | 契约冻结审查结论 `NOT_READY` | `16_contract_freeze_readiness/FREEZE_READINESS_REVIEW.md` 表头、§2.4 | 不得宣称冻结 | CONFIRMED |
 | E-20 | 三层发布门禁仅 HTML 原型演示，正式后端 0 实现 | `09_current_state_inventory/00-existing-system-inventory.md` §5（:174-179）；`04-dsbit-workspace-inventory.md` DSB-23 | PDP 索引门禁 | CONFIRMED |
@@ -61,6 +62,18 @@
 | E-28 | 语言清单冲突：任务书 en/de/ja/es/fr；`locales.ts` en/de/ja/es/id；技术方案 en/de/es/ja/id；04 文档 en/zh/ja/de/es/id | 任务书；`web/src/i18n/locales.ts:18`；`morrishk_technical_plan_v1.2.md` §8.6；`04` §7 | C-01 待确认 | PENDING |
 | E-29 | 商品 URL 三种写法冲突：`/products/{mpn}`、`/product/{mpn}`、`/[locale]/product/[mpn]` | `05` §1.2；`web/src/lib/routes.ts:5-7`；`04` §1 | C-02 待确认 | PENDING |
 | E-30 | 301 映射 CSV 只有表头/注释，无实际映射（22 行） | `platform/docs/phase1/legacy-url-redirects.csv` | C-04 待确认 | PENDING |
+
+### 1.1 统计口径（与 Excel Sheet 2 一致）
+
+三个维度独立；同一维度内互斥，跨维度不互斥；每行在每个维度各取一个值。
+
+| 维度 | 取值与计数 | 合计 |
+|---|---|---|
+| 当前状态 | 已有 71；部分已有 93；待开发 106；待确认 11；不适用 27 | 308 |
+| 证据等级 | 现状已实现 164；已确认 95；规划建议 11；待确认 11；不适用 27 | 308 |
+| 优先级 | P0 106；P1 141；P2 61 | 308 |
+
+共 7 条依赖 IQ-01/IQ-02（PDP 4 + CATEGORY 3），Excel 最后一列标“已登记未签署”；按证据等级拆分：`已确认 95` 中 5 条、`现状已实现 164` 中 2 条，其余 `已确认 90` 条与 `现状已实现 162` 条不依赖 IQ。逐行数据见 `Morrishk_SEO_Sheet2_Row_Stats_V1.0.csv`，程序化自检见 `Morrishk_SEO_SelfCheck_V1.0.md`。
 
 ---
 
@@ -176,7 +189,7 @@ grep -rn 'application/ld+json' views/ controllers/          # 0 条
 
 1. 文档：按上表路径打开对应 `.md`，核对章节/行号。
 2. 代码：在旧站仓库执行 `grep`/`nl -ba` 复核；Next.js 在 `platform/web/src/app` 查看目录。
-3. 工作簿：打开 `Morrishk_SEO_Elements_and_Page_Spec_V1.0.xlsx`，检查 8 个工作表、308 条明细与 `8-待确认与冲突`。
+3. 工作簿：打开 `Morrishk_SEO_Elements_and_Page_Spec_V1.0.xlsx`，检查 8 个工作表、308 条明细与 `8-待确认与冲突`；程序化自检结果与逐行统计见 `Morrishk_SEO_SelfCheck_V1.0.md`、`Morrishk_SEO_Sheet2_Row_Stats_V1.0.csv`。
 4. 哈希：执行 `sha256sum -c SHA256SUMS.txt`（在交付目录内）。
 5. 未验证项不得凭文档推断为“线上已通过”；如需关闭 V-01/V-02/V-03，需另行授权做只读生产核验。
 
