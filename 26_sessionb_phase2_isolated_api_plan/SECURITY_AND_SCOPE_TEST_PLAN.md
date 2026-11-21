@@ -49,8 +49,8 @@
 - **统计分列（R5）**：授权依据类型逐行标注——本矩阵**全部 75 行 = `CANDIDATE_AUTHORIZATION`**；`CONFIRMED_AUTHORIZATION` = **0**；授权规则待裁定 = **75**；另有 **5** 行叠加业务语义阻断（DIFF-CONTRACT-01 / B6 / B8 / P1-3 / DIFF-MOCK-05）。**正式可执行测试数量 = 0**（详见 §3 末统计块）。
 - 双 scope 组合语义（如 `internal_only` 需 `product.category.read`+`product.publish.read`）属**复合测试**，在 SEC-08 单列，不计入本 75 组合（本矩阵 Token 均为单 scope）。
 
-| # | Scope | operationId | 具备所需权限 | 候选预期 | 候选 HTTP/错误码 | 规则来源（候选） | 授权依据类型 | 验收分类（含阻断来源） |
-|---|---|---|---|---|---|---|---|---|
+| # | Scope | operationId | 具备所需权限 | 候选预期 | 候选 HTTP/错误码 | 规则来源（候选） | 规则状态 | 授权依据类型 | 验收分类（含阻断来源） |
+|---|---|---|---|---|---|---|---|---|---|
 | 1 | S1 `product.read` | `searchProducts` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED ＋ 业务语义阻断：DIFF-CONTRACT-01 条目形态） |
 | 2 | S1 `product.read` | `getProduct` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
 | 3 | S1 `product.read` | `getProductStatus` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |

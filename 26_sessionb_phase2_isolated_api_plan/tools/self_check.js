@@ -237,12 +237,54 @@ check("C-20c the two conflict classes are distinct rows", !!f10line && !!f11line
 // C-21：归一化冲突候选引用 B5 且未冻结算法
 check("C-21a F-11 cites B5 as BLOCKED and PROPOSED", !!f11line && f11line.includes("BLOCKED_BY_DECISION(B5)") && f11line.includes("PROPOSED"));
 check("C-21b F-11 states the non-speculative limitation", !!f11line && f11line.includes("无充分依据") && f11line.includes("不伪造已确定冲突案例"));
-check("C-21c F-11 freezes no algorithm", !!f11line && !f11line.includes("已冻结") && (!!f10line && !f10line.includes("已冻结")));
+// 「已冻结」仅允许出现在否定语境（不代表…已冻结）；剥离否定语境后不得残留
+check("C-21c F-11 freezes no algorithm", !!f11line && (() => {
+  const strip = (s) => s.replace(/不代表[^；|]*已冻结/g, "").replace(/未冻结/g, "");
+  return !strip(f11line).includes("已冻结") && (!!f10line && !strip(f10line).includes("已冻结"));
+})());
 
 // C-22：42202 不把来源冲突直接认定为归一化冲突
 const e42202 = errDoc.split("\n").find((l) => l.includes("| 16 | 42202"));
 check("C-22a 42202 distinguishes the two conflict classes", !!e42202 && e42202.includes("SOURCE_IDENTITY_CONFLICT") && e42202.includes("NORMALIZATION_CONFLICT_CANDIDATE_PENDING_B5") && e42202.includes("不得混同"));
 check("C-22b 42202 keeps F-07 as two legal identities", !!e42202 && e42202.includes("两个合法身份"));
+
+// ===== C-23..C-24（Reviewer R7 修正自检）=====
+
+// C-23：矩阵列结构（表头 10 列；75 数据行 10 列；规则状态/授权依据类型列位正确）
+{
+  const lines = secDoc.split("\n");
+  const hdrLine = lines.find((l) => l.startsWith("| # | Scope |"));
+  const hdrCells = hdrLine ? hdrLine.split("|").map((c) => c.trim()).filter((c) => c.length > 0) : [];
+  check("C-23a matrix header has 10 columns", hdrCells.length === 10, `cols=${hdrCells.length}`);
+  check("C-23b all 75 data rows have 10 columns", secRows.length === 75 && secRows.every((r) => {
+    const c = r.line.split("|").map((x) => x.trim()).filter((x) => x.length > 0).length;
+    return c === 10;
+  }));
+  check("C-23c rule-status and auth-basis columns in correct positions",
+    hdrCells[7] === "规则状态" && hdrCells[8] === "授权依据类型" &&
+    secRows.every((r) => {
+      const c = r.line.split("|").map((x) => x.trim()).filter((x) => x.length > 0);
+      return c[7] === "PROPOSED" && c[8] === "CANDIDATE_AUTHORIZATION";
+    }));
+  check("C-23d formal executable still 0 and authorization pending 75", statedExec === 0 && pendRows === 75 && confRows === 0);
+}
+
+// C-24：42202 / OP-02 / F-11 / F-07 语义约束（单元格与段落级，非关键字计数）
+{
+  const e42202cells = e42202.split("|").map((c) => c.trim()).filter((c) => c.length > 0);
+  const triggerCell = e42202cells[4] || "";
+  check("C-24a F-10 absent from 42202 trigger cell", triggerCell.length > 0 && !triggerCell.includes("F-10"));
+  const op02row = opsDoc.split("\n").find((l) => l.includes("缺 brand 双候选向量"));
+  check("C-24b OP-02 does not list F-10 as a 42202 trigger",
+    !!op02row && (!op02row.includes("F-10") || op02row.includes("不属于 42202 触发条件")));
+  check("C-24c F-11 asserts no concrete normalization outcome", !!f11line &&
+    !f11line.includes("必然产生") && !/候选归一化输出 = .*两个不同输出/.test(f11line) && f11line.includes("未知"));
+  check("C-24d F-11 does not use R-ID-01 as a normalization-algorithm basis", !!f11line &&
+    (!f11line.includes("R-ID-01") || f11line.includes("不代表")));
+  check("C-24e F-11 keeps the B5 block", !!f11line && f11line.includes("PROPOSED / BLOCKED_BY_DECISION(B5)"));
+  check("C-24f F-07 dual-brand identities do not trigger conflict", !!f07line &&
+    f07line.includes("互不视为冲突") && !f07line.includes("PENDING_CONFLICT"));
+}
 
 // 输出
 console.log("=== PHASE2 PLAN SELF-CHECK ===");

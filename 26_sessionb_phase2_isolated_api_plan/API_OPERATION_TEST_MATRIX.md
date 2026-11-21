@@ -34,7 +34,7 @@
 | 参数 | `mpn`/`brand`/`mpn_match`/`identity_state`/`updated_since`/`release_state`/`taxonomy_id`/`category_id`/`include_unreleased`/`limit`/`cursor`/`If-None-Match` |
 | 响应 200 | `ProductListEnvelope`（OpenAPI=items→Product[]；EX-17=扁平行）——**形态冲突未裁** |
 | 正常 | 精确查找命中（mpn+brand+exact）；增量同步（updated_since）；REVOKED 流（V1_REQUIRED 语义） |
-| 异常 | 缺 mpn→400/40001；mpn 非法/归一空→400/40001(field=mpn)；**缺 brand 双候选向量**：候选-422（422/42201, missing=[brand]；MD §6.4+候选 §4.5 方向）/ 候选-400（400/40001, field=brand；EX-17 说明方向）——均 `BLOCKED_BY_DECISION(DIFF-CONTRACT-03)`，分别断言、不得合并为单一响应；brand 非法→400（无争议）；身份冲突→422/42202（**F-10 `SOURCE_IDENTITY_CONFLICT` 候选**：同源互斥候选聚合；**F-11 `NORMALIZATION_CONFLICT_CANDIDATE_PENDING_B5`**：归一化冲突候选待 B5——两类**不得混同**，均 `BLOCKED_BY_DECISION(B5)`）；未知过滤→400/40002；scope 不足→403/40301 |
+| 异常 | 缺 mpn→400/40001；mpn 非法/归一空→400/40001(field=mpn)；**缺 brand 双候选向量**：候选-422（422/42201, missing=[brand]；MD §6.4+候选 §4.5 方向）/ 候选-400（400/40001, field=brand；EX-17 说明方向）——均 `BLOCKED_BY_DECISION(DIFF-CONTRACT-03)`，分别断言、不得合并为单一响应；brand 非法→400（无争议）；归一化冲突→422/42202 **仅限未来经 B5 裁定确认的归一化冲突**（F-11 `NORMALIZATION_CONFLICT_CANDIDATE_PENDING_B5` 占位，当前无可执行向量，`BLOCKED_BY_DECISION(B5)`）；F-10 `SOURCE_IDENTITY_CONFLICT` 为来源层冲突候选，**不属于 42202 触发条件**（外部错误表达待裁定）；F-07 同 MPN 异 Brand 为两个合法身份，不触发冲突；未知过滤→400/40002；scope 不足→403/40301 |
 | 边界 | limit 0/201/超型；cursor 伪造；mpn 200 字符上限；空结果 vs 错误不得互伪装 |
 | 规则状态 | R-ID-01/02/03 CONFIRMED；R-ID-04..06 PROPOSED(B5)；R-ID-08 PROPOSED；R-ID-09 BLOCKED(IQ-20)；R-ST-04 BLOCKED(B6)；R-ST-05 PROPOSED（**默认过滤未裁**：DIFF-MOCK-05 OPEN，候选 A/B 双向量）；R-PTG-01 PROPOSED |
 | 预期/证据 | 命中/错误/分页 RUN 记录；**响应条目形态断言 `BLOCKED_BY_DECISION(DIFF-CONTRACT-01)`**；**默认过滤双向量均 `BLOCKED_BY_DECISION(DIFF-MOCK-05)`**（候选 A：默认仅 RELEASED / 候选 B：不自动过滤），裁定前任一向量不计入行为验收 PASS，W-1/W-2 不预置默认值 |
