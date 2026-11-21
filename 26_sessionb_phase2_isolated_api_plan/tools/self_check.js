@@ -189,9 +189,9 @@ const f07line = fixDoc.split("\n").find((l) => l.includes("| F-07 "));
 check("C-15a F-07 is CONFIRMED dual identity", !!f07line && f07line.includes("CONFIRMED") && f07line.includes("两个不同业务身份"));
 check("C-15b F-07 is NOT marked as conflict", !!f07line && !f07line.includes("PENDING_CONFLICT"));
 
-// C-16 F-10：真正归一化冲突 fixture 引用 B5，未冻结未决规则
+// C-16 F-10：来源冲突候选（SOURCE_IDENTITY_CONFLICT），引用 B5，行为未冻结（修正 R7/R8 命名）
 const f10line = fixDoc.split("\n").find((l) => l.includes("| F-10 "));
-check("C-16a F-10 conflict fixture exists", !!f10line && f10line.includes("PENDING_CONFLICT"));
+check("C-16a F-10 source-conflict candidate exists (SOURCE_IDENTITY_CONFLICT)", !!f10line && f10line.includes("SOURCE_IDENTITY_CONFLICT") && f10line.includes("PENDING_CONFLICT"));
 check("C-16b F-10 cites B5 as BLOCKED/PROPOSED", !!f10line && f10line.includes("BLOCKED_BY_DECISION(B5)") && (f10line.includes("PROPOSED") || f10line.includes("未冻结")));
 // F-10 的冲突机制不得"是"同 MPN 异 Brand；显式否定表述（非"同 MPN 异 Brand"）可接受
 check("C-16c F-10 mechanism is not same-MPN-different-brand",
@@ -275,12 +275,26 @@ check("C-22b 42202 keeps F-07 as two legal identities", !!e42202 && e42202.inclu
   const triggerCell = e42202cells[4] || "";
   check("C-24a F-10 absent from 42202 trigger cell", triggerCell.length > 0 && !triggerCell.includes("F-10"));
   const op02row = opsDoc.split("\n").find((l) => l.includes("缺 brand 双候选向量"));
-  check("C-24b OP-02 does not list F-10 as a 42202 trigger",
-    !!op02row && (!op02row.includes("F-10") || op02row.includes("不属于 42202 触发条件")));
+  // C-24b（R8 收紧）：逐分句检查——凡提及 F-10 的分句必须携带排除语义，且该分句不得把 F-10 写成 42202 触发
+  const op02Segs = op02row.split("；").map((s) => s.trim()).filter((s) => s.length > 0);
+  const f10Segs = op02Segs.filter((s) => s.includes("F-10"));
+  check("C-24b OP-02 does not list F-10 as a 42202 trigger (per-clause)",
+    f10Segs.length > 0 && f10Segs.every((s) => s.includes("不属于 42202 触发条件") && !/→\s*422\/42202|(?<!不属于 )42202\s*触发|(?<!不属于 )触发\s*42202/.test(s)),
+    `f10 clauses=${f10Segs.length}`);
+  // C-24c（R8 收紧）：主体断言 + 四项未知内容分别存在
   check("C-24c F-11 asserts no concrete normalization outcome", !!f11line &&
     !f11line.includes("必然产生") && !/候选归一化输出 = .*两个不同输出/.test(f11line) && f11line.includes("未知"));
-  check("C-24d F-11 does not use R-ID-01 as a normalization-algorithm basis", !!f11line &&
-    (!f11line.includes("R-ID-01") || f11line.includes("不代表")));
+  check("C-24c-1 unknown#1 normalizer version/final rules declared pending", !!f11line &&
+    f11line.includes("归一化器版本及最终规则") && f11line.includes("未冻结"));
+  check("C-24c-2 unknown#2 normalized outputs unknown", !!f11line && f11line.includes("规范化输出——未知"));
+  check("C-24c-3 unknown#3 identity-mapping conflict unknown", !!f11line && f11line.includes("身份映射冲突——未知"));
+  check("C-24c-4 unknown#4 conflict adjudication & expected state unknown", !!f11line && f11line.includes("冲突判定算法与预期状态——未知"));
+  // C-24d（R8 收紧）：逐分句检查——凡提及 R-ID-01 的分句仅限身份键原则说明并带否定语境，不得用于推导归一化算法
+  const rid01Segs = f11line.split("；").map((s) => s.trim()).filter((s) => s.includes("R-ID-01"));
+  check("C-24d F-11 does not use R-ID-01 as a normalization-algorithm basis (per-clause)",
+    rid01Segs.length > 0 && rid01Segs.every((s) => s.includes("身份键原则") && s.includes("不代表")) &&
+    f11line.includes("不引用 R-ID-01 推导"),
+    `rid01 clauses=${rid01Segs.length}`);
   check("C-24e F-11 keeps the B5 block", !!f11line && f11line.includes("PROPOSED / BLOCKED_BY_DECISION(B5)"));
   check("C-24f F-07 dual-brand identities do not trigger conflict", !!f07line &&
     f07line.includes("互不视为冲突") && !f07line.includes("PENDING_CONFLICT"));

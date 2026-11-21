@@ -3,10 +3,10 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PHASE2-CHK-001 |
-| 版本 | v1.3（R7 修正后：新增 C-23a..d、C-24a..f 八项结构与语义检查；C-1..C-22 原样保留——C-21c 适配否定语境，语义不放宽） |
+| 版本 | v1.4（R8 收尾：C-16 注释/断言更正为来源冲突候选口径；C-24b 逐分句收紧；C-24c 拆分四项未知子断言；C-24d 逐分句验证 R-ID-01 仅用于身份键原则说明。C-1..C-22 其余断言原样保留） |
 | 日期 | 2026-11-21 |
 | 执行方式 | `node tools/self_check.js`（只读；数据源 = `12_` 基线 OpenAPI + `25_/rules/rule_registry.json` + 本目录文档） |
-| 性质 | 真实执行记录（RUN）；行级/单元格级/跨文件语义验证，非字符串计数 |
+| 性质 | 真实执行记录（RUN）；行级/单元格级/分句级/跨文件语义验证，非字符串计数 |
 
 ## 1. 检查项清单
 
@@ -16,17 +16,22 @@
 | C-11（R1） | DIFF-MOCK-05 候选 A/B 在册、均 BLOCKED_BY_DECISION、无确定默认表述、Repository 接口不隐含默认 |
 | C-12（R2） | DIFF-CONTRACT-03 候选-422/候选-400 在册、均 BLOCKED_BY_DECISION、不得合并为单一响应 |
 | C-13（R3） | 75 行矩阵行级解析：恰 75、零重复、与笛卡尔全集一致 |
-| C-14（R3/R5） | 逐行验收分类 75/75（exec=0/pend=75）；文内统计（正式可执行 **0** / 授权待裁定 **75**）与行数一致；合计 75；75/75 在册 |
+| C-14（R3/R5） | 逐行验收分类 75/75（exec=0/pend=75）；文内统计与行数一致；合计 75；75/75 在册 |
 | C-15（R4） | F-07 = CONFIRMED 两个不同业务身份，非冲突 |
-| C-16（R4） | F-10 冲突 fixture 在册、引用 B5、机制非"同 MPN 异 Brand" |
+| **C-16（R4/R8 更正）** | **F-10 = 来源冲突候选（SOURCE_IDENTITY_CONFLICT）**，聚合态 PENDING_CONFLICT 在册、引用 B5（BLOCKED_BY_DECISION(B5) + PROPOSED/未冻结）、机制非"同 MPN 异 Brand"。v1.3 及之前注释/断言沿用旧命名"归一化冲突 fixture"已更正（Reviewer R8 指出的过时注释） |
 | C-17（R5） | 75 行逐行授权依据类型 ∈ 三值词表；候选授权映射数量 75 与行级计数一致；候选预期列在册 |
 | C-18（R5） | 跨文件语义：Registry 中 R-OA-05 仍 PROPOSED；引用 R-OA-05 的行不得标 CONFIRMED_AUTHORIZATION；当前零行 CONFIRMED |
 | C-19（R5） | 正式可执行声明 = 0 且 = CONFIRMED 行数；旧「可执行 70」仅允许存在于作废声明上下文 |
 | C-20（R6） | F-10（SOURCE_IDENTITY_CONFLICT）与 F-11（NORMALIZATION_CONFLICT_CANDIDATE_PENDING_B5）独立建模 |
-| C-21（R6） | F-11 引用 B5（BLOCKED_BY_DECISION(B5) + PROPOSED）、非臆测限制声明、未冻结任何算法（「已冻结」仅允许出现在否定语境——v1.3 适配） |
+| C-21（R6） | F-11 引用 B5、非臆测限制声明、未冻结任何算法（「已冻结」仅允许出现在否定语境） |
 | C-22（R6） | 42202 区分两类冲突（"不得混同"在册）并保持 F-07 为两个合法身份 |
-| **C-23（R7-1）** | 矩阵列结构：表头恰 10 列；75 数据行逐行 10 列；第 8 列 = 规则状态（PROPOSED）、第 9 列 = 授权依据类型（CANDIDATE_AUTHORIZATION）逐行位置正确；正式可执行仍 0 / 授权待裁定仍 75 |
-| **C-24（R7-3/2）** | 单元格级语义：42202 触发条件单元格不含 F-10；OP-02 中 F-10 提及必须伴随「不属于 42202 触发条件」；F-11 不断言具体归一化输出（无"必然产生"/旧确定表述，含"未知"清单）；F-11 提及 R-ID-01 必须伴随「不代表」；F-11 保持 `PROPOSED / BLOCKED_BY_DECISION(B5)`；F-07「互不视为冲突」且无 PENDING_CONFLICT |
+| C-23（R7-1） | 矩阵列结构：表头 10 列；75 数据行逐行 10 列；第 8 列规则状态=PROPOSED、第 9 列授权依据类型=CANDIDATE_AUTHORIZATION 逐行正确；正式可执行 0 / 授权待裁定 75 |
+| **C-24a（R7/R8）** | 42202 触发条件单元格不含 F-10 |
+| **C-24b（R7/R8 收紧）** | OP-02 行**逐分句**检查：凡提及 F-10 的分句必须携带「不属于 42202 触发条件」排除语义，且该分句不得以任何肯定形式把 F-10 写成 42202 触发（负向正则对「不属于 …」语境豁免） |
+| **C-24c（R7/R8 收紧）** | F-11 主体断言（无"必然产生"、无旧确定输出表述、含"未知"）**加四项未知子断言**：C-24c-1 归一化器版本及最终规则（未冻结）/ C-24c-2 规范化输出——未知 / C-24c-3 身份映射冲突——未知 / C-24c-4 冲突判定算法与预期状态——未知 |
+| **C-24d（R7/R8 收紧）** | F-11 **逐分句**检查：凡提及 R-ID-01 的分句必须同时包含「身份键原则」与「不代表」（仅限身份键原则说明），且全文含「不引用 R-ID-01 推导」显式禁令 |
+| C-24e（R7） | F-11 保持 `PROPOSED / BLOCKED_BY_DECISION(B5)` |
+| C-24f（R7） | F-07「互不视为冲突」且无 PENDING_CONFLICT |
 
 ## 2. 真实执行结果（最终一轮 RUN，exit=0）
 
@@ -81,7 +86,7 @@ PASS  C-14c stats sum to 75
 PASS  C-14d full-coverage claim present
 PASS  C-15a F-07 is CONFIRMED dual identity
 PASS  C-15b F-07 is NOT marked as conflict
-PASS  C-16a F-10 conflict fixture exists
+PASS  C-16a F-10 source-conflict candidate exists (SOURCE_IDENTITY_CONFLICT)
 PASS  C-16b F-10 cites B5 as BLOCKED/PROPOSED
 PASS  C-16c F-10 mechanism is not same-MPN-different-brand
 PASS  C-17a every row carries an authorization-basis type
@@ -106,15 +111,19 @@ PASS  C-23b all 75 data rows have 10 columns
 PASS  C-23c rule-status and auth-basis columns in correct positions
 PASS  C-23d formal executable still 0 and authorization pending 75
 PASS  C-24a F-10 absent from 42202 trigger cell
-PASS  C-24b OP-02 does not list F-10 as a 42202 trigger
+PASS  C-24b OP-02 does not list F-10 as a 42202 trigger (per-clause) — f10 clauses=1
 PASS  C-24c F-11 asserts no concrete normalization outcome
-PASS  C-24d F-11 does not use R-ID-01 as a normalization-algorithm basis
+PASS  C-24c-1 unknown#1 normalizer version/final rules declared pending
+PASS  C-24c-2 unknown#2 normalized outputs unknown
+PASS  C-24c-3 unknown#3 identity-mapping conflict unknown
+PASS  C-24c-4 unknown#4 conflict adjudication & expected state unknown
+PASS  C-24d F-11 does not use R-ID-01 as a normalization-algorithm basis (per-clause) — rid01 clauses=1
 PASS  C-24e F-11 keeps the B5 block
 PASS  C-24f F-07 dual-brand identities do not trigger conflict
-=== summary: 79/79 PASS, failures: 0 ===
+=== summary: 83/83 PASS, failures: 0 ===
 ```
 
-## 3. 迭代记录（真实过程，含 R1–R7 修正轮）
+## 3. 迭代记录（真实过程，含 R1–R8 修正轮）
 
 | 轮 | 结果 | 处置 |
 |---|---|---|
@@ -125,9 +134,11 @@ PASS  C-24f F-07 dual-brand identities do not trigger conflict
 | v1.1-2 | 52/52（= 448f9bf 提交态） | — |
 | v1.2-1（R5–R6 后） | 67/69：C-16c 加粗否定标记；C-19c 命中作废声明字样 | 两处脚本适配（语义不放宽） |
 | v1.2-2 | 69/69（= e1f3786 提交态） | — |
-| v1.3-1（R7 后） | 78/79：C-21c 未适配 F-11 新否定表述「不代表归一化算法已冻结」（否定语境含"已冻结"子串） | C-21c 剥离否定语境（不代表…/未冻结）后再判——语义不放宽 |
-| v1.3-2 | **79/79 PASS（exit=0）** | — |
+| v1.3-1（R7 后） | 78/79：C-21c 未适配否定语境「不代表…已冻结」 | C-21c 剥离否定语境 |
+| v1.3-2 | 79/79（= fe4c433 提交态） | — |
+| v1.4-1（R8 收尾后） | 82/83：C-24b 负向正则误命中排除语句本身的「不属于 42202 **触发**条件」子串 | 负向正则对「不属于 」语境加定长 lookbehind 豁免（对肯定触发表述仍保持命中） |
+| v1.4-2 | **83/83 PASS（exit=0）** | — |
 
 ## 4. 结论
 
-R7 修正后计划包自检全绿。本结论仅表明计划文档结构、矩阵行级/单元格级覆盖与跨文件语义一致；**自检通过 ≠ Reviewer 审核通过**。固化口径：75 行全部 CANDIDATE_AUTHORIZATION、正式可执行 = 0、授权规则待裁定 = 75；F-10（来源冲突候选，非 42202 触发条件）与 F-11（归一化冲突候选占位，待 B5）分别建模；F-07 = 两个合法身份。
+R8 收尾后自检全绿：83 项断言覆盖文件完整性、矩阵行级/列级/分句级结构、四项 DIFF 原状态、授权依据类型词表与跨文件语义（R-OA-05 PROPOSED → 正式可执行 0）、两类冲突分离建模（F-10 来源冲突 / F-11 归一化冲突占位待 B5）、F-07 双身份边界。**自检通过 ≠ Reviewer 审核通过**；固化口径不变：75 行全部 CANDIDATE_AUTHORIZATION、正式可执行 = 0、授权规则待裁定 = 75、Contract Freeze = NOT_READY、生产 Business API = NOT_APPROVED、Phase 2 实现 = 未授权。
