@@ -22,7 +22,7 @@
 | D-02 | 视频平台优先级 | YouTube/Vimeo/TikTok 的排序 | ① YouTube ② Vimeo（条件性）③ TikTok（条件性）；本月只建 YouTube | `RECOMMENDED` | 用户 | 增长规划 §5.3；Postiz 覆盖；E-39 | 需要短视频获客或有官网嵌入需求 |
 | D-03 | 账号所有权模型 | 个人账号 / 品牌账号共享 / 混合 | Brand Account + Meta Business Portfolio + 双管理员 + 密码库 | `RECOMMENDED` | 用户 | E-01/E-12；离职风险 | IT 政策限制 |
 | D-04 | 凭证由谁持有 | 用户 / Agent / 第三方 | 只由用户持有；Agent 不接收密码/Token/验证码 | `CONFIRMED` | 用户 | 任务书硬边界 | 不可变 |
-| D-05 | 第二个月是否买 LinkedIn 认证 | 买 / 不买 / 询价 | 不买；先建页运营，等报价与数据 | `RECOMMENDED` | 用户 | E-14；价格 `UNKNOWN` | 认证报价可接受且有数据支撑 |
+| D-05 | 第二个月是否买 LinkedIn 认证 | 买 / 不买 / 询价 | 不买；先建页运营，优先走非付费资格路径，未果再询价 | `RECOMMENDED` | 用户 | E-14（资格可来自活跃/商业关系，付费非唯一路径）；价格 `UNKNOWN` | 非付费路径未果且报价可接受、有数据支撑 |
 | D-06 | Postiz 部署形态 | Cloud / 自建 / 暂不接入 | 先 Cloud 7 天试用；需要数据自主再自建 | `PROPOSED` | 用户 | E-40/E-42；28_ 合规边界 | 预算、合规、运维能力变化 |
 | D-07 | Postiz 接入平台范围 | 5 个 / 8 个 / 全部 | 先 5 个核心；Pinterest/Threads 次之；TikTok/Reddit 不强接 | `PROPOSED` | 用户 | `POSTIZ_PLATFORM_COVERAGE.md` | 账号就绪与审核进度 |
 | D-08 | TikTok 是否接 API | 接 API / 手动 / 不做 | 第二个月手动试点，不依赖 API | `RECOMMENDED` | 用户 | E-25/E-27 | 应用审核通过且内容产能足够 |
@@ -33,14 +33,14 @@
 | D-13 | UTM 与落地页 | 首页 / 产品详情/询盘 | 所有站外链接带 UTM，落产品详情或询盘，不落首页 | `RECOMMENDED` | 运营+开发 | 增长规划 §5.1 | 站点路由变化 |
 | D-14 | 禁用宣称清单 | 允许夸张 / 严格 | 禁止 leading/largest/authorized/in stock 等未证实表述 | `CONFIRMED` | 运营 | 合规要求；`PROFILE_BRANDING_GUIDE.md` §7 | 用户提供证据后可新增 |
 | D-15 | 品牌事实补齐 | 用户提供 / 编造 / 留空 | 用户提供；未提供前不进入 W2 | `USER_ACTION_REQUIRED` | 用户 | 品牌事实表 | 用户提交资料 |
-| D-16 | 预算档位 | 最小 / 标准 / 月付 | 标准 A（$482/年）或最小（$0 平台订阅） | `USER_ACTION_REQUIRED` | 用户 | `BUDGET_AND_PAID_OPTIONS.md` | 用户书面批准 |
+| D-16 | 预算档位 | 最小 / 实际 A / 实际 B / 含 Vimeo / 月付 | 第二个月实际 A：Postiz Standard 5 渠道 $278/年（单人）；需双人工作台用 Team $374/年；Vimeo 暂缓；或最小 $0 平台订阅 | `USER_ACTION_REQUIRED` | 用户 | `BUDGET_AND_PAID_OPTIONS.md`；E-40 | 用户书面批准 |
 | D-17 | 第二个月是否投广告 | 投 / 不投 | 不投；另立项目与预算 | `RECOMMENDED` | 用户 | 本包范围；费用分列 | 自然内容跑通且有转化数据 |
 | D-18 | 是否改变 Contract Freeze | 改 / 不改 | 不改；本包不触碰任何冻结项 | `CONFIRMED` | 用户/Reviewer | 任务书边界 | 不可变（本包范围内） |
 | D-19 | 是否改站点代码（Organization sameAs 等） | 本期改 / 后置 | 后置；先完成主页与链接，再单独立项 | `CONFIRMED`（本包不做） | 用户 | 任务书边界 | 另立实施任务并授权 |
 | D-20 | 建号前是否查重 | 查 / 不查 | 先查重与所有权确认，再建号 | `RECOMMENDED` | 用户 | 重复账号风险 | 用户确认无历史账号 |
 | D-21 | 是否使用买粉/群发工具 | 用 / 不用 | 不用；违反平台规则与品牌安全 | `CONFIRMED` | 用户 | 平台政策；增长规划红线 | 不可变 |
 | D-22 | 是否建立度量基线 | 建 / 不建 | 建；每个平台记录起始数据与 UTM 会话/询盘 | `RECOMMENDED` | 运营 | 增长规划 §2.5/§5.1 | 无分析权限时用平台后台替代 |
-| D-23 | 是否申请 Meta 企业认证 | 申请 / 暂不 / 视方案 | 自建 Postiz 且公开应用时再申请；费用 `UNKNOWN` | `PROPOSED` | 用户 | E-24 | 选择自建且需要公开发布 |
+| D-23 | 是否申请 Meta App Review / Business Verification | 申请 / 暂不 / 视方案 | 仅内部角色使用可不做 App Review；对外开放或申请高级权限时再按需申请；两者独立，费用 `UNKNOWN` | `PROPOSED` | 用户 | E-50/E-51；E-24（Postiz 文档） | 选择自建且需要对 app roles 以外的人开放/申请高级权限 |
 | D-24 | 是否向 LinkedIn 询价认证 | 询价 / 不询 | 可询价，不承诺购买 | `PROPOSED` | 用户 | E-14 | 获得报价后重评 |
 | D-25 | 内容主语言 | 英语 / 多语种 | 英语为主，重要内容加字幕；多语种按数据扩展 | `PROPOSED` | 用户 | 站点多语种现状 | 目标市场语言优先级确认 |
 

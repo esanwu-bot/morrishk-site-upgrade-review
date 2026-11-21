@@ -50,32 +50,44 @@
 
 | 项 | 方案 | 月付 | 年付 | 状态 |
 |---|---|---|---|---|
-| Postiz Cloud | 5 渠道 | $29/月 | $278/年 | `CONFIRMED`（E-40） |
-| Postiz Cloud | 10 渠道 | $39/月 | $374/年 | `CONFIRMED`（E-40） |
-| Vimeo Creator | 年付 $9/月；月付 $16/月 | $9（年付折算） | $108/年 | `CONFIRMED`（E-38） |
-| LinkedIn 认证 | Premium Company Page 或付费 Jobs/Ads | `UNKNOWN` | `UNKNOWN` | `UNKNOWN` |
+| Postiz Cloud Standard | 5 渠道；**无团队成员** | $29/月 | $278/年（≈$23/月） | `CONFIRMED`（E-40） |
+| Postiz Cloud Team | 10 渠道；**不限团队成员** | $39/月 | $374/年（≈$31/月） | `CONFIRMED`（E-40） |
+| Postiz Cloud Pro | 30 渠道；**不限团队成员** | $49/月 | $470/年（≈$39/月） | `CONFIRMED`（E-40） |
+| Vimeo Creator（暂缓） | 年付 $9/月；月付 $16/月 | $9（年付折算） | $108/年 | `CONFIRMED`（E-38） |
+| LinkedIn 认证 | 资格可来自主页活跃/商业关系；付费产品非唯一路径 | `UNKNOWN` | `UNKNOWN` | `UNKNOWN` |
 | X Premium | 仅 Articles 需要 | `UNKNOWN` | `UNKNOWN` | `UNKNOWN` |
+
+> **平台主页管理员 ≠ Postiz 工作台用户**。前 5 个平台各配 2 名主页管理员，不需要 Postiz Team 席位；Standard 的“无团队成员”只限制 Postiz 工作台账号数，不限制平台原生管理员。若两人都需要登录 Postiz 排程，才需要 Team 或更高级别。
 
 ### 3.2 组合后的年度预算
 
+**第二个月实际预算（Vimeo 暂缓）**
+
 | 组合 | 计算 | 年度 | 月均 | 适用 |
 |---|---|---|---|---|
-| **标准 A（推荐）** | Postiz 10 渠道年付 $374 + Vimeo Creator 年付 $108 | **$482/年** | ≈$40.17/月 | 5–8 个平台 + 品牌视频托管 |
-| 标准 B（精简） | Postiz 5 渠道年付 $278 + Vimeo Creator 年付 $108 | **$386/年** | ≈$32.17/月 | 只连 5 个核心平台 |
-| 标准 C（月付） | Postiz 10 渠道 $39/月 + Vimeo $16/月 | **$660/年** | $55/月 | 不想年付锁定 |
-| 标准 D（月付精简） | Postiz 5 渠道 $29/月 + Vimeo $16/月 | **$540/年** | $45/月 | 先试 1–2 个月 |
-| 不含 Vimeo | 仅 Postiz 10 渠道年付 | **$374/年** | ≈$31.17/月 | 第二个月只建 YouTube，不建 Vimeo |
+| **实际 A（推荐·单人排程）** | Postiz Standard · 5 渠道年付 | **$278/年** | ≈$23.17/月 | 单人操作 Postiz，连前 5 核心平台 |
+| 实际 B（双人排程） | Postiz Team · 10 渠道年付 | **$374/年** | ≈$31.17/月 | 两人以上需要 Postiz 工作台 |
+| 实际 C（月付·单人） | Postiz Standard $29/月 | **$348/年** | $29/月 | 不想年付锁定 |
+| 实际 D（月付·双人） | Postiz Team $39/月 | **$468/年** | $39/月 | 不想年付锁定且需多席位 |
 
-> 标准预算**不含** LinkedIn 认证、X Premium、广告、内容制作、托管、税费。若这些被批准，需另加报价。
+**若日后启用 Vimeo（第二个月不启用）**
 
-### 3.3 为什么推荐“标准 A”而不是“最小”
+| 组合 | 计算 | 年度 | 月均 | 适用 |
+|---|---|---|---|---|
+| 含 Vimeo·单人 | $278 + Vimeo $108 | **$386/年** | ≈$32.17/月 | 官网需要无广告嵌入 |
+| 含 Vimeo·双人 | $374 + Vimeo $108 | **$482/年** | ≈$40.17/月 | 多席位 + 品牌视频托管 |
+| 含 Vimeo·月付 | $29 + $16 或 $39 + $16 | **$540 或 $660/年** | $45 或 $55/月 | 短期试用 |
 
-| 维度 | 最小（自建） | 标准 A（Cloud + Vimeo） |
+> 预算**不含** LinkedIn 认证、X Premium、广告、内容制作、托管、税费。若这些被批准，需另加报价。
+
+### 3.3 为什么推荐“实际 A”而不是“最小”
+
+| 维度 | 最小（自建） | 实际 A（Cloud，无 Vimeo） |
 |---|---|---|
 | 上线速度 | 慢：需自建、申请应用、维护 | 快：开通即用 |
 | 运维负担 | 高 | 低 |
 | 数据/合规控制 | 高（自建） | 依赖 Postiz Cloud |
-| 年度现金支出 | $0 软件 + 托管 `UNKNOWN` | $482 明码 |
+| 年度现金支出 | $0 软件 + 托管 `UNKNOWN` | $278 明码 |
 | 适合阶段 | 长期、有运维 | 第二个月先跑通 |
 
 > 若已有可用服务器且有人维护，自建更省现金；若没有，Cloud 的时间成本更低。选择权在用户。
@@ -84,21 +96,21 @@
 
 | 付费项 | 解锁什么 | 第二个月是否必要 | 价格 | 建议 | 状态 |
 |---|---|---|---|---|---|
-| LinkedIn Premium Company Page | 主页认证资格、部分主页能力 | 否 | `UNKNOWN`（需销售询价） | 先不买；等主页有内容与数据后再评估 | `RECOMMENDED` |
-| LinkedIn Jobs/Ads（为认证） | 认证路径之一 | 否 | `UNKNOWN` | 不为认证而买招聘/广告 | `RECOMMENDED` |
+| LinkedIn Premium Company Page | 主页认证资格、部分主页能力 | 否 | `UNKNOWN`（需销售询价） | 先不买；认证资格也可能来自主页活跃/商业关系，先建页运营再评估 | `RECOMMENDED` |
+| LinkedIn Jobs/Ads（为认证） | 满足认证资格的一种方式，不是唯一路径 | 否 | `UNKNOWN` | 不为认证而买招聘/广告 | `RECOMMENDED` |
 | X Premium | Articles、部分账号能力 | 否 | `UNKNOWN` | 不发文章就不买 | `RECOMMENDED` |
 | Vimeo Creator | 高级播放器/隐私/品牌化/容量 | 否（可选） | $9/月年付；$16/月 | 需要官网无广告嵌入时再买 | `PROPOSED` |
 | Vimeo Core/Professional | 更高容量/团队/隐私 | 否 | $24.50/$40；$71/$120 每月 | 暂不考虑 | `RECOMMENDED` |
-| Postiz Cloud | 免自建、预审核应用 | 可选 | $29–$99/月 | 先 7 天试用；按渠道数选 | `PROPOSED` |
+| Postiz Cloud | 免自建、预审核应用；Standard 无团队成员，Team/Pro 不限成员 | 可选 | Standard $29、Team $39、Pro $49、Ultimate $99/月 | 先 7 天试用；单人先 Standard，多席位再 Team | `PROPOSED` |
 | Medium Member/Friend | 阅读会员，不是发布费 | 否 | $5/$15 每月 | 不买 | `CONFIRMED`（E-36） |
-| Meta 企业认证 | 公开应用/规模化发布 | 视自建方案 | `UNKNOWN` | 先确认是否收费与材料 | `UNKNOWN` |
+| Meta Business Verification | 仅在高级权限/访问其他企业数据时需要，不是所有公开应用都必须 | 视自建方案 | `UNKNOWN` | 先确认权限范围、是否收费与材料 | `UNKNOWN` |
 | TikTok 广告 / Meta 广告 / X 广告 / YouTube 广告 | 付费流量 | 否 | 另计 | 本月不做 | `CONFIRMED`（排除） |
 
 ## 5. 付费触发条件（满足才申请）
 
 | 付费项 | 触发条件 | 决策人 | 状态 |
 |---|---|---|---|
-| LinkedIn 认证 | 主页已稳定运营 ≥1 个月；认证报价可接受；认证能带来可衡量收益 | 用户 | `USER_ACTION_REQUIRED` |
+| LinkedIn 认证 | 主页已稳定运营 ≥1 个月；先走非付费资格路径未果；认证报价可接受；认证能带来可衡量收益 | 用户 | `USER_ACTION_REQUIRED` |
 | X Premium | 确有 Articles/长文需求，且普通帖无法满足 | 用户 | `USER_ACTION_REQUIRED` |
 | Vimeo 付费 | 官网/提案需要无广告播放器或隐私控制；免费档不够用 | 用户 | `USER_ACTION_REQUIRED` |
 | Postiz Cloud | 自建运维成本 > 订阅费；或需要快速上线 | 用户 | `USER_ACTION_REQUIRED` |
@@ -119,7 +131,7 @@
 
 | 项 | 选项 | 用户决定 | 日期 |
 |---|---|---|---|
-| 预算档位 | 最小 $0 / 标准 A $482 / 标准 B $386 / 月付 | `USER_ACTION_REQUIRED` | — |
+| 预算档位 | 最小 $0 / 实际 A $278 / 实际 B $374 / 含 Vimeo $386–$482 / 月付 | `USER_ACTION_REQUIRED` | — |
 | Postiz 形态 | Cloud / 自建 / 暂不接入 | `PROPOSED` | — |
 | Vimeo | 暂缓 / 免费档 / Creator | `PROPOSED` | — |
 | LinkedIn 认证 | 本月不办 / 询价 | `PROPOSED` | — |
@@ -130,16 +142,17 @@
 
 | 价格 | 来源 | 访问方式 | 限制 |
 |---|---|---|---|
-| Postiz Cloud $29/$39/$49/$99；$278/$374/$470/$950 | Postiz 官方定价页 | 直接访问 | 渠道计费口径以购买页为准；可能有税费 |
+| Postiz Cloud $29/$39/$49/$99；$278/$374/$470/$950；Standard 5 渠道无成员，Team 10 渠道不限成员，Pro 30 渠道不限成员，Ultimate 100 渠道不限成员 | Postiz 官方定价页 | 直接访问 | 渠道计费口径以购买页为准；可能有税费 |
 | Vimeo Creator $9/$16；Core $24.50/$40；Professional $71/$120 | Vimeo 官方定价页 | 直接访问 | 年付/月付差异；税费另计 |
 | Medium $5/$15 | Medium 官方会员页 | 直接访问 | 阅读会员，不是发布费 |
 | LinkedIn Premium Company Page | 官方仅引导销售联系 | 价格页不可得 | `UNKNOWN`，不得估算 |
 | X Premium | 官方帮助页被 Cloudflare 拦截 | `BLOCKED` | `UNKNOWN`，不得估算 |
-| Meta 企业认证费用 | 未取得官方计费页 | `BLOCKED`/未核验 | `UNKNOWN`，不列入预算 |
+| Meta Business Verification 费用 | 未取得官方计费页 | `BLOCKED`/未核验 | `UNKNOWN`，不列入预算 |
 
 ## 9. 结论
 
 - **最小预算：$0/年平台订阅**，但需要自建与人力，真实成本不是零。
-- **标准预算：$386–$482/年**（Postiz Cloud + Vimeo Creator 年付）；月付约 $540–$660/年。
+- **第二个月实际预算（Vimeo 暂缓）：$278/年**（Postiz Standard 5 渠道年付，单人排程）；双人排程 $374/年（Team 10 渠道）；月付 $348/$468/年。
+- **若启用 Vimeo**：另加 $108/年，合计 $386–$482/年；对应当 Vimeo 月付约 $540–$660/年。
 - **不含**认证、Premium、广告、内容制作、托管与税费。
 - 任何付费项在获得用户书面批准前不购买、不试用自动续费、不绑定支付方式。

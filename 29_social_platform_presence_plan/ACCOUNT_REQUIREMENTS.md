@@ -25,8 +25,9 @@
 | 建页前提 | 必须已有个人 LinkedIn 账号；需在桌面端或 iOS 创建；创建者为 super admin | `CONFIRMED`（E-12） |
 | 费用 | 建页免费 | `CONFIRMED`（E-12） |
 | 管理员 | 个人账号被授予 Page admin；建议 ≥2 名 super admin | `RECOMMENDED` |
-| 认证 | 需 Premium Company Page 或付费 Jobs/Ads 等产品；免费试用不符合条件；审核最长 10 天 | `CONFIRMED`（E-14） |
-| 认证价格 | 官方未公开，需销售询价 | `UNKNOWN` |
+| 认证资格 | 资格可来自主页“有意义的互动”或“既有商业关系”；Premium Company Page 或付费 Jobs/Ads 是满足条件的例子，不是唯一路径；最终由平台裁量；免费试用不等于付费资格 | `CONFIRMED`（E-14） |
+| 审核 | 最长约 10 天，考量资料准确、管理员活跃、已认领、政策合规 | `CONFIRMED`（E-14） |
+| 认证价格 | 官方未公开，需销售询价；不得把付费写成唯一门槛 | `UNKNOWN`（E-15） |
 | 个人会员 | 不要求；Premium 个人会员与主页认证是两件事 | `CONFIRMED`（E-16） |
 | 自建 Postiz 应用 | LinkedIn developer app；需与已验证 Page 关联；申请 Share on LinkedIn、OpenID Connect、Advertising API 等产品 | `CONFIRMED`（E-42） |
 | 手工步骤 | 建 Page → 上传 Logo/Cover → 填写 About/Website/Industry/Size/Location → 邀请管理员 → 发布首帖 | `USER_ACTION_REQUIRED` |
@@ -43,7 +44,7 @@
 | 手机验证 | 解锁自定义缩略图、直播、>15 分钟视频、版权申诉；同一手机号每年最多验证 2 个频道 | `CONFIRMED`（E-03） |
 | Handle | 3–30 字符，每频道唯一，不可转让 | `CONFIRMED`（E-04） |
 | 变现 | YPP 门槛 1,000 订阅 + 4,000 小时/12 月或 1,000 万 Shorts 观看/90 天；第二个月不追求 | `CONFIRMED`（E-05） |
-| 自建 Postiz 应用 | Google Cloud 项目 + OAuth Client + 启用 YouTube Data API v3；配额数值未确认 | `UNKNOWN`（E-09） |
+| 自建 Postiz 应用 | Google Cloud 项目 + OAuth Client + 启用 YouTube Data API v3；默认日配额 10,000 单位，`videos.insert` 与 `search.list` 各默认 100 次/日；实际配额以 Cloud Console 为准，可申请提高 | `CONFIRMED`（E-09），项目实际值执行时确认 |
 | 手工步骤 | 建 Brand Account → 设 Handle → 手机验证 → 上传头像/横幅 → 填简介/链接/联系方式 → 建播放列表 | `USER_ACTION_REQUIRED` |
 
 ### 2.3 Facebook Page（P0 · 第 3）
@@ -54,10 +55,11 @@
 | 建页前提 | 由个人 Facebook 账号创建；建议纳入 Meta Business Portfolio 统一管理 | `RECOMMENDED` |
 | 费用 | 建页免费；官方计费页本轮被登录墙拦截，未发现收费项 | `UNKNOWN`（计费页）/ `RECOMMENDED`（按免费规划） |
 | 管理员 | 个人账号以管理员身份加入；建议 ≥2 人 | `RECOMMENDED` |
-| 企业认证 | 使用公开 Meta 应用且 Live 模式发布时，Postiz 文档要求业务验证 | `CONFIRMED`（E-24，Postiz 文档） |
+| App Review | 仅当应用被 app roles 以外的人使用时才需要；只有内部角色使用可不做。对外开放权限/功能时按权限逐项触发审核 | `CONFIRMED`（E-50） |
+| 企业验证（Business Verification） | 在申请高级权限或访问其他企业数据时需要，并非所有公开应用都必须完成；与 App Review 是两件事 | `CONFIRMED`（E-51） |
 | 认证费用 | 未取得官方计费页，不列入预算 | `UNKNOWN` |
 | 官方页面访问 | `facebook.com/business` 本轮被登录墙拦截 | `BLOCKED`（E-22） |
-| 自建 Postiz 应用 | Meta 开发者应用；需 `pages_manage_posts` 等权限；公开应用需企业认证 | `CONFIRMED`（E-42） |
+| 自建 Postiz 应用 | Meta 开发者应用；需 `pages_manage_posts` 等权限；是否触发 App Review/企业验证取决于使用者范围与权限级别 | `CONFIRMED`（E-42/E-50/E-51） |
 | 手工步骤 | 建 Page → 设类别/简介/联系方式 → 上传头像/封面 → 加入 Business Portfolio → 邀请管理员 → 绑定 Instagram | `USER_ACTION_REQUIRED` |
 
 ### 2.4 Instagram 专业账号（P0 · 第 4）
@@ -67,7 +69,7 @@
 | 账号类型 | Business 或 Creator 专业账号 | `CONFIRMED`（E-19） |
 | 切换费用 | 免费；一个个人账号最多管理 10 个专业账号；绑定 Facebook Page 可选 | `CONFIRMED`（E-19） |
 | 绑定 FB Page | 建议绑定，便于统一投放与跨平台发布 | `RECOMMENDED` |
-| 企业认证 | 使用公开 Meta 应用发布时需业务验证（与 Facebook 同一 Meta 应用） | `CONFIRMED`（E-24，Postiz 文档） |
+| App Review / 企业验证 | 与 Facebook 同一 Meta 应用；仅内部角色使用可不做 App Review；高级权限或其他企业数据访问才需企业验证 | `CONFIRMED`（E-50/E-51） |
 | 自建 Postiz 应用 | 同一 Meta 应用；需 `instagram_content_publish` 等权限 | `CONFIRMED`（E-42） |
 | 内容能力 | Postiz 支持 REELS、STORIES、VIDEO、CAROUSEL、试播 Reels | `CONFIRMED`（E-20） |
 | 手工步骤 | 个人账号 → 设置 → 切换为专业账号 → 选类别 → 绑定 Page → 补全简介/联系 → 上传头像 | `USER_ACTION_REQUIRED` |
@@ -92,11 +94,12 @@
 | 项 | 内容 | 状态 |
 |---|---|---|
 | 账号类型 | 免费 Business 账号 | `CONFIRMED`（E-32） |
+| 账号创建 | 可用未被占用的商业邮箱直接注册 Business 账号（注册流程中选“Create a business account”），**无需先建个人账号** | `CONFIRMED`（E-49） |
 | 费用 | 建号免费 | `CONFIRMED`（E-32） |
 | 网站认领 | 建议认领官网，提升来源可信度；具体验证方式执行时核对官方页 | `RECOMMENDED` / 流程 `UNKNOWN` |
 | 自建 Postiz 应用 | Pinterest 应用需审核 | `CONFIRMED`（E-42） |
 | Postiz 约束 | 每条 Pin 必须选择 Board；正文上限 500 字符；视频 Pin 需视频 + 封面图 | `CONFIRMED`（E-33） |
-| 手工步骤 | 建 Business 账号 → 补全资料 → 建 Board → 认领网站 → 上传首批产品图 | `USER_ACTION_REQUIRED` |
+| 手工步骤 | 用品牌邮箱直接注册 Business 账号 → 补全资料 → 建 Board → 认领网站 → 上传首批产品图 | `USER_ACTION_REQUIRED` |
 
 ### 2.7 TikTok（P1 · 手动试点）
 
@@ -146,8 +149,9 @@
 
 | 平台 | 是否需要营业执照 | 需要什么 | 是否收费 | 状态 |
 |---|---|---|---|---|
-| LinkedIn Page 认证 | 需要企业真实信息，但不是“上传营业执照”式认证 | 法定名称、网站、工作邮箱、管理员活跃度、政策合规；需 Premium Company Page 或付费产品 | 是（价格 `UNKNOWN`） | `CONFIRMED`（E-14） |
-| Meta 企业认证 | 公开应用/规模化发布时需要 | 法定实体资料、域名/网站、电话等；具体清单以申请页为准 | `UNKNOWN` | `CONFIRMED`（要求）/ `UNKNOWN`（费用） |
+| LinkedIn Page 认证 | 需要企业真实信息，但不是“上传营业执照”式认证 | 法定名称、网站、工作邮箱、主页活跃/互动、既有商业关系、政策合规；付费产品可满足资格但非唯一路径 | 视路径；价格 `UNKNOWN` | `CONFIRMED`（E-14） |
+| Meta App Review | 仅当应用被 app roles 以外的人使用时需要 | 按权限/功能逐项审核；只有内部角色使用可不做 | 免费 | `CONFIRMED`（E-50） |
+| Meta Business Verification | 申请高级权限或访问其他企业数据时需要；不是所有公开应用都必须 | 法定实体资料、域名/网站、电话等；具体清单以申请页为准 | `UNKNOWN` | `CONFIRMED`（要求存在）/ `UNKNOWN`（费用） |
 | TikTok 开发者 | 不要求营业执照 | 公网 HTTPS 站点、域名归属验证、应用审核 | 免费 | `CONFIRMED`（E-27） |
 | Pinterest 开发者 | 不要求营业执照 | 应用审核 | 免费 | `CONFIRMED`（E-42） |
 | YouTube | 不要求 | 手机验证（频道功能）；API 项目（自建时） | 免费 | `CONFIRMED`（E-03） |
@@ -162,9 +166,9 @@
 
 | 平台 | 自建应用要求 | 审核/等待 | 状态 |
 |---|---|---|---|
-| YouTube | Google Cloud 项目、OAuth Client、YouTube Data API v3 | 配额与审核 `UNKNOWN` | `CONFIRMED`（机制） |
+| YouTube | Google Cloud 项目、OAuth Client、YouTube Data API v3 | 默认配额已确认（E-09）；项目实际值执行时确认 | `CONFIRMED`（机制） |
 | LinkedIn Page | Developer app 与已验证 Page 关联；申请 Share on LinkedIn、OpenID Connect、Advertising API | 需审核 | `CONFIRMED`（E-42） |
-| Facebook / Instagram | Meta 应用、Live 模式、权限；公开应用需企业认证 | 企业认证可能数天至数周 | `CONFIRMED`（E-24/E-42） |
+| Facebook / Instagram | Meta 应用、Live 模式、权限；对外使用触发 App Review；高级权限/他人数据触发企业验证 | 审核可能数天至数周 | `CONFIRMED`（E-50/E-51） |
 | TikTok | 公网 HTTPS 站点、域名验证、Content Posting API | 未审核客户端受限 | `CONFIRMED`（E-25/E-27） |
 | X | OAuth 1.0a Native App | API 档位 `UNKNOWN` | `CONFIRMED`（E-29） |
 | Pinterest | 应用审核 | 需审核 | `CONFIRMED`（E-42） |

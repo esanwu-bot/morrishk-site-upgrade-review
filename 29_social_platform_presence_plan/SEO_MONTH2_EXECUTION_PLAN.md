@@ -157,10 +157,10 @@
 
 | 风险 | 概率 | 影响 | 应对 | 状态 |
 |---|---|---|---|---|
-| LinkedIn 认证需付费且价格未知 | 高 | 无法拿徽章 | 第二个月不认证；先建页运营 | `CONFIRMED` |
-| Meta 企业认证周期长 | 中 | Postiz 自建应用受阻 | 先用 Cloud 试跑；并行准备资料 | `UNKNOWN` |
+| LinkedIn 认证资格由平台裁量且价格未知 | 高 | 无法拿徽章 | 第二个月不认证；先建页运营，优先非付费资格路径 | `CONFIRMED` |
+| Meta App Review / 企业验证可能耗时 | 中 | Postiz 自建应用受阻 | 先用 Cloud 试跑；按使用者范围与权限确认是否需要，再并行准备资料 | `UNKNOWN` |
 | TikTok 未审核只能发私密 | 高 | API 发布无效 | 手动发布；不承诺自动分发 | `CONFIRMED` |
-| YouTube API 配额未知 | 中 | 批量上传受限 | 先手动；配额实测后再排程 | `UNKNOWN` |
+| YouTube 项目配额可能低于默认值 | 中 | 批量上传受限 | 先手动；在 Cloud Console 确认项目配额后再排程（E-09） | `USER_ACTION_REQUIRED` |
 | 品牌事实缺失 | 高 | 资料无法上线 | W1 必须补齐；否则不进入 W2 | `USER_ACTION_REQUIRED` |
 | 内容产能不足 | 中 | 断更、分区空置 | 4 条视频 + 模板化图文；复用素材 | `RECOMMENDED` |
 | Reddit 被视为推广 | 中 | 封号/品牌受损 | 只做人工技术答疑；不发链接轰炸 | `CONFIRMED`（E-34） |

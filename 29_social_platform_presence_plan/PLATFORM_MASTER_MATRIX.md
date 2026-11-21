@@ -25,7 +25,7 @@
 1. **人群匹配**：电子元器件/供应链的采购与工程决策者集中在 LinkedIn；YouTube 承接“型号 + 应用 + 怎么买”的长尾搜索；Facebook/Instagram 用于品牌可信度与视觉资产；X 用于行业存在感。
 2. **可运营性**：前 5 个平台全部被 Postiz 覆盖，可统一排程；Vimeo 不在 Postiz 内，第二个月引入会增加手工成本。
 3. **搜索价值**：YouTube 视频标题/描述可被 Google 索引；LinkedIn 组织主页与帖子可被搜索引擎收录；社交主页本身可作为品牌词结果占位。
-4. **合规与政策风险**：Reddit 反自我推广规则严格；TikTok 未审核 API 只能发私密账号；LinkedIn 认证是付费路径。这些都会影响“先建谁”。
+4. **合规与政策风险**：Reddit 反自我推广规则严格；TikTok 未审核 API 只能发私密账号；LinkedIn 认证最终由平台裁量（付费可满足资格但非唯一路径）。这些都会影响“先建谁”。
 5. **内容产能**：第二个月按“1 条视频 + 每周 2 条图文”设计，避免为 8 个平台分别生产内容。
 
 ### 1.2 明确不进入前 5 的理由
@@ -42,12 +42,12 @@
 
 | 平台 | 建号/主页费用 | 企业认证/审核 | 关键付费能力 | 需要个人管理员 | 预算影响 | 结论状态 |
 |---|---|---|---|---|---|---|
-| LinkedIn Page | 免费 | 主页认证：需 Premium Company Page 或付费 Jobs/Ads；免费试用不符合条件；审核最长 10 天（E-14） | 认证徽章、部分主页能力 | 是（个人 Profile 为 super admin，E-12） | 认证价格 `UNKNOWN`；第二个月不买 | `CONFIRMED`（免费建页/认证付费） |
-| YouTube | 免费 | 无需营业执照；手机验证解锁自定义缩略图/直播/长视频（E-03） | 无必须付费项；广告另计 | 是（Google 账号；建议 Brand Account） | $0；API 配额 `UNKNOWN` | `CONFIRMED` |
-| Facebook Page | 免费（官方计费页本轮被登录墙拦截，未发现收费项） | 公开应用 + Live 模式需 Meta 企业认证（E-24，Postiz 文档） | 广告、再营销（本轮排除） | 是（个人 Profile 建 Page） | $0；认证费用 `UNKNOWN` | `UNKNOWN`（计费页）/ `CONFIRMED`（认证要求存在） |
-| Instagram 专业账号 | 免费 | 公开 Meta 应用需企业认证；账号本身免费（E-19/E-24） | 广告（本轮排除） | 是（个人账号转专业账号） | $0 | `CONFIRMED` |
+| LinkedIn Page | 免费 | 主页认证：资格可来自主页活跃/互动/商业关系；Premium Company Page 或付费 Jobs/Ads 可满足资格但非唯一路径；最终由平台裁量（E-14） | 认证徽章、部分主页能力 | 是（个人 Profile 为 super admin，E-12） | 认证价格 `UNKNOWN`；第二个月不买 | `CONFIRMED`（免费建页/认证资格存在非付费路径） |
+| YouTube | 免费 | 无需营业执照；手机验证解锁自定义缩略图/直播/长视频（E-03） | 无必须付费项；广告另计 | 是（Google 账号；建议 Brand Account） | $0；API 默认配额已确认（E-09） | `CONFIRMED` |
+| Facebook Page | 免费（官方计费页本轮被登录墙拦截，未发现收费项） | App Review 仅在 app roles 以外的人使用时需要；企业验证仅在高级权限/他人数据时需要（E-50/E-51） | 广告、再营销（本轮排除） | 是（个人 Profile 建 Page） | $0；认证费用 `UNKNOWN` | `UNKNOWN`（计费页）/ `CONFIRMED`（审核条件存在） |
+| Instagram 专业账号 | 免费 | 同 Meta 应用：对外使用触发 App Review；高级权限触发企业验证；账号本身免费（E-19/E-50/E-51） | 广告（本轮排除） | 是（个人账号转专业账号） | $0 | `CONFIRMED` |
 | X | 免费（官方计费页本轮被 Cloudflare 拦截，未发现建号收费项） | 无企业认证；开发者应用/API 有独立门槛（E-29） | X Premium 解锁文章；API 访问付费档（价格 `UNKNOWN`） | 是 | 第二个月 $0（不发文章） | `UNKNOWN`（计费页）/ `CONFIRMED`（文章需 Premium） |
-| Pinterest Business | 免费（E-32） | 应用审核（自建 Postiz 时，E-42） | 广告（本轮排除） | 是 | $0 | `CONFIRMED` |
+| Pinterest Business | 免费（E-32） | 应用审核（自建 Postiz 时，E-42）；账号可直接用商业邮箱独立注册（E-49） | 广告（本轮排除） | **否（可直接建 Business 账号，E-49）** | $0 | `CONFIRMED` |
 | TikTok | 免费（官方计费页本轮不可达，未发现建号收费项） | 开发者应用需公网 HTTPS 站点与域名验证；未审核应用仅可发私密账号（E-25/E-27） | 广告（本轮排除） | 是 | $0（手动发布） | `UNKNOWN`（计费页）/ `CONFIRMED`（限制存在） |
 | Medium | 发布免费 | 无企业认证 | Member $5/月、Friend $15/月为阅读会员，不是发布费（E-36） | 是 | $0 | `CONFIRMED` |
 | Vimeo | 有免费档 | 无企业认证 | Creator $9/月（年付）或 $16/月；Core $24.50/$40；Professional $71/$120（E-38） | 是 | 第二个月 $0（暂缓） | `CONFIRMED` |
@@ -64,10 +64,11 @@
 | 层 | 建议 | 理由 | 状态 |
 |---|---|---|---|
 | 登录身份 | 品牌专用邮箱 + 密码库 + 2FA | 不依赖个人邮箱；离职可交接 | `RECOMMENDED` |
+| 平台登录模型 | 三类：个人账号创建（LinkedIn/Facebook/Instagram/X/TikTok/Reddit/Medium）、平台内品牌管理（YouTube Brand Account）、独立企业账号（Pinterest Business） | 不存在“所有平台都能纯企业账号登录”的统一模型（E-49） | `CONFIRMED` |
 | Google/YouTube | 使用 Brand Account，至少 2 名所有者 | 多人管理不必共享个人 Google 密码（E-01） | `RECOMMENDED` |
 | Meta | 使用 Business Portfolio 管理 FB Page 与 IG | 管理员用个人身份加入，资产归企业组合 | `RECOMMENDED` |
 | LinkedIn | 企业主页 + 至少 2 名 super admin | 避免个人账号停用导致主页失管 | `RECOMMENDED` |
-| 其他平台 | 品牌邮箱注册，2 名管理员，开启 2FA | 统一治理 | `RECOMMENDED` |
+| 其他平台 | 个人账号创建为主（Pinterest 可直接建 Business）；品牌邮箱负责通知/恢复；2 名管理员 + 2FA | 各平台登录模型不同，不能统一写成“纯企业账号” | `RECOMMENDED` |
 | 凭证 | 只由用户持有；Agent 不接收密码/Token | 任务书硬性边界 | `CONFIRMED` |
 
 ## 5. 与既有决策的关系

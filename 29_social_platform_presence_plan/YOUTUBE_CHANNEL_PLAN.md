@@ -166,15 +166,15 @@ Contact: {{contact_email}}
 | 儿童内容 | `selfDeclaredMadeForKids` 必选 yes/no | 同上 | `CONFIRMED` |
 | 缩略图 | 通过 `thumbnails.set` 上传；频道需手机验证，否则报错并提示手动设置 | `youtube.provider.ts` | `CONFIRMED`（E-11） |
 | Shorts | provider 无 Shorts 专用字段/路径 | 代码检索 | `CONFIRMED` |
-| 并发 | `maxConcurrentJob = 200`（代码注释：严格上传配额） | `youtube.provider.ts` | `CONFIRMED` |
-| API 配额数值 | 官方文档本轮不可访问 | — | `UNKNOWN`（E-09） |
+| 内部并发 | `maxConcurrentJob = 200` 是 Postiz 任务调度器的内部并发上限，不是 YouTube 平台配额，也不代表可同时上传 200 条 | `youtube.provider.ts` | `CONFIRMED` |
+| 平台配额 | Data API v3 默认 10,000 单位/日；`videos.insert` 与 `search.list` 各默认 100 次/日；实际项目配额见 Cloud Console，可申请提高 | Google 官方文档 | `CONFIRMED`（E-09） |
 
 **操作建议**：
 
 1. 首条视频用 YouTube Studio 手动上传，确认缩略图、章节、字幕、播放列表都正确。
 2. 手机验证完成后再让 Postiz 接管缩略图；否则 Postiz 会提示去 Studio 手动设置。
 3. Shorts 不作为独立发布类型；需要时手动上传竖版或使用同一视频。
-4. 批量排程前先确认 API 配额，避免月中耗尽。配额数值 `UNKNOWN`，必须等官方页可访问或控制台实测。
+4. 批量排程前先在 Google Cloud Console 确认项目实际配额；官方默认值为 10,000 单位/日、`videos.insert` 100 次/日，项目可能不同，必要时提交提高申请。不要用 Postiz 的 `maxConcurrentJob=200` 推断平台允许的上传量。
 
 ## 8. 发布节奏（第二个月）
 
@@ -205,7 +205,7 @@ Contact: {{contact_email}}
 | 风险 | 影响 | 缓解 | 状态 |
 |---|---|---|---|
 | 未做手机验证 | 无法自定义缩略图/直播/长视频 | 建号当天完成验证（E-03） | `USER_ACTION_REQUIRED` |
-| API 配额未知 | 批量上传可能中断 | 先手动上传；配额实测后再自动化（E-09） | `UNKNOWN` |
+| 项目配额可能低于默认值 | 批量上传可能中断 | 先手动上传；在 Cloud Console 确认项目配额后再自动化（E-09） | `USER_ACTION_REQUIRED` |
 | 内容产能不足 | 分区空置、更新断档 | 首批只做 4 条；模板化脚本与素材复用 | `RECOMMENDED` |
 | 型号/参数错误 | 技术信誉受损 | 每条视频对照 datasheet 复核；描述加“以最新 datasheet 为准” | `RECOMMENDED` |
 | 认证/库存等夸大 | 合规与客诉风险 | 禁用词清单（见 `PROFILE_BRANDING_GUIDE.md` §7） | `CONFIRMED` |

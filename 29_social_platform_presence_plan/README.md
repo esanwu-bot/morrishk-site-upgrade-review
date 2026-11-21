@@ -16,13 +16,14 @@
 | 1 | 最值得优先建设的 5 个社媒主页 | ① LinkedIn Company Page ② YouTube Brand Channel ③ Facebook Page ④ Instagram 专业账号（Business）⑤ X | `RECOMMENDED` |
 | 2 | 最值得优先建设的 3 个视频平台 | ① YouTube（唯一 P0）② Vimeo（条件性，官网嵌入/品牌片）③ TikTok（条件性，手动试点）。第二个月只建 YouTube；另两个是候选，不是承诺 | `RECOMMENDED` |
 | 3 | 哪些平台完全免费 | 建号/主页本身均无平台订阅费。**有官方页直接确认**：LinkedIn Page、YouTube、Instagram 专业账号、Pinterest Business、Medium 发布、Vimeo 免费档；**Facebook / X / TikTok / Reddit** 官方计费页本轮不可达，未发现建号收费项，按免费规划、执行时复核。免费不等于关键能力免费 | `CONFIRMED`（有官方页者）/ `UNKNOWN`（四项计费页）/ `RECOMMENDED`（是否值得建） |
-| 4 | 哪些平台关键能力需要付费 | LinkedIn 主页认证（需 Premium Company Page 或付费 Jobs/Ads，价格 `UNKNOWN`）；X 文章需 X Premium（价格 `UNKNOWN`）；Vimeo 高级播放器/隐私/品牌化需付费档（Creator $9/月起，年付）；Postiz Cloud 为付费替代自建；广告全部另计且本轮排除 | `CONFIRMED`（付费边界）/ `UNKNOWN`（具体价格） |
-| 5 | 哪些需要个人管理员账号 | **全部平台都需要个人登录身份**来创建/管理主页，没有任何平台提供纯企业账号登录。LinkedIn 需个人 Profile 做 super admin；Facebook 需个人 Profile 建 Page；YouTube 用 Google 账号（建议 Brand Account 共享所有权）；Instagram 由个人账号转为专业账号 | `CONFIRMED` |
-| 6 | 哪些需要企业认证/执照 | LinkedIn 主页认证需要企业资料且只有付费路径；Meta 企业认证（Business Verification）在公开应用/规模化发布时被要求；TikTok 开发者应用需公网 HTTPS 站点与域名归属验证；Pinterest 需应用审核。YouTube/X/Reddit/Medium/Vimeo 不需要营业执照，但分别有手机验证、Premium、社区规则、付费档等门槛 | `CONFIRMED`（门槛存在）/ `UNKNOWN`（Meta 认证是否收费） |
+| 4 | 哪些平台关键能力需要付费 | LinkedIn 主页认证：存在非付费资格路径（主页活跃、互动、商业关系），Premium Company Page 或付费 Jobs/Ads 可满足资格但不是唯一路径，最终由平台裁量，价格 `UNKNOWN`；X 文章需 X Premium（价格 `UNKNOWN`）；Vimeo 高级播放器/隐私/品牌化需付费档（Creator $9/月起，年付）；Postiz Cloud 为付费替代自建；广告全部另计且本轮排除 | `CONFIRMED`（付费边界）/ `UNKNOWN`（具体价格） |
+| 5 | 哪些需要个人管理员账号 | 分三类：**(a) 必须由个人账号创建/管理**——LinkedIn（个人 Profile 做 super admin）、Facebook Page（个人 Profile 建 Page，Instagram 由个人账号转专业账号）、X、Reddit、Medium、TikTok；**(b) 平台账号体系内做品牌管理**——YouTube（Google 账号 + Brand Account 共享所有权）；**(c) 可直接创建独立企业账号**——Pinterest Business（用未被占用的商业邮箱直接注册，无需先建个人账号） | `CONFIRMED`（E-12/E-01/E-49） |
+| 6 | 哪些需要企业认证/执照 | LinkedIn 主页认证：需企业真实信息，但资格可来自主页活跃/互动/商业关系，付费产品只是满足条件的一种方式，最终由平台裁量；Meta 需区分 App Review 与 Business Verification（见下条）；TikTok 开发者应用需公网 HTTPS 站点与域名归属验证；Pinterest 需应用审核。YouTube/X/Reddit/Medium/Vimeo 不需要营业执照，但分别有手机验证、Premium、社区规则、付费档等门槛 | `CONFIRMED`（门槛存在）/ `UNKNOWN`（Meta 认证是否收费） |
+| 6b | Meta 的 App Review、Business Verification 与 Postiz 部署是什么关系 | 三件事相互独立：**App Review** 仅在应用被 app roles 以外的人使用时才需要，仅内部角色使用可不做；**Business Verification** 在申请高级权限或访问其他企业数据时才需要，并非所有公开应用都必须完成；**Postiz 自建部署**要求 Morrishk 自己创建 Meta 应用并承担上述审核，用 Postiz Cloud 则由 Postiz 承担 | `CONFIRMED`（E-23/E-50/E-51） |
 | 7 | 哪些可通过 Postiz 统一管理 | 本计划范围内：YouTube、LinkedIn Page、Facebook、Instagram、TikTok（含 Business）、X、Pinterest、Reddit、Medium、Threads。**Vimeo 不在 Postiz provider 列表**。分析数据仅 10 类平台回传，Reddit/Medium 无账号级分析 | `CONFIRMED` |
 | 8 | YouTube 主页分区怎么设计 | 横幅（≥2560×1440）＋频道预告片（新访客）＋精选视频（回访者）＋4–6 个播放列表分区：Start Here / Product Categories / How to Order & Quality / Technical FAQ / Latest Uploads；空分区不上线 | `RECOMMENDED` |
 | 9 | 第二个月优先做什么 | W1 账号治理与品牌资产；W2 建号并补全 5 个核心主页；W3 首批内容 + Postiz 连接；W4 基线测量与复盘。先做 P0（治理/建号/补全/验证），付费认证、Vimeo 与 TikTok 后置 | `RECOMMENDED` |
-| 10 | 最小预算与标准预算 | **最小：平台订阅 $0/年**（自建 Postiz + 全部免费档 + 不买认证，不含托管/人力）。**标准：约 $386–$482/年**（Postiz Cloud 5 或 10 渠道年付 + Vimeo Creator 年付）；按月付费约 $660/年。不含 LinkedIn 认证报价、X Premium、广告与内容制作 | `RECOMMENDED` |
+| 10 | 最小预算与标准预算 | **最小：平台订阅 $0/年**（自建 Postiz + 全部免费档 + 不买认证，不含托管/人力）。**第二个月实际标准（Vimeo 暂缓）：Postiz Cloud 年付 $278（Standard·5 渠道）或 $374（Team·10 渠道）；月付 $29/$39**。Standard 不含团队成员，Team 不限成员；平台主页管理员与 Postiz 工作台用户是两回事，2 名主页管理员不强制购买 Team。若日后启用 Vimeo Creator 再 +$108/年（合计 $386/$482）。不含 LinkedIn 认证报价、X Premium、广告与内容制作 | `RECOMMENDED`（档位）/ `CONFIRMED`（价格，E-40） |
 
 ## 1. 目的
 
@@ -101,6 +102,19 @@
 - [x] 区分官方文档、Postiz 文档、Postiz 源码、不可访问来源四类证据。
 - [x] `SHA256SUMS` 覆盖本目录 11 份文件（不含自身），可用 `sha256sum -c` 复算。
 - [x] 文本为 LF；Markdown 表格列数自检通过。
+
+## 6.1 复核修订记录（R1–R5）
+
+| 编号 | 修订内容 | 涉及文件 |
+|---|---|---|
+| R1 | 账号登录模型改为三类：个人账号创建、YouTube Brand Account、Pinterest 独立 Business 账号；删除“没有任何平台提供纯企业账号”的绝对表述 | `README.md`、`ACCOUNT_REQUIREMENTS.md`、`PLATFORM_MASTER_MATRIX.md` |
+| R2 | LinkedIn 认证改为资格可来自主页活跃/互动/商业关系，付费产品非唯一路径，最终由平台裁量，价格 `UNKNOWN` | `README.md`、`ACCOUNT_REQUIREMENTS.md`、`PLATFORM_MASTER_MATRIX.md`、`BUDGET_AND_PAID_OPTIONS.md`、`DECISION_REGISTER.md` |
+| R3 | YouTube 配额改用官方默认值（10,000 单位/日；`videos.insert`、`search.list` 各 100 次/日）；`maxConcurrentJob=200` 明确为 Postiz 内部并发，不是平台配额 | `EVIDENCE_INDEX.md`、`POSTIZ_PLATFORM_COVERAGE.md`、`YOUTUBE_CHANNEL_PLAN.md`、`ACCOUNT_REQUIREMENTS.md`、`PLATFORM_MASTER_MATRIX.md` |
+| R4 | 拆分 Meta App Review、Business Verification 与 Postiz 部署要求；删除“所有公开应用都必须企业验证”的表述 | `ACCOUNT_REQUIREMENTS.md`、`POSTIZ_PLATFORM_COVERAGE.md`、`EVIDENCE_INDEX.md`、`PLATFORM_MASTER_MATRIX.md`、`DECISION_REGISTER.md` |
+| R5 | 补充 Postiz 席位规则（Standard 无团队成员，Team/Pro 不限）；区分平台主页管理员与 Postiz 工作台用户；给出 Vimeo 暂缓下的第二个月实际预算 $278/$374 | `BUDGET_AND_PAID_OPTIONS.md`、`README.md`、`POSTIZ_PLATFORM_COVERAGE.md`、`EVIDENCE_INDEX.md`、`DECISION_REGISTER.md`、`SEO_MONTH2_EXECUTION_PLAN.md` |
+| 品牌措辞 | `global buyers` 改为中性的 `buyers`，避免把目标市场写成已确认 | `PROFILE_BRANDING_GUIDE.md` |
+
+> 本次修订仅改文本与证据状态，不改变“规划不等于授权”的边界：未注册账号、未购买套餐、未创建 OAuth 应用、未连接账号、未发布内容。
 
 ## 7. 后续 Gate
 

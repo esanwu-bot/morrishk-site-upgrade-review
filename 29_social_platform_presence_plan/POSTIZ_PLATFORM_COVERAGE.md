@@ -8,7 +8,7 @@
 
 | 方式 | 费用 | 平台应用 | 审核负担 | 适用 | 状态 |
 |---|---|---|---|---|---|
-| Postiz Cloud | $29/月起（5 渠道）；$39/月（10）；$49/月（30）；$99/月（100）；年付 $278/$374/$470/$950；7 天试用 | Postiz 提供已审核应用 | 低 | 先跑运营、少运维 | `CONFIRMED`（E-40） |
+| Postiz Cloud | Standard $29/月（5 渠道，无团队成员）；Team $39/月（10 渠道，不限成员）；Pro $49/月（30 渠道，不限成员）；Ultimate $99/月（100 渠道，不限成员）；年付 $278/$374/$470/$950；7 天试用 | Postiz 提供已审核应用 | 低 | 先跑运营、少运维；单人用 Standard，多席位用 Team | `CONFIRMED`（E-40） |
 | 自建（AGPL） | 软件 $0；服务器/运维另计 | 需自行申请各平台开发者应用 | 高（Meta/YouTube/TikTok 可能数周） | 数据自主、长期成本可控 | `CONFIRMED`（E-42） |
 
 > Cloud 的“渠道数”按已连接账号计；具体计费口径以购买页为准。自建不等于零成本：服务器、备份、升级、OAuth 应用维护都要人。
@@ -19,7 +19,7 @@
 |---|---|---|---|---|---|---|
 | YouTube | `youtube` | 视频（mp4） | 每条恰好 1 个 mp4；标题 1–100；描述 ≤5,000；标签 ≤500；缩略图需手机验证频道 | 是 | 是（Google Cloud） | 支持 |
 | LinkedIn Page | `linkedin-page` | 文本、图片、视频、轮播（≥2 图） | 正文 3,000；author 为 `urn:li:organization:*`；最多 1 个视频附件 | 是 | 是（需与 Page 关联并申请产品） | 支持 |
-| Facebook Page | `facebook` | 文本、图片、视频、Story | 正文 63,206；provider 无 Reels 专用路径 | 是 | 是（Meta 应用；公开应用需企业认证） | 支持 |
+| Facebook Page | `facebook` | 文本、图片、视频、Story | 正文 63,206；provider 无 Reels 专用路径 | 是 | 是（Meta 应用；对外使用才需 App Review，高级权限才需企业验证） | 支持 |
 | Instagram | `instagram` / `instagram-standalone` | 图片、视频、Reels、Stories、轮播、试播 Reels | 正文 2,200；媒体需公网 URL | 是 | 是（Meta 应用） | 支持 |
 | TikTok | `tiktok` | 视频 | 正文 2,000；未审核客户端只能发私密账号 | 是 | 是（公网 HTTPS + 域名验证） | 支持（受限） |
 | TikTok Business | `tiktok-business` | 视频 | `DIRECT_POST` 直接发布；`UPLOAD` 仅存收件箱并丢弃设置；媒体域名需在应用内验证 | 是 | 是（TikTok Business 应用） | 支持（受限） |
@@ -67,7 +67,8 @@ Postiz 文档列出的账号级分析覆盖 10 类平台：
 | 儿童内容 | `selfDeclaredMadeForKids` = yes/no 必填 | 同上 |
 | 缩略图 | `thumbnails.set`；频道未手机验证会报错，提示去 Studio 手动设置 | `youtube.provider.ts` |
 | Shorts | 无专用字段/路径 | 代码检索 |
-| 并发 | `maxConcurrentJob = 200`（“strict upload quotas”） | `youtube.provider.ts` |
+| 内部并发 | `maxConcurrentJob = 200`（“strict upload quotas”）是 **Postiz 任务调度器的内部并发上限**，不是 YouTube 平台配额，也不表示允许同时上传 200 条 | `youtube.provider.ts` |
+| 平台配额 | Data API v3 默认日配额 10,000 单位；`videos.insert` 与 `search.list` 各默认 100 次/日；实际项目配额以 Cloud Console 为准，可申请提高 | E-09（Google 官方） |
 
 ### 4.2 LinkedIn Page
 
@@ -139,9 +140,9 @@ Postiz 文档列出的账号级分析覆盖 10 类平台：
 
 | 平台 | 需要 | 审核/等待 | 备注 |
 |---|---|---|---|
-| YouTube | Google Cloud 项目、OAuth Client、YouTube Data API v3 | 配额 `UNKNOWN` | 手机验证是频道功能，不是 API 应用审核 |
+| YouTube | Google Cloud 项目、OAuth Client、YouTube Data API v3 | 默认 10,000 单位/日；项目实际值以 Cloud Console 为准 | 手机验证是频道功能，不是 API 应用审核 |
 | LinkedIn Page | Developer app + 已验证 Page；Share on LinkedIn、OpenID Connect、Advertising API | 需审核 | Page 认证本身是付费路径，与应用审核是两件事 |
-| Facebook / Instagram | Meta 应用、Live 模式、权限；公开应用需企业认证 | 可能数周 | 与 Page 认证不同 |
+| Facebook / Instagram | Meta 应用、Live 模式、权限；仅 app roles 使用可不做 App Review；高级权限/他人数据才需企业验证 | 可能数周 | 与 Page 认证不同 |
 | TikTok | 公网 HTTPS、域名验证、Content Posting API | 未审核客户端受限 | Business 另有应用 |
 | X | OAuth 1.0a Native App | API 档位 `UNKNOWN` | 文章另需 Premium |
 | Pinterest | 应用审核 | 需审核 | — |
@@ -182,7 +183,7 @@ Postiz 文档列出的账号级分析覆盖 10 类平台：
 |---|---|---|---|
 | 平台 API 变更 | 发布失败 | 固定 Postiz 版本；关注 release；保留手动发布预案 | `RECOMMENDED` |
 | Token 过期/撤销 | 排程中断 | 监控连接状态；定期重授权 | `RECOMMENDED` |
-| 速率限制 | 发布延迟 | 错峰；Reddit 1 req/s；YouTube 配额实测 | `CONFIRMED`（限制存在） |
+| 速率限制 | 发布延迟 | 错峰；Reddit 1 req/s；YouTube 默认配额见 E-09，项目实际值执行时确认 | `CONFIRMED`（限制存在） |
 | 未审核应用 | TikTok 只能发私密 | 手动发布或走审核 | `CONFIRMED` |
 | 自建应用审核周期 | 上线延迟 | 先 Cloud 试跑；并行申请 | `RECOMMENDED` |
 | 把 Postiz 当“全自动” | 资料/认证仍需人工 | 明确人工清单（第 6 节） | `RECOMMENDED` |

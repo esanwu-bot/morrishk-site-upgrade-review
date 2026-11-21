@@ -83,7 +83,7 @@
 ### 4.1 一句话（Short bio）
 
 ```text
-Morrishk — electronic components for global buyers. Product information, technical resources and inquiry at morrishk.net.
+Morrishk — electronic components for buyers. Product information, technical resources and inquiry at morrishk.net.
 ```
 
 - 只陈述已确认事实：电子元器件、多语种站点、可询盘。
@@ -93,7 +93,7 @@ Morrishk — electronic components for global buyers. Product information, techn
 ### 4.2 长简介（About / Channel description）
 
 ```text
-Morrishk is a multilingual electronic components website serving global buyers.
+Morrishk is a multilingual electronic components website serving buyers.
 
 What you can do at morrishk.net:
 - Browse product information and technical resources.
