@@ -79,7 +79,7 @@
 
 关键：
 
-1. **修改 Postiz 并分发源码**：整个修改作品按 AGPL；不能闭源。
+1. **修改 Postiz 并分发源码**：整个修改作品按 AGPL；不能作为 AGPL 之外的闭源作品分发（私有修改且不传播的情况见 §12.1）。
 2. **修改 Postiz 并分发镜像/二进制**：还要满足 §6。
 3. **Aggregate**：把独立程序与 Postiz 放在同一介质/服务器上，不自动感染；但“aggregate”与“combined work”的边界是事实与法律问题，不能仅靠目录/容器划分。
 
@@ -154,15 +154,30 @@
 | 1 | 原版 Postiz 自托管供公司内部使用，是否需对外公开源码？ | 未修改、未 conveying 时通常不需要对外公开；内部使用不等于分发。若修改并在内部网络供员工远程使用，§13 可能要求向这些用户提供源码 | `CONDITIONAL` |
 | 2 | Postiz 未修改，但作为收费 SaaS 提供给客户，义务是什么？ | AGPL 允许收费；未修改时 §13 不触发；若只提供网络交互、不交付副本，通常不因 §6 触发源码义务。但“SaaS 是否 conveying”存在解释空间 | `CONDITIONAL` / `LEGAL_REVIEW_REQUIRED` |
 | 3 | 修改 Postiz 后作为 SaaS，§13 义务是什么？ | 必须向所有远程交互用户显著提供修改版 Corresponding Source 的获取机会 | `CONDITIONAL` |
-| 4 | 向客户提供修改版 Docker 镜像/安装包，义务是什么？ | §5（修改源码按 AGPL）+ §6（object code 随附 Corresponding Source）；不得闭源 | `CONDITIONAL` |
+| 4 | 向客户提供修改版 Docker 镜像/安装包，义务是什么？ | §5（修改源码按 AGPL）+ §6（object code 随附 Corresponding Source）；不能作为 AGPL 之外的闭源作品交付 | `CONDITIONAL` |
 | 5 | 是否必须公开所有公司源代码？ | 不是。义务范围是 covered work / Corresponding Source；独立 Morrishk/Ds Bit 程序通常不在内，但组合关系需律师判断 | `LEGAL_REVIEW_REQUIRED` |
 | 6 | 是否只需提供 Postiz 对应的 Corresponding Source？ | 对 Postiz 修改版，是；但若 Adapter/业务代码与 Postiz 构成同一作品，范围可能扩大 | `CONDITIONAL` |
-| 7 | Postiz 修改代码、插件、Adapter、API 调用方分别如何判断？ | 修改代码=AGPL；同进程插件/内部库=高风险；独立 HTTP Adapter/API 调用方=较低风险但需事实审查 | `CONDITIONAL` |
+| 7 | Postiz 修改代码、插件、Adapter、API 调用方分别如何判断？ | 修改本身允许；对外分发/网络运行才触发相应义务。同进程插件/内部库高风险；独立 HTTP Adapter/API 调用方较低风险但需事实审查 | `CONDITIONAL` |
 | 8 | 哪些情形构成衍生作品或组合程序？ | 复制/改编、链接/共享内部接口、同进程加载、共享数据库/构建、为 Postiz 专门设计且紧密耦合；需律师判断 | `LEGAL_REVIEW_REQUIRED` |
 | 9 | 哪些只是独立程序通信？ | 独立进程、独立数据库、通过 HTTP/socket/CLI 的明确定义接口通信，且不复制/链接 Postiz 代码 | `CONDITIONAL` |
 | 10 | AGPL 是否允许商业收费、商业托管、企业内部使用？ | 允许商业收费和托管；企业内部使用也允许；但必须满足 AGPL 的源码/通知义务，且第三方许可（Polotno/Elasticsearch）另行处理 | `CONFIRMED`（AGPL 层面） |
 
 ## 12. 源码义务触发矩阵
+
+### 12.1 五种必须区分的场景（R1）
+
+| # | 场景 | §2 私有运行 | §5 修改源码分发 | §6 非源码分发 | §13 远程网络 | 结论 |
+|---|---|---|---|---|---|---|
+| 1 | 私有修改，不传播、不提供远程交互 | 允许 | 不触发 | 不触发 | 不触发 | **可以保持私有/闭源**；不对外提供 |
+| 2 | 修改版内部网络运行（员工远程使用） | 允许 | 不触发（未 conveying） | 不触发 | **触发** | 向这些内部远程用户提供 Corresponding Source；不需要向公众公开 |
+| 3 | 修改版 SaaS（客户远程使用） | 允许 | 不触发（未交付副本） | 不触发 | **触发** | 向所有远程用户 prominently offer Corresponding Source |
+| 4 | 修改版 Docker 镜像/安装包分发 | 允许 | 如分发源码则触发 | **触发** | 如支持网络则触发 | 向 recipients 提供 Corresponding Source；不能作为 AGPL 之外的闭源作品交付 |
+| 5 | 修改版闭源商业交付 | 允许 | 不允许（修改版须 AGPL） | 不允许（须附源码） | 若网络则触发 | 需 Postiz 书面商业许可，或按 AGPL 开源 |
+
+> **R1 修正：** “修改 Postiz 就不能闭源”过于笼统。准确说法是：**私有修改且不传播、不提供远程交互，可以保持私有；一旦对外交付修改版或让远程用户使用修改版，§5/§6/§13 分别触发，闭源交付需要另行取得商业许可。**  
+> 以上为条文分析，不构成法律裁定；场景 2/3 的“用户”范围与 SaaS/conveying 定性仍需律师确认。
+
+### 12.2 部署形态矩阵
 
 | 场景 | 修改 Postiz | 向客户交付副本/镜像 | 远程用户交互 | §13 | §6 | 结论 |
 |---|---|---|---|---|---|---|

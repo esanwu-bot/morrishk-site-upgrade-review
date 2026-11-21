@@ -242,5 +242,25 @@
       "version": "main",
       "license": "AGPL-3.0"
     }
+  ],
+  "manualFlags": [
+    {
+      "name": "polotno",
+      "version": "3.0.0-beta.25",
+      "license": "SEE LICENSE IN LICENSE.md",
+      "issue": "custom commercial license; commercial use requires purchase"
+    },
+    {
+      "name": "@sentry/cli",
+      "version": "2.58.x",
+      "license": "FSL-1.1-MIT",
+      "issue": "build-time; competing use restriction"
+    },
+    {
+      "name": "elasticsearch",
+      "version": "7.17.27 (Docker)",
+      "license": "Elastic-License-2.0",
+      "issue": "not OSI; hosted/managed service restriction"
+    }
   ]
 }

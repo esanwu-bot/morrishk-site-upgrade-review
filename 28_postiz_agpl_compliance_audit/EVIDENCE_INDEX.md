@@ -37,6 +37,9 @@
 | E-30 | `@postiz/node` SDK | `apps/sdk/package.json#L19`；`apps/sdk/README.md` | AGPL-3.0 | 不应直接 import 到闭源 Adapter |
 | E-31 | Prisma schema 数据模型 | `libraries/nestjs-libraries/src/database/prisma/schema.prisma` | 2026-11-20 | Organization/Integration/Post/Webhook |
 | E-32 | Dockerfile | `Dockerfile.dev` | 2026-11-20 | 生产镜像由 dev Dockerfile 构建 |
+| E-33 | Elasticsearch 7.17.27 镜像许可 | `library/elasticsearch:7.17.27`；amd64 digest `sha256:07e9262b…`；labels `Elastic-License-2.0`；`evidence/elasticsearch-7.17.27-image-labels.json` | 2026-11-21 | 镜像发行许可 |
+| E-34 | Temporal Visibility | `https://docs.temporal.io/self-hosted-guide/visibility`；`https://github.com/temporalio/docker-compose/blob/main/docker-compose-postgres.yml`；`evidence/temporal-postgres-compose.yml` | 2026-11-21 | SQL Advanced Visibility 可替代 ES；Postiz 默认 compose 仍用 ES |
+| E-35 | Polotno 调用路径 | `media.component.tsx#L57-58` 动态 import；`media.component.tsx#L865` `designMedia()` gate `user.tier.ai`；`polonto.tsx#L12-18` 组件 import；`Dockerfile.dev#L22-25` 单阶段 COPY + pnpm install | 2026-11-20 | 启用/未启用/移除判断 |
 
 ## 复算命令
 

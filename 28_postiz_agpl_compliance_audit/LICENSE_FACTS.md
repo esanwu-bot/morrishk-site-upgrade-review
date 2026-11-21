@@ -149,22 +149,48 @@ Copyright (C) 2014 - present by Anton Lavrenov
 3. Please respect the copyright.
 ```
 
-**结论：** Postiz 仓库没有说明已包含 Polotno 商业许可。Morrishk 作为商业产品使用 Postiz 时，必须：
+**结论：** Postiz 仓库没有说明已包含 Polotno 商业许可。Morrishk 作为商业产品使用 Postiz 时：
 
-1. 购买 Polotno 商业许可；或
-2. 移除/禁用 Polotno 编辑器、相关依赖和打包产物；或
-3. 取得 Polotno 的书面 OEM/再分发授权。
+| 场景 | 判断 |
+|---|---|
+| 商业部署并启用 Polotno 编辑器 | **需要** Polotno 商业许可 |
+| 安装依赖但未启用 | **高风险**；Docker/构建产物可能仍包含代码，不能仅凭“没点开”免责 |
+| 依赖/import/lock/构建缓存/镜像完全移除 | 不触发 Polotno 许可（需验证产物） |
+| 替换编辑器 | 不触发 Polotno 许可 |
 
-否则不能把“Postiz 是 AGPL、免费”直接等同于“整套 Postiz 可商业使用”。
+因此不能把“Postiz 是 AGPL、免费”直接等同于“整套 Postiz 可商业使用”。
 
 #### B. Elasticsearch 7.17.27（Temporal 栈）
 
-- `docker-compose.yaml` 的 `temporal-elasticsearch` 使用 `elasticsearch:7.17.27`。
-- Elasticsearch 7.17 的默认发行版使用 **Elastic License 2.0**；源代码同时提供 SSPL/ELv2。Elastic 官方 FAQ 明确默认发行版继续使用 Elastic License 2.0。
-- Elastic License 2.0 **不是 OSI 开源许可证**，并限制把软件作为 hosted/managed service 提供。
-- Temporal 使用 ES 作为 advanced visibility；若 Morrishk 对外提供托管 Postiz，需要单独评估该限制。
+**镜像事实：**
 
-**结论：** `LEGAL_REVIEW_REQUIRED`。如无法接受，需改用 Temporal 支持的 SQL visibility 或取得 Elastic 商业授权；不能把 Elasticsearch 当作 AGPL 的普通依赖忽略。
+- `docker-compose.yaml` 的 `temporal-elasticsearch` 使用 `elasticsearch:7.17.27`（Docker Hub `library/elasticsearch`）。
+- 2026-11-21 读取的 amd64 manifest digest：`sha256:07e9262b856006959e384de7ca9587bc5c6da024ca7042216a9ea26efe4c69c1`。
+- 镜像 config labels 明确写：
+  - `org.label-schema.license = Elastic-License-2.0`
+  - `org.opencontainers.image.licenses = Elastic-License-2.0`
+- 证据文件：`evidence/elasticsearch-7.17.27-image-labels.json`。
+
+**许可关系：**
+
+- Elasticsearch 7.17 默认发行版使用 **Elastic License 2.0 (ELv2)**；源代码同时以 **SSPL 和 ELv2** 提供。
+- ELv2 **不是 OSI 开源许可证**，并限制把软件作为 hosted/managed service 提供给他人。
+- 这不等于“所有自托管 Postiz 都必须购买 Elastic 商业许可”：ELv2 允许大量内部/自用场景；风险集中在**对外提供托管服务**、转售或把 Elasticsearch 功能作为服务提供。具体是否构成 ELv2 的 managed service，`LEGAL_REVIEW_REQUIRED`。
+
+**Temporal 依赖：**
+
+- Postiz 默认 compose 使用 `temporal-elasticsearch`，设置 `ENABLE_ES=true`、`ES_SEEDS=temporal-elasticsearch`，且 `temporal` 服务 `depends_on` 该 ES 服务（`docker-compose.yaml:226-228` 等）。
+- Postiz 代码注册/使用 Temporal 自定义 search attributes `organizationId`、`postId`（`libraries/nestjs-libraries/src/temporal/temporal.register.ts`；`apps/orchestrator/src/activities/post.activity.ts` 使用 `searchAttributes`）。
+- Temporal 官方文档：Advanced Visibility 支持自定义 Search Attributes；Elasticsearch 是推荐选项，但 **MySQL、PostgreSQL、SQLite 也可提供 Advanced Visibility**；PostgreSQL 需 v12+、Temporal v1.20+。
+- Temporal 官方 PostgreSQL compose 示例不使用 Elasticsearch（`evidence/temporal-postgres-compose.yml`）。
+- 因此：**Postiz 默认部署包含 ES，但代码是否“必须”ES 尚未证明**。可能只需修改 compose/env/dynamic config/数据库 schema，而不修改 Postiz 源码；但实际兼容性 `UNKNOWN`，必须在非生产环境验证。
+- 若替换不需要修改 Postiz 源码，则不会新增 AGPL §13 修改义务；若需要改代码，则按修改版处理。
+
+**结论：**
+
+- `LEGAL_REVIEW_REQUIRED`：对外托管 Postiz 时 ELv2 是否构成 managed service。
+- `UNKNOWN`：在不修改 Postiz 源码的前提下，用 PostgreSQL Advanced Visibility 替代 ES 是否完整可用。
+- 不得直接推断所有自托管 Postiz 都需要购买 Elastic 商业许可；也不得忽略 ELv2/SSPL。
 
 #### C. Sentry CLI（FSL-1.1-MIT）
 
@@ -222,7 +248,7 @@ Copyright (C) 2014 - present by Anton Lavrenov
 **结论：**
 
 - 若只是自托管 AGPL 软件，Postiz Cloud Terms 不当然替代 AGPL；但白标/品牌使用需要书面许可。
-- 若要闭源修改、OEM、白标、转售，必须取得 Gitroom 书面商业授权；公开证据不足以确认可获得的条款与价格。
+- 若要对**对外交付/托管的修改版**闭源，或做 OEM、白标、转售，必须取得 Gitroom 书面商业授权；公开证据不足以确认可获得的条款与价格。私有修改且不传播、不提供远程交互可保持私有。
 - 标记：`UNKNOWN` / `LEGAL_REVIEW_REQUIRED`。
 
 ## 7. 事实结论

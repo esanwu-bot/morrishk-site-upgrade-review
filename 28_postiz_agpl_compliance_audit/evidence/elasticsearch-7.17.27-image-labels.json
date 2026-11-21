@@ -1,0 +1,15 @@
+{
+  "image": "library/elasticsearch:7.17.27",
+  "registry": "registry-1.docker.io",
+  "mediaType": "application/vnd.oci.image.index.v1+json",
+  "amd64_manifest_digest": "sha256:07e9262b856006959e384de7ca9587bc5c6da024ca7042216a9ea26efe4c69c1",
+  "config_digest": "sha256:59cf58dd31db94adca71c93829a25bdd1d031ee80d9816a53880849fa1b706b8",
+  "labels": {
+    "org.label-schema.license": "Elastic-License-2.0",
+    "org.opencontainers.image.licenses": "Elastic-License-2.0",
+    "org.label-schema.version": "7.17.27",
+    "org.label-schema.vcs-url": "https://github.com/elastic/elasticsearch",
+    "org.opencontainers.image.source": "https://github.com/elastic/elasticsearch"
+  },
+  "checkedAt": "2026-11-21"
+}

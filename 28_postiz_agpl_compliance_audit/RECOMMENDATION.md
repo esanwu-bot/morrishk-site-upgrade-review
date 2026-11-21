@@ -4,7 +4,7 @@
 
 **`ADOPT_WITH_ADAPTER`（有条件）。**
 
-不建议无条件 `ADOPT`。如果业务要求“闭源修改 Postiz + 白标/OEM”，则升级为 **`ADOPT_WITH_COMMERCIAL_LICENSE`**；如果既不能接受 AGPL 源码义务，也不能取得 Postiz/Polotno/Elasticsearch 许可，则 **`REJECT`**。
+不建议无条件 `ADOPT`。如果业务要求“对外交付/托管闭源修改版 + 白标/OEM”，则升级为 **`ADOPT_WITH_COMMERCIAL_LICENSE`**；如果既不能接受 AGPL 源码义务，也不能取得 Postiz/Polotno/Elasticsearch 许可，则 **`REJECT`**。
 
 本建议的前提：
 
@@ -29,9 +29,20 @@
 
 **`CONDITIONAL`**
 
-- 可以；修改版必须按 AGPL 提供 Corresponding Source。
-- 如果希望修改版闭源，必须取得 Postiz 书面商业授权；公开证据未确认可获得。
+- 可以；私有修改且不传播、不提供远程交互可保持私有。
+- 对外分发修改版必须按 §5/§6 提供 Corresponding Source；修改版 SaaS/内部网络运行按 §13 提供源码。
+- 如果希望**对外交付/托管的修改版**闭源，必须取得 Postiz 书面商业授权；公开证据未确认可获得。
 - Polotno 仍适用。
+
+**修改版五种情形：**
+
+| 情形 | 义务 | 能否私有/闭源 |
+|---|---|---|
+| 私有修改，不传播、不提供远程交互 | §2 允许；§5/§6/§13 不触发 | 可以保持私有 |
+| 修改版内部网络运行 | §13 向内部远程用户提供源码 | 对内部用户提供，不必公开 |
+| 修改版 SaaS | §13 向所有远程用户提供源码 | 不能对用户闭源 |
+| 修改版 Docker/安装包分发 | §5 + §6 提供源码 | 不能作为 AGPL 之外的闭源作品交付 |
+| 修改版闭源商业交付 | 需商业许可或按 AGPL 开源 | 需 Postiz 书面授权 |
 
 ### 问题 3：是否可以将 Morrishk 和 Ds Bit 保持闭源？
 
@@ -72,7 +83,8 @@
 | 情形 | 是否需要 Postiz 商业授权 |
 |---|---|
 | 原版自托管 + 独立 Adapter + 遵守 AGPL | 通常不需要 Postiz 商业授权；但需律师确认 |
-| 修改 Postiz 并闭源 | 需要（AGPL 不允许闭源修改版） |
+| 修改 Postiz 并对外交付/托管且闭源 | 需要（AGPL 不允许对外闭源交付修改版） |
+| 私有修改且不传播、不提供远程交互 | 通常不需要；可保持私有 |
 | 白标/OEM/转售 Postiz | 需要书面商业/OEM 授权 |
 | 交付修改版给客户 | 需要 AGPL 开源或商业授权 |
 | 仅内部使用原版 | 通常不需要；Polotno/ES 仍另算 |
@@ -102,7 +114,7 @@ LinkedIn / Facebook / X / YouTube / TikTok
 
 1. **许可证法律意见**：AGPL 边界、SaaS 定性、Adapter 独立性、聚合/组合判断。
 2. **Polotno**：购买商业许可，或移除编辑器/依赖/打包产物；保留证据。
-3. **Elasticsearch**：确认 Elastic License 对托管模式的适用性，或替换 Temporal visibility。
+3. **Elasticsearch**：确认 ELv2 对托管模式的适用性；如不适用，用 PostgreSQL Advanced Visibility 替换。替换不默认需要修改 Postiz 源码，但必须在非生产验证（`UNKNOWN`）。
 4. **子包 license 冲突**：向 Gitroom 取得书面澄清，或按 AGPL 处理。
 5. **Postiz 版本锁定**：固定 `v2.26.0` tag 或 image digest；禁止 `latest`。
 6. **源码归档**：保存对应 Postiz 源码、LICENSE、构建脚本、NOTICE；如对外分发镜像，准备 §6 源码提供方式。
@@ -145,7 +157,7 @@ LinkedIn / Facebook / X / YouTube / TikTok
 |---|---|
 | `ADOPT` | 不采用（不是无条件合规） |
 | `ADOPT_WITH_ADAPTER` | **建议，有条件** |
-| `ADOPT_WITH_COMMERCIAL_LICENSE` | 若闭源修改/白标/OEM，作为备选，需书面授权 |
+| `ADOPT_WITH_COMMERCIAL_LICENSE` | 若对外交付/托管闭源修改版、白标/OEM，作为备选，需书面授权 |
 | `REJECT` | 若无法接受 AGPL/Polotno/ES 义务，则采用 |
 
 **建议下一步：** 由项目负责人/法务决定是否接受“原版 Postiz + 独立 Adapter”的边界；在取得律师意见和 Polotno/ES 结论前，不进入生产实施。

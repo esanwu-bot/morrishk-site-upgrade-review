@@ -29,7 +29,7 @@
 | 是否允许白标 | 描述提到 white-label；但 Terms §7 要求书面协议 | `UNKNOWN` / 需书面 |
 | 是否允许向客户交付 | 未明确 | `UNKNOWN` |
 
-**结论：** Enterprise 页面是一个商业服务/API 入口，不能自动等同于“AGPL 源码商业授权”。如果 Morrishk 需要闭源修改版、OEM 或白标，必须向 Gitroom 书面询价并取得合同；当前公开证据不足以确认可获得性。
+**结论：** Enterprise 页面是一个商业服务/API 入口，不能自动等同于“AGPL 源码商业授权”。如果 Morrishk 需要对外交付/托管闭源修改版、OEM 或白标，必须向 Gitroom 书面询价并取得合同；当前公开证据不足以确认可获得性。
 
 ### 1.3 Terms 要点
 
@@ -50,25 +50,50 @@
 |---|---|
 | 组件 | `polotno@3.0.0-beta.25` |
 | 位置 | `package.json:187`；`apps/frontend/src/components/launches/polonto.tsx` |
+| 调用路径 | `media.component.tsx` 通过 `dynamic(() => import(.../polonto))` 懒加载；`designMedia()` 仅在 `user.tier.ai && !dummy` 时打开 |
 | 许可证 | 自定义：非商业产品/本地开发免费；商业使用需购买 |
 | 官方入口 | `https://polotno.com/` |
 | 是否包含在 Postiz AGPL 中 | 未说明；不能推定 |
 | 商业许可价格 | 未在 Postiz 仓库公开；需向 Polotno 查询 |
 | OEM/再分发 | 需与 Polotno 书面确认 |
 
-**结论：** 如果 Morrishk 商用 Postiz 且保留 Polotno 图片编辑器，必须取得 Polotno 商业许可；否则移除该功能/依赖。该许可与 Postiz AGPL 是两套独立义务。
+### 2.1 触发范围（R3）
+
+| # | 场景 | 代码/打包事实 | 许可判断 |
+|---|---|---|---|
+| 1 | 商业部署且启用 Polotno 编辑器 | `designMedia` 打开 Polotno；动态 import 加载 `polonto.tsx`；组件 import `polotno` | **需要** Polotno 商业许可 |
+| 2 | 安装依赖但未启用该功能 | `package.json:187` 安装；`Dockerfile.dev` 单阶段 `COPY .` + `pnpm install`，未做产物裁剪；Next 构建可能生成动态 chunk（未实际构建，`UNKNOWN`） | **高风险**：不能仅凭“没点开”推定不触发；商业分发镜像仍可能包含代码。建议按需要许可或移除 |
+| 3 | 构建产物完全移除 | 删除 `polonto.tsx` 及其 import、`package.json` 依赖、`pnpm-lock` 条目，清 `node_modules`/`.next` 后重建；`rg -i polotno` 为空 | 若产物/镜像确实不含 Polotno 代码，**不触发** Polotno 许可；需验证构建产物 |
+| 4 | 替换编辑器 | 用自有/其他许可编辑器替换 `polonto.tsx`，移除 Polotno 依赖与 chunk | 不触发 Polotno 许可 |
+
+**证据边界：** 本轮没有执行 `pnpm install` / `next build`，所以场景 2 的“实际 chunk 是否包含 Polotno”标记 `UNKNOWN`；从代码路径看，动态 import 是构建期引用，不能假定未启用就完全不会进入产物。
+
+**结论：**
+
+- 商业部署且保留 Polotno 功能：必须购买 Polotno 商业许可。
+- 不想购买：按场景 3 完全移除（依赖 + import + lock + 构建缓存 + 镜像重建），或按场景 4 替换编辑器。
+- 仅“安装但没启用”不是可靠的免责理由；商业镜像可能仍包含代码。
+- Polotno 许可与 Postiz AGPL 是两套独立义务。
 
 ## 3. Elasticsearch（Temporal 栈）
 
 | 项 | 事实 |
 |---|---|
-| 组件 | `elasticsearch:7.17.27`（`docker-compose.yaml` temporal-elasticsearch） |
-| 许可证 | Elastic License / SSPL 系列，不是 AGPL，也不是 OSI 开源 |
-| 用途 | Temporal advanced visibility |
-| 是否可替换 | Temporal 支持其他 visibility 配置；需技术验证 |
-| 商业托管限制 | 需按 Elastic 许可证评估；`LEGAL_REVIEW_REQUIRED` |
+| 组件 | `elasticsearch:7.17.27`（Docker Hub `library/elasticsearch`；`docker-compose.yaml` temporal-elasticsearch） |
+| 镜像许可 label | `org.opencontainers.image.licenses=Elastic-License-2.0`；`org.label-schema.license=Elastic-License-2.0` |
+| 源代码许可 | SSPL 与 ELv2 双许可 |
+| 是否 OSI 开源 | 否；ELv2 含 managed service 限制 |
+| 用途 | Temporal advanced visibility（Postiz 使用 `organizationId`/`postId` search attributes） |
+| 是否默认必需 | Postiz 默认 compose 包含 ES 并 `ENABLE_ES=true`；Temporal 支持 PostgreSQL/MySQL/SQLite Advanced Visibility，故**默认包含不等于代码强制**；实际替换 `UNKNOWN` |
+| 替换是否要改 Postiz 源码 | 可能只需 compose/env/dynamic config/schema；未验证，`UNKNOWN` |
+| 商业许可 | 不是所有自托管都需要购买；对外托管是否触发 ELv2 限制需律师评估 |
+| 结论 | `LEGAL_REVIEW_REQUIRED`；先做非生产替换验证，不能直接推断“所有自托管都要买 Elastic 许可” |
 
-**结论：** 对外托管 Postiz 前，需确认 Elasticsearch 许可证是否允许该托管模式；否则改用替代方案或取得商业授权。
+**结论：**
+
+- 内部自用/不对外提供托管服务的场景，ELv2 可能允许，无需直接购买；但不是法律结论。
+- 对外提供 Postiz 托管服务时，需评估 ELv2 的 hosted/managed service 限制；如触发，需商业授权或改用 PostgreSQL Advanced Visibility。
+- 替换 ES 不应默认需要修改 Postiz 源码；先用 Temporal 官方 PostgreSQL compose/配置做非生产验证，确认 Postiz 的 search attributes 与 workflow 功能完整。
 
 ## 4. Sentry CLI（FSL-1.1-MIT）
 
@@ -86,7 +111,7 @@
 ### 5.1 向 Gitroom / Postiz
 
 1. 自托管 AGPL 是否允许 Morrishk 作为收费 SaaS 提供给客户？
-2. 是否允许修改 Postiz 并闭源？如不允许，商业授权价格/范围？
+2. 是否允许**对外交付/托管的修改版**闭源？如不允许，商业授权价格/范围？私有修改不传播另论。
 3. 是否提供 OEM/白标/多租户商业许可？价格、最低期限、限制？
 4. 商业许可是否覆盖 Polotno、Elasticsearch 等第三方组件？
 5. 是否允许向客户交付 Docker 镜像/私有化部署？源码义务如何履行？
@@ -112,7 +137,7 @@
 | 问题 | 结论 |
 |---|---|
 | Postiz 是否有公开商业授权？ | 有 Enterprise 商业页面，但没有公开源码/OEM 许可条款；`UNKNOWN` |
-| 是否必须购买 Postiz 商业授权？ | 仅在需要闭源修改/白标/OEM/规避 AGPL 时；方案 C 不一定需要 |
+| 是否必须购买 Postiz 商业授权？ | 仅在需要对外交付/托管闭源修改版、白标/OEM/规避 AGPL 时；方案 C 不一定需要 |
 | 是否必须购买 Polotno 商业授权？ | 商用且保留 Polotno 功能时，**需要** |
 | Elasticsearch 是否需要商业授权？ | 视托管模式/许可证解释；`LEGAL_REVIEW_REQUIRED` |
 | 能否现在采购？ | 不能；Enterprise 页面称暂不接受新申请；需商务询价，且本轮禁止采购 |
