@@ -25,13 +25,13 @@
 |---|---|---|---|---|---|---|
 | LinkedIn | Company Page | `UNKNOWN` | 增长规划：无系统运营；公开搜索未确认 | 未连接 | 是否已有 Page、是否有个人账号可做 admin | 查重 → 建页或接管 → 补全资料 |
 | Google/YouTube | Brand Channel | `UNKNOWN` | 增长规划“视频：无”；公开搜索未确认 | 未连接 | 是否已有频道/Google 账号 | 建 Brand Account → 手机验证 → 补全 |
-| Facebook | Page | `UNKNOWN` | 增长规划：无系统运营；公开搜索未确认 | 未连接 | 是否已有 Page、Business Portfolio | 建页或接管 → 绑定 IG |
+| Facebook | Page（账号模型 `UNKNOWN`，不作归类） | `UNKNOWN` | 增长规划：无系统运营；公开搜索未确认；官方建页页登录墙（E-22） | 未连接 | 是否已有 Page、Business Portfolio | 建页或接管 → 绑定 IG |
 | Instagram | 专业账号 | `UNKNOWN` | 同上 | 未连接 | 是否有个人账号可转专业账号 | 转专业账号 → 绑定 Page |
-| X | 品牌账号 | `UNKNOWN` | 增长规划提及 X 但无运营；公开搜索未确认 | 未连接 | 是否已有账号/Handle | 建号或接管 → 2FA |
+| X | 账号（模型 `UNKNOWN`，不作归类） | `UNKNOWN` | 增长规划提及 X 但无运营；公开搜索未确认；账号模型官方依据未取得（E-30） | 未连接 | 是否已有账号/Handle | 建号或接管 → 2FA |
 | Pinterest | Business 账号 | `UNKNOWN` | 未在权威文档中发现；公开搜索未确认 | 未连接 | 是否已有账号 | 建号 → Board → 网站认领 |
-| TikTok | 账号 / Business | `UNKNOWN` | 未在权威文档中发现；公开搜索未确认 | 未连接 | 是否已有账号 | 建号 → 手动发布试点 |
+| TikTok | 账号（模型 `UNKNOWN`，不作归类） | `UNKNOWN` | 未在权威文档中发现；公开搜索未确认；账号模型官方依据未取得（E-28） | 未连接 | 是否已有账号 | 建号 → 手动发布试点 |
 | Reddit | 账号（模型 `UNKNOWN`，不作归类） | `UNKNOWN` | 增长规划要求技术答疑但无账号证据；官方账号模型说明未取得（E-52） | 不用于自动发帖 | 用哪个账号参与、谁负责 | 人工答疑（非推广） |
-| Medium | 账号 | `UNKNOWN` | 未在权威文档中发现 | 未连接 | 是否需要 | 仅在内容策略确定后 |
+| Medium | 账号（模型 `UNKNOWN`，不作归类） | `UNKNOWN` | 未在权威文档中发现；官方账号模型说明未取得（E-53） | 未连接 | 是否需要 | 仅在内容策略确定后 |
 | Vimeo | 账号 | `UNKNOWN` | 未在权威文档中发现 | 不支持 | 是否需要付费档 | 暂缓 |
 | Threads | 账号 | `UNKNOWN` | 未在权威文档中发现 | 未连接 | 是否需要 | 观察 |
 | Bluesky | 账号 | `UNKNOWN` | 未在权威文档中发现 | 未连接 | 是否需要 | 观察 |
