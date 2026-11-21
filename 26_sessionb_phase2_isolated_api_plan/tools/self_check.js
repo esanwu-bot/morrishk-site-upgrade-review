@@ -248,6 +248,41 @@ const e42202 = errDoc.split("\n").find((l) => l.includes("| 16 | 42202"));
 check("C-22a 42202 distinguishes the two conflict classes", !!e42202 && e42202.includes("SOURCE_IDENTITY_CONFLICT") && e42202.includes("NORMALIZATION_CONFLICT_CANDIDATE_PENDING_B5") && e42202.includes("不得混同"));
 check("C-22b 42202 keeps F-07 as two legal identities", !!e42202 && e42202.includes("两个合法身份"));
 
+// ===== R9：可复用语义谓词（文档检查 C-24b/c/d 与反例测试 C-25 共用同一实现）=====
+// F-10 分句安全性：必须携带排除语义，且不得出现任何肯定触发表达（含被归入/映射至/作为触发依据等）
+const F10_TRIGGER_POSITIVE_RE = new RegExp([
+  "→\\s*422/42202",
+  "(?<!不属于 )42202\\s*触发",
+  "(?<!不属于 )触发\\s*42202",
+  "(?<!不归入 )归入\\s*42202",
+  "(?<!不映射至 )映射至\\s*42202",
+  "(?<!不映射到 )映射到\\s*42202",
+  "作为\\s*42202\\s*触发",
+  "(?<!不纳入 )纳入\\s*42202",
+  "(?<!不)属于\\s*42202\\s*触发"
+].join("|"));
+function f10ClauseIsSafe(clause) {
+  return clause.includes("不属于 42202 触发条件") && !F10_TRIGGER_POSITIVE_RE.test(clause);
+}
+// F-11 全行安全性：不得出现任何确定输出/确定算法/确定冲突结论/确定预期状态表述
+const F11_DETERMINATE_RE = new RegExp([
+  "(规范化|归一化)输出[^；|]*?(确定为|已确定为|——确定)",
+  "(冲突判定)?算法[^；|]*?(确定为|已确定为|——确定)",
+  "(冲突)?结论[^；|]*?(确定为|已确定为|——确定)",
+  "预期状态[^；|]*?(确定为|已确定为|——确定)",
+  "(?<!不伪造)已确定冲突",
+  "确认发生归一化冲突"
+].join("|"));
+function f11IsSafe(line) {
+  return !F11_DETERMINATE_RE.test(line);
+}
+// R-ID-01 分句安全性：仅限身份键原则说明（含「不代表」），剥离显式禁令「不引用 R-ID-01 推导」后不得残留 R-ID-01+推导 组合
+function rid01ClauseIsSafe(clause) {
+  const stripped = clause.replace(/不引用 R-ID-01 推导/g, "");
+  return clause.includes("身份键原则") && clause.includes("不代表") &&
+    !(stripped.includes("R-ID-01") && stripped.includes("推导"));
+}
+
 // ===== C-23..C-24（Reviewer R7 修正自检）=====
 
 // C-23：矩阵列结构（表头 10 列；75 数据行 10 列；规则状态/授权依据类型列位正确）
@@ -275,13 +310,13 @@ check("C-22b 42202 keeps F-07 as two legal identities", !!e42202 && e42202.inclu
   const triggerCell = e42202cells[4] || "";
   check("C-24a F-10 absent from 42202 trigger cell", triggerCell.length > 0 && !triggerCell.includes("F-10"));
   const op02row = opsDoc.split("\n").find((l) => l.includes("缺 brand 双候选向量"));
-  // C-24b（R8 收紧）：逐分句检查——凡提及 F-10 的分句必须携带排除语义，且该分句不得把 F-10 写成 42202 触发
+  // C-24b（R8 逐分句 + R9 扩展肯定语义排除）：谓词 = f10ClauseIsSafe（排除语在册 + 零肯定触发表达）
   const op02Segs = op02row.split("；").map((s) => s.trim()).filter((s) => s.length > 0);
   const f10Segs = op02Segs.filter((s) => s.includes("F-10"));
   check("C-24b OP-02 does not list F-10 as a 42202 trigger (per-clause)",
-    f10Segs.length > 0 && f10Segs.every((s) => s.includes("不属于 42202 触发条件") && !/→\s*422\/42202|(?<!不属于 )42202\s*触发|(?<!不属于 )触发\s*42202/.test(s)),
+    f10Segs.length > 0 && f10Segs.every(f10ClauseIsSafe),
     `f10 clauses=${f10Segs.length}`);
-  // C-24c（R8 收紧）：主体断言 + 四项未知内容分别存在
+  // C-24c（R8 收紧 + R9 反向断言）：主体断言 + 四项未知内容分别存在 + 零确定表述
   check("C-24c F-11 asserts no concrete normalization outcome", !!f11line &&
     !f11line.includes("必然产生") && !/候选归一化输出 = .*两个不同输出/.test(f11line) && f11line.includes("未知"));
   check("C-24c-1 unknown#1 normalizer version/final rules declared pending", !!f11line &&
@@ -289,15 +324,36 @@ check("C-22b 42202 keeps F-07 as two legal identities", !!e42202 && e42202.inclu
   check("C-24c-2 unknown#2 normalized outputs unknown", !!f11line && f11line.includes("规范化输出——未知"));
   check("C-24c-3 unknown#3 identity-mapping conflict unknown", !!f11line && f11line.includes("身份映射冲突——未知"));
   check("C-24c-4 unknown#4 conflict adjudication & expected state unknown", !!f11line && f11line.includes("冲突判定算法与预期状态——未知"));
-  // C-24d（R8 收紧）：逐分句检查——凡提及 R-ID-01 的分句仅限身份键原则说明并带否定语境，不得用于推导归一化算法
+  check("C-24c-rev F-11 contains no determinate claims (R9 reverse assertion)", !!f11line && f11IsSafe(f11line));
+  // C-24d（R8 逐分句 + R9 收紧）：谓词 = rid01ClauseIsSafe（仅身份键原则 + 不代表 + 剥离显式禁令后零 R-ID-01+推导 组合）
   const rid01Segs = f11line.split("；").map((s) => s.trim()).filter((s) => s.includes("R-ID-01"));
   check("C-24d F-11 does not use R-ID-01 as a normalization-algorithm basis (per-clause)",
-    rid01Segs.length > 0 && rid01Segs.every((s) => s.includes("身份键原则") && s.includes("不代表")) &&
+    rid01Segs.length > 0 && rid01Segs.every(rid01ClauseIsSafe) &&
     f11line.includes("不引用 R-ID-01 推导"),
     `rid01 clauses=${rid01Segs.length}`);
   check("C-24e F-11 keeps the B5 block", !!f11line && f11line.includes("PROPOSED / BLOCKED_BY_DECISION(B5)"));
   check("C-24f F-07 dual-brand identities do not trigger conflict", !!f07line &&
     f07line.includes("互不视为冲突") && !f07line.includes("PENDING_CONFLICT"));
+}
+
+// ===== C-25（R9 反例测试）：与 C-24b/c/d 共用同一谓词实现，构造矛盾表达并断言其必须判为不安全 =====
+{
+  // C-25a：同一分句同时出现排除语句与肯定触发语句（被归入 42202）→ 必须判为不安全
+  const cx25a = "F-10 `SOURCE_IDENTITY_CONFLICT` 候选不属于 42202 触发条件，但被归入 42202 触发范围";
+  check("C-25a counter-example: exclusion + positive trigger in one clause must FAIL",
+    f10ClauseIsSafe(cx25a) === false, JSON.stringify(cx25a));
+}
+{
+  // C-25b：四项未知内容与确定输出并存 → 必须判为不安全
+  const cx25b = "F-11：①归一化器版本及最终规则——MPN-NORM-v1 为 PROPOSED、未冻结；②两个原始输入的规范化输出——未知；③是否产生身份映射冲突——未知；④冲突判定算法与预期状态——未知。但规范化输出确定为 DEMO-777X 与 DEMO 777X 两个不同输出";
+  check("C-25b counter-example: unknown-items + determinate output co-occurrence must FAIL",
+    f11IsSafe(cx25b) === false, JSON.stringify(cx25b));
+}
+{
+  // C-25c：身份键原则 + 不代表，但可据此推导算法 → 必须判为不安全（矛盾表达反例）
+  const cx25c = "R-ID-01 仅确认 `(mpn_norm, brand_norm)` 身份键原则，不代表算法冻结，但可据此推导归一化算法与输出";
+  check("C-25c counter-example: identity-key framing + positive derivation must FAIL",
+    rid01ClauseIsSafe(cx25c) === false, JSON.stringify(cx25c));
 }
 
 // 输出
