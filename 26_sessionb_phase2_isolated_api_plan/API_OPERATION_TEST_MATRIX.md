@@ -34,10 +34,10 @@
 | 参数 | `mpn`/`brand`/`mpn_match`/`identity_state`/`updated_since`/`release_state`/`taxonomy_id`/`category_id`/`include_unreleased`/`limit`/`cursor`/`If-None-Match` |
 | 响应 200 | `ProductListEnvelope`（OpenAPI=items→Product[]；EX-17=扁平行）——**形态冲突未裁** |
 | 正常 | 精确查找命中（mpn+brand+exact）；增量同步（updated_since）；REVOKED 流（V1_REQUIRED 语义） |
-| 异常 | 缺 mpn→400/40001；mpn 非法/归一空→400/40001(field=mpn)；缺 brand→422/42201(missing=[brand])（按 MD §6.4+候选 §4.5；EX-17 的 400 冲突=DIFF-CONTRACT-03）；brand 非法→400；归一冲突→422/42202；未知过滤→400/40002；scope 不足→403/40301 |
+| 异常 | 缺 mpn→400/40001；mpn 非法/归一空→400/40001(field=mpn)；**缺 brand 双候选向量**：候选-422（422/42201, missing=[brand]；MD §6.4+候选 §4.5 方向）/ 候选-400（400/40001, field=brand；EX-17 说明方向）——均 `BLOCKED_BY_DECISION(DIFF-CONTRACT-03)`，分别断言、不得合并为单一响应；brand 非法→400（无争议）；归一冲突→422/42202（fixture **F-10** 同源互斥候选机制，判定规则受 B5）；未知过滤→400/40002；scope 不足→403/40301 |
 | 边界 | limit 0/201/超型；cursor 伪造；mpn 200 字符上限；空结果 vs 错误不得互伪装 |
-| 规则状态 | R-ID-01/02/03 CONFIRMED；R-ID-04..06 PROPOSED(B5)；R-ID-08 PROPOSED；R-ID-09 BLOCKED(IQ-20)；R-ST-04 BLOCKED(B6)；R-ST-05 PROPOSED（默认过滤 DIFF-MOCK-05 登记）；R-PTG-01 PROPOSED |
-| 预期/证据 | 命中/错误/分页 RUN 记录；**响应条目形态断言 `BLOCKED_BY_DECISION(DIFF-CONTRACT-01)`**；默认过滤断言 = 契约方向 + 保留待决登记（DIFF-MOCK-05） |
+| 规则状态 | R-ID-01/02/03 CONFIRMED；R-ID-04..06 PROPOSED(B5)；R-ID-08 PROPOSED；R-ID-09 BLOCKED(IQ-20)；R-ST-04 BLOCKED(B6)；R-ST-05 PROPOSED（**默认过滤未裁**：DIFF-MOCK-05 OPEN，候选 A/B 双向量）；R-PTG-01 PROPOSED |
+| 预期/证据 | 命中/错误/分页 RUN 记录；**响应条目形态断言 `BLOCKED_BY_DECISION(DIFF-CONTRACT-01)`**；**默认过滤双向量均 `BLOCKED_BY_DECISION(DIFF-MOCK-05)`**（候选 A：默认仅 RELEASED / 候选 B：不自动过滤），裁定前任一向量不计入行为验收 PASS，W-1/W-2 不预置默认值 |
 | 错误码 | 40001/40002/40101/40102/40301/40302/42201/42202/42901/50001/50301 |
 
 ## OP-03 `getProduct` — GET `/products/{product_business_key}`
@@ -219,7 +219,7 @@
 | 响应 200 | `ProductRefListEnvelope`→ProductRef[]（仅 pbk/mpn_norm/brand_norm） |
 | 正常 | 分类→产品反查分页 |
 | 异常 | 404；410 |
-| 边界 | 默认仅 RELEASED（与 search 默认一致——DIFF-MOCK-05 登记联动）；IQ-16（是否需要该端点）PROPOSED |
+| 边界 | 默认过滤**未裁**（DIFF-MOCK-05 OPEN：候选 A/B，与 OP-02 联动，均 BLOCKED_BY_DECISION）；IQ-16（是否需要该端点）PROPOSED |
 | 规则状态 | R-TAX-06 PENDING(IQ-04)；R-ST-05 PROPOSED |
 | 预期/证据 | 反查 RUN；可选性断言 |
 | 错误码 | 40001/40101/40301/40402/41002/42901/50001 |

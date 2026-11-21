@@ -25,9 +25,10 @@
 | F-04 `DEMO-111A` / Example Semiconductor | CONFIRMED | PASS/PENDING/PENDING | DRAFT | OP-04 DRAFT 派生；SEC-09 |
 | F-05 `DEMO-222B` / Example Semiconductor | CONFIRMED | FAILED/—/— | DRAFT | OP-04 闸门顺序断言（上游失败） |
 | F-06 `DEMO-333C` / *（无品牌）* | PENDING_BRAND | — | —（无 release） | OP-02 42201；OP-04 |
-| F-07 `DEMO-358R` / *第二品牌* `Other Vendor` | PENDING_CONFLICT | — | — | OP-02 42202；同 MPN 异 Brand 双身份反例（R-ID-01） |
+| F-07 `DEMO-358R` / `Other Vendor` | **CONFIRMED**（第二合法身份） | PASS/APPROVED/APPROVED | RELEASED | 与 F-01 同 MPN、不同 Brand = **两个不同业务身份**（R-ID-01 CONFIRMED）：断言两者各自独立 `pbk1_`（不同哈希）、精确查找各自命中、互不合并、互不视为冲突（修正 R4：不得仅因 MPN 相同标记冲突） |
 | F-08 `DEMO-444D` / Example Semiconductor | INVALID（含控制字符 mpn_raw） | — | — | 归一非法输入 |
 | F-09 `DEMO-BOARD-1` / Example Semiconductor | CONFIRMED | PASS/APPROVED/APPROVED | RELEASED | identity_scope=BOARD / product_type=BOARD 边界 |
+| F-10 归一化冲突向量（**同源文档**双互斥候选：`DEMO-777` 与 `DEMO-777X`，同品牌 `Example Semiconductor`） | **PENDING_CONFLICT**（聚合结果） | — | —（不签发 pbk） | **冲突机制** = 同一来源文档给出互斥 MPN 候选（候选 §4.1 机制，非"同 MPN 异 Brand"）；**预期结果** = 聚合态 `PENDING_CONFLICT / CONFLICTING_IDENTITY`、不自动合并、不生成业务键；**冲突判定的具体规则未冻结**（R-ID-04 PROPOSED，受 B5）→ `BLOCKED_BY_DECISION(B5)`，裁定前不得作为已定行为验收 |
 
 > `visible_state` 列为候选 §9.2 派生**方向**；枚举命名统一挂 B6（`BLOCKED_BY_DECISION`），fixture 同时保存 gates 原始态供裁定后重算。
 
@@ -44,9 +45,15 @@
 
 ## 4. 待决测试保留（不得视为已定行为）
 
-1. **默认过滤向量**（DIFF-MOCK-05）：`searchProducts({mpn:F-01.mpn, brand:F-01.brand})` 不带 release_state → 预期按契约默认仅 RELEASED；同时保留一组"无默认过滤"对照向量，二者在裁定前都标注 `BLOCKED_BY_DECISION`，不删任一。
+1. **默认过滤双向量**（DIFF-MOCK-05，**OPEN**，不得写成已确定默认行为）：
+   - **候选 A**：不带 `release_state` 时仅返回 RELEASED（MD §6.4 / 候选 OpenAPI 默认声明方向）；
+   - **候选 B**：不自动过滤，结果完全由显式查询参数控制（无参数即不过滤）；
+   - 两个向量均 `BLOCKED_BY_DECISION(DIFF-MOCK-05)`；维护人正式裁定前，**均不计入行为验收 PASS**，且 W-1 Runtime / W-2 Repository **不得预置任一向量为确定默认值**。
 2. **搜索条目形态**（DIFF-CONTRACT-01）：fixture 同时可渲染扁平行与完整 DTO 两形态；断言挂起。
-3. **缺 brand 错误**（DIFF-CONTRACT-03）：按 MD §6.4/候选 §4.5 断言 422；400 对照向量仅登记。
+3. **缺 brand 双候选向量**（DIFF-CONTRACT-03，**PENDING**，不得写成已确定行为预期）：
+   - **候选-422**：422 / 42201 `PRODUCT_IDENTITY_INCOMPLETE`（meta.missing=["brand"]，degraded_allowed=true；MD §6.4 + 候选 §4.5 方向）；
+   - **候选-400**：400 / 40001 `INVALID_ARGUMENT`（meta.field="brand"；EX-17 说明文字方向）；
+   - 两个向量**分别构造、分别断言，不得合并为单一响应**；均 `BLOCKED_BY_DECISION(DIFF-CONTRACT-03)`；解除阻断 = 设计维护人修正示例文档并完成一致性复验。
 4. **41002 窗口 / 42901 配额 / 40102 TTL**：fixture 触发路径存在，数值注入，不实现真实数值。
 
 ## 5. 禁止清单

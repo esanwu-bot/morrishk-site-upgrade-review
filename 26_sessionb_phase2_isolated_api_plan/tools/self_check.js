@@ -126,6 +126,73 @@ check("C-9 internal links resolvable", broken.length === 0, broken.join("; ") ||
 // C-10 实施顺序四工作流齐备
 check("C-10 workstreams W-1..W-4", ["W-1","W-2","W-3","W-4"].every((w) => planDoc.includes(w)));
 
+// ===== C-11..C-16（Reviewer R1–R4 修正自检）=====
+const repoDoc = read("REPOSITORY_INTERFACE_PLAN.md");
+
+// C-11 DIFF-MOCK-05：候选 A/B 均存在，且未写成确定默认行为
+check("C-11a DIFF-MOCK-05 candidate A present", fixDoc.includes("候选 A") && fixDoc.includes("仅返回 RELEASED"));
+check("C-11b DIFF-MOCK-05 candidate B present", fixDoc.includes("候选 B") && fixDoc.includes("不自动过滤"));
+check("C-11c both candidates BLOCKED_BY_DECISION", fixDoc.includes("BLOCKED_BY_DECISION(DIFF-MOCK-05)") && opsDoc.includes("BLOCKED_BY_DECISION(DIFF-MOCK-05)"));
+check("C-11d no determined-default phrasing", !/按契约默认/.test(all) && !/按契约默认过滤/.test(repoDoc));
+check("C-11e repo interface has no implied default", repoDoc.includes("不隐含任何默认状态过滤值") && repoDoc.includes("不注入任何默认状态过滤值"));
+
+// C-12 DIFF-CONTRACT-03：400/422 双候选均存在且标注待裁定，未合并
+check("C-12a error-matrix dual candidates", errDoc.includes("候选-422") && errDoc.includes("候选-400"));
+check("C-12b dual candidates BLOCKED_BY_DECISION", errDoc.includes("BLOCKED_BY_DECISION(DIFF-CONTRACT-03)") && opsDoc.includes("BLOCKED_BY_DECISION(DIFF-CONTRACT-03)"));
+check("C-12c not merged into one response", errDoc.includes("不得合并为单一响应") && opsDoc.includes("不得合并为单一响应"));
+
+// C-13 Scope×Endpoint：75 唯一组合（行级解析 + 集合比对，非字符串计数）
+const scopeNames = ["product.read", "product.category.read", "product.evidence.read", "product.version.read", "product.publish.read"];
+const bizOps = opIds.filter((id) => id !== "issueToken"); // 15 业务端点
+const secRows = [];
+{
+  const re = /^\|\s*(\d+)\s*\|\s*(S\d+)\s+`([^`]+)`\s*\|\s*`([A-Za-z]+)`\s*\|.*$/gm;
+  let m;
+  while ((m = re.exec(secDoc))) {
+    secRows.push({ no: Number(m[1]), scope: m[3], op: m[4], line: m[0] });
+  }
+}
+const pairs = secRows.map((r) => r.scope + "|" + r.op);
+const uniquePairs = new Set(pairs);
+const expectedPairs = new Set();
+for (const s of scopeNames) for (const op of bizOps) expectedPairs.add(s + "|" + op);
+const dupCount = pairs.length - uniquePairs.size;
+check("C-13a scope matrix has exactly 75 rows", secRows.length === 75, `rows=${secRows.length}`);
+check("C-13b combos unique", dupCount === 0, `duplicates=${dupCount}`);
+check("C-13c combos complete (5 scopes x 15 ops)", uniquePairs.size === 75 && pairs.length === 75,
+  `missing=${[...expectedPairs].filter((p) => !uniquePairs.has(p)).length}, unexpected=${[...uniquePairs].filter((p) => !expectedPairs.has(p)).length}`);
+check("C-13d scopes are the 5 declared", secRows.every((r) => scopeNames.includes(r.scope)));
+check("C-13e ops are the 15 business ops", secRows.every((r) => bizOps.includes(r.op)));
+
+// C-14 可执行/挂起统计一致（逐行分类 vs 文内统计声明）
+let execRows = 0, pendRows = 0;
+for (const r of secRows) {
+  const cells = r.line.split("|").map((c) => c.trim()).filter((c) => c.length > 0);
+  const cls = cells[cells.length - 1] || "";
+  if (cls.startsWith("可执行")) execRows++;
+  else if (cls.startsWith("挂起")) pendRows++;
+}
+const statedExec = Number((secDoc.match(/可执行 \*\*(\d+)\*\*/) || [])[1]);
+const statedPend = Number((secDoc.match(/挂起 \*\*(\d+)\*\*/) || [])[1]);
+const statedTotal = Number((secDoc.match(/75\/75/) || [""])[0] ? 75 : NaN);
+check("C-14a row classification parsed for all 75", execRows + pendRows === 75, `exec=${execRows}, pend=${pendRows}`);
+check("C-14b stated stats match row counts", statedExec === execRows && statedPend === pendRows, `stated=${statedExec}/${statedPend}`);
+check("C-14c stats sum to 75", statedExec + statedPend === 75);
+check("C-14d full-coverage claim present", /\*\*75\/75\*\*/.test(secDoc) && statedTotal === 75);
+
+// C-15 F-07：同 MPN 异 Brand = 两个不同业务身份（非冲突）
+const f07line = fixDoc.split("\n").find((l) => l.includes("| F-07 "));
+check("C-15a F-07 is CONFIRMED dual identity", !!f07line && f07line.includes("CONFIRMED") && f07line.includes("两个不同业务身份"));
+check("C-15b F-07 is NOT marked as conflict", !!f07line && !f07line.includes("PENDING_CONFLICT"));
+
+// C-16 F-10：真正归一化冲突 fixture 引用 B5，未冻结未决规则
+const f10line = fixDoc.split("\n").find((l) => l.includes("| F-10 "));
+check("C-16a F-10 conflict fixture exists", !!f10line && f10line.includes("PENDING_CONFLICT"));
+check("C-16b F-10 cites B5 as BLOCKED/PROPOSED", !!f10line && f10line.includes("BLOCKED_BY_DECISION(B5)") && (f10line.includes("PROPOSED") || f10line.includes("未冻结")));
+// F-10 的冲突机制不得"是"同 MPN 异 Brand；显式否定表述（非"同 MPN 异 Brand"）可接受
+check("C-16c F-10 mechanism is not same-MPN-different-brand",
+  !!f10line && (f10line.includes(`非"同 MPN 异 Brand"`) || !f10line.includes("同 MPN 异 Brand")));
+
 // 输出
 console.log("=== PHASE2 PLAN SELF-CHECK ===");
 for (const r of results) console.log(r);

@@ -45,7 +45,7 @@
 | 形态 | 本地 HTTP 服务（127.0.0.1 回环），严格隔离，无外联 |
 | 数据 | 仅 `DEMO_FIXTURE`（`FIXTURE_DATA_SPEC.md`），合法 ULID 形态 |
 | 覆盖 | 16 操作 / 20 错误码 / 包形状方向 / 分页 / ETag-304 / scope 门禁矩阵 |
-| 已知缺口对策 | DIFF-CONTRACT-01（搜索条目形状）→ 实现默认按 EX-17 扁平行 + 配置开关，断言层双形态登记为 `BLOCKED_BY_DECISION`；DIFF-MOCK-05（默认过滤）→ 实现按契约默认 RELEASED+CONFIRMED，但该默认值本身属待决登记，保留待决测试 |
+| 已知缺口对策 | DIFF-CONTRACT-01（搜索条目形状）→ 实现默认按 EX-17 扁平行 + 配置开关，断言层双形态登记为 `BLOCKED_BY_DECISION`；DIFF-MOCK-05（默认过滤）→ **默认行为未裁定**：候选 A（不带参数仅返回 RELEASED）/ 候选 B（不自动过滤，由显式查询参数控制）双向量均 `BLOCKED_BY_DECISION(DIFF-MOCK-05)`；W-1 Runtime 与 W-2 Repository **不预置任何确定默认值**，裁定前任一向量均不计入行为验收 PASS |
 | 阻断依赖 | IQ-09（错误明细承载位置）→ 错误体明细在 data 还是 meta 双分支登记；B6（状态枚举）→ visible_state 派生值用契约枚举 DRAFT/IN_REVIEW/RELEASED/WITHDRAWN，同时登记闸门映射；IQ-05（410 保留期）→ CATEGORY_RETIRED 路径以 fixture 驱动、窗口数值不实现 |
 | 验收 | `TEST_AND_ACCEPTANCE_CRITERIA.md` §A 全部 RUN 级通过 + Reviewer 复跑 |
 
@@ -95,8 +95,8 @@ FIXTURE（`FIXTURE_DATA_SPEC.md`）是 W-1/W-2 的共同前置；W-4 依赖 W-1 
 | 阻断 | 影响的操作/测试/组件 | 计划内处置（不解决阻断本身） |
 |---|---|---|
 | DIFF-CONTRACT-01 | `GET /products/search` 响应断言 | 双形态登记，断言挂起（BLOCKED_BY_DECISION） |
-| DIFF-CONTRACT-03 | search 缺 brand 断言（400 vs 422） | 按 MD §6.4/候选 §4.5 断言 422；示例冲突登记 |
-| DIFF-MOCK-05 | search 默认过滤断言 | 按契约默认实现 + 保留待决测试 |
+| DIFF-CONTRACT-03 | search 缺 brand 断言（400 vs 422） | **仍为 PENDING**：候选-400（400/40001, field=brand）与候选-422（422/42201, missing=[brand]）双向量均 BLOCKED_BY_DECISION，不合并为单一响应；解除 = 维护人修正示例 + 一致性复验 |
+| DIFF-MOCK-05 | search 默认过滤断言 | **仍为 OPEN**：候选 A（默认仅 RELEASED）/ 候选 B（不自动过滤）双向量均 BLOCKED_BY_DECISION，W-1/W-2 不预置默认值，裁定前均不计入 PASS |
 | DIFF-MOCK-11 | `/evidence` 明细断言、Fixture 字段 | Fixture 构造完整 EvidenceItem；暴露范围待 B8 |
 | IQ-01/02/13 签署验收 | 全部 CONFIRMED 规则的"生效性" | 注记"已登记未生效"，不阻塞隔离实现 |
 | IQ-05 | `/categories` DEPRECATED→410 窗口 | 窗口数值不实现，路径以 fixture 驱动 |

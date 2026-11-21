@@ -26,8 +26,8 @@
 | 12 | 41001 | 410 | `PRODUCT_RELEASE_REVOKED` | 产品曾发布后被撤回 | release_id/version、revoked_at（承载位置挂 IQ-09/DIFF-MOCK-13） | **否**（终态） | **否** | 候选 §6.4/§9.4；R-ST-06 | PROPOSED | E-41001-01；消费方必须识别为终止态 |
 | 13 | 41002 | 410 | `CATEGORY_RETIRED` | 分类保留期结束（**窗口数值未裁 IQ-05**） | merged_into/split_into | 否 | 是 | 候选 §6.4；R-TAX-04 | **BLOCKED(IQ-05)** | E-41002-01（fixture 驱动，窗口不实现） |
 | 14 | 41301 | 413 | `TREE_TOO_LARGE` | mode=tree 超 depth4/5000 节点 | — | 否（改 flat） | 是 | 候选 §7.5；R-TAX-07 | PROPOSED | E-41301-01 |
-| 15 | 42201 | 422 | `PRODUCT_IDENTITY_INCOMPLETE` | 精确查找缺 brand（missing=["brand"]）；brand 归一为空 | meta.missing | 否 | 是 | 候选 §4.5/§7.2；DIFF-CONTRACT-03 登记示例冲突 | PROPOSED | E-42201-01/02（按 MD+候选断言 422；示例更正待维护人） |
-| 16 | 42202 | 422 | `MPN_NORMALIZATION_CONFLICT` | 归一结果落入多个既有身份 / 互斥候选 | conflict_source | 否 | 是 | 候选 §4.1/§7.2 | PROPOSED（受 B5） | E-42202-01 |
+| 15 | 42201 | 422 | `PRODUCT_IDENTITY_INCOMPLETE` | **缺 brand 双候选向量**（DIFF-CONTRACT-03 PENDING）：候选-422 = 精确查找缺 brand（meta.missing=["brand"]，degraded_allowed=true；MD §6.4+候选 §4.5 方向）；候选-400 = 400/40001 `INVALID_ARGUMENT`（meta.field="brand"；EX-17 说明方向）。**两向量分别断言、不得合并为单一响应；均 `BLOCKED_BY_DECISION(DIFF-CONTRACT-03)`**；brand 归一为空→422 方向内不变 | meta.missing（候选-422）/ meta.field（候选-400） | 否 | 是 | 候选 §4.5/§7.2 + EX-17 说明（冲突登记 DIFF-CONTRACT-03） | PROPOSED（**行为挂起**） | E-42201-V422 / E-42201-V400（双向量分别构造；解除阻断 = 维护人修正示例 + 一致性复验） |
+| 16 | 42202 | 422 | `MPN_NORMALIZATION_CONFLICT` | 归一结果落入多个既有身份 / 同源文档互斥候选（fixture **F-10**：`DEMO-777` vs `DEMO-777X` 同源互斥；注意 F-07 同 MPN 异 Brand 为**两个合法身份**，不触发本码） | conflict_source | 否 | 是 | 候选 §4.1/§7.2 | PROPOSED（**判定规则受 B5，挂起**） | E-42202-01（`BLOCKED_BY_DECISION(B5)`：冲突判定具体规则未冻结，不得作为已定行为验收） |
 | 17 | 42901 | 429 | `RATE_LIMITED` | 超限（60rpm/树10/搜索30——数值 PROPOSED 挂 IQ-12） | Retry-After 头 | 是 | 是 | 候选 §7.9；R-TRC-01 | PROPOSED | SEC-11（数值断言挂 IQ-12） |
 | 18 | 50001 | 500 | `INTERNAL_ERROR` | 服务端内部错误（隔离环境以注入故障模拟） | — | 是 | 是 | 候选 §7.2 | PROPOSED | E-50001-01（故障注入） |
 | 19 | 50301 | 503 | `SERVICE_UNAVAILABLE` | 服务不可用（模拟） | — | 是 | 是 | 候选 §7.2 | PROPOSED | E-50301-01 |

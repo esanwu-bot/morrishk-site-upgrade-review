@@ -19,7 +19,7 @@ findByIdentity(mpn_norm, brand_norm)
 findByBusinessKey(pbk) → ProductDTO | null        # pbk 仍由 (mpn_norm, brand_norm) 派生，非独立主键
 search(criteria: {
   mpn_raw?, brand_raw?,                           # raw 输入；归一由注入的 Normalizer 完成（R-ID-05/06 PROPOSED）
-  identity_state?, release_state?,                # 状态过滤（release_state 默认 RELEASED：R-ST-05 PROPOSED，DIFF-MOCK-05 登记）
+  identity_state?, release_state?,                # 状态过滤：**接口不隐含任何默认状态过滤值**；未传 release_state 时的行为属 DIFF-MOCK-05 待决（候选 A 仅 RELEASED / 候选 B 不自动过滤），由 Runtime 层显式注入
   updated_since?, taxonomy_id?, category_id?,
   limit=50, cursor?                               # R-PTG-01 PROPOSED（Mock 简化默认 10 不得沿用）
 }) → { items, page_meta }
@@ -83,7 +83,7 @@ interface ProductSourceAdapter { /* 未来由 DuckDB/S3 流水线供数 */ }
 
 | 规则 | 计划 | 状态 |
 |---|---|---|
-| 商品可见性 | Repository 层不内嵌可见性；可见性由 Runtime scope 门禁 + 查询参数共同决定；`release_state` 默认 RELEASED | R-ST-05 PROPOSED；默认值本身为 DIFF-MOCK-05 待决登记 |
+| 商品可见性 | Repository 层不内嵌可见性，**不注入任何默认状态过滤值**；可见性由 Runtime scope 门禁 + 显式查询参数共同决定；未传 `release_state` 时的行为属 DIFF-MOCK-05 待决（候选 A 默认仅 RELEASED / 候选 B 不自动过滤） | R-ST-05 PROPOSED；DIFF-MOCK-05 **OPEN**（候选 A/B 均未裁定） |
 | 排序 | 稳定排序键：`updated_at` + `pbk` 次级键（契约未定 sort 白名单，P1-1 PENDING→不实现用户 sort 参数） | P1-1 |
 | 分页 | 游标 = base64(内部偏移+种子校验)不透明串；limit 默认 50/最大 200 | R-PTG-01 PROPOSED |
 | 证据访问 | evidence_ids ↔ EvidenceRepository 关联；`screenshot_reference` 仅相对路径 | R-EV-01 PROPOSED；B8 暴露待裁 |

@@ -11,8 +11,8 @@
 | 编号 | 状态（原样保持） | 影响的操作 | 影响的测试 | 影响的组件 | 处置路径 |
 |---|---|---|---|---|---|
 | **DIFF-CONTRACT-01** 搜索返回形态 | PENDING | OP-02 | 搜索条目形态断言挂起（双形态对照保留） | W-1 Runtime 搜索序列化；W-3 Client 反序列化 | 设计文档维护人裁定 → 修订候选 → 解锁 |
-| **DIFF-CONTRACT-03** 缺 brand 400/422 | PENDING | OP-02 | E-42201 按 MD+候选断言 422；400 对照向量登记 | W-1 错误映射；W-3 异常映射 | 示例文档（EX-17 说明）修正 + 一致性复验 |
-| **DIFF-MOCK-05** 默认状态过滤 | OPEN（原登记 CONFIRMED-差异） | OP-02/OP-16 | 默认过滤双向量均 BLOCKED_BY_DECISION | W-1 查询管线默认值；W-2 search 默认参数 | 公开查询过滤规则确认 |
+| **DIFF-CONTRACT-03** 缺 brand 400/422 | PENDING | OP-02 | E-42201 **双候选向量**：候选-422（422/42201, missing=[brand]）/ 候选-400（400/40001, field=brand），均 BLOCKED_BY_DECISION、分别断言、不得合并 | W-1 错误映射；W-3 异常映射 | 示例文档（EX-17 说明）修正 + 一致性复验，之后方可解除 |
+| **DIFF-MOCK-05** 默认状态过滤 | OPEN（原登记 CONFIRMED-差异） | OP-02/OP-16 | **默认过滤双向量均 BLOCKED_BY_DECISION**：候选 A（默认仅 RELEASED）/ 候选 B（不自动过滤），裁定前均不计入行为验收 PASS | W-1 查询管线（**不预置默认值**）；W-2 search（**接口不隐含默认过滤**） | 公开查询过滤规则正式裁定 |
 | **DIFF-MOCK-11** 证据明细承载 | OPEN（原登记 CONFIRMED-差异） | OP-06 | 暴露字段断言 BLOCKED_BY_DECISION(B8) | Fixture（全量构造已规划）；W-2 EvidenceRepository | 证据详情能力与验收声明统一（随 B8/IQ-08） |
 
 ## 2. Phase 0 裁定阻断（影响生效性与部分语义）
