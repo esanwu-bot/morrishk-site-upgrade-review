@@ -187,12 +187,27 @@ function clauseStartBefore(text, idx) {
   }
   return start;
 }
+// R3-A 修正：否定词必须**直接修饰**当前冻结宣称——否定词末尾与目标起点之间仅允许空白间隔；
+// 同分句内的无关否定词（与其余内容隔开）不再豁免肯定宣称。否定词白名单不变；无固定长度窗口。
+const NEGATION_WORD_RE = /(不得自行宣布|不自行宣布|不宣布|不得宣称|不构成|并非|不是)/g;
+function negationDirectlyModifies(clause, targetStart) {
+  let m, direct = false;
+  NEGATION_WORD_RE.lastIndex = 0;
+  while ((m = NEGATION_WORD_RE.exec(clause))) {
+    if (m.index + m[0].length <= targetStart) {
+      const gap = clause.slice(m.index + m[0].length, targetStart);
+      if (/^[ \u00A0]*$/.test(gap)) direct = true; // 否定词紧邻目标（仅空白间隔）＝直接修饰
+    }
+  }
+  return direct;
+}
 function hasFreezeClaim(text) {
   const re = /(CONTRACT_FREEZE_APPROVED|冻结已通过|Freeze 已通过|已获批冻结)/g;
   let m;
   while ((m = re.exec(text))) {
-    const negationScope = text.slice(clauseStartBefore(text, m.index), m.index);
-    if (!/(不宣布|不得自行宣布|不自行宣布|不得宣称|不构成|并非|不是)/.test(negationScope)) return true;
+    const clauseStart = clauseStartBefore(text, m.index);
+    const clause = text.slice(clauseStart, m.index);
+    if (!negationDirectlyModifies(clause, m.index - clauseStart)) return true;
   }
   return false;
 }
@@ -287,6 +302,11 @@ check("C-13 referenced external files exist", externalRefs.every((p) => fs.exist
   // C-25f（R9/R3 补充反例 2）：纯否定声明 → 不应误报（否定语境与目标同分句直接关联）
   const cx = "本文件不宣布 CONTRACT_FREEZE_APPROVED。";
   check("C-25f pure-negation statement must NOT be flagged", hasFreezeClaim(cx) === false, JSON.stringify(cx));
+}
+{
+  // C-25g（R3-A 反例）：同分句无关否定词（并非…说明，另外 …）不直接修饰宣称 → 必须检出
+  const cx = "本文件并非冻结审批说明，另外 CONTRACT_FREEZE_APPROVED 已获批准。";
+  check("C-25g counter-example: unrelated same-clause negation must NOT exempt the claim", hasFreezeClaim(cx) === true, JSON.stringify(cx));
 }
 
 // 输出
