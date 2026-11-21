@@ -76,6 +76,62 @@ check("C-3f authoritative register unchanged (3/7 ruled, 4/7 open, 3 pending sig
   authReg.includes("已裁定 Phase 0 问题 | 3 / 7") && authReg.includes("未裁定 Phase 0 问题 | 4 / 7") &&
   (authReg.match(/待签署/g) || []).length >= 3);
 
+// ===== C-3g..C-3j（R2 修正：真正的逐项跨文件状态核验）=====
+// C-3g：25_/DIFF_CHECK_REPORT.md 逐项状态（DIFF-CONTRACT-01/03 = PENDING；DIFF-MOCK-05/11 = 差异事实 CONFIRMED）
+const diff25 = fs.readFileSync(path.join(REPO, "25_sessionb_phase1_contract_closure", "DIFF_CHECK_REPORT.md"), "utf8");
+function diffRow25(id) {
+  return diff25.split("\n").find((l) => l.includes(`| **${id}**`));
+}
+check("C-3g 25_ authoritative: DIFF-CONTRACT-01/03 rows stay [PENDING]",
+  ["DIFF-CONTRACT-01", "DIFF-CONTRACT-03"].every((id) => {
+    const r = diffRow25(id);
+    return !!r && r.includes("[PENDING]");
+  }));
+// DIFF-MOCK-05/11 在 25_ 的登记口径：差异**事实** CONFIRMED、处置 OPEN（26_/BLOCKER 登记）——两级口径分别核验
+check("C-3h 25_ authoritative: DIFF-MOCK-05/11 rows stay [CONFIRMED]-as-fact",
+  ["DIFF-MOCK-05", "DIFF-MOCK-11"].every((id) => {
+    const r = diffRow25(id);
+    return !!r && r.includes("[CONFIRMED]");
+  }));
+const blocker26 = fs.readFileSync(path.join(REPO, "26_sessionb_phase2_isolated_api_plan", "BLOCKER_AND_DEPENDENCY_REGISTER.md"), "utf8");
+check("C-3h2 26_ authoritative: DIFF-MOCK-05/11 resolution stays OPEN",
+  ["DIFF-MOCK-05", "DIFF-MOCK-11"].every((id) => {
+    const row = blocker26.split("\n").find((l) => l.includes(`**${id}**`));
+    return !!row && /OPEN/.test(row.slice(row.indexOf(id)));
+  }));
+// C-3i：12_ 候选 §11.2 逐项 B5–B8 状态与 Phase 3 登记一致
+const cand12 = fs.readFileSync(path.join(REPO, "12_dsbit_business_api_integration_design", "API_CONTRACT_CANDIDATE_v1.md"), "utf8");
+function bRow12(id) {
+  return cand12.split("\n").find((l) => l.startsWith(`| ${id} |`));
+}
+check("C-3i 12_ §11.2: B5 PROPOSED / B6 OPEN / B7 awaiting PM / B8 OPEN (per-item)",
+  [["B5", "PROPOSED"], ["B6", "OPEN"], ["B7", "待 PM 提交"], ["B8", "OPEN"]].every(([id, st]) => {
+    const r = bRow12(id);
+    return !!r && r.includes(st);
+  }));
+// C-3i2：25_/RULE_STATUS_REGISTER 交叉——B5 谓词规则 PROPOSED；B6/B7/B8 关联规则均 BLOCKED（未解决，与 Phase 3 OPEN/待PM 口径一致）
+const reg25b = JSON.parse(fs.readFileSync(path.join(REPO, "25_sessionb_phase1_contract_closure", "rules", "rule_registry.json"), "utf8"));
+check("C-3i2 rule registry: B5-gated rule PROPOSED; B6/B7/B8-gated rules non-CONFIRMED with BLOCKED present",
+  reg25b.rules.find((r) => r.id === "R-ID-05").status === "PROPOSED" &&
+  ["B6", "B7", "B8"].every((b) => {
+    const gated = reg25b.rules.filter((r) => r.blockers.includes(b));
+    return gated.length > 0 && gated.every((r) => r.status !== "CONFIRMED") && gated.some((r) => r.status === "BLOCKED");
+  }));
+// C-3j：14_ 逐行——IQ-01/02/13 登记 2026-11-17 + 待签署；IQ-05/09/15/21 裁定列为空（—）
+function iqRow14(id) {
+  return authReg.split("\n").find((l) => l.startsWith(`| ${id} `));
+}
+check("C-3j1 IQ-01/02/13 rows registered 2026-11-17 with pending signature",
+  ["IQ-01", "IQ-02", "IQ-13"].every((id) => {
+    const r = iqRow14(id);
+    return !!r && r.includes("2026-11-17") && r.includes("待签署");
+  }));
+check("C-3j2 IQ-05/09/15/21 rows have empty adjudication columns (—)",
+  ["IQ-05", "IQ-09", "IQ-15", "IQ-21"].every((id) => {
+    const r = iqRow14(id);
+    return !!r && r.includes("| — | — |");
+  }));
+
 // C-4 Scope 授权口径（与 26_ 矩阵交叉核对）
 const scope26 = fs.readFileSync(path.join(REPO, "26_sessionb_phase2_isolated_api_plan", "SECURITY_AND_SCOPE_TEST_PLAN.md"), "utf8");
 const reg25 = JSON.parse(fs.readFileSync(path.join(REPO, "25_sessionb_phase1_contract_closure", "rules", "rule_registry.json"), "utf8"));
@@ -115,13 +171,14 @@ function hasUnauthorizedClosure(text, id) {
   return false;
 }
 function hasFreezeClaim(text) {
-  const stripped = text
-    .replace(/不自行宣布[^。；|\n]*/g, "")
-    .replace(/不得自行宣布[^。；|\n]*/g, "")
-    .replace(/不宣布[^。；|\n]*/g, "")
-    .replace(/NOT_READY/g, "")
-    .replace(/CANDIDATE_NOT_FROZEN/g, "");
-  return /(CONTRACT_FREEZE_APPROVED|冻结已通过|Freeze 已通过|已获批冻结)/.test(stripped);
+  // R3 修正：逐匹配检查前置语境，不再整句剥离——「先否定、后肯定」的矛盾表达不会被否定语境吞掉
+  const re = /(CONTRACT_FREEZE_APPROVED|冻结已通过|Freeze 已通过|已获批冻结)/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const before = text.slice(Math.max(0, m.index - 24), m.index);
+    if (!/(不宣布|不得自行宣布|不自行宣布|不得宣称|不构成|并非|不是)/.test(before)) return true;
+  }
+  return false;
 }
 function hasBranchSelection(text) {
   const re = /权威分支[为是]\s*`?(backup\/full-local-20261114|origin\/feat\/gate6a-audit|main)\b/g;
@@ -199,6 +256,11 @@ check("C-13 referenced external files exist", externalRefs.every((p) => fs.exist
   // C-25c：分支认定反例 → 谓词必须检出
   const cx = "经研究，权威分支为 backup/full-local-20261114，无需决策人确认。";
   check("C-25c counter-example: branch self-selection must be detected", hasBranchSelection(cx) === true, JSON.stringify(cx));
+}
+{
+  // C-25d（R3 反例）：先否定、后肯定——同句矛盾表达不得被否定语境吞掉 → 谓词必须检出
+  const cx = "本文件不宣布 CONTRACT_FREEZE_APPROVED，但实际上 CONTRACT_FREEZE_APPROVED 已获批准。";
+  check("C-25d counter-example: negation-followed-by-claim in one sentence must be detected", hasFreezeClaim(cx) === true, JSON.stringify(cx));
 }
 
 // 输出
