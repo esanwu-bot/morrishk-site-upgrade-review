@@ -21,8 +21,13 @@
 | `rules/rule_registry.json` | 机器可读唯一源：55 条规则 + 状态词表 + 阻断引用 + file:line 证据 |
 | `tools/annotate_contract.js` | 生成器：从基线候选 + registry 生成 draft，只追加 `x-*` 键；引用不可解析即拒绝生成 |
 | `contract/openapi.candidate.v1.1-draft.json` | 契约候选整理稿：**零线形变更**（剥离全部 `x-*` 后与基线 deep-equal，T03 强制）；`x-contract-status` 保持 `CANDIDATE_NOT_FROZEN` |
-| `tests/contract-rule-annotations.test.js` | 独立 Contract Tests ×15（Node 内建 runner，无外部依赖） |
+| `tests/contract-rule-annotations.test.js` | **Contract Annotation & Governance Tests ×15**（Node 内建 runner，无外部依赖） |
 | `TEST_REPORT.md` | 真实运行记录：15/15 通过 + 五轮迭代留痕 |
+
+> **测试范围声明（按 Reviewer 阶段一复核意见修正）**：上述 15 项测试**只**验证规则注解治理
+> （词表纪律、阻断引用、CONFIRMED 证据约束）与契约候选完整性（基线哈希、零线形变更、
+> 端点/错误目录/ID 模式/`CANDIDATE_NOT_FROZEN` 保留）。它们**不验证**：HTTP API 行为、
+> Mock Runtime、Repository、OAuth2、数据库整合。15/15 通过**不得**表述为 API 行为验收通过。
 
 ## 2. 契约候选整理方法（为什么是「注解」而不是「改写」）
 
