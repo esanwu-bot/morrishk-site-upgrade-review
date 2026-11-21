@@ -137,7 +137,9 @@ SBOM SHA-256：
 #### A. Polotno（自定义商业许可）
 
 - 版本：`3.0.0-beta.25`，根依赖 `package.json:187`
-- 使用位置：`apps/frontend/src/components/launches/polonto.tsx:12-18`，由 `media.component.tsx` 动态加载
+- 使用位置：`apps/frontend/src/components/launches/polonto.tsx:12-18`
+- **入口 1**：`apps/frontend/src/components/media/media.component.tsx:57-58` 动态 import；`:865` `designMedia()` 打开，条件 `user.tier.ai && !dummy`
+- **入口 2**：`apps/frontend/src/components/media/media.component.tsx:1073-1084` `showDesignModal()` 直接渲染 `<Polonto>`；`:1138-1141` `Editor` 按钮绑定该函数，未看到同样的 tier/dummy 限制
 - npm license 字段：`SEE LICENSE IN LICENSE.md`
 - 许可证原文（unpkg）：
 

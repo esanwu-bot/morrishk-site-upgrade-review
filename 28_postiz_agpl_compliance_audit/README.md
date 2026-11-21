@@ -98,7 +98,7 @@ sha256sum -c SHA256SUMS.txt
 |---|---|
 | R1 | 在 README/AGPL/COMMERCIAL/RECOMMENDATION 中统一区分：私有修改不传播、修改版内部网络、修改版 SaaS、修改版镜像/安装包分发、修改版闭源商业交付；对应 §2/§5/§6/§13 义务 |
 | R2 | 补充 Elasticsearch 7.17.27 镜像 label（ELv2）、ELv2/SSPL 关系、Temporal Advanced Visibility 的 PostgreSQL/MySQL/SQLite 替代、Postiz 默认 compose 依赖与“是否必须”的边界；替换是否需改源码标 `UNKNOWN` |
-| R3 | Polotno 按“启用/仅安装/完全移除/替换编辑器”四种场景拆分；补充动态 import、`designMedia` gate、Dockerfile 单阶段构建证据；不再仅凭依赖存在推断所有部署都触发 |
+| R3 | Polotno 按“启用/仅安装/完全移除/替换编辑器”四种场景拆分；补充两个入口：`designMedia`（有 `user.tier.ai && !dummy`）与 `showDesignModal`/Editor 按钮（无相同限制），以及 Dockerfile 单阶段构建证据；不再仅凭依赖存在推断所有部署都触发 |
 
 ## 6. 审计边界
 

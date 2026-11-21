@@ -49,8 +49,8 @@
 | 项 | 事实 |
 |---|---|
 | 组件 | `polotno@3.0.0-beta.25` |
-| 位置 | `package.json:187`；`apps/frontend/src/components/launches/polonto.tsx` |
-| 调用路径 | `media.component.tsx` 通过 `dynamic(() => import(.../polonto))` 懒加载；`designMedia()` 仅在 `user.tier.ai && !dummy` 时打开 |
+| 位置 | `package.json:187`；`apps/frontend/src/components/launches/polonto.tsx`；`apps/frontend/src/components/media/media.component.tsx` |
+| 调用路径 | **入口 1**：`media.component.tsx:57-58` 动态 import；`:865` `designMedia()` 打开，条件 `user.tier.ai && !dummy`。**入口 2**：`:1073-1084` `showDesignModal()` 直接渲染 `<Polonto>`；`:1138-1141` 的 `Editor` 按钮绑定该函数，未看到同样的 `user.tier.ai && !dummy` 限制 |
 | 许可证 | 自定义：非商业产品/本地开发免费；商业使用需购买 |
 | 官方入口 | `https://polotno.com/` |
 | 是否包含在 Postiz AGPL 中 | 未说明；不能推定 |
@@ -61,17 +61,17 @@
 
 | # | 场景 | 代码/打包事实 | 许可判断 |
 |---|---|---|---|
-| 1 | 商业部署且启用 Polotno 编辑器 | `designMedia` 打开 Polotno；动态 import 加载 `polonto.tsx`；组件 import `polotno` | **需要** Polotno 商业许可 |
+| 1 | 商业部署且启用 Polotno 编辑器 | **入口 1** `designMedia`（有 tier gate）或 **入口 2** `showDesignModal`（Editor 按钮，无相同 tier gate）打开 Polotno；动态 import 加载 `polonto.tsx`；组件 import `polotno` | **需要** Polotno 商业许可 |
 | 2 | 安装依赖但未启用该功能 | `package.json:187` 安装；`Dockerfile.dev` 单阶段 `COPY .` + `pnpm install`，未做产物裁剪；Next 构建可能生成动态 chunk（未实际构建，`UNKNOWN`） | **高风险**：不能仅凭“没点开”推定不触发；商业分发镜像仍可能包含代码。建议按需要许可或移除 |
 | 3 | 构建产物完全移除 | 删除 `polonto.tsx` 及其 import、`package.json` 依赖、`pnpm-lock` 条目，清 `node_modules`/`.next` 后重建；`rg -i polotno` 为空 | 若产物/镜像确实不含 Polotno 代码，**不触发** Polotno 许可；需验证构建产物 |
 | 4 | 替换编辑器 | 用自有/其他许可编辑器替换 `polonto.tsx`，移除 Polotno 依赖与 chunk | 不触发 Polotno 许可 |
 
-**证据边界：** 本轮没有执行 `pnpm install` / `next build`，所以场景 2 的“实际 chunk 是否包含 Polotno”标记 `UNKNOWN`；从代码路径看，动态 import 是构建期引用，不能假定未启用就完全不会进入产物。
+**证据边界：** 本轮没有执行 `pnpm install` / `next build`，所以场景 2 的“实际 chunk 是否包含 Polotno”标记 `UNKNOWN`；从代码路径看，两个入口都引用同一 `polonto.tsx`，动态 import 是构建期引用，不能假定未启用就完全不会进入产物。**入口 2 的 Editor 按钮没有入口 1 的 `user.tier.ai && !dummy` 判断，不能把入口 1 的条件套用到整个组件。**
 
 **结论：**
 
 - 商业部署且保留 Polotno 功能：必须购买 Polotno 商业许可。
-- 不想购买：按场景 3 完全移除（依赖 + import + lock + 构建缓存 + 镜像重建），或按场景 4 替换编辑器。
+- 不想购买：按场景 3 完全移除（依赖 + 两个入口/import + lock + 构建缓存 + 镜像重建），或按场景 4 替换编辑器。
 - 仅“安装但没启用”不是可靠的免责理由；商业镜像可能仍包含代码。
 - Polotno 许可与 Postiz AGPL 是两套独立义务。
 

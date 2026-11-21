@@ -16,7 +16,7 @@
 | E-09 | 容器构建 workflow | `https://github.com/gitroomhq/postiz-app/blob/6be4874631fea453f99115a78fd543c71820ab45/.github/workflows/build-containers.yml` | tag push | 镜像 tag 与源码版本 |
 | E-10 | GitHub Dependency Graph SBOM | `https://api.github.com/repos/gitroomhq/postiz-app/dependency-graph/sbom` | 生成 2026-11-21T07:46:10Z；SHA-256 `69d270e0…` | 第三方依赖 |
 | E-11 | Polotno 许可 | `https://unpkg.com/polotno@3.0.0-beta.25/LICENSE.md` | 3.0.0-beta.25 | 商业使用需购买 |
-| E-12 | Polotno 使用位置 | `package.json#L187`；`apps/frontend/src/components/launches/polonto.tsx#L12-L18`；`media.component.tsx` 动态加载 | 2026-11-20 | 前端图片编辑 |
+| E-12 | Polotno 使用位置 | `package.json#L187`；`apps/frontend/src/components/launches/polonto.tsx#L12-L18`；`apps/frontend/src/components/media/media.component.tsx#L57-L58`、`#L865`、`#L1073-L1084`、`#L1138-L1141` | 2026-11-20 | 前端图片编辑；两个入口 |
 | E-13 | Sentry CLI 许可 | `https://unpkg.com/@sentry/cli@2.58.6/LICENSE` | FSL-1.1-MIT | 构建工具许可 |
 | E-14 | Elasticsearch 许可 | `https://www.elastic.co/licensing/elastic-license`；`https://www.elastic.co/pricing/faq/licensing`；`docker-compose.yaml` temporal-elasticsearch | 7.17.27；ELv2/SSPL | 非 OSI 许可；限制托管服务 |
 | E-15 | Public API 控制器 | `apps/backend/src/public-api/routes/v1/public.integrations.controller.ts#L66` | 2026-11-20 | `/public/v1` 端点 |
@@ -39,7 +39,7 @@
 | E-32 | Dockerfile | `Dockerfile.dev` | 2026-11-20 | 生产镜像由 dev Dockerfile 构建 |
 | E-33 | Elasticsearch 7.17.27 镜像许可 | `library/elasticsearch:7.17.27`；amd64 digest `sha256:07e9262b…`；labels `Elastic-License-2.0`；`evidence/elasticsearch-7.17.27-image-labels.json` | 2026-11-21 | 镜像发行许可 |
 | E-34 | Temporal Visibility | `https://docs.temporal.io/self-hosted-guide/visibility`；`https://github.com/temporalio/docker-compose/blob/main/docker-compose-postgres.yml`；`evidence/temporal-postgres-compose.yml` | 2026-11-21 | SQL Advanced Visibility 可替代 ES；Postiz 默认 compose 仍用 ES |
-| E-35 | Polotno 调用路径 | `media.component.tsx#L57-58` 动态 import；`media.component.tsx#L865` `designMedia()` gate `user.tier.ai`；`polonto.tsx#L12-18` 组件 import；`Dockerfile.dev#L22-25` 单阶段 COPY + pnpm install | 2026-11-20 | 启用/未启用/移除判断 |
+| E-35 | Polotno 调用路径 | `apps/frontend/src/components/media/media.component.tsx#L57-58` 动态 import；`#L865` `designMedia()` gate `user.tier.ai`；`#L1073-1084` `showDesignModal()` 直接 `<Polonto>`；`#L1138-1141` Editor 按钮；`polonto.tsx#L12-18` 组件 import；`Dockerfile.dev#L22-25` 单阶段 COPY + pnpm install | 2026-11-20 | 两个入口；启用/未启用/移除判断 |
 
 ## 复算命令
 
