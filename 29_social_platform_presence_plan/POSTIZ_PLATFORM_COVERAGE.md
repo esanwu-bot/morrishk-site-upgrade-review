@@ -8,7 +8,7 @@
 
 | 方式 | 费用 | 平台应用 | 审核负担 | 适用 | 状态 |
 |---|---|---|---|---|---|
-| Postiz Cloud | Standard $29/月（5 渠道，无团队成员）；Team $39/月（10 渠道，不限成员）；Pro $49/月（30 渠道，不限成员）；Ultimate $99/月（100 渠道，不限成员）；年付 $278/$374/$470/$950；7 天试用 | Postiz 提供已审核应用 | 低 | 先跑运营、少运维；单人用 Standard，多席位用 Team | `CONFIRMED`（E-40） |
+| Postiz Cloud | Standard $29/月（5 渠道，无团队成员）；Team $39/月（10 渠道，不限成员）；Pro $49/月（30 渠道，不限成员）；Ultimate $99/月（100 渠道，不限成员）；官方年付折算月价约 $23/$31/$39/$79（$278/$374/$470/$950 为按约 20% 折扣推算的年付总额，非官方页面直接公布，实际以结账页为准）；7 天试用 | Postiz 提供已审核应用 | 低 | 先跑运营、少运维；单人用 Standard，多席位用 Team | `CONFIRMED`（月价，E-40）/ `PROPOSED`（年付总额推算） |
 | 自建（AGPL） | 软件 $0；服务器/运维另计 | 需自行申请各平台开发者应用 | 高（Meta/YouTube/TikTok 可能数周） | 数据自主、长期成本可控 | `CONFIRMED`（E-42） |
 
 > Cloud 的“渠道数”按已连接账号计；具体计费口径以购买页为准。自建不等于零成本：服务器、备份、升级、OAuth 应用维护都要人。
@@ -141,7 +141,7 @@ Postiz 文档列出的账号级分析覆盖 10 类平台：
 | 平台 | 需要 | 审核/等待 | 备注 |
 |---|---|---|---|
 | YouTube | Google Cloud 项目、OAuth Client、YouTube Data API v3 | 默认 10,000 单位/日；项目实际值以 Cloud Console 为准 | 手机验证是频道功能，不是 API 应用审核 |
-| LinkedIn Page | Developer app + 已验证 Page；Share on LinkedIn、OpenID Connect、Advertising API | 需审核 | Page 认证本身是付费路径，与应用审核是两件事 |
+| LinkedIn Page | Developer app + 已验证 Page；Share on LinkedIn、OpenID Connect、Advertising API | 需审核 | Page 认证资格可来自主页有意义互动或既有商业关系；Premium Company Page、Jobs、Ads 是可满足资格的路径但非唯一途径；最终由 LinkedIn 审核决定；与应用审核是两件事 |
 | Facebook / Instagram | Meta 应用、Live 模式、权限；仅 app roles 使用可不做 App Review；高级权限/他人数据才需企业验证 | 可能数周 | 与 Page 认证不同 |
 | TikTok | 公网 HTTPS、域名验证、Content Posting API | 未审核客户端受限 | Business 另有应用 |
 | X | OAuth 1.0a Native App | API 档位 `UNKNOWN` | 文章另需 Premium |

@@ -47,7 +47,7 @@
 | E-37 | Postiz Medium：Integration Token；Markdown；标题必填；正文 100,000 | `medium.provider.ts` + Postiz 文档 | `SOURCE_CODE`/`VENDOR_DOC` | 本地检索 + 直接访问 | 该 commit/当前文档 | Medium API 可能调整 | `CONFIRMED` |
 | E-38 | Vimeo 定价：Free；Creator $9/月（年付）或 $16/月；Core $24.50/$40；Professional $71/$120 | https://vimeo.com/upgrade | `OFFICIAL_DOC` | 直接访问 | 美国站/美元 | 税费另计；免费档限额未逐项核验 | `CONFIRMED` |
 | E-39 | Postiz provider 注册列表无 Vimeo | `integration.manager.ts` `socialIntegrationList`（commit `6be4874`） | `SOURCE_CODE` | 本地只读检索 | 该 commit | 未来可能新增 | `CONFIRMED` |
-| E-40 | Postiz Cloud：Standard $29/月（5 渠道，无团队成员）、Team $39（10 渠道，不限成员）、Pro $49（30 渠道，不限成员）、Ultimate $99（100 渠道，不限成员）；年付 $278/$374/$470/$950；7 天试用 | Postiz 官方定价页 | `VENDOR_DOC` | 直接访问 | 美元/美国站 | 渠道计费口径以购买页为准；税费另计 | `CONFIRMED` |
+| E-40 | Postiz Cloud 月付：Standard $29（5 渠道，无团队成员）、Team $39（10 渠道，不限成员）、Pro $49（30 渠道，不限成员）、Ultimate $99（100 渠道，不限成员）；官方定价页展示年付折算月价约 $23/$31/$39/$79；7 天试用 | Postiz 官方定价页 | `VENDOR_DOC` | 直接访问 | 美元/美国站 | **$278/$374/$470/$950 为按约 20% 折扣推算的年付总额（折算月价 ×12），非官方页面直接公布的精确数字，实际以结账页为准**；渠道计费口径以购买页为准；税费另计 | `CONFIRMED`（月价）/ `PROPOSED`（年付总额推算） |
 | E-41 | Postiz 账号分析仅覆盖 10 类平台：FB Page、Instagram（两种）、LinkedIn Page、TikTok（两种）、YouTube、GMB、Pinterest、Threads、X；范围 7/30/90 天 | Postiz 官方文档（Analytics） | `VENDOR_DOC` | 直接访问 | Postiz 当前文档 | Reddit/Medium/Bluesky 无账号分析 | `CONFIRMED` |
 | E-42 | 自建需自行申请平台开发者应用；Meta/YouTube/TikTok 可能数周；10 个 provider 无需开发者应用（Bluesky、Lemmy、Nostr、Medium、Dev.to、Hashnode、WordPress、Listmonk、Moltbook、Skool） | Postiz 官方文档（Self-host） | `VENDOR_DOC` | 直接访问 | Postiz 当前文档 | 具体审核以平台为准 | `CONFIRMED` |
 | E-43 | Postiz AGPL-3.0；建议 `ADOPT_WITH_ADAPTER`（有条件）；闭源修改/白标需商业授权 | `28_postiz_agpl_compliance_audit/README.md`、`CLOSED_SOURCE_BOUNDARY.md` | `REPO_DOC` | 本地只读 | 本仓库 28_ | 不构成法律意见 | `CONFIRMED` |
@@ -59,6 +59,8 @@
 | E-49 | Pinterest 可用未被占用的商业邮箱直接创建 Business 账号（注册时选 Create a business account），无需先建个人账号 | https://help.pinterest.com/en/business/article/get-a-business-account | `OFFICIAL_DOC` | 直接访问 | 全球 | 注册 UI 可能因地区/实验略异 | `CONFIRMED` |
 | E-50 | Meta App Review 仅在应用被 app roles 以外的人使用时需要；仅 app roles 用户使用可不做 | https://developers.facebook.com/docs/app-review | `OFFICIAL_DOC` | 直接访问 | 全球 | 对外开放时按权限/功能逐项审核 | `CONFIRMED` |
 | E-51 | Meta Business Verification 在申请高级权限或访问其他企业数据时需要；不是所有公开应用都必须完成 | https://developers.facebook.com/docs/development/release/business-verification | `OFFICIAL_DOC` | 直接访问 | 全球 | 材料清单与费用以申请页为准 | `CONFIRMED` |
+| E-52 | Reddit 官方帮助页返回 403；账号类型（个人/品牌）、注册身份要求、是否支持原生多管理员均未取得官方原文 | https://support.reddithelp.com/ | `OFFICIAL_DOC` | `BLOCKED`（403） | — | 不得据此断言“必须个人账号”或“支持企业集中管理”；按模型 B 处理并标 `UNKNOWN` | `UNKNOWN` |
+| E-53 | Medium 官方帮助页返回 403；账号类型、Publication 多作者/编辑协作机制的官方原文本轮未取得 | https://help.medium.com/ | `OFFICIAL_DOC` | `BLOCKED`（403） | — | 账号模型按模型 B 处理并标 `UNKNOWN`；Publication 协作能力需实际后台确认 | `UNKNOWN` |
 
 ## 2. 不可用来源清单
 
@@ -70,6 +72,10 @@
 | Meta 开发者门户 | `developers.facebook.com` 主入口 | 访问失败 | 门户原文不可得 | 具体文档子页已取得（E-50/E-51） |
 | TikTok 开发者文档 | `developers.tiktok.com` | 超时/跳转 | 官方 API 细节不可得 | 引用源码与 Postiz 文档 |
 | LinkedIn Premium Company Page 价格 | 官方营销页/销售页 | 无公开价目 | 价格 `UNKNOWN` | 不估算，需询价 |
+| Reddit 官方帮助中心 | `support.reddithelp.com` | 403 | 账号模型/管理员机制 `UNKNOWN`（E-52） | 按模型 B 处理并标注 `UNKNOWN` |
+| Medium 官方帮助中心 | `help.medium.com`、`medium.com/creators` | 403 | 账号模型/Publication 协作机制 `UNKNOWN`（E-53） | 按模型 B 处理并标注 `UNKNOWN` |
+| X 官方帮助中心（账号模型细节） | `help.x.com` | Cloudflare 拦截 | 账号类型/身份要求/委派管理 `UNKNOWN`（E-30） | 只引用源码与通用规则 |
+| TikTok 官方帮助中心（账号模型细节） | 支持页 | 跳转到技术配置页，无账号模型说明 | 账号类型/协作机制 `UNKNOWN`（E-28） | 按模型 B 处理并标注 `UNKNOWN` |
 
 ## 3. 代码证据复算
 

@@ -218,7 +218,7 @@ https://www.morrishk.net/{{lang}}/inquiry?utm_source=youtube&utm_medium=video&ut
 - [ ] Pinterest：Business 账号、About、头像、Board、网站认领
 - [ ] TikTok：用户名、Bio、头像、站点、内容方向
 - [ ] Medium：作者资料、Integration Token（不写入本包）
-- [ ] Reddit：仅个人账号参与答疑；不建“品牌主页”式营销号
+- [ ] Reddit：用账号人工参与技术答疑（账号归属与身份模型 `UNKNOWN`，E-52）；不做“品牌主页”式营销号、不自动发帖
 
 ## 7. 禁用宣称与合规红线
 

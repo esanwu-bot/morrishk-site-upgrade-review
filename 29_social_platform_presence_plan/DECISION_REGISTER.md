@@ -33,7 +33,7 @@
 | D-13 | UTM 与落地页 | 首页 / 产品详情/询盘 | 所有站外链接带 UTM，落产品详情或询盘，不落首页 | `RECOMMENDED` | 运营+开发 | 增长规划 §5.1 | 站点路由变化 |
 | D-14 | 禁用宣称清单 | 允许夸张 / 严格 | 禁止 leading/largest/authorized/in stock 等未证实表述 | `CONFIRMED` | 运营 | 合规要求；`PROFILE_BRANDING_GUIDE.md` §7 | 用户提供证据后可新增 |
 | D-15 | 品牌事实补齐 | 用户提供 / 编造 / 留空 | 用户提供；未提供前不进入 W2 | `USER_ACTION_REQUIRED` | 用户 | 品牌事实表 | 用户提交资料 |
-| D-16 | 预算档位 | 最小 / 实际 A / 实际 B / 含 Vimeo / 月付 | 第二个月实际 A：Postiz Standard 5 渠道 $278/年（单人）；需双人工作台用 Team $374/年；Vimeo 暂缓；或最小 $0 平台订阅 | `USER_ACTION_REQUIRED` | 用户 | `BUDGET_AND_PAID_OPTIONS.md`；E-40 | 用户书面批准 |
+| D-16 | 预算档位 | 最小 / 实际 A / 实际 B / 含 Vimeo / 月付 | 第二个月实际 A：Postiz Standard 5 渠道，月付 $29；年付总额按约 20% 折扣推算约 $278（官方页面只展示年付折算月价约 $23，实际以结账页为准）。需双人工作台用 Team $39/月、年付约 $374；Vimeo 暂缓；或最小 $0 平台订阅 | `USER_ACTION_REQUIRED` | 用户 | `BUDGET_AND_PAID_OPTIONS.md`；E-40 | 用户书面批准 |
 | D-17 | 第二个月是否投广告 | 投 / 不投 | 不投；另立项目与预算 | `RECOMMENDED` | 用户 | 本包范围；费用分列 | 自然内容跑通且有转化数据 |
 | D-18 | 是否改变 Contract Freeze | 改 / 不改 | 不改；本包不触碰任何冻结项 | `CONFIRMED` | 用户/Reviewer | 任务书边界 | 不可变（本包范围内） |
 | D-19 | 是否改站点代码（Organization sameAs 等） | 本期改 / 后置 | 后置；先完成主页与链接，再单独立项 | `CONFIRMED`（本包不做） | 用户 | 任务书边界 | 另立实施任务并授权 |
