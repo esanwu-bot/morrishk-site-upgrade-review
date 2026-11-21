@@ -45,89 +45,96 @@
 **口径声明（修正 R3）**：本节为**完整计划矩阵 75/75**，逐组合展开，不再是抽样描述；每个单 scope Token 依次对 15 个业务端点各请求一次。
 - 5 个 Scope：`product.read`（S1）、`product.category.read`（S2）、`product.evidence.read`（S3）、`product.version.read`（S4）、`product.publish.read`（S5）。
 - 15 个业务端点：`searchProducts`、`getProduct`、`getProductStatus`、`listProductVersions`、`listProductEvidence`、`getProductCategories`、`listTaxonomies`、`getTaxonomy`、`getTaxonomyVersion`、`listCategories`、`listTaxonomyChanges`、`getCategory`、`listCategoryChildren`、`listCategoryAncestors`、`listCategoryProducts`（= 16 操作减 `issueToken`）。
-- 每行所需 scope 取自基线 OpenAPI 各操作的 `security` 声明；"允许/拒绝"为**候选语义**（R-OA-05 PROPOSED：缺 scope→403/40301，不降级不回退）。
-- **统计分列**：计划矩阵 75/75；可执行 70；挂起 5（可执行 + 挂起 = 75）。挂起 = scope 层"允许"虽由候选 security 声明给出，但其**业务行为断言**依赖未决裁定（DIFF-CONTRACT-01 / B6 / B8 / P1-3 / DIFF-MOCK-05），裁定前不得计入行为验收 PASS。
+- 每行所需 scope 取自基线 OpenAPI 各操作的 `security` 声明；"允许/拒绝"为**候选语义**（R-OA-05 PROPOSED：缺 scope→403/40301，不降级不回退）。该声明属 `CANDIDATE_AUTHORIZATION`，**不得自动提升为已裁定授权规则**（修正 R5）。
+- **统计分列（R5）**：授权依据类型逐行标注——本矩阵**全部 75 行 = `CANDIDATE_AUTHORIZATION`**；`CONFIRMED_AUTHORIZATION` = **0**；授权规则待裁定 = **75**；另有 **5** 行叠加业务语义阻断（DIFF-CONTRACT-01 / B6 / B8 / P1-3 / DIFF-MOCK-05）。**正式可执行测试数量 = 0**（详见 §3 末统计块）。
 - 双 scope 组合语义（如 `internal_only` 需 `product.category.read`+`product.publish.read`）属**复合测试**，在 SEC-08 单列，不计入本 75 组合（本矩阵 Token 均为单 scope）。
 
-| # | Scope | operationId | 具备所需权限 | 预期 | HTTP/错误码 | 规则来源 | 状态 | 执行分类 |
+| # | Scope | operationId | 具备所需权限 | 候选预期 | 候选 HTTP/错误码 | 规则来源（候选） | 授权依据类型 | 验收分类（含阻断来源） |
 |---|---|---|---|---|---|---|---|---|
-| 1 | S1 `product.read` | `searchProducts` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | 挂起（DIFF-CONTRACT-01 条目形态） |
-| 2 | S1 `product.read` | `getProduct` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | 可执行 |
-| 3 | S1 `product.read` | `getProductStatus` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 4 | S1 `product.read` | `listProductVersions` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 5 | S1 `product.read` | `listProductEvidence` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 6 | S1 `product.read` | `getProductCategories` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 7 | S1 `product.read` | `listTaxonomies` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 8 | S1 `product.read` | `getTaxonomy` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 9 | S1 `product.read` | `getTaxonomyVersion` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 10 | S1 `product.read` | `listCategories` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 11 | S1 `product.read` | `listTaxonomyChanges` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 12 | S1 `product.read` | `getCategory` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 13 | S1 `product.read` | `listCategoryChildren` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 14 | S1 `product.read` | `listCategoryAncestors` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 15 | S1 `product.read` | `listCategoryProducts` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 16 | S2 `product.category.read` | `searchProducts` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 17 | S2 `product.category.read` | `getProduct` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 18 | S2 `product.category.read` | `getProductStatus` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 19 | S2 `product.category.read` | `listProductVersions` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 20 | S2 `product.category.read` | `listProductEvidence` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 21 | S2 `product.category.read` | `getProductCategories` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | 可执行 |
-| 22 | S2 `product.category.read` | `listTaxonomies` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | 可执行 |
-| 23 | S2 `product.category.read` | `getTaxonomy` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | 可执行 |
-| 24 | S2 `product.category.read` | `getTaxonomyVersion` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 25 | S2 `product.category.read` | `listCategories` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | 可执行 |
-| 26 | S2 `product.category.read` | `listTaxonomyChanges` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 27 | S2 `product.category.read` | `getCategory` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | 挂起（P1-3 children 形态） |
-| 28 | S2 `product.category.read` | `listCategoryChildren` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | 可执行 |
-| 29 | S2 `product.category.read` | `listCategoryAncestors` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | 可执行 |
-| 30 | S2 `product.category.read` | `listCategoryProducts` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | 挂起（DIFF-MOCK-05 默认过滤） |
-| 31 | S3 `product.evidence.read` | `searchProducts` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 32 | S3 `product.evidence.read` | `getProduct` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 33 | S3 `product.evidence.read` | `getProductStatus` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 34 | S3 `product.evidence.read` | `listProductVersions` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 35 | S3 `product.evidence.read` | `listProductEvidence` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | 挂起（B8 证据暴露范围） |
-| 36 | S3 `product.evidence.read` | `getProductCategories` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 37 | S3 `product.evidence.read` | `listTaxonomies` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 38 | S3 `product.evidence.read` | `getTaxonomy` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 39 | S3 `product.evidence.read` | `getTaxonomyVersion` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 40 | S3 `product.evidence.read` | `listCategories` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 41 | S3 `product.evidence.read` | `listTaxonomyChanges` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 42 | S3 `product.evidence.read` | `getCategory` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 43 | S3 `product.evidence.read` | `listCategoryChildren` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 44 | S3 `product.evidence.read` | `listCategoryAncestors` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 45 | S3 `product.evidence.read` | `listCategoryProducts` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 46 | S4 `product.version.read` | `searchProducts` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 47 | S4 `product.version.read` | `getProduct` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 48 | S4 `product.version.read` | `getProductStatus` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 49 | S4 `product.version.read` | `listProductVersions` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | 可执行 |
-| 50 | S4 `product.version.read` | `listProductEvidence` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 51 | S4 `product.version.read` | `getProductCategories` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 52 | S4 `product.version.read` | `listTaxonomies` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 53 | S4 `product.version.read` | `getTaxonomy` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 54 | S4 `product.version.read` | `getTaxonomyVersion` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | 可执行 |
-| 55 | S4 `product.version.read` | `listCategories` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 56 | S4 `product.version.read` | `listTaxonomyChanges` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | 可执行 |
-| 57 | S4 `product.version.read` | `getCategory` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 58 | S4 `product.version.read` | `listCategoryChildren` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 59 | S4 `product.version.read` | `listCategoryAncestors` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 60 | S4 `product.version.read` | `listCategoryProducts` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 61 | S5 `product.publish.read` | `searchProducts` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 62 | S5 `product.publish.read` | `getProduct` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 63 | S5 `product.publish.read` | `getProductStatus` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | 挂起（B6 状态枚举） |
-| 64 | S5 `product.publish.read` | `listProductVersions` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 65 | S5 `product.publish.read` | `listProductEvidence` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 66 | S5 `product.publish.read` | `getProductCategories` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 67 | S5 `product.publish.read` | `listTaxonomies` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 68 | S5 `product.publish.read` | `getTaxonomy` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 69 | S5 `product.publish.read` | `getTaxonomyVersion` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 70 | S5 `product.publish.read` | `listCategories` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 71 | S5 `product.publish.read` | `listTaxonomyChanges` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 72 | S5 `product.publish.read` | `getCategory` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 73 | S5 `product.publish.read` | `listCategoryChildren` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 74 | S5 `product.publish.read` | `listCategoryAncestors` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
-| 75 | S5 `product.publish.read` | `listCategoryProducts` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | 可执行 |
+| 1 | S1 `product.read` | `searchProducts` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED ＋ 业务语义阻断：DIFF-CONTRACT-01 条目形态） |
+| 2 | S1 `product.read` | `getProduct` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 3 | S1 `product.read` | `getProductStatus` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 4 | S1 `product.read` | `listProductVersions` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 5 | S1 `product.read` | `listProductEvidence` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 6 | S1 `product.read` | `getProductCategories` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 7 | S1 `product.read` | `listTaxonomies` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 8 | S1 `product.read` | `getTaxonomy` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 9 | S1 `product.read` | `getTaxonomyVersion` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 10 | S1 `product.read` | `listCategories` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 11 | S1 `product.read` | `listTaxonomyChanges` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 12 | S1 `product.read` | `getCategory` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 13 | S1 `product.read` | `listCategoryChildren` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 14 | S1 `product.read` | `listCategoryAncestors` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 15 | S1 `product.read` | `listCategoryProducts` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 16 | S2 `product.category.read` | `searchProducts` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 17 | S2 `product.category.read` | `getProduct` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 18 | S2 `product.category.read` | `getProductStatus` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 19 | S2 `product.category.read` | `listProductVersions` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 20 | S2 `product.category.read` | `listProductEvidence` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 21 | S2 `product.category.read` | `getProductCategories` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 22 | S2 `product.category.read` | `listTaxonomies` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 23 | S2 `product.category.read` | `getTaxonomy` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 24 | S2 `product.category.read` | `getTaxonomyVersion` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 25 | S2 `product.category.read` | `listCategories` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 26 | S2 `product.category.read` | `listTaxonomyChanges` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 27 | S2 `product.category.read` | `getCategory` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED ＋ 业务语义阻断：P1-3 children 形态） |
+| 28 | S2 `product.category.read` | `listCategoryChildren` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 29 | S2 `product.category.read` | `listCategoryAncestors` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 30 | S2 `product.category.read` | `listCategoryProducts` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED ＋ 业务语义阻断：DIFF-MOCK-05 默认过滤） |
+| 31 | S3 `product.evidence.read` | `searchProducts` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 32 | S3 `product.evidence.read` | `getProduct` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 33 | S3 `product.evidence.read` | `getProductStatus` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 34 | S3 `product.evidence.read` | `listProductVersions` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 35 | S3 `product.evidence.read` | `listProductEvidence` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED ＋ 业务语义阻断：B8 证据暴露范围） |
+| 36 | S3 `product.evidence.read` | `getProductCategories` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 37 | S3 `product.evidence.read` | `listTaxonomies` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 38 | S3 `product.evidence.read` | `getTaxonomy` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 39 | S3 `product.evidence.read` | `getTaxonomyVersion` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 40 | S3 `product.evidence.read` | `listCategories` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 41 | S3 `product.evidence.read` | `listTaxonomyChanges` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 42 | S3 `product.evidence.read` | `getCategory` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 43 | S3 `product.evidence.read` | `listCategoryChildren` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 44 | S3 `product.evidence.read` | `listCategoryAncestors` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 45 | S3 `product.evidence.read` | `listCategoryProducts` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 46 | S4 `product.version.read` | `searchProducts` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 47 | S4 `product.version.read` | `getProduct` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 48 | S4 `product.version.read` | `getProductStatus` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 49 | S4 `product.version.read` | `listProductVersions` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 50 | S4 `product.version.read` | `listProductEvidence` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 51 | S4 `product.version.read` | `getProductCategories` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 52 | S4 `product.version.read` | `listTaxonomies` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 53 | S4 `product.version.read` | `getTaxonomy` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 54 | S4 `product.version.read` | `getTaxonomyVersion` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 55 | S4 `product.version.read` | `listCategories` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 56 | S4 `product.version.read` | `listTaxonomyChanges` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 57 | S4 `product.version.read` | `getCategory` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 58 | S4 `product.version.read` | `listCategoryChildren` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 59 | S4 `product.version.read` | `listCategoryAncestors` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 60 | S4 `product.version.read` | `listCategoryProducts` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 61 | S5 `product.publish.read` | `searchProducts` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 62 | S5 `product.publish.read` | `getProduct` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 63 | S5 `product.publish.read` | `getProductStatus` | 是 | 允许 | 200 | R-OA-05 + OpenAPI security 声明 | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED ＋ 业务语义阻断：B6 状态枚举） |
+| 64 | S5 `product.publish.read` | `listProductVersions` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 65 | S5 `product.publish.read` | `listProductEvidence` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 66 | S5 `product.publish.read` | `getProductCategories` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 67 | S5 `product.publish.read` | `listTaxonomies` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 68 | S5 `product.publish.read` | `getTaxonomy` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 69 | S5 `product.publish.read` | `getTaxonomyVersion` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 70 | S5 `product.publish.read` | `listCategories` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 71 | S5 `product.publish.read` | `listTaxonomyChanges` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 72 | S5 `product.publish.read` | `getCategory` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 73 | S5 `product.publish.read` | `listCategoryChildren` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 74 | S5 `product.publish.read` | `listCategoryAncestors` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
+| 75 | S5 `product.publish.read` | `listCategoryProducts` | 否 | 拒绝 | 403/40301 | R-OA-05（缺 scope 不降级） | PROPOSED | CANDIDATE_AUTHORIZATION | 挂起（授权待裁定：R-OA-05 PROPOSED，无 CONFIRMED 授权依据） |
 
-**覆盖统计（分列，修正 R3.6）**：计划矩阵 **75/75**；可执行 **70**（60 拒绝行 + 10 允许行）；挂起 **5**（行 1/27/30/35/63：scope 层允许明确、业务断言依赖未决裁定）。可执行 70 + 挂起 5 = 75。全部行的"允许/拒绝"均为候选语义（R-OA-05 PROPOSED），实施期按当轮权威登记复核。
+**覆盖统计（五分法，修正 R5）**：
+- 计划矩阵覆盖数量：**75/75**；
+- 候选授权映射数量：**75**（全部行的授权结果仅来自候选 OpenAPI security 声明 + R-OA-05 **PROPOSED**，逐行标记 `CANDIDATE_AUTHORIZATION`）；
+- 正式可执行测试数量：**0**（Rule Registry 中不存在 CONFIRMED 状态的 scope→endpoint 授权规则；如实报告为 0，不推断为 70）；
+- 授权规则待裁定数量：**75**（R-OA-05 PROPOSED：全部 75 行的授权结果须待授权规则裁定/冻结后方可计入正式行为验收）；
+- 其他业务语义待裁定数量：**5**（行 1/27/30/35/63：DIFF-CONTRACT-01 / B6 / B8 / P1-3 / DIFF-MOCK-05）。
+
+旧口径「可执行 70」自本修正起**作废**，任何文件不得再引用。全部 75 行验收分类均为**挂起**；实施期 RUN 可产生执行记录，但**不构成正式行为验收 PASS**，直至授权依据类型升级为 `CONFIRMED_AUTHORIZATION`。
 
 ## 4. 非生产声明
 

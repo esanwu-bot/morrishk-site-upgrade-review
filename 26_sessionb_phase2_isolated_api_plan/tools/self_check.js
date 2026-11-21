@@ -165,20 +165,24 @@ check("C-13d scopes are the 5 declared", secRows.every((r) => scopeNames.include
 check("C-13e ops are the 15 business ops", secRows.every((r) => bizOps.includes(r.op)));
 
 // C-14 可执行/挂起统计一致（逐行分类 vs 文内统计声明）
-let execRows = 0, pendRows = 0;
+let execRows = 0, pendRows = 0, candRows = 0, confRows = 0;
+const authTypes = [];
 for (const r of secRows) {
   const cells = r.line.split("|").map((c) => c.trim()).filter((c) => c.length > 0);
+  const authType = cells[cells.length - 2] || "";
   const cls = cells[cells.length - 1] || "";
+  authTypes.push({ authType, src: cells[6] || "", expect: cells[4] || "" });
   if (cls.startsWith("可执行")) execRows++;
-  else if (cls.startsWith("挂起")) pendRows++;
+  if (cls.startsWith("挂起")) pendRows++;
+  if (authType === "CANDIDATE_AUTHORIZATION") candRows++;
+  if (authType === "CONFIRMED_AUTHORIZATION") confRows++;
 }
-const statedExec = Number((secDoc.match(/可执行 \*\*(\d+)\*\*/) || [])[1]);
-const statedPend = Number((secDoc.match(/挂起 \*\*(\d+)\*\*/) || [])[1]);
-const statedTotal = Number((secDoc.match(/75\/75/) || [""])[0] ? 75 : NaN);
-check("C-14a row classification parsed for all 75", execRows + pendRows === 75, `exec=${execRows}, pend=${pendRows}`);
-check("C-14b stated stats match row counts", statedExec === execRows && statedPend === pendRows, `stated=${statedExec}/${statedPend}`);
+const statedExec = Number((secDoc.match(/正式可执行测试数量：\*\*(\d+)\*\*/) || [])[1]);
+const statedPend = Number((secDoc.match(/授权规则待裁定数量：\*\*(\d+)\*\*/) || [])[1]);
+check("C-14a row classification parsed for all 75", pendRows + execRows === 75, `exec=${execRows}, pend=${pendRows}`);
+check("C-14b stated stats match row counts", statedExec === execRows && statedPend === pendRows, `stated=${statedExec}/${statedPend}, rows=${execRows}/${pendRows}`);
 check("C-14c stats sum to 75", statedExec + statedPend === 75);
-check("C-14d full-coverage claim present", /\*\*75\/75\*\*/.test(secDoc) && statedTotal === 75);
+check("C-14d full-coverage claim present", /\*\*75\/75\*\*/.test(secDoc));
 
 // C-15 F-07：同 MPN 异 Brand = 两个不同业务身份（非冲突）
 const f07line = fixDoc.split("\n").find((l) => l.includes("| F-07 "));
@@ -191,7 +195,54 @@ check("C-16a F-10 conflict fixture exists", !!f10line && f10line.includes("PENDI
 check("C-16b F-10 cites B5 as BLOCKED/PROPOSED", !!f10line && f10line.includes("BLOCKED_BY_DECISION(B5)") && (f10line.includes("PROPOSED") || f10line.includes("未冻结")));
 // F-10 的冲突机制不得"是"同 MPN 异 Brand；显式否定表述（非"同 MPN 异 Brand"）可接受
 check("C-16c F-10 mechanism is not same-MPN-different-brand",
-  !!f10line && (f10line.includes(`非"同 MPN 异 Brand"`) || !f10line.includes("同 MPN 异 Brand")));
+  !!f10line && (new RegExp('非\\*{0,2}"同 MPN 异 Brand"').test(f10line) || !f10line.includes("同 MPN 异 Brand")));
+
+// ===== C-17..C-22（Reviewer R5–R6 修正自检）=====
+
+// C-17：75 组合区分候选权限映射与正式授权依据（逐行解析，非关键字计数）
+const AUTH_VOCAB = ["CANDIDATE_AUTHORIZATION", "CONFIRMED_AUTHORIZATION", "BLOCKED_BY_DECISION"];
+check("C-17a every row carries an authorization-basis type", authTypes.length === 75 && authTypes.every((a) => AUTH_VOCAB.includes(a.authType)));
+const statedCand = Number((secDoc.match(/候选授权映射数量：\*\*(\d+)\*\*/) || [])[1]);
+check("C-17b candidate-authorization count matches rows", statedCand === candRows, `stated=${statedCand}, rows=${candRows}`);
+check("C-17c candidate expectation column present per row", authTypes.every((a) => a.expect === "允许" || a.expect === "拒绝"));
+
+// C-18：PROPOSED 的 R-OA-05 不会被计为 CONFIRMED 授权规则（跨文件语义校验）
+const registry = JSON.parse(fs.readFileSync(path.join(REPO, "25_sessionb_phase1_contract_closure", "rules", "rule_registry.json"), "utf8"));
+const roa05 = registry.rules.find((r) => r.id === "R-OA-05");
+check("C-18a R-OA-05 remains PROPOSED in rule registry", !!roa05 && roa05.status === "PROPOSED");
+check("C-18b R-OA-05-sourced rows never marked CONFIRMED", authTypes.every((a) => (a.src.includes("R-OA-05") ? a.authType !== "CONFIRMED_AUTHORIZATION" : true)));
+check("C-18c no row claims CONFIRMED_AUTHORIZATION today", confRows === 0);
+
+// C-19：正式可执行数量与逐行 CONFIRMED 依据一致（当前应为 0，不得推断为 70）
+check("C-19a formal executable stated as 0", statedExec === 0);
+check("C-19b formal executable == CONFIRMED-based rows", statedExec === confRows);
+// 「可执行 70」仅允许出现在作废声明中（旧口径标注上下文）
+let stale70 = false;
+{
+  const re = /可执行\s*\*{0,2}70\*{0,2}/g;
+  let m;
+  while ((m = re.exec(secDoc))) {
+    const before = secDoc.slice(Math.max(0, m.index - 20), m.index);
+    if (!/旧口径|作废/.test(before)) stale70 = true;
+  }
+}
+check("C-19c old 70-executable claim abolished", !stale70);
+
+// C-20：F-10 来源冲突与 F-11 归一化冲突分别建模
+const f11line = fixDoc.split("\n").find((l) => l.includes("| F-11 "));
+check("C-20a source-conflict candidate modeled (F-10)", !!f10line && f10line.includes("SOURCE_IDENTITY_CONFLICT"));
+check("C-20b normalization-conflict candidate modeled separately (F-11)", !!f11line && f11line.includes("NORMALIZATION_CONFLICT_CANDIDATE_PENDING_B5"));
+check("C-20c the two conflict classes are distinct rows", !!f10line && !!f11line && f10line !== f11line);
+
+// C-21：归一化冲突候选引用 B5 且未冻结算法
+check("C-21a F-11 cites B5 as BLOCKED and PROPOSED", !!f11line && f11line.includes("BLOCKED_BY_DECISION(B5)") && f11line.includes("PROPOSED"));
+check("C-21b F-11 states the non-speculative limitation", !!f11line && f11line.includes("无充分依据") && f11line.includes("不伪造已确定冲突案例"));
+check("C-21c F-11 freezes no algorithm", !!f11line && !f11line.includes("已冻结") && (!!f10line && !f10line.includes("已冻结")));
+
+// C-22：42202 不把来源冲突直接认定为归一化冲突
+const e42202 = errDoc.split("\n").find((l) => l.includes("| 16 | 42202"));
+check("C-22a 42202 distinguishes the two conflict classes", !!e42202 && e42202.includes("SOURCE_IDENTITY_CONFLICT") && e42202.includes("NORMALIZATION_CONFLICT_CANDIDATE_PENDING_B5") && e42202.includes("不得混同"));
+check("C-22b 42202 keeps F-07 as two legal identities", !!e42202 && e42202.includes("两个合法身份"));
 
 // 输出
 console.log("=== PHASE2 PLAN SELF-CHECK ===");
