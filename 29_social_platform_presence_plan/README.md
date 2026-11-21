@@ -17,13 +17,13 @@
 | 2 | 最值得优先建设的 3 个视频平台 | ① YouTube（唯一 P0）② Vimeo（条件性，官网嵌入/品牌片）③ TikTok（条件性，手动试点）。第二个月只建 YouTube；另两个是候选，不是承诺 | `RECOMMENDED` |
 | 3 | 哪些平台完全免费 | 建号/主页本身均无平台订阅费。**有官方页直接确认**：LinkedIn Page、YouTube、Instagram 专业账号、Pinterest Business、Medium 发布、Vimeo 免费档；**Facebook / X / TikTok / Reddit** 官方计费页本轮不可达，未发现建号收费项，按免费规划、执行时复核。免费不等于关键能力免费 | `CONFIRMED`（有官方页者）/ `UNKNOWN`（四项计费页）/ `RECOMMENDED`（是否值得建） |
 | 4 | 哪些平台关键能力需要付费 | LinkedIn 主页认证：存在非付费资格路径（主页活跃、互动、商业关系），Premium Company Page 或付费 Jobs/Ads 可满足资格但不是唯一路径，最终由平台裁量，价格 `UNKNOWN`；X 文章需 X Premium（价格 `UNKNOWN`）；Vimeo 高级播放器/隐私/品牌化需付费档（Creator $9/月起，年付）；Postiz Cloud 为付费替代自建；广告全部另计且本轮排除 | `CONFIRMED`（付费边界）/ `UNKNOWN`（具体价格） |
-| 5 | 哪些需要个人管理员账号 | 平台账号模型不同，不能一概而论：**A. 个人 Profile 管理企业主页**——LinkedIn Page（个人 Profile 创建并任 super admin，E-12）、Instagram 专业账号（个人账号转换，E-19）、Facebook Page（通常由个人 Profile 创建，官方建页页不可达，机制 `UNKNOWN`，E-22）；**B. 直接注册独立品牌账号**——X、TikTok、Reddit、Medium（通用账号体系，无独立企业主页；注册身份与多管理员机制官方依据未取得，`UNKNOWN`）、Pinterest Business（商业邮箱直接注册，无需个人账号，E-49）；**C. 平台内品牌资产/共享管理**——YouTube Brand Account（多人管理，E-01）、Facebook Business Portfolio 与 Medium Publication（官方原文不可达，`UNKNOWN`） | `CONFIRMED`（有官方依据项）/ `UNKNOWN`（其余） |
+| 5 | 哪些需要个人管理员账号 | 平台账号模型不同，不能一概而论，A/B/C 只是分类框架：**已确认**——A. 个人 Profile 管理企业主页：LinkedIn Page（个人 Profile 创建并任 super admin，E-12）、Instagram 专业账号（个人账号转换，E-19）；B. 直接注册独立品牌账号：Pinterest Business（商业邮箱直接注册，无需个人账号，E-49）；C. 平台内品牌资产/共享管理：YouTube Brand Account（E-01）、LinkedIn Page 多管理员（E-12）。**未核实、不作归类**——Facebook、X、TikTok、Reddit、Medium：官方建页/帮助页本轮被登录墙或 403/Cloudflare 拦截（E-22/E-30/E-28/E-52/E-53），账号模型统一标 `UNKNOWN`/`BLOCKED`，不得为填满分类而强行归类 | `CONFIRMED`（已确认项）/ `UNKNOWN`（Facebook/X/TikTok/Reddit/Medium） |
 | 6 | 哪些需要企业认证/执照 | LinkedIn 主页认证：需企业真实信息，但资格可来自主页活跃/互动/商业关系，付费产品只是满足条件的一种方式，最终由平台裁量；Meta 需区分 App Review 与 Business Verification（见下条）；TikTok 开发者应用需公网 HTTPS 站点与域名归属验证；Pinterest 需应用审核。YouTube/X/Reddit/Medium/Vimeo 未见营业执照要求（未逐项核验），但分别有手机验证、Premium、社区规则、付费档等门槛 | `CONFIRMED`（门槛存在）/ `UNKNOWN`（Meta 认证是否收费、未核验项） |
 | 6b | Meta 的 App Review、Business Verification 与 Postiz 部署是什么关系 | 三件事相互独立：**App Review** 仅在应用被 app roles 以外的人使用时才需要，仅内部角色使用可不做；**Business Verification** 在申请高级权限或访问其他企业数据时才需要，并非所有公开应用都必须完成；**Postiz 自建部署**要求 Morrishk 自己创建 Meta 应用并承担上述审核，用 Postiz Cloud 则由 Postiz 承担 | `CONFIRMED`（E-23/E-50/E-51） |
 | 7 | 哪些可通过 Postiz 统一管理 | 本计划范围内：YouTube、LinkedIn Page、Facebook、Instagram、TikTok（含 Business）、X、Pinterest、Reddit、Medium、Threads。**Vimeo 不在 Postiz provider 列表**。分析数据仅 10 类平台回传，Reddit/Medium 无账号级分析 | `CONFIRMED` |
 | 8 | YouTube 主页分区怎么设计 | 横幅（≥2560×1440）＋频道预告片（新访客）＋精选视频（回访者）＋4–6 个播放列表分区：Start Here / Product Categories / How to Order & Quality / Technical FAQ / Latest Uploads；空分区不上线 | `RECOMMENDED` |
 | 9 | 第二个月优先做什么 | W1 账号治理与品牌资产；W2 建号并补全 5 个核心主页；W3 首批内容 + Postiz 连接；W4 基线测量与复盘。先做 P0（治理/建号/补全/验证），付费认证、Vimeo 与 TikTok 后置 | `RECOMMENDED` |
-| 10 | 最小预算与标准预算 | **最小：平台订阅 $0/年**（自建 Postiz + 全部免费档 + 不买认证，不含托管/人力）。**第二个月实际标准（Vimeo 暂缓）：Postiz Cloud 月付 $29（Standard·5 渠道）或 $39（Team·10 渠道）；年付总额按约 20% 折扣推算约 $278 / $374（官方页面只展示年付折算月价约 $23/$31，实际以结账页为准）**。Standard 不含团队成员，Team 不限成员；平台主页管理员与 Postiz 工作台用户是两回事，2 名主页管理员不强制购买 Team。若日后启用 Vimeo Creator 再 +$108/年（合计约 $386/$482）。不含 LinkedIn 认证报价、X Premium、广告与内容制作 | `RECOMMENDED`（档位）/ `CONFIRMED`（月价，E-40）/ `PROPOSED`（年付总额推算） |
+| 10 | 最小预算与标准预算 | **最小：平台订阅 $0/年**（自建 Postiz + 全部免费档 + 不买认证，不含托管/人力）。**第二个月实际标准（Vimeo 暂缓）：Postiz Cloud 月付 $29（Standard·5 渠道）或 $39（Team·10 渠道）；年付总额按「月付标价 ×12 ×约80%」推算并取整，约 $278 / $374（官方页面只展示年付折算月价约 $23/$31，实际以结账页为准）**。Standard 不含团队成员，Team 不限成员；平台主页管理员与 Postiz 工作台用户是两回事，2 名主页管理员不强制购买 Team。若日后启用 Vimeo Creator 再 +$108/年（合计约 $386/$482）。不含 LinkedIn 认证报价、X Premium、广告与内容制作 | `RECOMMENDED`（档位）/ `CONFIRMED`（月价，E-40）/ `PROPOSED`（年付总额推算） |
 
 ## 1. 目的
 
@@ -120,11 +120,20 @@
 
 | 编号 | 修订内容 | 涉及文件 |
 |---|---|---|
-| R1 | 消除“X/TikTok/Reddit/Medium 必须由个人账号创建”的过度概括：按 A/B/C 三类模型逐平台说明；LinkedIn、Facebook、Instagram、YouTube、Pinterest 分别给出真实账号/管理员模型；无官方依据项标 `UNKNOWN`/`BLOCKED`（新增 E-52 Reddit、E-53 Medium） | `README.md`、`PLATFORM_MASTER_MATRIX.md`、`ACCOUNT_REQUIREMENTS.md`、`PROFILE_BRANDING_GUIDE.md`、`EVIDENCE_INDEX.md` |
+| R1 | 消除“X/TikTok/Reddit/Medium 必须由个人账号创建”的过度概括：按 A/B/C 三类模型逐平台说明；LinkedIn、Instagram、YouTube、Pinterest 给出已确认模型，Facebook 因官方页不可达标 `UNKNOWN`；其余无官方依据项标 `UNKNOWN`/`BLOCKED`（新增 E-52 Reddit、E-53 Medium） | `README.md`、`PLATFORM_MASTER_MATRIX.md`、`ACCOUNT_REQUIREMENTS.md`、`PROFILE_BRANDING_GUIDE.md`、`EVIDENCE_INDEX.md` |
 | R2 | 清除 `POSTIZ_PLATFORM_COVERAGE.md` 旧口径“Page 认证本身是付费路径”；改为资格可来自主页有意义互动或既有商业关系，Premium Company Page/Jobs/Ads 为可满足资格路径但非唯一，最终由 LinkedIn 审核决定；全目录检索同义旧表述 | `POSTIZ_PLATFORM_COVERAGE.md` |
 | R5 | 明确年付金额口径：官方页仅展示年付折算月价（约 $23/$31/$39/$79），$278/$374/$470/$950 为按约 20% 折扣推算的年付总额，实际以结账页为准；保留 Standard 无团队成员、Team/Pro 不限成员区别 | `BUDGET_AND_PAID_OPTIONS.md`、`POSTIZ_PLATFORM_COVERAGE.md`、`EVIDENCE_INDEX.md`、`README.md`、`DECISION_REGISTER.md` |
 
 > 第三轮同样只改文本与证据状态，未扩大范围、未重做已通过的 R3/R4；仍未注册账号、未购买、未创建 OAuth、未连接真实账号、未发布内容。
+
+## 6.3 第四轮复核修订记录（R1/R5 最小修订）
+
+| 编号 | 修订内容 | 涉及文件 |
+|---|---|---|
+| R1 | 撤销无官方依据的平台模型归类：X、TikTok、Reddit、Medium 不再断言“无独立企业主页体系”或归入模型 B；Facebook 不再写成模型 A；五者账号模型统一 `UNKNOWN`/`BLOCKED`。保留已确认项：LinkedIn（A）、Instagram（A）、YouTube（C）、Pinterest（B）；A/B/C 仅作分类框架，不为填满分类而给未核实平台强行归类 | `README.md`、`PLATFORM_MASTER_MATRIX.md`、`ACCOUNT_REQUIREMENTS.md`、`ACCOUNT_STATUS_INVENTORY.md`、`EVIDENCE_INDEX.md` |
+| R5 | E-40 计算公式由“年付折算月价 ×12”改为「月付标价 ×12 ×约80%」并取整；同步预算文档中的计算说明，仍以结账页为准 | `EVIDENCE_INDEX.md`、`BUDGET_AND_PAID_OPTIONS.md`、`POSTIZ_PLATFORM_COVERAGE.md`、`README.md`、`DECISION_REGISTER.md` |
+
+> 第四轮同样只改文本与证据状态，不重开 R2/R3/R4，不重新做平台调研；仍未注册账号、未购买、未创建 OAuth、未连接真实账号、未发布内容。
 
 ## 7. 后续 Gate
 

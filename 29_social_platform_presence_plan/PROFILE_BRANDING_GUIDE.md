@@ -191,7 +191,7 @@ https://www.morrishk.net/{{lang}}/inquiry?utm_source=youtube&utm_medium=video&ut
 - [ ] 服务区域/语言
 - [ ] 绑定 Instagram
 - [ ] 管理员 ≥2
-- [ ] 纳入 Meta Business Portfolio
+- [ ] 管理机制按官方确认执行：Business Portfolio 能力当前 `UNKNOWN`（E-22），不以未核实机制作为前提
 
 ### 6.4 Instagram
 

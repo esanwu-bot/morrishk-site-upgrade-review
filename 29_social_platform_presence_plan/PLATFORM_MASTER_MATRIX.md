@@ -44,14 +44,14 @@
 |---|---|---|---|---|---|---|
 | LinkedIn Page | 免费 | 主页认证：资格可来自主页活跃/互动/商业关系；Premium Company Page 或付费 Jobs/Ads 可满足资格但非唯一路径；最终由平台裁量（E-14） | 认证徽章、部分主页能力 | A：个人 Profile 创建并任 super admin，可加 Page admin（E-12） | 认证价格 `UNKNOWN`；第二个月不买 | `CONFIRMED`（免费建页/认证资格存在非付费路径） |
 | YouTube | 免费 | 无需营业执照；手机验证解锁自定义缩略图/直播/长视频（E-03） | 无必须付费项；广告另计 | C：Google 账号 + Brand Account 多人管理（E-01） | $0；API 默认配额已确认（E-09） | `CONFIRMED` |
-| Facebook Page | 免费（官方计费页本轮被登录墙拦截，未发现收费项） | App Review 仅在 app roles 以外的人使用时需要；企业验证仅在高级权限/他人数据时需要（E-50/E-51） | 广告、再营销（本轮排除） | A：通常个人 Profile 建 Page 并加管理员；官方页不可达，机制 `UNKNOWN`（E-22） | $0；认证费用 `UNKNOWN` | `UNKNOWN`（计费页/账号机制）/ `CONFIRMED`（审核条件存在） |
+| Facebook Page | 免费（官方计费页本轮被登录墙拦截，未发现收费项） | App Review 仅在 app roles 以外的人使用时需要；企业验证仅在高级权限/他人数据时需要（E-50/E-51） | 广告、再营销（本轮排除） | 账号模型 `UNKNOWN`：官方建页页登录墙，不作 A/其他归类（E-22） | $0；认证费用 `UNKNOWN` | `UNKNOWN`（计费页/账号机制）/ `CONFIRMED`（审核条件存在） |
 | Instagram 专业账号 | 免费 | 同 Meta 应用：对外使用触发 App Review；高级权限触发企业验证；账号本身免费（E-19/E-50/E-51） | 广告（本轮排除） | A：个人账号转专业账号，一个个人账号最多管理 10 个（E-19） | $0 | `CONFIRMED` |
-| X | 免费（官方计费页本轮被 Cloudflare 拦截，未发现建号收费项） | 无企业认证；开发者应用/API 有独立门槛（E-29） | X Premium 解锁文章；API 访问付费档（价格 `UNKNOWN`） | B：独立账号，无企业主页；注册身份/多管理员 `UNKNOWN`（E-30） | 第二个月 $0（不发文章） | `UNKNOWN`（计费页/账号机制）/ `CONFIRMED`（文章需 Premium） |
+| X | 免费（官方计费页本轮被 Cloudflare 拦截，未发现建号收费项） | 无企业认证；开发者应用/API 有独立门槛（E-29） | X Premium 解锁文章；API 访问付费档（价格 `UNKNOWN`） | 账号模型 `UNKNOWN`：官方帮助页被拦截，不作归类（E-30） | 第二个月 $0（不发文章） | `UNKNOWN`（计费页/账号机制）/ `CONFIRMED`（文章需 Premium） |
 | Pinterest Business | 免费（E-32） | 应用审核（自建 Postiz 时，E-42）；账号可直接用商业邮箱独立注册（E-49） | 广告（本轮排除） | B：商业邮箱直接注册 Business，无需个人账号（E-49） | $0 | `CONFIRMED` |
-| TikTok | 免费（官方计费页本轮不可达，未发现建号收费项） | 开发者应用需公网 HTTPS 站点与域名验证；未审核应用仅可发私密账号（E-25/E-27） | 广告（本轮排除） | B：通用账号，Business 为账号内属性；多用户协作 `UNKNOWN`（E-28） | $0（手动发布） | `UNKNOWN`（计费页/账号机制）/ `CONFIRMED`（发布限制存在） |
-| Medium | 发布免费 | 无企业认证 | Member $5/月、Friend $15/月为阅读会员，不是发布费（E-36） | B：通用账号；Publication 协作机制 `UNKNOWN`（E-53） | $0 | `CONFIRMED`（费用）/ `UNKNOWN`（账号机制） |
+| TikTok | 免费（官方计费页本轮不可达，未发现建号收费项） | 开发者应用需公网 HTTPS 站点与域名验证；未审核应用仅可发私密账号（E-25/E-27） | 广告（本轮排除） | 账号模型 `UNKNOWN`：官方依据未取得，不作归类（E-28） | $0（手动发布） | `UNKNOWN`（计费页/账号机制）/ `CONFIRMED`（发布限制存在） |
+| Medium | 发布免费 | 无企业认证 | Member $5/月、Friend $15/月为阅读会员，不是发布费（E-36） | 账号模型 `UNKNOWN`：官方依据未取得，不作归类（E-53） | $0 | `CONFIRMED`（费用）/ `UNKNOWN`（账号机制） |
 | Vimeo | 有免费档 | 无企业认证 | Creator $9/月（年付）或 $16/月；Core $24.50/$40；Professional $71/$120（E-38） | 账号/团队能力以付费档为准，`UNKNOWN` | 第二个月 $0（暂缓） | `CONFIRMED`（价格） |
-| Reddit | 免费（官方计费页未取得，未发现建号收费项） | 无企业认证；遵守社区规则（E-34） | 无主页付费项 | B：通用 username，无品牌主页；官方说明 `UNKNOWN`（E-52） | $0 | `UNKNOWN`（计费页/账号机制）/ `CONFIRMED`（规则） |
+| Reddit | 免费（官方计费页未取得，未发现建号收费项） | 无企业认证；遵守社区规则（E-34） | 无主页付费项 | 账号模型 `UNKNOWN`：官方说明未取得，不作归类（E-52） | $0 | `UNKNOWN`（计费页/账号机制）/ `CONFIRMED`（规则） |
 
 ## 3. “社媒主页”与“视频能力”的口径
 
@@ -64,12 +64,12 @@
 | 层 | 建议 | 理由 | 状态 |
 |---|---|---|---|
 | 登录身份 | 品牌专用邮箱 + 密码库 + 2FA | 不依赖个人邮箱；离职可交接 | `RECOMMENDED` |
-| 平台登录模型 | 三类：**A. 个人 Profile 管理企业主页**（LinkedIn Page、Instagram 专业账号、Facebook Page）；**B. 直接注册独立品牌账号**（X、TikTok、Reddit、Medium、Pinterest Business）；**C. 平台内品牌资产/共享管理**（YouTube Brand Account、Facebook Business Portfolio、LinkedIn Page 多管理员、Medium Publication） | 既不存在“所有平台都必须用个人账号”，也不存在“所有平台都能纯企业注册”的统一模型；逐平台确认，未取得官方依据的标 `UNKNOWN`（E-01/E-12/E-19/E-22/E-28/E-30/E-49/E-52/E-53） | `CONFIRMED`（有官方依据项）/ `UNKNOWN`（其余） |
+| 平台登录模型 | 分类框架三类：**A. 个人 Profile 管理企业主页**（已确认：LinkedIn Page、Instagram 专业账号）；**B. 直接注册独立品牌账号**（已确认：Pinterest Business）；**C. 平台内品牌资产/共享管理**（已确认：YouTube Brand Account、LinkedIn Page 多管理员）。Facebook、X、TikTok、Reddit、Medium 未核实，统一 `UNKNOWN`/`BLOCKED`，不强行归入任何一类 | 既不存在“所有平台都必须用个人账号”，也不存在“所有平台都能纯企业注册”的统一模型；A/B/C 仅为框架，未取得官方依据的平台不得为填满分类而归类（E-01/E-12/E-19/E-22/E-28/E-30/E-49/E-52/E-53） | `CONFIRMED`（已确认项）/ `UNKNOWN`（Facebook/X/TikTok/Reddit/Medium） |
 | Google/YouTube | 使用 Brand Account，至少 2 名所有者 | 多人管理不必共享个人 Google 密码（E-01） | `RECOMMENDED` |
-| Meta | 使用 Business Portfolio 管理 FB Page 与 IG | 管理员用个人身份加入，资产归企业组合 | `RECOMMENDED` |
+| Meta | Instagram 已确认由个人账号转专业账号（E-19）；Facebook Page 的账号模型与 Business Portfolio 机制 `UNKNOWN`（E-22），取得官方依据后再定管理方式 | 不得把未核实的 Portfolio 机制写成既定做法 | `CONFIRMED`（IG）/ `UNKNOWN`（FB） |
 | LinkedIn | 企业主页 + 至少 2 名 super admin | 避免个人账号停用导致主页失管 | `RECOMMENDED` |
-| X / TikTok / Reddit / Medium | 按模型 B 处理：注册一个独立品牌账号；注册身份要求与原生多管理员机制官方依据未取得，采购前逐一确认；品牌邮箱负责通知/恢复；能设 2FA 就设 2FA | 这四家没有独立“企业主页”体系；不得写成“必须个人账号”，也不得写成“已支持企业集中管理”（E-28/E-30/E-52/E-53） | `UNKNOWN`（机制）/ `RECOMMENDED`（操作建议） |
-| Pinterest | 模型 B：商业邮箱直接注册 Business 账号，无需先建个人账号（E-49）；2FA + 品牌邮箱 | 官方注册页说明 | `CONFIRMED` |
+| Facebook / X / TikTok / Reddit / Medium | 账号模型 `UNKNOWN`/`BLOCKED`：官方依据本轮均不可达（E-22/E-30/E-28/E-52/E-53），不作 A/B/C 归类；在执行前取得可访问的官方说明；操作层面统一用品牌邮箱负责通知/恢复，能设 2FA 就设 2FA | 既不能写成“必须个人账号”，也不能写成“无企业主页体系”或“已支持企业集中管理” | `UNKNOWN`（模型）/ `RECOMMENDED`（操作建议） |
+| Pinterest | B（已确认）：商业邮箱直接注册 Business 账号，无需先建个人账号（E-49）；2FA + 品牌邮箱 | 官方注册页说明 | `CONFIRMED` |
 | 凭证 | 只由用户持有；Agent 不接收密码/Token | 任务书硬性边界 | `CONFIRMED` |
 
 ## 5. 与既有决策的关系

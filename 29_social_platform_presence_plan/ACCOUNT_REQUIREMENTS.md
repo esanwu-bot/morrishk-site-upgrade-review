@@ -21,11 +21,11 @@
 
 | 模型 | 含义 | 本计划涉及平台 | 管理员/共享机制 | 依据/状态 |
 |---|---|---|---|---|
-| A. 个人 Profile 管理企业主页 | 先有个人身份，再创建/管理独立的企业主页 | LinkedIn Page、Facebook Page、Instagram 专业账号 | LinkedIn：个人 Profile 为 super admin，可授予其他个人 Page admin（E-12）。Instagram：个人账号转为专业账号，一个个人账号最多管理 10 个专业账号（E-19）。Facebook：通常由个人 Profile 建 Page 并添加管理员，但官方建页说明本轮被登录墙拦截（E-22） | `CONFIRMED`（LinkedIn/Instagram）/ `UNKNOWN`（Facebook 官方原文） |
-| B. 直接注册独立品牌账号 | 平台没有独立“企业主页”体系，品牌注册一个普通账号作为品牌身份 | X、TikTok、Reddit、Medium、Pinterest Business | X/TikTok/Reddit/Medium：注册身份、是否要求个人身份、是否支持多管理员，官方依据本轮均未取得（E-30/E-28/E-52/E-53）。Pinterest：可用商业邮箱直接注册 Business 账号，无需先建个人账号（E-49） | `UNKNOWN`（X/TikTok/Reddit/Medium）/ `CONFIRMED`（Pinterest） |
-| C. 平台内品牌资产/共享管理 | 平台在账号体系内提供品牌资产或多人协作机制 | YouTube Brand Account、Facebook Business Portfolio、LinkedIn Page 多管理员、Medium Publication | YouTube：Brand Account 可添加多名所有者/管理者，不必共享个人密码（E-01）。Facebook Business Portfolio 与 Medium Publication 的官方原文本轮不可达，机制 `UNKNOWN` | `CONFIRMED`（YouTube）/ `UNKNOWN`（其余） |
+| A. 个人 Profile 管理企业主页 | 先有个人身份，再创建/管理独立的企业主页 | **已确认**：LinkedIn Page、Instagram 专业账号 | LinkedIn：个人 Profile 为 super admin，可授予其他个人 Page admin（E-12）。Instagram：个人账号转为专业账号，一个个人账号最多管理 10 个专业账号（E-19） | `CONFIRMED`（LinkedIn/Instagram） |
+| B. 直接注册独立品牌账号（若平台允许） | 以品牌身份注册平台普通/商业账号；具体注册身份与协作机制须以官方说明为准 | **已确认**：Pinterest Business。**未核实、不作归类**：X、TikTok、Reddit、Medium | Pinterest：可用商业邮箱直接注册 Business 账号，无需先建个人账号（E-49）。X/TikTok/Reddit/Medium：官方依据本轮均未取得（E-30/E-28/E-52/E-53），不得为填满本类而强行归入 | `CONFIRMED`（Pinterest）/ `UNKNOWN`（X/TikTok/Reddit/Medium） |
+| C. 平台内品牌资产/共享管理 | 平台在账号体系内提供品牌资产或多人协作机制 | **已确认**：YouTube Brand Account、LinkedIn Page 多管理员。**未核实、不作归类**：Facebook Business Portfolio、Medium Publication | YouTube：Brand Account 可添加多名所有者/管理者，不必共享个人密码（E-01）。LinkedIn：创建者可授予其他个人 Page admin（E-12）。Facebook/Medium：官方原文本轮不可达（E-22/E-53） | `CONFIRMED`（YouTube/LinkedIn）/ `UNKNOWN`（Facebook/Medium） |
 
-> 结论：既不能概括为“所有平台都必须用个人账号”，也不能概括为“所有平台都能纯企业注册”。执行时按平台逐一确认；上表标 `UNKNOWN` 的项不得写成已确认规则。
+> 结论：既不能概括为“所有平台都必须用个人账号”，也不能概括为“所有平台都能纯企业注册”。A/B/C 只是分类框架，**不得为了填满分类而给未核实平台强行归类**；Facebook、X、TikTok、Reddit、Medium 的账号模型统一标 `UNKNOWN`/`BLOCKED`，直到取得可访问的官方依据。
 
 ## 2. 逐平台账号要求
 
@@ -63,8 +63,8 @@
 
 | 项 | 内容 | 状态 |
 |---|---|---|
-| 账号类型 | Facebook Page（公共主页），属于模型 A | `UNKNOWN`（官方建页页被登录墙拦截，E-22） |
-| 建页前提 | 通常由个人 Facebook 账号创建；建议纳入 Meta Business Portfolio 统一管理 | `RECOMMENDED`；机制 `UNKNOWN`（E-22） |
+| 账号类型 | Facebook Page（公共主页）；**账号模型未确认**（官方建页页被登录墙拦截，E-22），不作 A/其他归类 | `UNKNOWN`（E-22） |
+| 建页前提 | 建页入口与所需账号身份官方原文不可得（E-22）；执行时以页面提示为准，不预设“必须个人 Profile”，也不预设 Business Portfolio 为既定机制 | `UNKNOWN`（E-22） |
 | 费用 | 建页免费；官方计费页本轮被登录墙拦截，未发现收费项 | `UNKNOWN`（计费页）/ `RECOMMENDED`（按免费规划） |
 | 管理员 | 可添加多名管理员；具体角色与上限以官方帮助页为准，本轮不可达 | `UNKNOWN`（E-22） |
 | App Review | 仅当应用被 app roles 以外的人使用时才需要；只有内部角色使用可不做。对外开放权限/功能时按权限逐项触发审核 | `CONFIRMED`（E-50） |
@@ -72,7 +72,7 @@
 | 认证费用 | 未取得官方计费页，不列入预算 | `UNKNOWN` |
 | 官方页面访问 | `facebook.com/business` 本轮被登录墙拦截 | `BLOCKED`（E-22） |
 | 自建 Postiz 应用 | Meta 开发者应用；需 `pages_manage_posts` 等权限；是否触发 App Review/企业验证取决于使用者范围与权限级别 | `CONFIRMED`（E-42/E-50/E-51） |
-| 手工步骤 | 建 Page → 设类别/简介/联系方式 → 上传头像/封面 → 加入 Business Portfolio → 邀请管理员 → 绑定 Instagram | `USER_ACTION_REQUIRED` |
+| 手工步骤 | 建 Page → 设类别/简介/联系方式 → 上传头像/封面 → 邀请管理员 → 绑定 Instagram；是否/如何纳入 Business Portfolio 以官方确认后的机制为准（当前 `UNKNOWN`，E-22） | `USER_ACTION_REQUIRED` |
 
 ### 2.4 Instagram 专业账号（P0 · 第 4）
 
@@ -90,7 +90,7 @@
 
 | 项 | 内容 | 状态 |
 |---|---|---|
-| 账号类型 | 独立 X 账号（模型 B）；平台无独立“企业主页”体系，品牌以独立 Handle 作为身份 | `UNKNOWN`（官方帮助页被 Cloudflare 拦截，E-30） |
+| 账号类型 | X 账号；**账号模型未确认**（是否有独立企业主页体系、注册身份要求均无官方依据，E-30），不作归类 | `UNKNOWN`（E-30） |
 | 管理员/共享 | 原生多管理员或委派管理机制未取得官方依据 | `UNKNOWN`（E-30） |
 | 费用 | 建号免费；官方计费页本轮被 Cloudflare 拦截，未发现收费项 | `UNKNOWN`（计费页）/ `RECOMMENDED`（按免费规划） |
 | 2FA | 必须开启；恢复码离线保存 | `USER_ACTION_REQUIRED` |
@@ -118,7 +118,7 @@
 
 | 项 | 内容 | 状态 |
 |---|---|---|
-| 账号类型 | 通用 TikTok 账号（模型 B）；Business Account 为账号内属性 | `UNKNOWN`（开发者/帮助页不可达，E-28） |
+| 账号类型 | TikTok 账号；**账号模型未确认**（Business Account 属性、账号身份要求均无官方依据，E-28），不作归类 | `UNKNOWN`（E-28） |
 | 管理员/共享 | 多用户协作或委派管理机制未取得官方依据 | `UNKNOWN`（E-28） |
 | 费用 | 建号免费；官方计费页本轮不可达，未发现收费项 | `UNKNOWN`（计费页）/ `RECOMMENDED`（按免费规划） |
 | 自建 Postiz 应用 | 开发者应用需公网 HTTPS 站点；媒体 URL 域名需在应用内验证 | `CONFIRMED`（E-26/E-27） |
@@ -133,8 +133,8 @@
 
 | 项 | 内容 | 状态 |
 |---|---|---|
-| 账号类型 | 通用 Reddit 账号（username，模型 B），无品牌主页体系；品牌参与需遵守社区规则 | `UNKNOWN`（官方注册说明本轮 403，E-52） |
-| 管理员/共享 | 无原生品牌主页/多管理员机制可确认 | `UNKNOWN`（E-52） |
+| 账号类型 | Reddit 账号（username）；**账号模型未确认**（是否有品牌主页体系、注册身份要求均无官方依据，E-52），不作归类 | `UNKNOWN`（E-52） |
+| 管理员/共享 | 原生多管理员或委派机制未取得官方依据 | `UNKNOWN`（E-52） |
 | 费用 | 免费；官方计费页未取得，未发现建号收费项 | `UNKNOWN`（计费页）/ `RECOMMENDED`（按免费规划） |
 | 社区规则 | Rule 2：真实参与，禁止 spam 与内容操纵 | `CONFIRMED`（E-34） |
 | Postiz 约束 | 每 1 秒最多 1 次请求；按 subreddit 配置 | `CONFIRMED`（E-35） |
@@ -144,7 +144,7 @@
 
 | 项 | 内容 | 状态 |
 |---|---|---|
-| 账号类型 | 通用 Medium 账号（模型 B） | `UNKNOWN`（官方帮助页本轮 403，E-53） |
+| 账号类型 | Medium 账号；**账号模型未确认**（官方帮助页本轮 403，E-53），不作归类 | `UNKNOWN`（E-53） |
 | 管理员/共享 | Publication 支持多作者/编辑协作的官方原文本轮未取得 | `UNKNOWN`（E-53） |
 | 发布费用 | 发布免费；Member $5/月、Friend $15/月为阅读会员 | `CONFIRMED`（E-36） |
 | 接入方式 | Integration Token（API Key），不是 OAuth 应用 | `CONFIRMED`（E-37） |
@@ -197,7 +197,7 @@
 
 | 风险 | 后果 | 缓解 | 状态 |
 |---|---|---|---|
-| 只用一个人的个人账号做唯一管理员 | 离职/封号导致主页失控 | ≥2 名管理员 + break-glass；Brand Account/Business Portfolio | `RECOMMENDED` |
+| 只用一个人的个人账号做唯一管理员 | 离职/封号导致主页失控 | ≥2 名管理员 + break-glass；YouTube 用 Brand Account；Facebook 侧机制待官方确认（E-22） | `RECOMMENDED` |
 | 共享个人密码 | 无法审计、易泄露 | 用平台原生多管理员机制，不共享密码 | `RECOMMENDED` |
 | 2FA 设备丢失 | 无法登录 | 恢复码离线保存；备用管理员 | `USER_ACTION_REQUIRED` |
 | 品牌邮箱由个人持有 | 验证码与通知不可控 | 品牌邮箱由公司控制并纳入密码库 | `USER_ACTION_REQUIRED` |

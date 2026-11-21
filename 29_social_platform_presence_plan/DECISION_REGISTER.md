@@ -20,7 +20,7 @@
 |---|---|---|---|---|---|---|---|
 | D-01 | 第二个月核心社媒主页 | 5 个 / 3 个 / 8 个 | LinkedIn、YouTube、Facebook、Instagram、X | `RECOMMENDED` | 用户 | 增长规划 §5.1；人群匹配 | 用户调整目标市场或产能 |
 | D-02 | 视频平台优先级 | YouTube/Vimeo/TikTok 的排序 | ① YouTube ② Vimeo（条件性）③ TikTok（条件性）；本月只建 YouTube | `RECOMMENDED` | 用户 | 增长规划 §5.3；Postiz 覆盖；E-39 | 需要短视频获客或有官网嵌入需求 |
-| D-03 | 账号所有权模型 | 个人账号 / 品牌账号共享 / 混合 | Brand Account + Meta Business Portfolio + 双管理员 + 密码库 | `RECOMMENDED` | 用户 | E-01/E-12；离职风险 | IT 政策限制 |
+| D-03 | 账号所有权模型 | 个人账号 / 品牌账号共享 / 混合 | YouTube Brand Account + 双管理员 + 密码库；Facebook 侧账号/管理机制 `UNKNOWN`（E-22），取得官方依据后再定 | `RECOMMENDED` | 用户 | E-01/E-12；离职风险 | IT 政策限制 |
 | D-04 | 凭证由谁持有 | 用户 / Agent / 第三方 | 只由用户持有；Agent 不接收密码/Token/验证码 | `CONFIRMED` | 用户 | 任务书硬边界 | 不可变 |
 | D-05 | 第二个月是否买 LinkedIn 认证 | 买 / 不买 / 询价 | 不买；先建页运营，优先走非付费资格路径，未果再询价 | `RECOMMENDED` | 用户 | E-14（资格可来自活跃/商业关系，付费非唯一路径）；价格 `UNKNOWN` | 非付费路径未果且报价可接受、有数据支撑 |
 | D-06 | Postiz 部署形态 | Cloud / 自建 / 暂不接入 | 先 Cloud 7 天试用；需要数据自主再自建 | `PROPOSED` | 用户 | E-40/E-42；28_ 合规边界 | 预算、合规、运维能力变化 |
@@ -33,7 +33,7 @@
 | D-13 | UTM 与落地页 | 首页 / 产品详情/询盘 | 所有站外链接带 UTM，落产品详情或询盘，不落首页 | `RECOMMENDED` | 运营+开发 | 增长规划 §5.1 | 站点路由变化 |
 | D-14 | 禁用宣称清单 | 允许夸张 / 严格 | 禁止 leading/largest/authorized/in stock 等未证实表述 | `CONFIRMED` | 运营 | 合规要求；`PROFILE_BRANDING_GUIDE.md` §7 | 用户提供证据后可新增 |
 | D-15 | 品牌事实补齐 | 用户提供 / 编造 / 留空 | 用户提供；未提供前不进入 W2 | `USER_ACTION_REQUIRED` | 用户 | 品牌事实表 | 用户提交资料 |
-| D-16 | 预算档位 | 最小 / 实际 A / 实际 B / 含 Vimeo / 月付 | 第二个月实际 A：Postiz Standard 5 渠道，月付 $29；年付总额按约 20% 折扣推算约 $278（官方页面只展示年付折算月价约 $23，实际以结账页为准）。需双人工作台用 Team $39/月、年付约 $374；Vimeo 暂缓；或最小 $0 平台订阅 | `USER_ACTION_REQUIRED` | 用户 | `BUDGET_AND_PAID_OPTIONS.md`；E-40 | 用户书面批准 |
+| D-16 | 预算档位 | 最小 / 实际 A / 实际 B / 含 Vimeo / 月付 | 第二个月实际 A：Postiz Standard 5 渠道，月付 $29；年付总额按「月付标价 ×12 ×约80%」推算并取整约 $278（官方页面只展示年付折算月价约 $23，实际以结账页为准）。需双人工作台用 Team $39/月、年付约 $374；Vimeo 暂缓；或最小 $0 平台订阅 | `USER_ACTION_REQUIRED` | 用户 | `BUDGET_AND_PAID_OPTIONS.md`；E-40 | 用户书面批准 |
 | D-17 | 第二个月是否投广告 | 投 / 不投 | 不投；另立项目与预算 | `RECOMMENDED` | 用户 | 本包范围；费用分列 | 自然内容跑通且有转化数据 |
 | D-18 | 是否改变 Contract Freeze | 改 / 不改 | 不改；本包不触碰任何冻结项 | `CONFIRMED` | 用户/Reviewer | 任务书边界 | 不可变（本包范围内） |
 | D-19 | 是否改站点代码（Organization sameAs 等） | 本期改 / 后置 | 后置；先完成主页与链接，再单独立项 | `CONFIRMED`（本包不做） | 用户 | 任务书边界 | 另立实施任务并授权 |

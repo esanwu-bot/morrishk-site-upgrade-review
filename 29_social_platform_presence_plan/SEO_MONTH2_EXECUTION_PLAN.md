@@ -74,7 +74,7 @@
 |---|---|---|---|---|---|
 | 2.1 | LinkedIn Page | 主页 URL | 资料完整、2 名 admin | 个人账号 | `USER_ACTION_REQUIRED` |
 | 2.2 | YouTube Brand Account | 频道 URL | Handle、手机验证、头像/横幅、简介 | Google 账号 | `USER_ACTION_REQUIRED` |
-| 2.3 | Facebook Page + Business Portfolio | 主页 URL | 资料完整、2 名 admin | 个人 FB 账号 | `USER_ACTION_REQUIRED` |
+| 2.3 | Facebook Page | 主页 URL | 资料完整、≥2 名 admin | 账号模型 `UNKNOWN`（E-22），执行时以页面提示为准 | `USER_ACTION_REQUIRED` |
 | 2.4 | Instagram 专业账号 | 专业账号 | 绑定 FB Page、Bio/头像/联系 | IG 账号 | `USER_ACTION_REQUIRED` |
 | 2.5 | X 账号 | 账号 URL | 2FA、Bio/头像/Header、置顶帖 | 品牌邮箱 | `USER_ACTION_REQUIRED` |
 | 2.6 | 统一资料复核 | 一致性检查表 | 10 项全过 | 2.1–2.5 | `RECOMMENDED` |
@@ -127,7 +127,7 @@
 |---|---|---|---|---|
 | 1 | LinkedIn Page | W2 第 1 天 | 个人账号、品牌资料 | `RECOMMENDED` |
 | 2 | YouTube | W2 第 1–2 天 | Google 账号、手机验证 | `RECOMMENDED` |
-| 3 | Facebook Page | W2 第 2 天 | 个人 FB、Business Portfolio | `RECOMMENDED` |
+| 3 | Facebook Page | W2 第 2 天 | 账号模型 `UNKNOWN`（E-22），按页面提示准备 | `RECOMMENDED` |
 | 4 | Instagram | W2 第 3 天 | FB Page 可选绑定 | `RECOMMENDED` |
 | 5 | X | W2 第 3 天 | 品牌邮箱、2FA | `RECOMMENDED` |
 | 6 | Pinterest | W3（可选） | 产品图、Board | `PROPOSED` |
