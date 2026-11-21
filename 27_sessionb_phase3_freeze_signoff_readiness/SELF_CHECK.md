@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PHASE3-CHK-001 |
-| 版本 | v1.1（R1–R4 修正后：C-3 扩展为**真正的逐项跨文件状态核验**（C-3g..C-3j2）；`hasFreezeClaim` 改为逐匹配语境判定并新增 C-25d 矛盾反例；C-1..C-24 其余断言原样保留） |
+| 版本 | v1.2（R3 最小修订：`hasFreezeClaim` 否定语境改为**分句边界 + 直接关联**判定（句号/分号/问叹号/换行/转折词 但是·然而·不过·但），废除固定 24 字符前置窗口；新增 C-25e/C-25f 两个边界反例。C-1..C-24 及 C-25a..d 全部保留） |
 | 日期 | 2026-11-21 |
 | 执行方式 | `node tools/self_check.js`（只读；数据源 = 本包文档 + `12_`/`14_`/`16_`/`25_`/`26_` 权威与已审核材料） |
 | 性质 | 真实执行记录（RUN）；行级/单元格级/分句级/跨文件语义验证 + 越权断言谓词与反例，非字符串计数 |
@@ -24,7 +24,7 @@
 | C-4 | Scope 授权口径跨文件核验：26_ 矩阵 candidate=75 / formal-executable=0 / pending=75；Registry R-OA-05 = PROPOSED；readiness 文档声明 75/75、0/75、0/75、75/75 且载明禁止把候选当已批准 |
 | C-5 | Freeze Gate：NOT_READY / CANDIDATE_NOT_FROZEN / NOT_APPROVED 在册；G1..G6 全登记；无冻结记录；拒绝自宣 |
 | C-6 | 越权关闭谓词 `hasUnauthorizedClosure`（id 后 30 字符窗口匹配 已关闭/已批准/状态 CLOSED/转为 APPROVED）对全部真实文档 × 全部 16 ID = 零命中；否定语境（未关闭）豁免验证 |
-| **C-7（R3 强化）** | 冻结宣称谓词 `hasFreezeClaim` 改为**逐匹配前置语境判定**（前 24 字符内含 不宣布/不得自行宣布/不自行宣布/不得宣称/不构成/并非/不是 即豁免）——不再整句剥离，「先否定、后肯定」的矛盾表达不会被否定语境吞掉；对全部真实文档 = 零命中 |
+| **C-7（R3 修订版）** | 冻结宣称谓词 `hasFreezeClaim`：对每个肯定宣称匹配（`CONTRACT_FREEZE_APPROVED/冻结已通过/Freeze 已通过/已获批冻结`），取其**所在分句**（分句起点 = 匹配位置之前最近的语境边界——句号/分号/问叹号/换行/转折词 但是·然而·不过·但——之后），分句内含否定词（白名单不变：不宣布/不得自行宣布/不自行宣布/不得宣称/不构成/并非/不是）才豁免；否则判违规。否定语境必须与目标表达**同分句直接关联**，不使用固定长度前置窗口；转折词边界使前一否定分句不得豁免后一肯定分句。对全部真实文档 = 零命中。否定词白名单未扩大 |
 | C-8 | 签署/验收纪律：执行 Agent 不代填 + 签署栏留白；无 Reviewer 已验收宣称；验收计数 0/3 |
 | C-9 | P0-2 分支认定谓词 `hasBranchSelection` 对真实文档 = 零命中；三候选列全；DECISION_REQUIRED 在册 |
 | C-10 | P0-2 五项复验清单在册 + 确认请求模板留白 |
@@ -34,7 +34,9 @@
 | C-25a | 反例：越权关闭（`DIFF-CONTRACT-01 已关闭，状态 CLOSED`）必须被 `hasUnauthorizedClosure` 检出 |
 | C-25b | 反例：冻结宣称（`Contract Freeze 已通过，CONTRACT_FREEZE_APPROVED`）必须被 `hasFreezeClaim` 检出 |
 | C-25c | 反例：分支自选（`权威分支为 backup/full-local-20261114，无需决策人确认`）必须被 `hasBranchSelection` 检出 |
-| **C-25d（R3 反例）** | 矛盾反例：`本文件不宣布 CONTRACT_FREEZE_APPROVED，但实际上 CONTRACT_FREEZE_APPROVED 已获批准。`——「先否定、后肯定」同句并存，必须被 `hasFreezeClaim` 检出（证明否定语境豁免只作用于被否定的目标表达，不吞掉同句后续肯定宣称） |
+| **C-25d（R3 反例）** | 矛盾反例：`本文件不宣布 CONTRACT_FREEZE_APPROVED，但实际上 CONTRACT_FREEZE_APPROVED 已获批准。`——「先否定、后肯定」同句并存，必须被 `hasFreezeClaim` 检出（否定语境豁免只作用于被否定的目标表达分句） |
+| **C-25e（R3 补充反例 1）** | `本文件并非冻结审批说明；但 CONTRACT_FREEZE_APPROVED 已获批准。`——前一分句的「并非」被分号+转折词边界切断，**不得豁免**后一分句的肯定宣称；必须检出 |
+| **C-25f（R3 补充反例 2）** | `本文件不宣布 CONTRACT_FREEZE_APPROVED。`——纯否定声明与目标同分句直接关联，**不应误报**（hasFreezeClaim = false） |
 
 ## 2. 真实执行结果（最终一轮 RUN，exit=0）
 
@@ -95,7 +97,9 @@ PASS  C-25a counter-example: unauthorized closure must be detected — "DIFF-CON
 PASS  C-25b counter-example: freeze-approval claim must be detected — "Contract Freeze 已通过，CONTRACT_FREEZE_APPROVED，生产 API 同步获批。"
 PASS  C-25c counter-example: branch self-selection must be detected — "经研究，权威分支为 backup/full-local-20261114，无需决策人确认。"
 PASS  C-25d counter-example: negation-followed-by-claim in one sentence must be detected — "本文件不宣布 CONTRACT_FREEZE_APPROVED，但实际上 CONTRACT_FREEZE_APPROVED 已获批准。"
-=== summary: 55/55 PASS, failures: 0 ===
+PASS  C-25e counter-example: prior-clause negation must NOT exempt next-clause claim — "本文件并非冻结审批说明；但 CONTRACT_FREEZE_APPROVED 已获批准。"
+PASS  C-25f pure-negation statement must NOT be flagged — "本文件不宣布 CONTRACT_FREEZE_APPROVED。"
+=== summary: 57/57 PASS, failures: 0 ===
 ```
 
 ## 3. 迭代记录（真实过程）
@@ -106,7 +110,8 @@ PASS  C-25d counter-example: negation-followed-by-claim in one sentence must be 
 | v1.0-2 | 46/47：仅剩 SELF_CHECK.md 文件存在性 | 本文件创建完成 |
 | v1.0-3 | 47/47（= 971efde 提交态） | — |
 | v1.1-1（R1–R4 后） | 54/55：C-3i2 断言过严——B6 所辖规则中 R-ST-01 为 PROPOSED（同为未解决态），"全部 BLOCKED" 不成立 | 不变式修正为「B6/B7/B8 所辖规则全部非 CONFIRMED 且至少存在 BLOCKED」——语义强度保持（未解决阻断不得辖有 CONFIRMED 规则） |
-| v1.1-2 | **55/55 PASS（exit=0）** | — |
+| v1.1-2 | 55/55（= f76580f 提交态） | — |
+| v1.2-1（R3 最小修订后） | **57/57 PASS（exit=0）**：新增分句边界算法后，三个指定反例全部按预期——C-25e「并非…；但 X 已获批准」检出、C-25f 纯否定不误报、C-25d 先否定后肯定检出；真实文档 C-7a 保持零命中 | 仅替换 `hasFreezeClaim`/新增 `clauseStartBefore` 与 C-25e/f；否定词白名单未扩大；C-1..C-24 与 C-25a..d 全部保留 |
 
 ## 4. 结论与覆盖边界
 

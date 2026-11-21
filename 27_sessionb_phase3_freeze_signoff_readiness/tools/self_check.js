@@ -170,13 +170,29 @@ function hasUnauthorizedClosure(text, id) {
   }
   return false;
 }
+// R3 修正：否定语境必须与目标表达同分句直接关联。
+// 语境边界 = 句号/分号/问叹号/换行 + 转折词（但是/然而/不过/但）；否定词白名单保持不变（不扩大）。
+function clauseStartBefore(text, idx) {
+  let start = 0;
+  const tokens = ["但是", "然而", "不过", "但", "。", "；", ";", "！", "?", "？", "!", "\n"];
+  for (let i = 0; i < idx; i++) {
+    for (const t of tokens) {
+      if (t === "但" && text[i - 1] === "不") continue; // 「但不代表」类否定连用不构成边界切分歧义
+      if (text.startsWith(t, i)) {
+        const end = i + t.length;
+        if (end > start && end <= idx) start = end;
+        break;
+      }
+    }
+  }
+  return start;
+}
 function hasFreezeClaim(text) {
-  // R3 修正：逐匹配检查前置语境，不再整句剥离——「先否定、后肯定」的矛盾表达不会被否定语境吞掉
   const re = /(CONTRACT_FREEZE_APPROVED|冻结已通过|Freeze 已通过|已获批冻结)/g;
   let m;
   while ((m = re.exec(text))) {
-    const before = text.slice(Math.max(0, m.index - 24), m.index);
-    if (!/(不宣布|不得自行宣布|不自行宣布|不得宣称|不构成|并非|不是)/.test(before)) return true;
+    const negationScope = text.slice(clauseStartBefore(text, m.index), m.index);
+    if (!/(不宣布|不得自行宣布|不自行宣布|不得宣称|不构成|并非|不是)/.test(negationScope)) return true;
   }
   return false;
 }
@@ -261,6 +277,16 @@ check("C-13 referenced external files exist", externalRefs.every((p) => fs.exist
   // C-25d（R3 反例）：先否定、后肯定——同句矛盾表达不得被否定语境吞掉 → 谓词必须检出
   const cx = "本文件不宣布 CONTRACT_FREEZE_APPROVED，但实际上 CONTRACT_FREEZE_APPROVED 已获批准。";
   check("C-25d counter-example: negation-followed-by-claim in one sentence must be detected", hasFreezeClaim(cx) === true, JSON.stringify(cx));
+}
+{
+  // C-25e（R9/R3 补充反例 1）：前一分句「并非」与后一分句肯定宣称仅隔分号+转折 → 必须检出（否定语境不跨分句/转折）
+  const cx = "本文件并非冻结审批说明；但 CONTRACT_FREEZE_APPROVED 已获批准。";
+  check("C-25e counter-example: prior-clause negation must NOT exempt next-clause claim", hasFreezeClaim(cx) === true, JSON.stringify(cx));
+}
+{
+  // C-25f（R9/R3 补充反例 2）：纯否定声明 → 不应误报（否定语境与目标同分句直接关联）
+  const cx = "本文件不宣布 CONTRACT_FREEZE_APPROVED。";
+  check("C-25f pure-negation statement must NOT be flagged", hasFreezeClaim(cx) === false, JSON.stringify(cx));
 }
 
 // 输出
