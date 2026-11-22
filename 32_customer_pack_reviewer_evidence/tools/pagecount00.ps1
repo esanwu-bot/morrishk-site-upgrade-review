@@ -1,0 +1,10 @@
+$word=New-Object -ComObject Word.Application; $word.Visible=$false; $word.DisplayAlerts=0
+$doc=$word.Documents.Open('E:\workspace\.scratch\morrishk-commercial-signoff\31_customer_commercial_pack\00_CUSTOMER_PACK_INDEX_AND_VERSION.docx',$false,$true)
+$doc.Repaginate()
+Write-Output ('stat_pages=' + $doc.ComputeStatistics(2))
+Write-Output ('content_end_page=' + $doc.Content.Information(3))
+Write-Output ('paragraphs=' + $doc.Paragraphs.Count)
+$last=$doc.Paragraphs.Item($doc.Paragraphs.Count)
+Write-Output ('last_para_page=' + $last.Range.Information(3) + ' textlen=' + $last.Range.Text.Length)
+Write-Output ('sections=' + $doc.Sections.Count)
+$doc.Close($false); $word.Quit()

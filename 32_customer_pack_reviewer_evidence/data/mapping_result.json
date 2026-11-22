@@ -1,0 +1,145 @@
+{
+ "CR": {
+  "matrix_count": 20,
+  "matrix_unique": 20,
+  "xlsx_count": 20,
+  "xlsx_unique": 20,
+  "same_set": true,
+  "missing_in_xlsx": [],
+  "blank_customer_file": [],
+  "doc_coverage": {
+   "01": 1,
+   "02": 5,
+   "03": 8,
+   "04": 16,
+   "05": 5
+  },
+  "unresolved_target_tokens": {},
+  "details": {
+   "CR-001": {
+    "targets": "SD-01/OPS-03",
+    "customer_file": "01 第三/五章；02；05 第十二章"
+   },
+   "CR-002": {
+    "targets": "SD-01",
+    "customer_file": "03 第二章；04 第三章"
+   },
+   "CR-003": {
+    "targets": "SD-02",
+    "customer_file": "03 第三/四章；04 第六章"
+   },
+   "CR-004": {
+    "targets": "SD-03/FR-1-062",
+    "customer_file": "03 第五/十章；02；04 第三/六章"
+   },
+   "CR-005": {
+    "targets": "SD-04/FR-3-042",
+    "customer_file": "03 第六章；04 第三章"
+   },
+   "CR-006": {
+    "targets": "OPS-01",
+    "customer_file": "03 第十一章；04 第四章"
+   },
+   "CR-007": {
+    "targets": "FR-1-061/SD-05",
+    "customer_file": "03 第八/九章；04 第三章"
+   },
+   "CR-008": {
+    "targets": "OPS-02",
+    "customer_file": "03 第十二章；04 第四章"
+   },
+   "CR-009": {
+    "targets": "SD-08",
+    "customer_file": "02 附录 A；04 第十章"
+   },
+   "CR-010": {
+    "targets": "SD-07",
+    "customer_file": "04 第一/七/十二章"
+   },
+   "CR-011": {
+    "targets": "SD-07",
+    "customer_file": "04 第二章"
+   },
+   "CR-012": {
+    "targets": "OPS-01",
+    "customer_file": "03 第十一章；04 第四章"
+   },
+   "CR-013": {
+    "targets": "SD-07",
+    "customer_file": "04 第五/十三章"
+   },
+   "CR-014": {
+    "targets": "SD-09",
+    "customer_file": "05 第六章"
+   },
+   "CR-015": {
+    "targets": "SD-06",
+    "customer_file": "05 第五章；04 第十二章"
+   },
+   "CR-016": {
+    "targets": "OPS-03",
+    "customer_file": "02 附录 A；05 第七章"
+   },
+   "CR-017": {
+    "targets": "SD-08",
+    "customer_file": "02；04 第十章"
+   },
+   "CR-018": {
+    "targets": "SD-07",
+    "customer_file": "04 第一/七章"
+   },
+   "CR-019": {
+    "targets": "SD-01/SD-02/SD-03/SD-04",
+    "customer_file": "05 第五章"
+   },
+   "CR-020": {
+    "targets": "SD-07",
+    "customer_file": "04 第二章"
+   }
+  }
+ },
+ "FR": {
+  "matrix_count": 227,
+  "matrix_unique": 227,
+  "docx_appendix_count": 227,
+  "docx_unique": 227,
+  "same_set": true,
+  "only_matrix": [],
+  "only_docx": [],
+  "blank_customer_file": [],
+  "location_values": [
+   "02 附录 A"
+  ]
+ },
+ "NEW15": {
+  "matrix_count": 15,
+  "matrix_unique": 15,
+  "xlsx_count": 15,
+  "xlsx_unique": 15,
+  "docx_count": 15,
+  "same_set_matrix_xlsx": true,
+  "same_set_matrix_docx": true,
+  "only_matrix": [],
+  "blank_customer_file": [],
+  "location_values": [
+   "02 第六章；04 第九章"
+  ],
+  "ids": [
+   "FR-1-061",
+   "FR-1-062",
+   "FR-3-042",
+   "SD-01",
+   "SD-02",
+   "SD-03",
+   "SD-04",
+   "SD-05",
+   "SD-06",
+   "SD-07",
+   "SD-08",
+   "SD-09",
+   "OPS-01",
+   "OPS-02",
+   "OPS-03"
+  ]
+ }
+}
