@@ -72,6 +72,15 @@ def _no_split(row):
 
 页码：00 3/3、02 21/21、04 10/10，全部连续；文本/图形溢出 0 页。
 
+### 3.5 证据检查脚本误判说明
+
+R1 首版 `fragment_check.json` 中 `04_p10_starts_with_complete_row` 为 `false`，原因是检查条件误判，不是文档缺陷：
+
+- 旧条件：`'第三方采购与付款方' in p10.split('\n')[3:10]`
+- 失败原因：PDF 文本行的行尾空格使列表精确成员判断失败（`'第三方采购与付款方 '` ≠ `'第三方采购与付款方'`）；且 `[3:10]` 是任意行窗口。该行实际位于 raw index 5，窗口内存在。
+- 原始 false 保存在 `renders` 同级的 `data/fragment_check_legacy.json`，新 `data/fragment_check.json` 同时包含 `legacy_check.original`（false）与 `corrected_check`（true）。
+- 修正脚本：`tools/fragment_check_v2.py`；完整说明见 `FRAGMENT_CHECK_EXPLANATION.md`。
+
 ## 4. P1 CR-015 双字段口径：修订原文
 
 ### 4.1 00 索引 P027（DOCX 与 MD）
@@ -170,8 +179,10 @@ R1：
 
 - `DIFF_BASE_TO_R1.md`：基线→R1 精确差异（段落/单元格/文本 diff）
 - `render_analysis.json` / `render_checks.json`：逐页页码、溢出、表头重复、签署页
-- `fragment_check.json`：02 续页残行检查、04 拆行检查
+- `FRAGMENT_CHECK_EXPLANATION.md`：04 p10 旧检查 false 的原因、修正方法与人工复核记录
+- `data/fragment_check.json`：旧 false 原文 + 修正后的结构化检查结果
+- `data/fragment_check_legacy.json`：首版 `fragment_check.json` 的逐字节副本（仍含 false）
 - `renders/pages/`：00（3）+ 02（21）+ 04（10）共 34 页 PNG
 - `renders/contact_*.png`：三份文档联络表
-- `tools/`：渲染与检查脚本
+- `tools/`：渲染与检查脚本（含 `fragment_check_v2.py`）
 - `SOURCE_CHANGES.md`：构建源改动原文

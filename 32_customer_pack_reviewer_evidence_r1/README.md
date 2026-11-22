@@ -17,7 +17,9 @@
 | `SHA256SUMS` | R1 客户包的 10 个文件哈希（从 `31_` 复制） |
 | `data/render_analysis.json` | 修订后 00/02/04 的逐页文本、字体、页码、溢出 |
 | `data/render_checks.json` | 表头重复、签署页、标题孤行、逐页原文 |
-| `data/fragment_check.json` | 02 续页残行、04 拆行检查结果 |
+| `data/fragment_check.json` | 旧 false 原文 + 修正后的 02/04 残行检查 |
+| `data/fragment_check_legacy.json` | 首版检查结果逐字节副本（保留 `false`） |
+| `FRAGMENT_CHECK_EXPLANATION.md` | 04 p10 旧检查 false 的根因、修正与人工复核覆盖记录 |
 | `renders/pages/` | 00（3）+ 02（21）+ 04（10）= 34 页 PNG |
 | `renders/contact_*.png` | 三份文档的整页联络表 |
 | `tools/` | 渲染、栅格化、检查脚本 |
@@ -37,7 +39,7 @@
 | 项目 | 结果 |
 |---|---|
 | 02 附录 A 续页 | 15/15 以完整 FR 行开头（修订前 12 个残行） |
-| 04 拆行 | CR-011 整行同页；裁决表末行整行同页 |
+| 04 拆行 | CR-011 整行同页；裁决表末行整行同页（旧检查 false 为行尾空格导致的误判，见 `FRAGMENT_CHECK_EXPLANATION.md`） |
 | 页数 | 00 3、02 21、04 10（与修订前一致） |
 | 页码/溢出 | 全部正确；文本/图形溢出 0 |
 | CR-015 | 原始需求状态、当前建议归类、尚待确认三要素齐全；00/04/90 一致 |
