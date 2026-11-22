@@ -1,7 +1,25 @@
 {
+ "evidence_scope": "Evidence-only rerun; no customer file is modified.",
+ "inputs": {
+  "pdf_04": {
+   "path": "pdf\\04_COMMERCIAL_QUOTATION_AND_COST_BOUNDARIES.pdf",
+   "sha256": "f94ff536490b1fceab613cc2db5323161a2cda19c852760fe683326504875dae"
+  },
+  "pdf_02": {
+   "path": "pdf\\02_FUNCTION_SCOPE_CONFIRMATION.pdf",
+   "sha256": "ab42369e5aac6c33a1c09620385a5e50f70641f73545bbfc158144ff2e8f8330"
+  },
+  "render_checks_json": {
+   "path": "render_checks.json",
+   "sha256": "f2dafcf75bca220269ec31ccb40d59aa3017b963b1a558a13a47ea2f4ec1692a"
+  },
+  "legacy_file": {
+   "path": "fragment_check_legacy.json",
+   "sha256": "963b8cd9038c2acc5a696b6e6716d36543455948152f624d07d193906f8fb120"
+  }
+ },
  "legacy_check": {
-  "preserved": true,
-  "original": {
+  "preserved_original": {
    "02_continuation_pages": [
     6,
     7,
@@ -25,7 +43,7 @@
   },
   "expression": "'第三方采购与付款方' in p10.split('\\n')[3:10]",
   "reproduced_result": false,
-  "failure_reason": "列表成员判断比较的是未去空白的整行（\"第三方采购与付款方 \" 带行尾空格）与已去空白的字面量，二者不相等；同时 [3:10] 是任意行窗口，不具备结构语义。该行实际位于 raw index 5，窗口内确实存在。",
+  "failure_reason": "列表成员判断比较未去空白的整行（\"第三方采购与付款方 \" 带行尾空格）与已去空白的字面量；同时 [3:10] 是任意行窗口，不具备结构语义。",
   "raw_window_3_10_repr": [
    "'当前处理 '",
    "'确认方 '",
@@ -37,117 +55,206 @@
   ],
   "string_raw_index": 5
  },
- "corrected_check": {
-  "method": "normalize lines (strip + drop empty), then assert the first data row and its complete cells",
-  "02_continuation_pages": [
-   6,
-   7,
-   8,
-   9,
-   10,
-   11,
-   12,
-   13,
-   14,
-   15,
-   16,
-   17,
-   18,
-   19,
-   20
-  ],
-  "02_fragment_pages": [],
-  "02_all_continuation_complete": true,
-  "02_details": [
-   {
-    "page": 6,
-    "first_data_line": "FR-1-014",
+ "automated_checks": {
+  "method": "PDF table detection (PyMuPDF find_tables); header row located by exact label sequence; first data row = first non-empty row after header; each assertion reads only that row's cells.",
+  "04_p10": {
+   "header_row_index": 0,
+   "first_data_row_index": 1,
+   "first_data_row_cells": [
+    "第三方采购与付款方",
+    "客户为采购与付款主体按供应商账单结，算",
+    "客户确认"
+   ],
+   "first_data_row_checks": {
+    "first_cell_is_label": true,
+    "second_cell_has_payer_text": true,
+    "third_cell_has_confirm": true,
+    "no_cells_empty": true,
     "complete": true
    },
-   {
-    "page": 7,
-    "first_data_line": "FR-1-030",
+   "next_data_row_cells": [
+    "目标市场重点产品旧URL有效询盘、、、口径",
+    "未提供前相关指标保持PENDING",
+    "客户提供与确认"
+   ],
+   "next_data_row_checks": {
+    "first_cell_has_market_and_caliber": true,
+    "second_cell_has_pending": true,
+    "third_cell_has_customer_confirm": true,
+    "no_cells_empty": true,
     "complete": true
    },
-   {
-    "page": 8,
-    "first_data_line": "FR-1-046",
+   "pass": true
+  },
+  "04_p9_CR_011": {
+   "row_checks": {
+    "id_cell_is_CR-011": true,
+    "has_requirement_text": true,
+    "has_deliverable": true,
+    "has_mapping": true,
+    "has_quote_status": true,
+    "has_confirm_status": true,
     "complete": true
    },
-   {
-    "page": 9,
-    "first_data_line": "FR-2-002",
+   "pass": true
+  },
+  "04_p9_ruling_last_row": {
+   "row_cells": [
+    "月度运营工作量与月度费用",
+    "编制建议值仅供审核负责人确认值与合；同承诺值待定",
+    "项目负责人与客户确认"
+   ],
+   "row_checks": {
+    "first_cell_is_monthly_ops": true,
+    "second_cell_has_review_note": true,
+    "third_cell_has_owner_confirm": true,
+    "no_cells_empty": true,
     "complete": true
    },
-   {
-    "page": 10,
-    "first_data_line": "FR-2-018",
-    "complete": true
-   },
-   {
-    "page": 11,
-    "first_data_line": "FR-2-034",
-    "complete": true
-   },
-   {
-    "page": 12,
-    "first_data_line": "FR-3-002",
-    "complete": true
-   },
-   {
-    "page": 13,
-    "first_data_line": "FR-3-018",
-    "complete": true
-   },
-   {
-    "page": 14,
-    "first_data_line": "FR-3-034",
-    "complete": true
-   },
-   {
-    "page": 15,
-    "first_data_line": "FR-4-006",
-    "complete": true
-   },
-   {
-    "page": 16,
-    "first_data_line": "FR-4-018",
-    "complete": true
-   },
-   {
-    "page": 17,
-    "first_data_line": "FR-4-030",
-    "complete": true
-   },
-   {
-    "page": 18,
-    "first_data_line": "FR-5-010",
-    "complete": true
-   },
-   {
-    "page": 19,
-    "first_data_line": "FR-5-026",
-    "complete": true
-   },
-   {
-    "page": 20,
-    "first_data_line": "FR-5-042",
-    "complete": true
-   }
-  ],
-  "04_p9_has_CR-011": true,
-  "04_p9_last_row_complete": true,
-  "04_p10_header_present": true,
-  "04_p10_first_data_row": "第三方采购与付款方",
-  "04_p10_first_row_cells_complete": true,
-  "04_p10_next_row_complete": true,
-  "04_p10_starts_with_complete_row": true
+   "pass": true
+  },
+  "02_continuation": {
+   "pages": [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20
+   ],
+   "fragment_pages": [],
+   "details": [
+    {
+     "page": 6,
+     "first_data_line": "FR-1-014",
+     "complete": true
+    },
+    {
+     "page": 7,
+     "first_data_line": "FR-1-030",
+     "complete": true
+    },
+    {
+     "page": 8,
+     "first_data_line": "FR-1-046",
+     "complete": true
+    },
+    {
+     "page": 9,
+     "first_data_line": "FR-2-002",
+     "complete": true
+    },
+    {
+     "page": 10,
+     "first_data_line": "FR-2-018",
+     "complete": true
+    },
+    {
+     "page": 11,
+     "first_data_line": "FR-2-034",
+     "complete": true
+    },
+    {
+     "page": 12,
+     "first_data_line": "FR-3-002",
+     "complete": true
+    },
+    {
+     "page": 13,
+     "first_data_line": "FR-3-018",
+     "complete": true
+    },
+    {
+     "page": 14,
+     "first_data_line": "FR-3-034",
+     "complete": true
+    },
+    {
+     "page": 15,
+     "first_data_line": "FR-4-006",
+     "complete": true
+    },
+    {
+     "page": 16,
+     "first_data_line": "FR-4-018",
+     "complete": true
+    },
+    {
+     "page": 17,
+     "first_data_line": "FR-4-030",
+     "complete": true
+    },
+    {
+     "page": 18,
+     "first_data_line": "FR-5-010",
+     "complete": true
+    },
+    {
+     "page": 19,
+     "first_data_line": "FR-5-026",
+     "complete": true
+    },
+    {
+     "page": 20,
+     "first_data_line": "FR-5-042",
+     "complete": true
+    }
+   ],
+   "pass": true
+  },
+  "synthetic_header_offset_test": {
+   "description": "Prepend N text lines before the header in memory; dynamic locator must still return the same first data line.",
+   "results": [
+    {
+     "prepended_lines": 0,
+     "header_index": 2,
+     "first_data_index": 5,
+     "first_data_line": "第三方采购与付款方",
+     "pass": true
+    },
+    {
+     "prepended_lines": 1,
+     "header_index": 3,
+     "first_data_index": 6,
+     "first_data_line": "第三方采购与付款方",
+     "pass": true
+    },
+    {
+     "prepended_lines": 5,
+     "header_index": 7,
+     "first_data_index": 10,
+     "first_data_line": "第三方采购与付款方",
+     "pass": true
+    },
+    {
+     "prepended_lines": 17,
+     "header_index": 19,
+     "first_data_index": 22,
+     "first_data_line": "第三方采购与付款方",
+     "pass": true
+    }
+   ],
+   "pass": true
+  }
  },
- "manual_review_override": {
+ "manual_review": {
   "reviewer_observed": "Reviewer 目视 p10 PNG：裁决表首行完整，后续行未拆开，签署栏完整。",
-  "agent_recheck": "Agent 复看同一 PNG 与文本层：重复表头后首条数据为“第三方采购与付款方”，其后“客户为采购与付款主体.../客户确认”与“目标市场、重点产品、旧 URL、有效询盘口径/未提供前相关指标保持 PENDING/客户提供与确认”均为完整行。",
+  "agent_recheck": "Agent 复看 p10 PNG 与 PDF 表格单元：重复表头后首条数据为“第三方采购与付款方”，其行内第二/第三格为“客户为采购与付款主体…/客户确认”；下一条“目标市场…口径”行整行同页。",
   "png": "renders/pages/04_COMMERCIAL_QUOTATION_AND_COST_BOUNDARIES/page-10.png",
-  "scope": "仅覆盖 04 第 10 页首行的完整性判定；不改变客户文件。"
+  "classification": "人工目视，仅作为自动检查的独立佐证，不替代 automated_checks 结果。"
  },
- "conclusion": "旧 false 为检查条件误判（行尾空格 + 列表精确成员 + 任意行窗口），不是文档缺陷；修正后 02 续页 15/15 完整，04 p9 CR-011 完整、p10 首行与后续行完整。"
+ "conclusion": {
+  "legacy_false_is_false_negative": true,
+  "all_automated_checks_pass": true,
+  "statement": "旧 false 是检查条件误判；新检查动态定位表头/数据行并按行内单元格验证，02 续页、04 p9 CR-011 与裁决表末行、04 p10 首行/次行均通过。"
+ }
 }

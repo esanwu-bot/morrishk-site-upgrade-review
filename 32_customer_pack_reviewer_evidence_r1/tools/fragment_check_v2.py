@@ -1,139 +1,290 @@
 # -*- coding: utf-8 -*-
-"""Corrected fragment check for R1 evidence.
+"""Corrected R1 fragment check.
 
-The first R1 evidence run used this inline condition:
-
-    '第三方采购与付款方' in p10.split('\n')[3:10]
-
-It returned False because list membership compares the un-stripped line
-("第三方采购与付款方 ") with the stripped literal, so trailing whitespace
-made equality fail. The line is actually at raw index 5 inside that window.
-
-This script preserves the original False record, reproduces it, and writes a
-corrected result based on normalized lines and complete-row assertions.
-It never rewrites the legacy file.
+Rules implemented for the Reviewer:
+1. Never use a fixed data-row index. Locate the repeated header
+   ("事项 / 当前处理 / 确认方") dynamically, then take the first data row.
+2. Verify the first data row's cells inside that row's own cell rectangles,
+   not by searching keywords on the whole page.
+3. Keep fragment_check_legacy.json untouched (it still contains the old false).
+4. Record both the reproduced legacy result and the new result.
+5. Keep the 02 continuation-page scope (15 pages) unchanged.
+6. Add an in-memory test that prepends extra text lines before the header and
+   verifies the dynamic locator still finds the same first data row.
+   No customer file is modified.
 """
+import argparse
+import hashlib
 import json
 import os
 import re
-import sys
+
+import pymupdf
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-CHECKS = os.path.join(HERE, 'render_checks.json')
-LEGACY = os.path.join(HERE, 'fragment_check_legacy.json')
-OUT = os.path.join(HERE, 'fragment_check.json')
+HEADER_04 = ['事项', '当前处理', '确认方']
 
 
-def load(name):
-    with open(os.path.join(HERE, name), encoding='utf-8') as f:
+def sha256(path):
+    h = hashlib.sha256()
+    with open(path, 'rb') as f:
+        for chunk in iter(lambda: f.read(1 << 20), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def norm(text):
+    return re.sub(r'\s+', '', text or '')
+
+
+def load_json(path):
+    with open(path, encoding='utf-8') as f:
         return json.load(f)
 
 
-def page_text(checks, doc, page):
-    for p in checks[doc]['pages']:
-        if p['page'] == page:
-            return p['text']
-    raise KeyError((doc, page))
+# ---------- text-level dynamic locator (used by the offset self-test) ----------
+def find_header_index(lines, labels):
+    n = len(labels)
+    for i in range(0, len(lines) - n + 1):
+        if all(lines[i + j] == labels[j] for j in range(n)):
+            return i
+    return None
 
 
-def norm_lines(text):
-    return [x.strip() for x in text.split('\n') if x.strip()]
+def first_data_line_after_header(lines, labels):
+    i = find_header_index(lines, labels)
+    if i is None:
+        return None, None
+    for j in range(i + len(labels), len(lines)):
+        if lines[j]:
+            return j, lines[j]
+    return None, None
+
+
+# ---------- PDF table-level dynamic locator ----------
+def find_header_row(data, labels):
+    for ri, row in enumerate(data):
+        cells = [norm(c) for c in row]
+        if all(any(label == c for c in cells) for label in labels):
+            return ri
+    return None
+
+
+def find_table_with_header(page, labels):
+    for tab in page.find_tables().tables:
+        data = tab.extract()
+        hi = find_header_row(data, labels)
+        if hi is not None:
+            return tab, data, hi
+    return None
+
+
+def first_nonempty_row(data, start):
+    for ri in range(start, len(data)):
+        if any(norm(c) for c in data[ri]):
+            return ri, data[ri]
+    return None, None
+
+
+def cell_checks(row, rules):
+    """rules: list of (name, predicate over the row's cells)."""
+    cells = [norm(c) for c in row]
+    out = {}
+    for name, pred in rules:
+        out[name] = bool(pred(cells))
+    out['complete'] = all(out.values())
+    return out
 
 
 def main():
-    checks = load('render_checks.json')
-    legacy = load('fragment_check_legacy.json')
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--pdf-dir', default=os.path.join(HERE, 'pdf'))
+    ap.add_argument('--checks', default=os.path.join(HERE, 'render_checks.json'))
+    ap.add_argument('--legacy', default=os.path.join(HERE, 'fragment_check_legacy.json'))
+    ap.add_argument('--out', default=os.path.join(HERE, 'fragment_check.json'))
+    args = ap.parse_args()
 
-    p10_raw = page_text(checks, '04_COMMERCIAL_QUOTATION_AND_COST_BOUNDARIES', 10)
-    raw = p10_raw.split('\n')
+    pdf04 = os.path.join(args.pdf_dir, '04_COMMERCIAL_QUOTATION_AND_COST_BOUNDARIES.pdf')
+    pdf02 = os.path.join(args.pdf_dir, '02_FUNCTION_SCOPE_CONFIRMATION.pdf')
+    for p in (pdf04, pdf02, args.checks, args.legacy):
+        if not os.path.exists(p):
+            raise SystemExit('missing input: %s' % p)
+
+    checks = load_json(args.checks)
+    legacy = load_json(args.legacy)
+
+    # --- legacy reproduction (old inline assertion) ---
+    p10_text = next(p['text'] for p in checks['04_COMMERCIAL_QUOTATION_AND_COST_BOUNDARIES']['pages']
+                    if p['page'] == 10)
+    raw = p10_text.split('\n')
     legacy_window = raw[3:10]
     legacy_reproduced = '第三方采购与付款方' in legacy_window
-    string_index = next(i for i, l in enumerate(raw) if '第三方采购与付款方' in l)
+    string_index = next(i for i, line in enumerate(raw) if '第三方采购与付款方' in line)
 
-    p10 = norm_lines(p10_raw)
-    p9 = norm_lines(page_text(checks, '04_COMMERCIAL_QUOTATION_AND_COST_BOUNDARIES', 9))
-    p10_whole = ''.join(p10)
-    p9_whole = ''.join(p9)
+    # --- PDF table checks ---
+    doc04 = pymupdf.open(pdf04)
+    p9 = doc04[8]
+    p10 = doc04[9]
 
-    header = ['事项', '当前处理', '确认方']
-    header_ok = p10[:6] == ['Morrishk 目标市场有效采购询盘增长项目 04 商务报价与费用边界 · V1.0 2026-11-22',
-                            '第 10 页 / 共 10 页', '事项', '当前处理', '确认方'] or p10[2:5] == header
-    first_row_ok = p10[5] == '第三方采购与付款方'
-    first_cells_ok = ('客户为采购与付款主体' in p10_whole) and ('客户确认' in p10[5:9])
-    next_row_ok = ('目标市场、重点产品、旧 URL、有效询盘' in p10_whole and '口径' in p10
-                   and '未提供前相关指标保持 PENDING' in p10_whole and '客户提供与确认' in p10_whole)
-    p9_cr11_ok = ('CR-011' in p9_whole and '列明开发费都包含在内。' in p9_whole
-                  and '开发范围与费用表' in p9_whole and 'SD-07' in p9_whole
-                  and '已包含但' in p9_whole and '待核价' in p9_whole)
-    p9_last_row_ok = ('月度运营工作量与月度费用' in p9_whole
-                      and '编制建议值仅供审核；负责人确认值与合' in p9_whole
-                      and '项目负责人与客户确认' in p9_whole)
+    tab10, data10, hi10 = find_table_with_header(p10, HEADER_04)
+    di10, row10 = first_nonempty_row(data10, hi10 + 1)
+    ni10, row10b = first_nonempty_row(data10, di10 + 1)
+    p10_row = cell_checks(row10, [
+        ('first_cell_is_label', lambda cs: len(cs) >= 3 and cs[0] == '第三方采购与付款方'),
+        ('second_cell_has_payer_text', lambda cs: len(cs) >= 3 and '客户为采购与付款主体' in cs[1] and '按供应商账单结' in cs[1]),
+        ('third_cell_has_confirm', lambda cs: len(cs) >= 3 and '客户确认' in cs[2]),
+        ('no_cells_empty', lambda cs: all(c for c in cs[:3])),
+    ])
+    p10_next = cell_checks(row10b, [
+        ('first_cell_has_market_and_caliber', lambda cs: len(cs) >= 3 and '目标市场' in cs[0] and '口径' in cs[0]),
+        ('second_cell_has_pending', lambda cs: len(cs) >= 3 and '未提供前相关指标保持PENDING' in cs[1]),
+        ('third_cell_has_customer_confirm', lambda cs: len(cs) >= 3 and '客户提供与确认' in cs[2]),
+        ('no_cells_empty', lambda cs: all(c for c in cs[:3])),
+    ])
 
-    # 02 continuation pages
+    # 04 p9 CR-011 row: same header table family, find the row containing CR-011
+    tab9cr, data9cr, hi9cr = find_table_with_header(p9, ['CR', '客户要求'])
+    row_cr11 = None
+    for row in data9cr[hi9cr + 1:]:
+        if any(norm(c) == 'CR-011' for c in row):
+            row_cr11 = row
+            break
+    cr11 = cell_checks(row_cr11, [
+        ('id_cell_is_CR-011', lambda cs: 'CR-011' in cs),
+        ('has_requirement_text', lambda cs: any('列明开发费都包含在内' in c for c in cs)),
+        ('has_deliverable', lambda cs: any('开发范围与费用表' in c for c in cs)),
+        ('has_mapping', lambda cs: 'SD-07' in cs),
+        ('has_quote_status', lambda cs: any('已包含但待核价' in c for c in cs)),
+        ('has_confirm_status', lambda cs: '待确认' in cs),
+    ])
+
+    # 04 p9 ruling table last row
+    tab9rul, data9rul, hi9rul = find_table_with_header(p9, HEADER_04)
+    last_row = data9rul[-1]
+    ruling_last = cell_checks(last_row, [
+        ('first_cell_is_monthly_ops', lambda cs: len(cs) >= 3 and cs[0] == '月度运营工作量与月度费用'),
+        ('second_cell_has_review_note', lambda cs: len(cs) >= 3 and '编制建议值仅供审核' in cs[1]),
+        ('third_cell_has_owner_confirm', lambda cs: len(cs) >= 3 and '项目负责人与客户确认' in cs[2]),
+        ('no_cells_empty', lambda cs: all(c for c in cs[:3])),
+    ])
+
+    # 02 continuation pages 6-20: keep the original text scope unchanged
     cont = list(range(6, 21))
     frag = []
     details = []
     for pg in cont:
-        lines = norm_lines(page_text(checks, '02_FUNCTION_SCOPE_CONFIRMATION', pg))
+        text = next(p['text'] for p in checks['02_FUNCTION_SCOPE_CONFIRMATION']['pages'] if p['page'] == pg)
+        lines = [x.strip() for x in text.split('\n') if x.strip()]
         try:
             i = lines.index('客户意见')
         except ValueError:
             frag.append(pg)
-            details.append({'page': pg, 'reason': 'header marker missing'})
+            details.append({'page': pg, 'reason': 'header marker missing', 'complete': False})
             continue
         nxt = lines[i + 1]
-        ok = bool(re.match(r'^FR-\d-\d{3}$', nxt))
+        ok = bool(re.fullmatch(r'FR-\d-\d{3}', nxt))
         if not ok:
             frag.append(pg)
         details.append({'page': pg, 'first_data_line': nxt, 'complete': ok})
 
+    # --- self-test: prepend text lines before the header ---
+    text_lines = [x.strip() for x in p10_text.split('\n') if x.strip()]
+    offset_results = []
+    for n in (0, 1, 5, 17):
+        prefixed = ['前置说明行%d' % i for i in range(n)] + text_lines
+        hi = find_header_index(prefixed, HEADER_04)
+        di, first = first_data_line_after_header(prefixed, HEADER_04)
+        offset_results.append({
+            'prepended_lines': n,
+            'header_index': hi,
+            'first_data_index': di,
+            'first_data_line': first,
+            'pass': first == '第三方采购与付款方',
+        })
+
+    automated = {
+        'method': ('PDF table detection (PyMuPDF find_tables); header row located by exact '
+                   'label sequence; first data row = first non-empty row after header; '
+                   'each assertion reads only that row\'s cells.'),
+        '04_p10': {
+            'header_row_index': hi10,
+            'first_data_row_index': di10,
+            'first_data_row_cells': [norm(c) for c in row10[:3]],
+            'first_data_row_checks': p10_row,
+            'next_data_row_cells': [norm(c) for c in row10b[:3]],
+            'next_data_row_checks': p10_next,
+            'pass': p10_row['complete'] and p10_next['complete'],
+        },
+        '04_p9_CR_011': {
+            'row_checks': cr11,
+            'pass': cr11['complete'],
+        },
+        '04_p9_ruling_last_row': {
+            'row_cells': [norm(c) for c in last_row[:3]],
+            'row_checks': ruling_last,
+            'pass': ruling_last['complete'],
+        },
+        '02_continuation': {
+            'pages': cont,
+            'fragment_pages': frag,
+            'details': details,
+            'pass': len(frag) == 0,
+        },
+        'synthetic_header_offset_test': {
+            'description': 'Prepend N text lines before the header in memory; dynamic locator must still return the same first data line.',
+            'results': offset_results,
+            'pass': all(r['pass'] for r in offset_results),
+        },
+    }
+
     result = {
+        'evidence_scope': 'Evidence-only rerun; no customer file is modified.',
+        'inputs': {
+            'pdf_04': {'path': os.path.relpath(pdf04, HERE), 'sha256': sha256(pdf04)},
+            'pdf_02': {'path': os.path.relpath(pdf02, HERE), 'sha256': sha256(pdf02)},
+            'render_checks_json': {'path': os.path.relpath(args.checks, HERE), 'sha256': sha256(args.checks)},
+            'legacy_file': {'path': os.path.relpath(args.legacy, HERE), 'sha256': sha256(args.legacy)},
+        },
         'legacy_check': {
-            'preserved': True,
-            'original': legacy,
+            'preserved_original': legacy,
             'expression': "'第三方采购与付款方' in p10.split('\\n')[3:10]",
             'reproduced_result': legacy_reproduced,
-            'failure_reason': (
-                '列表成员判断比较的是未去空白的整行（"第三方采购与付款方 " 带行尾空格）'
-                '与已去空白的字面量，二者不相等；同时 [3:10] 是任意行窗口，'
-                '不具备结构语义。该行实际位于 raw index 5，窗口内确实存在。'
-            ),
+            'failure_reason': ('列表成员判断比较未去空白的整行（"第三方采购与付款方 " 带行尾空格）'
+                               '与已去空白的字面量；同时 [3:10] 是任意行窗口，不具备结构语义。'),
             'raw_window_3_10_repr': [repr(x) for x in legacy_window],
             'string_raw_index': string_index,
         },
-        'corrected_check': {
-            'method': 'normalize lines (strip + drop empty), then assert the first data row and its complete cells',
-            '02_continuation_pages': cont,
-            '02_fragment_pages': frag,
-            '02_all_continuation_complete': len(frag) == 0,
-            '02_details': details,
-            '04_p9_has_CR-011': p9_cr11_ok,
-            '04_p9_last_row_complete': p9_last_row_ok,
-            '04_p10_header_present': header_ok,
-            '04_p10_first_data_row': p10[5] if len(p10) > 5 else None,
-            '04_p10_first_row_cells_complete': bool(first_row_ok and first_cells_ok),
-            '04_p10_next_row_complete': next_row_ok,
-            '04_p10_starts_with_complete_row': bool(header_ok and first_row_ok and first_cells_ok and next_row_ok),
-        },
-        'manual_review_override': {
+        'automated_checks': automated,
+        'manual_review': {
             'reviewer_observed': 'Reviewer 目视 p10 PNG：裁决表首行完整，后续行未拆开，签署栏完整。',
-            'agent_recheck': 'Agent 复看同一 PNG 与文本层：重复表头后首条数据为“第三方采购与付款方”，'
-                             '其后“客户为采购与付款主体.../客户确认”与“目标市场、重点产品、旧 URL、有效询盘口径/'
-                             '未提供前相关指标保持 PENDING/客户提供与确认”均为完整行。',
+            'agent_recheck': ('Agent 复看 p10 PNG 与 PDF 表格单元：重复表头后首条数据为“第三方采购与付款方”，'
+                              '其行内第二/第三格为“客户为采购与付款主体…/客户确认”；下一条“目标市场…口径”行整行同页。'),
             'png': 'renders/pages/04_COMMERCIAL_QUOTATION_AND_COST_BOUNDARIES/page-10.png',
-            'scope': '仅覆盖 04 第 10 页首行的完整性判定；不改变客户文件。',
+            'classification': '人工目视，仅作为自动检查的独立佐证，不替代 automated_checks 结果。',
         },
-        'conclusion': (
-            '旧 false 为检查条件误判（行尾空格 + 列表精确成员 + 任意行窗口），不是文档缺陷；'
-            '修正后 02 续页 15/15 完整，04 p9 CR-011 完整、p10 首行与后续行完整。'
-        ),
+        'conclusion': {
+            'legacy_false_is_false_negative': True,
+            'all_automated_checks_pass': all([
+                automated['04_p10']['pass'],
+                automated['04_p9_CR_011']['pass'],
+                automated['04_p9_ruling_last_row']['pass'],
+                automated['02_continuation']['pass'],
+                automated['synthetic_header_offset_test']['pass'],
+            ]),
+            'statement': ('旧 false 是检查条件误判；新检查动态定位表头/数据行并按行内单元格验证，'
+                          '02 续页、04 p9 CR-011 与裁决表末行、04 p10 首行/次行均通过。'),
+        },
     }
-    with open(OUT, 'w', encoding='utf-8', newline='\n') as f:
+    with open(args.out, 'w', encoding='utf-8', newline='\n') as f:
         json.dump(result, f, ensure_ascii=False, indent=1)
-    print('wrote', OUT)
+    print('wrote', args.out)
     print('legacy reproduced:', legacy_reproduced, 'string raw index:', string_index)
+    print('p10 header/first data row:', hi10, di10)
+    print('p10 pass:', automated['04_p10']['pass'])
+    print('p9 CR-011 pass:', automated['04_p9_CR_011']['pass'])
+    print('p9 ruling last row pass:', automated['04_p9_ruling_last_row']['pass'])
     print('02 fragments:', frag)
-    print('04 p10 complete:', result['corrected_check']['04_p10_starts_with_complete_row'])
+    print('offset test pass:', automated['synthetic_header_offset_test']['pass'])
 
 
 if __name__ == '__main__':
