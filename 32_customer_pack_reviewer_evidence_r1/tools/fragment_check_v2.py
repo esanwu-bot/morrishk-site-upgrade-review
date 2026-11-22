@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
-"""Corrected R1 fragment check.
+"""Corrected R1 fragment check (row-structured, production-locator self-test).
 
-Rules implemented for the Reviewer:
-1. Never use a fixed data-row index. Locate the repeated header
-   ("事项 / 当前处理 / 确认方") dynamically, then take the first data row.
-2. Verify the first data row's cells inside that row's own cell rectangles,
-   not by searching keywords on the whole page.
-3. Keep fragment_check_legacy.json untouched (it still contains the old false).
-4. Record both the reproduced legacy result and the new result.
-5. Keep the 02 continuation-page scope (15 pages) unchanged.
-6. Add an in-memory test that prepends extra text lines before the header and
-   verifies the dynamic locator still finds the same first data row.
-   No customer file is modified.
+Reviewer requirements implemented here:
+1. No fixed data-row index: locate the repeated header dynamically, then take
+   the first non-empty data row after it.
+2. Verify the first data row's cells inside that row's own PDF table cells.
+3. fragment_check_legacy.json is read-only and keeps the original false.
+4. Record both the reproduced legacy result and the new results.
+5. Keep the 04 p9 CR-011 / ruling-last-row and 02 p6-p20 scope unchanged.
+6. Offset self-test uses the SAME table locator functions as production
+   (find_header_row / first_nonempty_row), not a separate text-line locator.
+   It prepends 0/1/5/17 rows to in-memory table data only.
+7. Header matching is ORDERED: labels must appear in sequence, not anywhere.
+   A negative test shuffles the header order and expects no match.
 """
 import argparse
 import hashlib
@@ -42,30 +43,23 @@ def load_json(path):
         return json.load(f)
 
 
-# ---------- text-level dynamic locator (used by the offset self-test) ----------
-def find_header_index(lines, labels):
-    n = len(labels)
-    for i in range(0, len(lines) - n + 1):
-        if all(lines[i + j] == labels[j] for j in range(n)):
-            return i
-    return None
+# ---------- production table locators (used by PDF checks AND self-tests) ----------
+def header_in_order(cells, labels):
+    """True only if labels appear as an ordered subsequence of cells."""
+    pos = 0
+    for label in labels:
+        while pos < len(cells) and cells[pos] != label:
+            pos += 1
+        if pos == len(cells):
+            return False
+        pos += 1
+    return True
 
 
-def first_data_line_after_header(lines, labels):
-    i = find_header_index(lines, labels)
-    if i is None:
-        return None, None
-    for j in range(i + len(labels), len(lines)):
-        if lines[j]:
-            return j, lines[j]
-    return None, None
-
-
-# ---------- PDF table-level dynamic locator ----------
 def find_header_row(data, labels):
     for ri, row in enumerate(data):
         cells = [norm(c) for c in row]
-        if all(any(label == c for c in cells) for label in labels):
+        if header_in_order(cells, labels):
             return ri
     return None
 
@@ -87,7 +81,7 @@ def first_nonempty_row(data, start):
 
 
 def cell_checks(row, rules):
-    """rules: list of (name, predicate over the row's cells)."""
+    """rules: list of (name, predicate over the row's normalized cells)."""
     cells = [norm(c) for c in row]
     out = {}
     for name, pred in rules:
@@ -113,7 +107,7 @@ def main():
     checks = load_json(args.checks)
     legacy = load_json(args.legacy)
 
-    # --- legacy reproduction (old inline assertion) ---
+    # --- legacy reproduction (old inline assertion, unchanged) ---
     p10_text = next(p['text'] for p in checks['04_COMMERCIAL_QUOTATION_AND_COST_BOUNDARIES']['pages']
                     if p['page'] == 10)
     raw = p10_text.split('\n')
@@ -121,12 +115,14 @@ def main():
     legacy_reproduced = '第三方采购与付款方' in legacy_window
     string_index = next(i for i, line in enumerate(raw) if '第三方采购与付款方' in line)
 
-    # --- PDF table checks ---
+    # --- actual PDF table checks ---
     doc04 = pymupdf.open(pdf04)
     p9 = doc04[8]
     p10 = doc04[9]
 
     tab10, data10, hi10 = find_table_with_header(p10, HEADER_04)
+    if tab10 is None:
+        raise SystemExit('04 p10 ruling table header not found')
     di10, row10 = first_nonempty_row(data10, hi10 + 1)
     ni10, row10b = first_nonempty_row(data10, di10 + 1)
     p10_row = cell_checks(row10, [
@@ -142,13 +138,16 @@ def main():
         ('no_cells_empty', lambda cs: all(c for c in cs[:3])),
     ])
 
-    # 04 p9 CR-011 row: same header table family, find the row containing CR-011
     tab9cr, data9cr, hi9cr = find_table_with_header(p9, ['CR', '客户要求'])
+    if tab9cr is None:
+        raise SystemExit('04 p9 CR table header not found')
     row_cr11 = None
     for row in data9cr[hi9cr + 1:]:
         if any(norm(c) == 'CR-011' for c in row):
             row_cr11 = row
             break
+    if row_cr11 is None:
+        raise SystemExit('04 p9 CR-011 row not found')
     cr11 = cell_checks(row_cr11, [
         ('id_cell_is_CR-011', lambda cs: 'CR-011' in cs),
         ('has_requirement_text', lambda cs: any('列明开发费都包含在内' in c for c in cs)),
@@ -158,8 +157,9 @@ def main():
         ('has_confirm_status', lambda cs: '待确认' in cs),
     ])
 
-    # 04 p9 ruling table last row
     tab9rul, data9rul, hi9rul = find_table_with_header(p9, HEADER_04)
+    if tab9rul is None:
+        raise SystemExit('04 p9 ruling table header not found')
     last_row = data9rul[-1]
     ruling_last = cell_checks(last_row, [
         ('first_cell_is_monthly_ops', lambda cs: len(cs) >= 3 and cs[0] == '月度运营工作量与月度费用'),
@@ -168,7 +168,7 @@ def main():
         ('no_cells_empty', lambda cs: all(c for c in cs[:3])),
     ])
 
-    # 02 continuation pages 6-20: keep the original text scope unchanged
+    # 02 continuation pages 6-20: same scope/fields as before
     cont = list(range(6, 21))
     frag = []
     details = []
@@ -187,26 +187,51 @@ def main():
             frag.append(pg)
         details.append({'page': pg, 'first_data_line': nxt, 'complete': ok})
 
-    # --- self-test: prepend text lines before the header ---
-    text_lines = [x.strip() for x in p10_text.split('\n') if x.strip()]
+    # --- self-test A: prepend rows, using the SAME production locators ---
+    base_hi = find_header_row(data10, HEADER_04)
+    base_di, base_row = first_nonempty_row(data10, base_hi + 1)
+    base_cells = [norm(c) for c in base_row[:3]]
     offset_results = []
     for n in (0, 1, 5, 17):
-        prefixed = ['前置说明行%d' % i for i in range(n)] + text_lines
-        hi = find_header_index(prefixed, HEADER_04)
-        di, first = first_data_line_after_header(prefixed, HEADER_04)
+        prefix = [['前置说明行%d' % i, '', ''] for i in range(n)]
+        prefixed = prefix + data10
+        hi = find_header_row(prefixed, HEADER_04)
+        di, row = first_nonempty_row(prefixed, hi + 1) if hi is not None else (None, None)
+        cells = [norm(c) for c in row[:3]] if row else None
         offset_results.append({
-            'prepended_lines': n,
-            'header_index': hi,
-            'first_data_index': di,
-            'first_data_line': first,
-            'pass': first == '第三方采购与付款方',
+            'prepended_rows': n,
+            'header_row_index': hi,
+            'expected_header_row_index': base_hi + n,
+            'first_data_row_index': di,
+            'expected_first_data_row_index': base_di + n,
+            'row_cells': cells,
+            'pass': (hi == base_hi + n and di == base_di + n and cells == base_cells),
         })
 
-    automated = {
-        'method': ('PDF table detection (PyMuPDF find_tables); header row located by exact '
-                   'label sequence; first data row = first non-empty row after header; '
-                   'each assertion reads only that row\'s cells.'),
-        '04_p10': {
+    # --- self-test B: ordered header matching; shuffled order must fail ---
+    data_row = ['第三方采购与付款方', '客户为采购与付款主体按供应商账单结，算', '客户确认']
+    order_cases = [
+        ('correct_order', ['事项', '当前处理', '确认方'], True),
+        ('swap_first_two', ['当前处理', '事项', '确认方'], False),
+        ('reverse', ['确认方', '当前处理', '事项'], False),
+        ('swap_last_two', ['事项', '确认方', '当前处理'], False),
+    ]
+    order_results = []
+    for name, header, should_match in order_cases:
+        data = [header, data_row]
+        hi = find_header_row(data, HEADER_04)
+        matched = hi is not None
+        order_results.append({
+            'case': name,
+            'header_cells': header,
+            'should_match': should_match,
+            'matched': matched,
+            'header_row_index': hi,
+            'pass': matched == should_match,
+        })
+
+    pdf_checks = {
+        '04_p10_first_data_row': {
             'header_row_index': hi10,
             'first_data_row_index': di10,
             'first_data_row_cells': [norm(c) for c in row10[:3]],
@@ -215,10 +240,7 @@ def main():
             'next_data_row_checks': p10_next,
             'pass': p10_row['complete'] and p10_next['complete'],
         },
-        '04_p9_CR_011': {
-            'row_checks': cr11,
-            'pass': cr11['complete'],
-        },
+        '04_p9_CR_011': {'row_checks': cr11, 'pass': cr11['complete']},
         '04_p9_ruling_last_row': {
             'row_cells': [norm(c) for c in last_row[:3]],
             'row_checks': ruling_last,
@@ -230,10 +252,24 @@ def main():
             'details': details,
             'pass': len(frag) == 0,
         },
-        'synthetic_header_offset_test': {
-            'description': 'Prepend N text lines before the header in memory; dynamic locator must still return the same first data line.',
+    }
+
+    self_tests = {
+        'offset_prepend_rows': {
+            'method': ('Use the production table locators (find_header_row / '
+                       'first_nonempty_row) on in-memory table data with 0/1/5/17 '
+                       'rows prepended before the real header. No customer file touched.'),
+            'base_header_row_index': base_hi,
+            'base_first_data_row_index': base_di,
+            'base_row_cells': base_cells,
             'results': offset_results,
             'pass': all(r['pass'] for r in offset_results),
+        },
+        'header_order_negative': {
+            'method': ('Call find_header_row on in-memory tables whose header cells '
+                       'are shuffled. Only the exact order 事项/当前处理/确认方 may match.'),
+            'results': order_results,
+            'pass': all(r['pass'] for r in order_results),
         },
     }
 
@@ -254,25 +290,21 @@ def main():
             'raw_window_3_10_repr': [repr(x) for x in legacy_window],
             'string_raw_index': string_index,
         },
-        'automated_checks': automated,
+        'pdf_checks': pdf_checks,
+        'self_tests': self_tests,
         'manual_review': {
             'reviewer_observed': 'Reviewer 目视 p10 PNG：裁决表首行完整，后续行未拆开，签署栏完整。',
             'agent_recheck': ('Agent 复看 p10 PNG 与 PDF 表格单元：重复表头后首条数据为“第三方采购与付款方”，'
                               '其行内第二/第三格为“客户为采购与付款主体…/客户确认”；下一条“目标市场…口径”行整行同页。'),
             'png': 'renders/pages/04_COMMERCIAL_QUOTATION_AND_COST_BOUNDARIES/page-10.png',
-            'classification': '人工目视，仅作为自动检查的独立佐证，不替代 automated_checks 结果。',
+            'classification': '人工目视，仅作为自动检查的独立佐证，不替代 pdf_checks 或 self_tests 结果。',
         },
         'conclusion': {
             'legacy_false_is_false_negative': True,
-            'all_automated_checks_pass': all([
-                automated['04_p10']['pass'],
-                automated['04_p9_CR_011']['pass'],
-                automated['04_p9_ruling_last_row']['pass'],
-                automated['02_continuation']['pass'],
-                automated['synthetic_header_offset_test']['pass'],
-            ]),
-            'statement': ('旧 false 是检查条件误判；新检查动态定位表头/数据行并按行内单元格验证，'
-                          '02 续页、04 p9 CR-011 与裁决表末行、04 p10 首行/次行均通过。'),
+            'all_pdf_checks_pass': all(v['pass'] for v in pdf_checks.values()),
+            'all_self_tests_pass': all(v['pass'] for v in self_tests.values()),
+            'statement': ('旧 false 是检查条件误判；新检查动态定位表头/数据行并按行内单元格验证。'
+                          '偏移自测直接调用生产表格定位函数；乱序表头负向测试应且确实不匹配。'),
         },
     }
     with open(args.out, 'w', encoding='utf-8', newline='\n') as f:
@@ -280,11 +312,10 @@ def main():
     print('wrote', args.out)
     print('legacy reproduced:', legacy_reproduced, 'string raw index:', string_index)
     print('p10 header/first data row:', hi10, di10)
-    print('p10 pass:', automated['04_p10']['pass'])
-    print('p9 CR-011 pass:', automated['04_p9_CR_011']['pass'])
-    print('p9 ruling last row pass:', automated['04_p9_ruling_last_row']['pass'])
-    print('02 fragments:', frag)
-    print('offset test pass:', automated['synthetic_header_offset_test']['pass'])
+    print('pdf checks pass:', result['conclusion']['all_pdf_checks_pass'])
+    print('offset test:', [(r['prepended_rows'], r['header_row_index'], r['first_data_row_index'], r['pass']) for r in offset_results])
+    print('header order negative:', [(r['case'], r['matched'], r['pass']) for r in order_results])
+    print('self tests pass:', result['conclusion']['all_self_tests_pass'])
 
 
 if __name__ == '__main__':

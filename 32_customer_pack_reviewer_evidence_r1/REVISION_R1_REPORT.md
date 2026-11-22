@@ -78,10 +78,12 @@ R1 首版 `fragment_check.json` 中 `04_p10_starts_with_complete_row` 为 `false
 
 - 旧条件：`'第三方采购与付款方' in p10.split('\n')[3:10]`
 - 失败原因：PDF 文本行的行尾空格使列表精确成员判断失败（`'第三方采购与付款方 '` ≠ `'第三方采购与付款方'`）；且 `[3:10]` 是任意行窗口。该行实际位于 raw index 5，窗口内存在。
-- 原始 false 保存在 `data/fragment_check_legacy.json`（逐字节副本），新 `data/fragment_check.json` 同时包含 `legacy_check.preserved_original`（false）、`legacy_check.reproduced_result`（false）与 `automated_checks`（新结果）。
+- 原始 false 保存在 `data/fragment_check_legacy.json`（逐字节副本），新 `data/fragment_check.json` 同时包含 `legacy_check.preserved_original`（false）与 `legacy_check.reproduced_result`（false）。
 - 新实现不再使用固定 `p10[5]`：用 PyMuPDF 表格检测动态定位表头 `事项/当前处理/确认方`，取表头后第一条非空数据行，并只在该行单元格范围内验证完整性。
-- 自测：在内存中分别前置 0/1/5/17 行后重跑定位，首条数据行均仍为“第三方采购与付款方”（表头 index 2→19，数据行 index 5→22），证明不依赖固定行号；未修改客户文件。
-- 自动检查与人工目视在 JSON 中分列：`automated_checks` 与 `manual_review`。
+- 表头匹配改为**按顺序**：`事项 → 当前处理 → 确认方`，不是三个标签任意位置出现。
+- 自测直接调用生产表格定位函数 `find_header_row` / `first_nonempty_row`：在内存表数据前插入 0/1/5/17 行，表头 index 0→17、首条数据行 index 1→18，首行仍为“第三方采购与付款方”，4/4 PASS；未修改客户文件。
+- 负向测试：`当前处理/事项/确认方`、`确认方/当前处理/事项`、`事项/确认方/当前处理` 三种乱序均不匹配；正确顺序匹配，4/4 PASS。
+- JSON 分层：`pdf_checks`（实际 PDF）、`self_tests`（偏移 + 乱序负向）、`manual_review`（人工目视），不再混用 `automated_checks`。
 - 修正脚本：`tools/fragment_check_v2.py`；完整说明见 `FRAGMENT_CHECK_EXPLANATION.md`。
 
 ## 4. P1 CR-015 双字段口径：修订原文
