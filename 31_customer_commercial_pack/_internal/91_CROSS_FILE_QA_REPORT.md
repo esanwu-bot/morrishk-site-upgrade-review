@@ -14,13 +14,13 @@
 
 | 文件 | 可读取字符数 |
 |---|---:|
-| 00_CUSTOMER_PACK_INDEX_AND_VERSION.docx | 2142 |
-| 00_CUSTOMER_PACK_INDEX_AND_VERSION.md | 2568 |
+| 00_CUSTOMER_PACK_INDEX_AND_VERSION.docx | 2147 |
+| 00_CUSTOMER_PACK_INDEX_AND_VERSION.md | 2573 |
 | 01_MORRISHK_PROJECT_PLAN_AND_ROADMAP.docx | 7465 |
-| 02_FUNCTION_SCOPE_CONFIRMATION.docx | 31050 |
+| 02_FUNCTION_SCOPE_CONFIRMATION.docx | 31045 |
 | 03_SEO_IMPLEMENTATION_AND_MONTHLY_OPERATION.docx | 9281 |
-| 04_COMMERCIAL_QUOTATION_AND_COST_BOUNDARIES.docx | 15953 |
-| 04_COMMERCIAL_QUOTATION_AND_COST_BOUNDARIES.xlsx | 38121 |
+| 04_COMMERCIAL_QUOTATION_AND_COST_BOUNDARIES.docx | 15966 |
+| 04_COMMERCIAL_QUOTATION_AND_COST_BOUNDARIES.xlsx | 38185 |
 | 05_PROJECT_KICKOFF_AND_ACCEPTANCE_PLAN.docx | 9482 |
 
 ## 二、14 项独立质量检查
@@ -33,7 +33,7 @@
 | 4 | 15 项新增全部待确认 | PASS | 15/15 范围状态为“待确认”；SD-02 仅报价方式为单独报价 |
 | 5 | FR-3-040 待裁决 | PASS | 范围纳入 119；A-09 参考行；费用类别“暂不报价，待确认”；不计入 A/C 金额 |
 | 6 | CR-019 待裁决 | PASS | 04 §12 与 00 说明；报价状态按 CSV 为“已包含但待核价”，费用类别“暂不报价，待确认” |
-| 7 | CR-003 / CR-015 未决 | PASS | CR-003 单独报价、范围待确认；CR-015 报价状态按 CSV 为“已包含但待核价”，原表差异已披露 |
+| 7 | CR-003 / CR-015 未决 | PASS | CR-003 单独报价、范围待确认；CR-015 客户原始意见为“第三方实报实销”，当前建议归类为“已包含但待核价”，尚待项目负责人书面确认 |
 | 8 | 六类费用一致 | PASS | 六类费用表（01/04 §1.2）；费用类别统计仅含六类 |
 | 9 | 无重复计费 | PASS | A/B/C/D/E/F/G 分区编号互斥；SD-02 仅在 E；118 明细不逐项计价 |
 | 10 | 金额/日期/SLA/数量/付款比例未经确认不得写成承诺 | PASS | 全部金额空白；日期“待双方确认”；工作量为编制建议值；SLA 为建议值 |
