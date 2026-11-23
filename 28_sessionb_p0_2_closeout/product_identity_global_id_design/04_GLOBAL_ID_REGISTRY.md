@@ -3,11 +3,11 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-004 |
-| 版本 | v2.0-R2 |
+| 版本 | v2.1-R2.1 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | 无全局产品 ID/注册表；`product_id=prod-doc`；lake 仅 3 表 |
-| 相关决策 | D-05、D-06、D-10、D-21、D-22、D-23、D-31…D-34（见 `08_DECISION_REGISTER.md`） |
-| 收敛模型 | **仅 CONFIRMED 进入 `global_product`**；PENDING/CONFLICT 独立队列；Morrishk 首期单 Tenant |
+| 相关决策 | D-05、D-06、D-10、D-21、D-22、D-23、D-31…D-34、D-41…D-45（见 `08_DECISION_REGISTER.md`） |
+| 收敛模型 | **仅 CONFIRMED 进入 `global_product`**；PENDING/CONFLICT 独立队列；Morrishk 首期单 Tenant；全局/租户数据归属分离 |
 
 ## 1. 目标
 
@@ -35,7 +35,7 @@
 ## 3. 候选注册表结构
 
 ```text
--- 正式产品表：只允许 CONFIRMED 身份写入
+-- 正式产品表：只允许 CONFIRMED 身份写入；GLOBAL-scoped，不带 tenant_id
 global_product
   product_uid          surrogate primary key (ULID/UUIDv7) [候选]
   brand_id             FK -> brand_registry
@@ -54,11 +54,11 @@ global_product
 --   WHERE lifecycle_state = 'ACTIVE'
 -- 四分量均 NOT NULL；PENDING_* 不在此表，故不占用该唯一键。
 
--- 待确认队列：不是 product_uid / pbk1_ 命名空间
+-- 待确认队列：TENANT-scoped；不是 product_uid / pbk1_ 命名空间
 identity_pending
   pending_id           独立主键（ULID/UUIDv7）
-  tenant_id            首期为 Morrishk
-  site_id              来源 Site
+  tenant_id            NOT NULL（首期为 Morrishk）
+  site_id              NOT NULL（来源 Site）
   brand_raw / brand_norm
   mpn_raw / mpn_norm
   variant_state        UNKNOWN / KNOWN / NOT_APPLICABLE
@@ -71,41 +71,47 @@ identity_pending
 
 identity_conflict
   conflict_id
-  pending_id           FK -> identity_pending
+  pending_id           FK -> identity_pending（TENANT）或 NULL（GLOBAL 冲突）
+  scope                GLOBAL / TENANT
+  tenant_id            NULL when GLOBAL；NOT NULL when TENANT
   candidate_set        候选 natural key / brand_id / mpn_norm 列表
   conflict_type        MULTI_BRAND / MULTI_MPN / ALIAS_CONFLICT / VARIANT_CONFLICT / PROFILE_CONFLICT
   status               OPEN / RESOLVED / REJECTED
-  resolution_ref
+  resolution_ref       FK -> global_adjudication（GLOBAL 裁决）
   created_at / updated_at
 
 brand_registry
-  brand_id / brand_norm / status / created_at
+  brand_id / brand_norm / status / created_at    -- GLOBAL-scoped；无 tenant_id
 
 -- 两个独立 alias 注册表，不共用命名空间
 brand_alias
   alias_id
   alias_norm
-  brand_id             FK -> brand_registry
+  brand_id             FK -> brand_registry（目标 Brand）
   scope                GLOBAL / TENANT
-  tenant_id            NULL for GLOBAL
+  tenant_id            NULL for GLOBAL；NOT NULL for TENANT
   valid_from / valid_to
   merged_into          brand_id nullable（更名/合并目标）
   reason / audit_ref
+  -- 唯一：GLOBAL(alias_norm)；TENANT(tenant_id, alias_norm)
+  -- CHECK：(scope='GLOBAL' AND tenant_id IS NULL) OR (scope='TENANT' AND tenant_id IS NOT NULL)
 
 mpn_alias
   alias_id
   alias_norm
+  brand_id             **NOT NULL**（Brand 上下文）
   mpn_norm             canonical target
-  brand_id             nullable（按 Brand 作用域）
   scope                GLOBAL / TENANT
-  tenant_id            NULL for GLOBAL
+  tenant_id            NULL for GLOBAL；NOT NULL for TENANT
   valid_from / valid_to
   normalizer_version
   reason / audit_ref
+  -- 唯一：GLOBAL(brand_id, alias_norm)；TENANT(tenant_id, brand_id, alias_norm)
+  -- CHECK：(scope='GLOBAL' AND tenant_id IS NULL) OR (scope='TENANT' AND tenant_id IS NOT NULL)
 
 mpn_profile
   profile_id
-  profile_scope        BRAND / MANUFACTURER / GLOBAL
+  profile_scope        BRAND / MANUFACTURER / GLOBAL   -- GLOBAL-scoped 规则；无 tenant_id
   brand_id / manufacturer_id (按 scope)
   version
   status               DRAFT / PROPOSED / APPROVED / RETIRED
@@ -128,12 +134,52 @@ product_document       -- 全局身份 ↔ 文档（仅当文档可作为全局�
   relation             PRIMARY / SUPPLEMENTARY / VERSION
   evidence_ref
 
-tenant_document        -- 租户私有文档
-  tenant_id / site_id
+tenant_document        -- 租户私有文档；TENANT-scoped
+  tenant_id            NOT NULL
+  site_id              NOT NULL
   document_id
   product_uid          nullable（只有解析到 CONFIRMED 才回填）
   ownership            CUSTOMER_PRIVATE / SHARED_PUBLIC
   source / evidence_ref
+
+tenant_evidence        -- Site 级私有证据；TENANT-scoped
+  evidence_id
+  tenant_id            NOT NULL
+  site_id              NOT NULL（必须属于同一 tenant）
+  document_id          NOT NULL（来源文档）
+  run_id               nullable（来源解析任务）
+  source_ref           至少 document_id 或 run_id 之一必须可追溯
+  product_uid          nullable（关联 CONFIRMED；不改变证据归属）
+  visibility           PRIVATE / SHARED / PUBLIC
+  license_ref
+  created_at
+  -- 约束：site.tenant_id = tenant_evidence.tenant_id；私有证据不跨租户
+
+tenant_assertion       -- 客户确认；TENANT-scoped，不能写 global_product
+  assertion_id
+  tenant_id            NOT NULL
+  site_id              NOT NULL
+  actor
+  assertion_type       BRAND_CONFIRM / MPN_CONFIRM / PRODUCT_OWNERSHIP /
+                       PRODUCT_CORRECTION / DOCUMENT_ATTRIBUTION
+  target_ref
+  asserted_values
+  evidence_ref
+  status               SUBMITTED / UNDER_REVIEW / ACCEPTED_BY_GLOBAL /
+                       REJECTED_BY_GLOBAL / WITHDRAWN
+  global_decision_ref  nullable -> global_adjudication
+  created_at / updated_at
+
+global_adjudication    -- 全局身份裁决；GLOBAL-scoped，无 tenant_id
+  adjudication_id
+  subject_type         PENDING / CONFLICT / TENANT_ASSERTION
+  subject_ref
+  decision             CONFIRM / REJECT / MERGE / SPLIT / REASSIGN
+  rationale
+  decided_by
+  approved_by
+  decided_at
+  audit_ref
 
 product_lineage
   event_id
@@ -143,15 +189,24 @@ product_lineage
   actor / approved_by / approved_at
   evidence_ref
 
-product_import_event
+product_import_event   -- TENANT-scoped 导入事件
   idempotency_key      unique
-  tenant_id / site_id
+  tenant_id            NOT NULL
+  site_id              NOT NULL
   document_id / run_id
   requested_by
   result               CREATED / MATCHED / PENDING / CONFLICT / REJECTED
   product_uid          nullable
   pending_id           nullable
   created_at
+
+audit_log              -- 混合审计：按 scope 归属，不得伪造 tenant_id
+  audit_id
+  scope                GLOBAL / TENANT
+  tenant_id            NULL when scope=GLOBAL；NOT NULL when scope=TENANT
+  site_id              NULL when scope=GLOBAL
+  actor / action / target_ref / reason / at
+  -- CHECK：(scope='GLOBAL' AND tenant_id IS NULL) OR (scope='TENANT' AND tenant_id IS NOT NULL)
 ```
 
 > 表名与字段为候选；不是 DDL，不改数据库。
@@ -194,13 +249,32 @@ product_import_event
 | 命名空间 | 不共用 | 不共用 |
 | 作用域 | `GLOBAL` / `TENANT` | `GLOBAL` / `TENANT` |
 | 租户隔离 | 租户别名不跨租户 | 租户别名不跨租户 |
-| 查找顺序 | `TENANT exact` → `GLOBAL exact` → 无匹配 | `TENANT exact` → `GLOBAL exact` → 无匹配 |
+| 查找顺序 | `TENANT exact` → `GLOBAL exact` → 无匹配 | **先锁定 `brand_id`**，再 `TENANT(brand) exact` → `GLOBAL(brand) exact` → 无匹配 |
 | 冲突 | `PENDING_CONFLICT` + 人工裁决 | `PENDING_CONFLICT` + 人工裁决 |
 | 历史名 | `valid_to` + `merged_into` 保留 | `valid_to` + 目标 `mpn_norm` 保留 |
 
 - 租户别名不得覆盖/改写全局语义；全局别名变更需独立治理与签署。
 - alias 变更必须写 `audit_log`；未签署规则不得用于自动确认/合并。
 - Brand 与 MPN 的 alias 解析结果不得互相推断（Brand 命中不代表 MPN 合法，反之亦然）。
+
+#### 3.3.1 Alias 唯一约束与有效期（R2.1）
+
+| 注册表 | `GLOBAL` 唯一键 | `TENANT` 唯一键 |
+|---|---|---|
+| `brand_alias` | `alias_norm`（`WHERE scope='GLOBAL'`） | `(tenant_id, alias_norm)`（`WHERE scope='TENANT'`） |
+| `mpn_alias` | `(brand_id, alias_norm)`（`WHERE scope='GLOBAL'`） | `(tenant_id, brand_id, alias_norm)`（`WHERE scope='TENANT'`） |
+
+```text
+CHECK (scope = 'GLOBAL' AND tenant_id IS NULL)
+   OR (scope = 'TENANT' AND tenant_id IS NOT NULL)
+```
+
+1. `valid_from` 必填、`valid_to` 可空；区间半开 `[valid_from, valid_to)`，`valid_to > valid_from`。
+2. 同一唯一键的有效期不得重叠指向不同目标（`brand_id` / `canonical mpn_norm`）；重叠写入拒绝或 `PENDING_CONFLICT`。
+3. 失效别名允许重新分配，但必须新增一行并保留旧行；不得原地改写。
+4. `normalizer_version` 升级只新增行、不改旧行；旧解析可按旧版本回溯。
+5. 实现形式：部分唯一索引 + 区间排斥约束或应用层事务校验；本轮不建索引、不迁移。
+6. Brand Alias 的完整规则见 `01` §6.5.1；MPN Alias 的完整规则见 `02` §4.6。
 
 ### 3.4 MPN Profile 选择（R2-4）
 
@@ -219,6 +293,7 @@ product_import_event
 ```text
 raw MPN/Brand (tenant_id, site_id)
   -> Brand resolve (brand_registry + brand_alias: TENANT -> GLOBAL)
+  -> MPN alias resolve (mpn_alias, 先锁定 brand_id: TENANT(brand) -> GLOBAL(brand))
   -> MPN normalize (mpn_profile: BRAND > MANUFACTURER > GLOBAL, APPROVED only)
   -> variant state resolve
      ├─ UNKNOWN -> identity_pending(PENDING_VARIANT)

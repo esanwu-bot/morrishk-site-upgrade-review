@@ -3,10 +3,10 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-002 |
-| 版本 | v2.0-R2 |
+| 版本 | v2.1-R2.1 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | 当前 `normalized_mpn` 恒等于 `requested_mpn`（`pipeline.py:154-155`）；`normalizer_version` 未实现 |
-| 相关决策 | D-03、D-04、D-19、D-20（见 `08_DECISION_REGISTER.md`） |
+| 相关决策 | D-03、D-04、D-19、D-20、D-44（见 `08_DECISION_REGISTER.md`） |
 
 ## 1. 设计目标
 
@@ -48,9 +48,11 @@ mpn_profile_registry
 mpn_alias
   alias_norm           normalized MPN alias (独立于 brand_alias)
   alias_scope          GLOBAL / TENANT
-  tenant_id            nullable
-  brand_id             nullable（按 Brand 作用域）
+  tenant_id            nullable（GLOBAL 必须为 NULL；TENANT 必填）
+  brand_id             **NOT NULL**（Brand 上下文必填）
   canonical_mpn_norm
+  valid_from / valid_to
+  normalizer_version
   source / evidence
 ```
 
@@ -124,6 +126,38 @@ BRAND profile (brand_id 精确匹配)
 2. 同一 Brand 下多个 APPROVED profile 并存属于治理错误，必须拒绝并报 `PENDING_CONFLICT`；不得“取最新”。
 3. Profile 变更影响已确认产品时，必须生成迁移/影响清单并审计，不得静默重算。
 4. `mpn_norm` 为空/非法 → `INVALID_MPN`，无论 profile 状态如何都不得确认。
+
+### 4.6 MPN Alias 的 Brand 上下文、唯一约束与有效期（R2.1 候选）
+
+**Brand 上下文（强制）：**
+
+1. 每条 MPN Alias 必须归属一个 `brand_id`；`brand_id` **NOT NULL**。
+2. 解析顺序：先确定 Brand，再在该 Brand 下查找 alias；**禁止仅凭 MPN 原文跨 Brand 解析**。
+3. 同 Alias 在不同 Brand 下可分别存在，互不推断；不得把 Brand A 的 alias 结果用于 Brand B。
+4. 无可靠 Brand 时，MPN alias 不得参与自动确认（回到 `PENDING_BRAND`）。
+
+**唯一性范围：**
+
+| 作用域 | 唯一键 | 说明 |
+|---|---|---|
+| `GLOBAL` | `(brand_id, alias_norm)` 唯一（`WHERE scope='GLOBAL'`） | 同一 Brand 的全局别名唯一 |
+| `TENANT` | `(tenant_id, brand_id, alias_norm)` 唯一（`WHERE scope='TENANT'`） | 同一租户、同一 Brand 内唯一 |
+
+**一致性约束：**
+
+```text
+CHECK (scope = 'GLOBAL' AND tenant_id IS NULL)
+   OR (scope = 'TENANT' AND tenant_id IS NOT NULL)
+```
+
+**有效期与冲突：**
+
+1. `valid_from` 必填；`valid_to` 可空；区间半开 `[valid_from, valid_to)`，`valid_to > valid_from`。
+2. 同一唯一键的有效期不得重叠指向不同 `canonical_mpn_norm`；重叠 → 拒绝或 `PENDING_CONFLICT`。
+3. 同作用域、同 Brand、同 Alias 指向多个 canonical MPN → `PENDING_CONFLICT`，不得自动选一。
+4. 失效别名可重新分配，但必须新增一行、保留旧行并写审计；不得原地改写。
+5. `normalizer_version` 升级不得覆盖旧 alias 行：旧行保留原版本与 `valid_to`，新行记录新版本；历史解析可按旧版本回溯。
+6. 版本化实现可用部分唯一索引 + 区间校验/事务；本轮不建索引、不迁移。
 
 ## 5. 归一化与证据追溯
 

@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-007 |
-| 版本 | v2.0-R2 |
+| 版本 | v2.1-R2.1 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 性质 | 未来实现期测试设计；**本轮未执行**，不替代现有 83 项 Parser 测试 |
 | 关联 | `03_PRODUCT_IDENTITY_MODEL.md`、`04_GLOBAL_ID_REGISTRY.md`、`05_BACKWARD_COMPATIBILITY.md`、`06_API_AND_DATABASE_IMPACT.md`、`10_MORRISHK_FIRST_SCOPE_AND_DEFERRED.md` |
@@ -14,7 +14,8 @@
 - ID 行为中的 `product_uid` 为候选 surrogate；`pbk1_` 为候选自然键编码。
 - 在 D-04/D-05/D-08 未签署前，这些向量是验收设计，不是已实现断言。
 - 测试数据全部使用合成/脱敏 fixture，不接生产。
-- **本轮 R2 新增 V-29…V-43 均未执行**；只作为实现期的验收设计。
+- **本轮 R2 新增 V-29…V-50 均未执行**；只作为实现期的验收设计。
+- **R2.1 新增 V-51…V-70 亦未执行**；覆盖 Brand 上下文 MPN Alias、Alias 有效期、Global/Tenant 归属、Tenant Assertion、Global Adjudication、伪造 tenant_id、禁用 Client/Site。
 
 ## 2. 测试向量
 
@@ -63,8 +64,14 @@
 | normalizer_version 升级 | V-25 |
 | 并发导入防重复 | V-11/V-26 |
 | 租户/私有证据隔离（早期 R1） | V-27/V-28 |
+| Brand 上下文 MPN Alias（R2.1） | V-51/V-52/V-53/V-54 |
+| Alias 唯一约束与有效期（R2.1） | V-55/V-56/V-57/V-58 |
+| Global/Tenant 数据归属（R2.1） | V-59/V-60/V-61 |
+| Tenant Assertion / Global Adjudication（R2.1） | V-62/V-63/V-64 |
+| tenant_evidence Site 边界（R2.1） | V-65/V-66 |
+| 伪造 tenant_id / 禁用 Client、Site（R2.1） | V-67/V-68/V-69/V-70 |
 
-### 2.2 本轮 R2（Morrishk-first）新增向量 V-29…V-43
+### 2.2 本轮 R2（Morrishk-first）新增向量 V-29…V-50
 
 | # | 场景 | 输入 | 预期结果 | 校验方法 | 风险 |
 |---|---|---|---|---|---|
@@ -93,6 +100,33 @@
 
 > V-29…V-50 共 22 个向量，覆盖 R2-1…R2-4；全部**未执行**。若负责人只要求最小集，至少保留 V-29…V-40。
 
+### 2.3 R2.1 定点修订新增向量 V-51…V-70
+
+| # | 场景 | 输入 | 预期结果 | 校验方法 | 风险 |
+|---|---|---|---|---|---|
+| V-51 | Brand 上下文 MPN Alias | 同 `alias_norm` 在 Brand A / Brand B 各自注册 | 各自解析到本 Brand 的 canonical MPN；**不跨 Brand 解析** | Repository 单测 | 仅凭 MPN 原文跨 Brand 误匹配 |
+| V-52 | MPN Alias 缺 Brand | 写入 `mpn_alias` 但 `brand_id = NULL` | 拒绝写入（NOT NULL 约束） | DB 约束 + Repository 断言 | 无 Brand 别名进入解析 |
+| V-53 | GLOBAL MPN Alias 唯一性 | 同 `brand_id` + 同 `alias_norm` 两条 GLOBAL 指向不同 MPN | 第二条拒绝或并入 `PENDING_CONFLICT`；不得自动选一 | DB 部分唯一索引 + Repository | 同 Brand 别名分裂 |
+| V-54 | TENANT MPN Alias 唯一性与隔离 | 租户 T1 注册 (T1, Brand A, alias X)；T2 注册 (T2, Brand A, alias X) | 两行均可存在；互不影响；T3 查不到 | 多租户 fixture | 租户别名越界 |
+| V-55 | Brand Alias 作用域唯一性 | GLOBAL 同 `alias_norm` 两 brand；TENANT 同 `tenant_id+alias_norm` 两 brand | GLOBAL 冲突拒绝/PENDING；TENANT 各自限于本租户 | DB 部分唯一索引 | 单一 `unique(alias_norm, scope, tenant_id)` 漏约束 |
+| V-56 | Alias 有效期重叠 | 同一唯一键两行区间重叠且目标不同 | 拒绝写入或 `PENDING_CONFLICT` | 区间校验单测/DB 排斥约束 | 有效期重叠导致歧义解析 |
+| V-57 | 失效 Alias 重新分配 | 旧 alias 已 `valid_to` 过期；新目标占用同名 alias | 新增一行，旧行保留；历史解析仍可回溯 | Repository + DB 断言 | 原地改行抹掉历史 |
+| V-58 | normalizer_version 变更保留历史 | v1→v2 后 alias 目标变化 | 旧行保留 v1 与 `valid_to`；新行 v2；旧版本可复算 | Repository + DB 断言 | 覆盖旧版本导致不可追溯 |
+| V-59 | GLOBAL 行不得带 tenant_id | 向 `global_product` / `brand_registry` / GLOBAL alias / `mpn_profile` / `global_adjudication` 写入 `tenant_id` | 拒绝写入 | DB CHECK 断言 | 全局数据被伪造归属 |
+| V-60 | TENANT 行必须带 tenant_id | 向 `tenant_document`/`tenant_evidence`/`tenant_assertion`/`identity_pending` 写入缺 `tenant_id` | 拒绝写入 | DB 约束断言 | 私有数据无归属 |
+| V-61 | 全局审计归属 | 全局裁决产生事件 | `audit_log(scope='GLOBAL')` 且 `tenant_id IS NULL`；不得写成 Morrishk | 审计断言 | 全局事件被强行归属客户 |
+| V-62 | Tenant Assertion 不写 global_product | Morrishk 提交 `BRAND_CONFIRM`/`MPN_CONFIRM` | 仅写 `tenant_assertion` + TENANT 审计；`global_product` 不变 | Repository + DB 断言 | 客户确认直接改全局身份 |
+| V-63 | 客户断言与全局裁决独立留存 | 全局拒绝或修改客户断言 | 客户原记录保留；追加 `global_adjudication` 引用；状态分别为 `REJECTED_BY_GLOBAL` 与裁决记录 | Repository + 审计断言 | 覆盖客户原始记录 |
+| V-64 | 首期角色边界 | Morrishk 角色尝试执行 Global Adjudication | DENY（无 `identity.admin`，403） | 授权单测 | 客户侧越权裁决 |
+| V-65 | tenant_evidence Site 归属 | 写入 evidence，其 `site_id` 属于另一 tenant | 拒绝写入（`site.tenant_id != tenant_evidence.tenant_id`） | DB 约束 + Repository | 证据跨租户挂靠 |
+| V-66 | 私有证据不因产品全局化共享 | 产品已全局 CONFIRMED；T2 请求 T1 的私有 evidence | DENY/过滤；不返回 bbox/原文 | API 集成 | 产品全局化导致证据泄露 |
+| V-67 | 请求体伪造 tenant_id/site_id | 请求体带与服务端 client→site→tenant 派生值不一致的 tenant/site | 拒绝（403）；不得以请求体为准写入 Token | 授权单测 + token fixture | 伪造上下文提权 |
+| V-68 | 禁用 Client | client 已 DISABLED，使用既有 token 调用 API | 运行期复核拒绝；新 token 申请也拒绝 | 授权单测 | 禁用后仍可用 |
+| V-69 | 禁用/撤销 Site | site 已 DISABLED 或迁移 tenant | 该 site 下 token 全部拒绝；绑定变化后旧 token 失效 | 授权单测 | 停用站点继续访问 |
+| V-70 | issueToken 未知 client | 请求体自带未注册 `client_id` | 拒绝（401/403）；只信服务端注册记录 | 授权单测 | 自报 client 获得 token |
+
+> V-51…V-70 共 20 个 R2.1 向量，全部**未执行**，与 `03` §4.4、`04` §3.3.1、`06` §7/§8.11/§8.12、`08` D-41…D-45、`10` §4 规则一致。
+
 ## 3. 测试分层（未来）
 
 | 层 | 内容 | 依赖 |
@@ -114,4 +148,4 @@
 
 - 本轮未执行这些向量；现有 83 项测试只覆盖 Parser/Domain/Evidence，不覆盖本文件场景。
 - 不修改 OpenAPI/75 矩阵/数据库。
-- 所有预期以负责人签署后的 D-04/D-05/D-08/D-31…D-34 为准。
+- 所有预期以负责人签署后的 D-04/D-05/D-08/D-31…D-34/D-41…D-45 为准。

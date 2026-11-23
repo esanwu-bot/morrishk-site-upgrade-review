@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-010 |
-| 版本 | v1.0-R2 |
+| 版本 | v1.1-R2.1 |
 | 日期 | 2026-11-23 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 性质 | 范围说明；不是架构批准、不是实现、不是工期承诺 |
@@ -35,20 +35,23 @@
 | `global_product` | product_uid, brand_id, mpn_norm, variant_state, variant_key, lifecycle_state | N:M tenant（经 access） |
 | `tenant_product_access` | tenant_id, product_uid, access_level, valid_from/to, revoked_at | tenant × global_product |
 | `tenant_document` | tenant_id, site_id, document_id, product_uid?, ownership | N:1 tenant/site |
-| `tenant_evidence` | tenant_id, evidence_id, visibility, license_ref | N:1 tenant |
-| `audit_log` | audit_id, tenant_id, actor, action, target_ref, at | 关联全部写操作 |
+| `tenant_evidence` | tenant_id, site_id, evidence_id, document_id, run_id?, visibility, license_ref | N:1 tenant/site（私有证据不跨租户） |
+| `audit_log` | audit_id, scope, tenant_id?, site_id?, actor, action, target_ref, at | 混合：GLOBAL 事件无 tenant_id；TENANT 事件必带 tenant_id/site_id |
 
 关系约束：
 
 - `Tenant 1:N Site 1:N OAuth Client`；`Tenant N:M Global Product`。
 - Site 不得跨 Tenant；OAuth Client 不得跨 Site；`oauth_client.tenant_id` 必须等于其 site 的 tenant。
-- 所有业务行必须带 `tenant_id`；`tenant_document`/`tenant_evidence` 另带 `site_id`。
+- **TENANT-scoped 表**（`tenant_product_access`、`tenant_document`、`tenant_evidence`、`tenant_assertion`、`identity_pending`）必须带 `tenant_id`；`tenant_document`/`tenant_evidence`/`tenant_assertion`/`identity_pending` 另带 `site_id`。
+- **GLOBAL-scoped 表**（`global_product`、`brand_registry`、GLOBAL 作用域 `brand_alias`/`mpn_alias`/`mpn_profile`、`global_adjudication`、`product_lineage`）不得伪造 `tenant_id`。
+- `audit_log`/`identity_conflict` 为混合作用域，按 `scope` 判定；全局身份治理事件不得强行归属 Morrishk。
 
 ## 3. 支撑表（身份域内部，不是新平台实体）
 
 以下表服务于上述八类实体，**不构成**额外业务实体，也不对外承诺为独立产品能力：
 
 - `identity_pending`、`identity_conflict`：待确认/冲突队列（详见 `03` §4.2、`04` §3）。
+- `tenant_assertion`：Morrishk 的租户内确认（TENANT-scoped，不写 `global_product`）；`global_adjudication`：Ds Bit 全局裁决（GLOBAL-scoped，无 `tenant_id`）（详见 `03` §4.4、`06` §8.11）。
 - `brand_registry`、`brand_alias`、`mpn_alias`、`mpn_profile`：Brand/MPN 治理（详见 `01`/`02`）。
 - `global_product_alias`、`product_lineage`、`product_import_event`、`legacy_map`：兼容、谱系、幂等与迁移（详见 `04`/`05`）。
 
@@ -60,12 +63,16 @@
 |---|---|
 | B-01 | 全局身份 ≠ 租户访问权；可见性只由 `tenant_product_access` 决定 |
 | B-02 | 全局产品不含客户私有 PDF/解析/证据/备注 |
-| B-03 | 客户确认只影响本租户，不修改全局 Brand/MPN 规则 |
+| B-03 | 客户确认 = Tenant Assertion，仅本租户生效，**不得直接写/改 `global_product`**；全局写入只能经 Global Adjudication，且保留客户原始记录 |
 | B-04 | 只有 CONFIRMED 身份生成 `product_uid`/`pbk1_`；`PENDING_*` 只在待确认队列 |
-| B-05 | 所有 token 必须绑定 tenant + site + client，且三者自洽 |
+| B-05 | 所有 token 必须绑定 tenant + site + client；绑定值由服务端 `oauth_client`→`site`→`tenant` 关系派生，请求体自报值不作为授权依据 |
 | B-06 | 拒绝访问也必须审计，避免枚举探测 |
 | B-07 | 旧 `product_id` 兼容路径不得绕过 tenant ACL |
 | B-08 | 任何跨租户共享必须显式记录来源/授权/有效期，不得默认共享 |
+| B-09 | GLOBAL-scoped 数据不得携带 `tenant_id`；TENANT-scoped 数据不得缺 `tenant_id`；混用视为错误 |
+| B-10 | 全局身份治理事件写 `audit_log(scope='GLOBAL')`，不得归属 Morrishk |
+| B-11 | `tenant_evidence` 是 Site 级资源：必须同时带 `tenant_id` 与 `site_id`，且 `site.tenant_id = tenant_evidence.tenant_id`；产品全局化不改变证据归属 |
+| B-12 | Client/Site 禁用、撤销或绑定变化后，既有 token 必须在运行期复核时被拒绝，不得仅依赖自然过期 |
 
 ## 5. 四因子授权
 
@@ -80,6 +87,9 @@ ALLOW = OAuth Scope AND Tenant ACL AND Site-to-Tenant Binding AND Resource Acces
 
 四者缺一即拒绝；Scope 不替代 ACL，全局产品身份不替代访问权。
 
+- `Site-to-Tenant Binding` 判定使用服务端 `oauth_client`→`site`→`tenant` 关系派生值；请求体或 token 自报的 `tenant_id`/`site_id` 若与派生值不一致即拒绝。
+- 详见 `06` §7.1–§7.3（Token 可信上下文、状态变化处理、运行期校验顺序）。
+
 ## 6. 全局数据 vs 租户私有数据
 
 | 数据 | 归属 | 默认跨租户 |
@@ -91,6 +101,11 @@ ALLOW = OAuth Scope AND Tenant ACL AND Site-to-Tenant Binding AND Resource Acces
 | 客户私有证据 bbox/原文 | 租户私有 | 否 |
 | 客户备注/报价/内部状态 | 租户私有 | 否 |
 | 待确认/冲突记录 | 租户可见 | 否 |
+| 全局身份裁决 / 全局审计事件 | 全局 Canonical（`scope=GLOBAL`） | 否（仅治理角色可读） |
+| 客户确认（Tenant Assertion） | 租户私有（`scope=TENANT`） | 否 |
+
+- 全局身份治理事件写入 `audit_log(scope='GLOBAL')`，`tenant_id` 必须为 NULL，不得强行归属于 Morrishk。
+- 客户对同一产品的确认以 `tenant_assertion` 独立留存；全局采纳/拒绝由 `global_adjudication` 独立记录，二者互不覆盖。
 
 ## 7. 首期范围（签署后实现）
 
@@ -102,7 +117,12 @@ ALLOW = OAuth Scope AND Tenant ACL AND Site-to-Tenant Binding AND Resource Acces
 6. `tenant_product_access` + 四因子授权；
 7. `tenant_document`/`tenant_evidence` 私有边界；
 8. `audit_log` 覆盖身份、裁决、授权拒绝；
-9. 旧 `product_id` 兼容映射与非破坏迁移设计。
+9. 旧 `product_id` 兼容映射与非破坏迁移设计；
+10. Tenant Assertion 提交与租户内确认（不写 `global_product`）；
+11. `tenant_evidence` 的 Site 级归属与 `site.tenant_id` 一致性校验；
+12. Brand Alias / MPN Alias 的作用域唯一约束与有效期规则；
+13. OAuth Token 可信上下文：服务端派生 tenant/site/client，请求体不作为授权依据；
+14. Client/Site 禁用/撤销/绑定变化后的 token 运行期复核与拒绝。
 
 ## 8. 架构预留（首期不启用）
 
@@ -111,7 +131,7 @@ ALLOW = OAuth Scope AND Tenant ACL AND Site-to-Tenant Binding AND Resource Acces
 | 多 Site | 保留 `site_id` 字段与 `site` 表 | 首期只启用官网；新增站点不改表结构 |
 | 多 OAuth Client | 保留 `oauth_client.site_id`/scope | 首期只启用自有 client |
 | 访问级别扩展 | `access_level` 使用可扩展枚举 | 首期 QUERYABLE/EXECUTABLE |
-| 租户隔离 | 全表 `tenant_id` | 未来增加租户不改主键结构 |
+| 租户隔离 | TENANT-scoped 表全带 `tenant_id`/`site_id`；GLOBAL-scoped 表不带 `tenant_id` | 未来增加租户不改主键结构 |
 
 ## 9. 明确延后清单
 

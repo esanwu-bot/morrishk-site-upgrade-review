@@ -3,10 +3,10 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-003 |
-| 版本 | v2.0-R2 |
+| 版本 | v2.1-R2.1 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | 当前 `product_id=prod-{document_id}`；`document_id=doc-{sha[:12]}`；`run_id` 执行级 |
-| 相关决策 | D-04、D-05、D-06、D-21、D-22、D-23（见 `08_DECISION_REGISTER.md`） |
+| 相关决策 | D-04、D-05、D-06、D-21、D-22、D-23、D-41、D-42（见 `08_DECISION_REGISTER.md`） |
 
 ## 1. 三个实体必须分开
 
@@ -105,7 +105,7 @@ RETIRED
 | 9 | normalizer_version 升级 | 旧 `mpn_norm` 保留为 alias/历史键；新键重算并审计；不得静默重写 |
 | 10 | 并发导入 | 部分唯一索引 + 单事务 + 幂等键；冲突返回 `PENDING_CONFLICT`/可重试，不创建重复 |
 | 11 | 事务边界 | Brand 解析、MPN 归一、匹配/创建、文档关联、import_event、audit_log 必须同一事务提交或回滚 |
-| 12 | 裁决事务 | 人工裁决在一个事务内：创建/更新 `global_product`、迁移待确认记录、写 alias、写 audit_log；中途失败整体回滚 |
+| 12 | 全局裁决事务 | 全局裁决在一个事务内：创建/更新 `global_product`、迁移待确认记录、写 alias、写 `global_adjudication` 与 `audit_log`；中途失败整体回滚 |
 
 ### 4.2 待确认与冲突模型（R2-2）
 
@@ -134,7 +134,8 @@ identity_conflict
 
 - `identity_pending`/`identity_conflict` **不得**使用 `product_uid` 或 `pbk1_` 作为主键。
 - `PENDING_*` 可关联 `tenant_document`，但不得因此获得全局产品身份。
-- 裁决通过后：写入 `global_product`（仅 CONFIRMED），待确认记录标记 `ADJUDICATED`，写 alias/lineage 与 `audit_log`；不物理删除原记录。
+- 只有 **Global Identity Adjudication** 通过后才可写入 `global_product`（仅 CONFIRMED）；待确认记录标记 `ADJUDICATED`，写 alias/lineage 与 `audit_log`；不物理删除原记录。
+- Tenant Assertion（客户确认）**不得直接写入或修改** `global_product`；只能作为全局裁决的证据/输入（见 §4.4）。
 - 冲突裁决必须记录：决策人、时间、证据、影响范围、是否跨租户（首期必为否）。
 
 ### 4.3 并发与 normalizer 版本（R2-3）
@@ -148,6 +149,66 @@ identity_conflict
 | 合并/拆分并发 | 对涉及 `product_uid` 加行锁/乐观版本；谱系事件与别名同事务 |
 
 > 以上为候选规则，需 D-04/D-05/D-06/D-10/D-21/D-22/D-23 签署；不是已实现 DDL。
+
+### 4.4 Tenant Assertion 与 Global Identity Adjudication（R2.1）
+
+这是两个独立层次，**不得共用同一个 CONFIRMED 状态**：
+
+| 层 | 主体 | 作用范围 | 允许动作 | 禁止动作 |
+|---|---|---|---|---|
+| **Tenant Assertion** | Morrishk（或未来租户）授权用户 | 仅本租户 | 对自己上传资料、产品归属、Brand/MPN 提出确认或修正；附证据 | 直接写/改 `global_product`；代表其他租户；替代全局审核 |
+| **Global Identity Adjudication** | Ds Bit 全局治理角色 | 全局 | 审核 pending/conflict/assertion；批准后写 `global_product` | 覆盖/删除客户原始 assertion 记录 |
+
+**Tenant Assertion 规则：**
+
+```text
+tenant_assertion
+  assertion_id
+  tenant_id            NOT NULL
+  site_id              NOT NULL
+  actor                提交人
+  assertion_type       BRAND_CONFIRM / MPN_CONFIRM / PRODUCT_OWNERSHIP /
+                       PRODUCT_CORRECTION / DOCUMENT_ATTRIBUTION
+  target_ref           文档/待确认记录/产品候选
+  asserted_values      结构化确认内容
+  evidence_ref         必须可追溯
+  status               SUBMITTED / UNDER_REVIEW / ACCEPTED_BY_GLOBAL /
+                       REJECTED_BY_GLOBAL / WITHDRAWN
+  created_at / updated_at
+  global_decision_ref  nullable
+```
+
+1. 仅在 `tenant_id` 范围内生效；不得改变其他租户的可见性/映射。
+2. 必须保存 `tenant_id`、`site_id`、actor、evidence、时间、状态。
+3. `ACCEPTED_BY_GLOBAL` 只表示全局已采纳，不等于 `global_product` 的 CONFIRMED 本身；写入全局身份仍由 `global_adjudication` 完成并留独立记录。
+4. 提交/撤回均写租户审计；不得物理删除历史。
+5. 客户断言与全局裁决分别留存；全局拒绝或修改客户断言时，**不得覆盖**客户原始记录，只追加裁决引用。
+
+**Global Adjudication 规则：**
+
+```text
+global_adjudication
+  adjudication_id
+  subject_type         PENDING / CONFLICT / TENANT_ASSERTION
+  subject_ref
+  decision             CONFIRM / REJECT / MERGE / SPLIT / REASSIGN
+  rationale
+  decided_by           全局治理角色
+  approved_by          复核人（执行/批准分离）
+  decided_at
+  audit_ref
+```
+
+1. 只有全局治理角色可执行；需执行/批准分离。
+2. 批准 CONFIRM 时才允许在事务内创建/更新 `global_product`，并回写 pending/assertion 状态与引用。
+3. 拒绝时只更新裁决记录与状态，不删除客户 assertion / pending / 证据。
+4. 全局事件写 `audit_log(scope=GLOBAL)`；不得伪造 `tenant_id`（详见 `06` §8.2）。
+
+**首期 Morrishk 边界：**
+
+- Morrishk **可以**提交 Tenant Assertion（角色建议 `tenant.editor` 提交、`tenant.admin` 确认），但**不能**执行 Global Adjudication。
+- 首期 Global Adjudication 由 Ds Bit 侧 `identity.admin` 承担；Morrishk 不得持有该角色。
+- Tenant Assertion 不自动提升为 CONFIRMED；无全局审核时保持 `SUBMITTED`/`UNDER_REVIEW`。
 
 ## 5. 选项与推荐
 
@@ -175,7 +236,9 @@ identity_conflict
 - D-06：合并/拆分/冲突裁决与审计；
 - D-21：正式唯一约束的状态范围（仅 CONFIRMED）；
 - D-22：PENDING_BRAND/PENDING_VARIANT/PENDING_CONFLICT 的待确认队列与键隔离；
-- D-23：合并/拆分/normalizer 升级的历史键保留策略。
+- D-23：合并/拆分/normalizer 升级的历史键保留策略；
+- D-41：Tenant Assertion 模型与首期 Morrishk 可提交范围；
+- D-42：Global Identity Adjudication 角色、执行/批准分离与首期承担方。
 - 当前 `PROPOSED_NOT_APPROVED`；不得把模型写成已批准实现。
 
 ## 8. 测试要求（详见 07）
