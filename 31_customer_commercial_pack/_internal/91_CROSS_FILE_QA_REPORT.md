@@ -8,7 +8,7 @@
 | 报告性质 | 内部自检；不等同于 Reviewer 审核结论 |
 | 总体状态 | **CUSTOMER_DRAFT_READY** |
 
-> 本报告只记录本轮构建可复现的检查结果。客户文件未经独立 Reviewer 审核，不标记 CUSTOMER_REVIEW_READY；未签署，不标记 SIGNOFF_READY。
+> 本报告只记录本轮构建可复现的检查结果。R1 指定阻断项已通过独立 Reviewer 复核；本报告不构成对全部商务内容的完整独立审核，也不代表客户签署确认。不标记 CUSTOMER_REVIEW_READY；未签署，不标记 SIGNOFF_READY。
 
 ## 一、文件清单
 
@@ -69,7 +69,7 @@
 1. PDF 未输出（客户指示本轮先不出 PDF，QA 第 14 项为 PENDING）；
 2. 客户尚未逐项确认范围、费用、日期与工作量；
 3. FR-3-040 费用归属、CR-019 费用归属、CR-015 报价状态待项目负责人书面裁决；
-4. 未取得 Reviewer 独立审核结论，不标记 CUSTOMER_REVIEW_READY；
+4. R1 指定阻断项已取得 Reviewer PASS；全部商务内容的完整审核、商业待决事项确认及客户签署仍未完成。不标记 CUSTOMER_REVIEW_READY；
 5. 未签署，不标记 SIGNOFF_READY；不标记 CONTRACT_SIGNED / PROJECT_STARTED / PRODUCTION_APPROVED。
 
 本报告不构成合同、报价承诺或开发授权。
