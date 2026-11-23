@@ -37,11 +37,15 @@ product_registry
   mpn_norm             normalized MPN
   variant_key          nullable (package/grade/scope) [待裁定]
   natural_key_hash     hash of canonical natural key [候选]
-  status               CONFIRMED / PENDING_BRAND / PENDING_CONFLICT / MERGED / SPLIT / RETIRED
+  status               CONFIRMED / PENDING_BRAND / PENDING_VARIANT / PENDING_CONFLICT / MERGED / SPLIT / RETIRED
   created_at / updated_at
   merged_into          product_uid nullable
   source / evidence_ref
   version              optimistic concurrency
+
+-- 正式自然键唯一约束仅对 CONFIRMED 生效（候选）：
+--   UNIQUE (brand_id, mpn_norm, variant_key) WHERE status = 'CONFIRMED'
+-- 或独立 confirmed_product 表；PENDING_* 不得占用该唯一键。
 
 product_alias
   alias_type           OLD_PRODUCT_ID / OLD_PBK / BRAND_ALIAS / MPN_ALIAS / LEGACY_ID
@@ -75,6 +79,31 @@ product_import_event
 
 > 表名为候选；不是 DDL，不改数据库。
 
+### 3.1 唯一约束与状态隔离（R2）
+
+| 状态 | 是否进入正式注册表 | 是否占用正式自然键 | 是否可生成 `pbk1_` |
+|---|---|---|---|
+| `CONFIRMED` | 是 | 是（唯一） | 是 |
+| `PENDING_BRAND` | 否（待确认队列） | 否 | 否 |
+| `PENDING_VARIANT` | 否（待确认队列） | 否 | 否 |
+| `PENDING_CONFLICT` | 冲突记录表 | 否 | 否 |
+| `MERGED` | 保留记录/别名 | 否（旧键转 alias） | 旧键仅兼容 |
+| `SPLIT` | 保留谱系 | 否（新键生成） | 新键按状态 |
+| `RETIRED` | 保留记录 | 否 | 否 |
+
+- `variant_key` 未裁定 → `PENDING_VARIANT`；**不得以 nullable 省略进入 CONFIRMED**。
+- 合并：旧自然键进 `product_alias`，目标 product_uid 继续有效；不得删除/复用旧键。
+- 拆分：新自然键/新 product_uid；旧键标记 SPLIT/别名，保留谱系。
+- normalizer_version 升级：旧 `mpn_norm` 进 alias/历史，新键重算并审计；不得静默改写。
+
+### 3.2 Alias 注册表分离（R3）
+
+- `brand_alias` 与 `mpn_alias` 是独立注册表，均有 `GLOBAL`/`TENANT` 作用域；
+- 不得共用一个 alias 命名空间；
+- 租户私有 alias 不得影响其他租户；
+- alias 冲突进入 `PENDING_CONFLICT`，人工裁决；
+- 无可靠 Brand/未经批准的 MPN profile 时，不得自动确认/合并。
+
 ## 4. 解析/导入工作流（候选）
 
 ```text
@@ -84,9 +113,10 @@ raw MPN/Brand
   -> natural key candidate
   -> lookup product_registry
      ├─ exact unique match -> reuse product_uid
-     ├─ no match -> create product_uid + audit
+     ├─ no match + variant unresolved -> PENDING_VARIANT
+     ├─ no match + variant resolved -> create product_uid + audit
      ├─ multiple match -> PENDING_CONFLICT + manual adjudication
-     └─ brand missing -> PENDING_BRAND (no formal key)
+     └─ brand missing/low-confidence -> PENDING_BRAND (no formal key)
   -> link document/run (product_document)
   -> write import_event (idempotency)
 ```
@@ -138,7 +168,12 @@ raw MPN/Brand
 - D-05：全局 ID 方案（推荐 C）；
 - D-06：合并/拆分/冲突裁决与审计；
 - D-10：幂等/并发/回滚/迁移；
-- D-04：变体是否进入自然键。
+- D-04：变体是否进入自然键；
+- D-21：正式唯一约束仅对 CONFIRMED 生效；
+- D-22：PENDING_* 队列与正式键隔离；
+- D-23：合并/拆分/normalizer 升级的历史键保留；
+- D-18：Brand/MPN alias 独立注册表与作用域；
+- D-20：无可靠 Brand/未批准 MPN profile 时禁止自动确认/合并。
 - 当前 `PROPOSED_NOT_APPROVED`。
 
 ## 11. 测试要求（详见 07）

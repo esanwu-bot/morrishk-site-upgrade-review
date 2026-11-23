@@ -36,6 +36,31 @@
 | V-16 | Brand 合并/更名 | Brand A 合并到 Brand B | 同 brand_id（merged_into） | 旧 Brand alias；产品 uid 不变 | 旧 Brand 断链 |
 | V-17 | MPN 归一化为空 | 空/仅特殊字符 | INVALID_MPN | 不生成键 | 生成空键/合并 |
 | V-18 | 幂等键冲突 | 同 idempotency_key 不同请求 | 拒绝/返回原结果 | IDEMPOTENCY_CONFLICT 或 MATCHED | 重复创建 |
+| V-19 | PENDING_BRAND 不占正式键 | 缺 Brand 的两条不同 MPN 记录 | 均为待确认，不合并 | 均无正式 natural key/`pbk1_`；可并存于待确认队列 | 任一条进入 CONFIRMED 或占用唯一键 |
+| V-20 | PENDING_CONFLICT 不占正式键 | 同 Brand/MPN 多候选 | 冲突待裁决 | 不创建 CONFIRMED 唯一键；冲突记录可多条 | 占键/静默选一 |
+| V-21 | variant 未裁定 | 同 Brand/MPN，封装未知 | `PENDING_VARIANT` | 不生成 CONFIRMED/`pbk1_` | 以 nullable variant 直接 CONFIRMED |
+| V-22 | 同 Brand/MPN 不同封装 | Brand A + MPN X + package P1/P2 | 按 D-04：独立产品或 variant 属性 | 若独立 → 两个 natural key/product_uid；若属性 → 同 uid + variant | 未裁定即合并/拆分 |
+| V-23 | 合并旧自然键保留 | 两个已 CONFIRMED 产品合并 | 目标产品保留 | 旧 natural key → alias/redirect；不删除/不复用 | 旧键消失或指向新空产品 |
+| V-24 | 拆分新自然键生成 | 一个产品拆成两个身份 | 两个新身份 | 新 natural key/product_uid；旧键标 SPLIT/alias | 复用旧键或丢失谱系 |
+| V-25 | normalizer 版本升级 | `MPN-NORM-v1` → v2，norm 变化 | 同一产品关系尽量保持 | 旧 norm 进 alias/历史；新 norm 重算；审计 | 静默改写历史/生成重复产品 |
+| V-26 | 并发 PENDING_CONFLICT | 同身份两并发请求，均缺 variant | 只产生一个冲突记录 | 幂等键/唯一约束防重复；返回同一冲突 | 重复冲突/重复产品 |
+| V-27 | 全局产品 vs 租户 ACL | 客户 A 可见产品 X，客户 B 无 ACL | 全局身份共享，访问不共享 | A 可见；B 不可见（403/404 按策略） | B 因全局身份看到 X/私有证据 |
+| V-28 | 私有证据隔离 | 客户 A 私有 PDF/证据，客户 B 有全局产品访问 | 产品可共享，私有证据不共享 | B 看不到 A 的 bbox/原文/文件 | 私有证据跨租户泄露 |
+
+### 2.1 R2 新增向量覆盖映射
+
+| R2 要求 | 向量 |
+|---|---|
+| 正式唯一约束适用状态 | V-19/V-20/V-21 |
+| PENDING_BRAND 是否进入正式注册表 | V-19 |
+| PENDING_CONFLICT 是否占用正式键 | V-20/V-26 |
+| variant 未定是否允许 CONFIRMED | V-21/V-22 |
+| 同 Brand/MPN 不同封装 | V-22 |
+| 合并旧自然键保留 | V-23 |
+| 拆分新自然键生成 | V-24 |
+| normalizer_version 升级 | V-25 |
+| 并发导入防重复 | V-11/V-26 |
+| 租户/私有证据隔离（R1） | V-27/V-28 |
 
 ## 3. 测试分层（未来）
 

@@ -29,6 +29,61 @@
 
 > `(mpn_norm, brand_norm)` 仅在 D-04/D-05 签署后作为候选自然键；不是永久唯一键。
 
+### 1.1 R1/R2/R3 新增决策（D-16…D-30）
+
+| 编号 | 决策问题 | 可选方案 | 推荐 | 主要风险 | 影响范围 | 需签署 | 当前状态 |
+|---|---|---|---|---|---|---|---|
+| D-16 | Brand Alias 作用域 | A 仅 GLOBAL；B 仅 TENANT；C GLOBAL+TENANT | **C** | 租户别名泄露/覆盖全局 | Brand/产品/API | 是 | PROPOSED_NOT_APPROVED |
+| D-17 | Brand Alias 冲突/历史名 | A 后写覆盖；B 冲突挂起+人工+有效期；C 取最高频 | **B** | 旧名断链/错并 | Brand/产品 | 是 | PROPOSED_NOT_APPROVED |
+| D-18 | Brand/MPN Alias 是否共用注册表 | A 共用；B 独立注册表 | **B** | 命名冲突/维护复杂 | Brand/MPN/身份 | 是 | PROPOSED_NOT_APPROVED |
+| D-19 | MPN Profile 治理 | A 单全局规则；B 通用+按 Brand/厂商 Profile+版本；C 全人工 | **B** | Profile 维护/版本升级 | MPN/身份/API | 是 | PROPOSED_NOT_APPROVED |
+| D-20 | 低置信度 MPN 能否正式确认 | A 允许 CONFIRMED；B 拒绝；C PENDING+人工 | **C** | 待确认积压 | 身份/API | 是 | PROPOSED_NOT_APPROVED |
+| D-21 | 正式唯一约束适用状态 | A 所有状态共享；B 仅 CONFIRMED | **B** | 部分唯一索引/分表复杂度 | DB/Registry | 是 | PROPOSED_NOT_APPROVED |
+| D-22 | PENDING_* 键隔离 | A 主表占键；B 独立待确认队列 | **B** | 队列/迁移复杂度 | DB/身份 | 是 | PROPOSED_NOT_APPROVED |
+| D-23 | 合并/拆分/normalizer 历史键 | A 删除旧键；B 复用旧键；C alias+谱系保留 | **C** | 存储/查询复杂 | DB/API/审计 | 是 | PROPOSED_NOT_APPROVED |
+| D-24 | 全局产品跨租户共享 | A 完全全局；B 每租户独立；C 全局 Canonical+Tenant Access | **C** | 跨租户泄露/治理 | 产品/API/安全 | 是 | PROPOSED_NOT_APPROVED |
+| D-25 | Tenant/Organization/ACL 模型 | A 仅 tenant；B tenant+org 层级；C 仅 org | **B** | ACL 复杂度 | API/DB/安全 | 是 | PROPOSED_NOT_APPROVED |
+| D-26 | 私有 PDF/解析/证据边界 | A 全部共享；B 默认私有+显式共享；C 全部私有 | **B** | 客户授权/合规 | 数据/API/安全 | 是 | PROPOSED_NOT_APPROVED |
+| D-27 | 客户确认与全局治理 | A 单客户可改全局；B 客户确认仅本租户+全局独立治理；C 全局投票 | **B** | 治理流程成本 | 产品/治理 | 是 | PROPOSED_NOT_APPROVED |
+| D-28 | 404/403 存在性泄露策略 | A 一律 404；B 一律 403；C 按可见性分级 | **C（需安全评审）** | 存在性泄露/可诊断性 | API/安全 | 是 | PROPOSED_NOT_APPROVED |
+| D-29 | 单租户假设 | A 明确单租户；B 直接多租户；C 单租户实现+多租户预留 | **C** | 未来扩展返工 | 架构/API/DB | 是 | PROPOSED_NOT_APPROVED |
+| D-30 | OAuth Scope 与 Tenant ACL 组合 | A 仅 scope；B 仅 ACL；C scope AND ACL | **C** | 双重校验复杂度 | 授权/API/安全 | 是 | PROPOSED_NOT_APPROVED |
+
+### 1.2 决策分类（每项至少一类）
+
+| 决策 | 类型 |
+|---|---|
+| D-01 | 业务 |
+| D-02 | 业务 + 技术 |
+| D-03 | 技术 |
+| D-04 | 业务 |
+| D-05 | 技术 |
+| D-06 | 业务 + 技术 |
+| D-07 | 数据迁移 |
+| D-08 | 技术（API） |
+| D-09 | 技术（API） |
+| D-10 | 数据迁移 |
+| D-11 | 业务 |
+| D-12 | 业务 |
+| D-13 | 业务 |
+| D-14 | 业务 |
+| D-15 | 安全/治理 |
+| D-16 | 安全/租户隔离 |
+| D-17 | 业务 |
+| D-18 | 技术 |
+| D-19 | 技术 |
+| D-20 | 技术 + 业务 |
+| D-21 | 技术（DB） |
+| D-22 | 技术（DB） |
+| D-23 | 数据迁移 |
+| D-24 | 安全/租户隔离 |
+| D-25 | 安全/租户隔离 |
+| D-26 | 安全/租户隔离 |
+| D-27 | 安全/租户隔离 |
+| D-28 | 安全 |
+| D-29 | 业务 + 技术 |
+| D-30 | 安全/租户隔离 |
+
 ## 2. 签署栏（由负责人填写，Agent 不代填）
 
 | 决策 | 决策人 | 结论（采纳/修改/驳回） | 日期 | 备注 |
@@ -48,6 +103,21 @@
 | D-13 |  |  |  |  |
 | D-14 |  |  |  |  |
 | D-15 |  |  |  |  |
+| D-16 |  |  |  |  |
+| D-17 |  |  |  |  |
+| D-18 |  |  |  |  |
+| D-19 |  |  |  |  |
+| D-20 |  |  |  |  |
+| D-21 |  |  |  |  |
+| D-22 |  |  |  |  |
+| D-23 |  |  |  |  |
+| D-24 |  |  |  |  |
+| D-25 |  |  |  |  |
+| D-26 |  |  |  |  |
+| D-27 |  |  |  |  |
+| D-28 |  |  |  |  |
+| D-29 |  |  |  |  |
+| D-30 |  |  |  |  |
 
 ## 3. 决策依赖顺序（建议）
 
@@ -55,14 +125,18 @@
 D-14 来源优先级
   -> D-01 Brand 注册表
   -> D-02 Brand 规范化/别名
+  -> D-16/D-17/D-18 Alias 作用域/冲突/独立注册表
   -> D-03 MPN 规范化
+  -> D-19/D-20 Profile 治理/低置信度
   -> D-04 变体/版本边界
   -> D-05 全局 ID
+  -> D-21/D-22/D-23 唯一约束/PENDING 队列/历史键
   -> D-06 合并/拆分/冲突
   -> D-07 兼容
   -> D-08/D-09 API/矩阵
+  -> D-24/D-25/D-26/D-27/D-28/D-30 租户/ACL/私有数据/存在性
   -> D-10 迁移/幂等/回滚
-  -> D-11/D-12/D-13/D-15 支撑决策
+  -> D-11/D-12/D-13/D-15/D-29 支撑决策
 ```
 
 ## 4. 当前状态声明

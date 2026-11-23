@@ -39,10 +39,18 @@ brand_registry
 
 brand_alias
   alias_norm          normalized alias (unique per alias scope)
+  alias_scope         GLOBAL / TENANT [候选]
+  tenant_id           nullable (仅 TENANT scope)
   brand_id            FK
   alias_raw           original text
   valid_from / valid_to
   source / evidence
+
+brand_merge
+  from_brand_id       FK
+  to_brand_id         FK
+  reason / approved_by / approved_at
+  evidence_ref
 
 brand_evidence
   brand_id
@@ -98,6 +106,29 @@ brand_evidence
 4. 历史产品 ID 不删除，保留映射与重定向；
 5. 合并后旧 `brand_norm` 作为别名保留，避免旧键立即失效。
 
+### 6.3 Brand Alias 作用域
+
+| 作用域 | 含义 | 可见性 | 冲突处理 |
+|---|---|---|---|
+| `GLOBAL` | 跨客户共享的官方/行业通用别名 | 所有租户 | 全局唯一；冲突进入全局裁决 |
+| `TENANT` | 单个客户/组织自有的别名或历史叫法 | 仅该 tenant | 租户内唯一；不得影响其他租户 |
+
+规则（候选）：
+
+1. Alias 必须有作用域；禁止把某个客户的私有别名写成 `GLOBAL`。
+2. 查找顺序建议：`TENANT` 精确 → `GLOBAL` 精确 → 未匹配；不得跨租户回退。
+3. 同一 alias 在 `GLOBAL` 与多个 `TENANT` 可并存；租户别名不得覆盖全局语义。
+4. Alias 冲突（同作用域多 brand_id）→ `PENDING_CONFLICT`，人工裁决。
+5. Brand 更名/合并后，旧名保留为 `GLOBAL`/历史 alias，并设置 `valid_to`；不得删除。
+6. `brand_alias` 与 `mpn_alias` 必须是**独立注册表**，不得共用一个 alias 命名空间。
+
+### 6.4 无可靠 Brand 的强制规则
+
+- 没有可靠 Brand 证据时，不得自动确认身份或自动合并产品；
+- Brand 缺失/低置信度 → `PENDING_BRAND`；
+- Brand 别名冲突/多候选 → `PENDING_CONFLICT`；
+- 只有经负责人签署的 Brand 注册表/别名规则才能用于正式身份。
+
 ## 7. 数据来源与证据要求
 
 | 来源 | 可信度 | 要求 |
@@ -131,5 +162,8 @@ brand_evidence
 ## 10. 决策点
 
 - D-01：Brand 权威来源与注册表是否采用；
-- D-02：Brand 规范化/别名/合并/更名规则与签署责任。
-- 两项均待负责人签署；当前 `PROPOSED_NOT_APPROVED`。
+- D-02：Brand 规范化/别名/合并/更名规则与签署责任；
+- D-16：Brand Alias 作用域（GLOBAL/TENANT）与优先级；
+- D-17：Brand Alias 冲突/历史名/更名保留策略；
+- D-18：Brand Alias 与 MPN Alias 独立注册表。
+- 以上均待负责人签署；当前 `PROPOSED_NOT_APPROVED`。

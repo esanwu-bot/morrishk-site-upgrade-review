@@ -31,9 +31,25 @@ mpn_identity
   normalizer_version   e.g. "MPN-NORM-v1" (PROPOSED)
   normalizer_profile   brand/manufacturer-specific profile id
   brand_norm           required for final key (candidate)
-  status               CONFIRMED / PENDING_BRAND / PENDING_CONFLICT / INVALID_MPN
+  status               CONFIRMED / PENDING_BRAND / PENDING_VARIANT / PENDING_CONFLICT / INVALID_MPN
   evidence_ref         page/bbox/raw_text or customer record
   confidence           HIGH / MEDIUM / LOW
+
+mpn_profile_registry
+  profile_id
+  scope                GLOBAL / BRAND / MANUFACTURER [候选]
+  applies_to           brand_id/manufacturer or "*"
+  version              e.g. MPN-NORM-v1
+  status               PROPOSED / APPROVED / RETIRED
+  rules_ref / test_vectors_ref
+  approved_by / approved_at
+
+mpn_alias
+  alias_norm           normalized MPN alias (独立于 brand_alias)
+  alias_scope          GLOBAL / TENANT
+  tenant_id            nullable
+  canonical_mpn_norm
+  source / evidence
 ```
 
 ## 4. 规范化分层（候选）
@@ -57,6 +73,26 @@ mpn_identity
 - 同一厂商不同产品线的特例。
 
 **结论：不能假定一套简单规则适用于所有厂商。** 每个 profile 必须有版本、适用范围、测试向量与负责人。
+
+### 4.3 Profile 适用范围与版本治理
+
+| 项 | 候选规则 |
+|---|---|
+| 适用范围 | `GLOBAL`（无更具体 profile 时的通用规则）、`BRAND`、`MANUFACTURER`；更具体者优先 |
+| 版本 | 每个 profile 独立版本（如 `MPN-NORM-v1`）；规则集与测试向量绑定 |
+| 状态 | `PROPOSED` → 负责人/维护人批准 → `APPROVED`；旧版 `RETIRED` 但保留可复算 |
+| fallback | 无匹配 profile → 使用 `GLOBAL` fallback，并标记 `LOW_CONFIDENCE`；不得自动 CONFIRMED |
+| 升级 | 新版本不得静默覆盖旧 `mpn_norm`；旧值进入 alias/历史，保留可追溯 |
+| 审计 | 记录 profile_id/version/规则摘要/输入输出/批准人 |
+
+**没有经批准的 MPN profile/归一化规则时，不得自动确认身份或自动合并产品。**
+
+### 4.4 Brand Alias 与 MPN Alias
+
+- `brand_alias` 与 `mpn_alias` 是**独立注册表**，不得共用命名空间；
+- 两者都可有 `GLOBAL`/`TENANT` 作用域；
+- MPN alias（如厂商旧型号、替代料）不得自动改变 Brand；Brand alias 也不得改写 MPN；
+- 两者冲突均进入人工裁决，不静默覆盖。
 
 ## 5. 归一化与证据追溯
 
@@ -88,8 +124,17 @@ mpn_identity
 ## 8. 决策点
 
 - D-03：MPN 规范化是否按 Brand/厂商分 profile、版本治理与责任人；
-- D-04：大小写/空格/连字符/后缀的默认规则，以及需要人工裁决的例外。
+- D-04：大小写/空格/连字符/后缀的默认规则，以及需要人工裁决的例外；
+- D-19：MPN Profile 适用范围/fallback/版本治理；
+- D-20：低置信度 MPN 是否允许正式确认（建议：不允许，需人工/补充证据）。
 - 当前 `PROPOSED_NOT_APPROVED`；不得把 `MPN-NORM-v1` 当成已冻结规则。
+
+## 8.1 无 Profile/低置信度的强制规则
+
+1. 无匹配 profile → `GLOBAL` fallback + `LOW_CONFIDENCE`，不得 CONFIRMED；
+2. 低置信度 MPN 不得自动合并/拆分产品；
+3. 只有经批准的 profile + 足够证据才能进入 CONFIRMED；
+4. 负责人可裁定是否允许特定低置信度场景例外，并留下签署记录。
 
 ## 9. 测试要求（详见 07）
 

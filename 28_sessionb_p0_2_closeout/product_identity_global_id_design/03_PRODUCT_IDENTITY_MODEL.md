@@ -51,12 +51,14 @@ product 1 ── 0..1 product_merge/split lineage
 - 若变体有独立 MPN/订购号、可单独采购 → 倾向独立产品；
 - 若只是包装/温度/速度选项、无独立商业身份 → 作为 Product 属性/版本；
 - 最终由负责人按业务定义裁定，不能由 Agent 决定。
+- **在 D-04 未签署前，任何 variant_key 均为未裁定；不得以 nullable 省略并进入 CONFIRMED。**
 
 ## 4. 产品身份状态机（候选）
 
 ```text
 INVALID_MPN
 PENDING_BRAND
+PENDING_VARIANT
 PENDING_CONFLICT
 CONFIRMED
 MERGED (alias to another product)
@@ -67,6 +69,22 @@ RETIRED
 - 只有 `CONFIRMED` 可生成正式产品身份/`pbk1_`。
 - `PENDING_*` 进入人工/客户确认队列。
 - `MERGED`/`SPLIT` 不删除旧 ID，保留别名/谱系。
+
+### 4.1 正式唯一约束与状态规则（R2 补充）
+
+| # | 规则 | 说明 |
+|---|---|---|
+| 1 | 正式自然键唯一约束只适用于 `CONFIRMED` | 建议使用部分唯一索引/独立 confirmed 表；不得让所有状态共享一个唯一键 |
+| 2 | `PENDING_BRAND` 不进入正式注册表 | 可进入待确认队列；不占用正式自然键，不生成 `pbk1_` |
+| 3 | `PENDING_CONFLICT` 不占用正式自然键 | 冲突记录单独保存；未经裁决不得创建/占用 CONFIRMED 键 |
+| 4 | `variant_key` 未确定时禁止 `CONFIRMED` | 进入 `PENDING_VARIANT`；**不得把未裁定的 variant_key 当作可安全忽略的 nullable 字段** |
+| 5 | 同 Brand/MPN 不同封装 | 若封装是独立商业身份 → 独立 `variant_key`/product_uid；否则作为属性；未裁定前 `PENDING_VARIANT` |
+| 6 | 合并时旧自然键 | 保留为 `product_alias`/旧 natural key，重定向到目标 product_uid；不删除、不复用 |
+| 7 | 拆分时新自然键 | 为新拆分产品生成新 natural key/product_uid；旧键标记 SPLIT/别名，保留谱系 |
+| 8 | normalizer_version 升级 | 旧 `mpn_norm` 保留为 alias/历史键；新键需迁移/重算并审计；不得静默重写历史 |
+| 9 | 并发导入 | 自然键唯一约束 + 事务 + 幂等键；冲突返回 `PENDING_CONFLICT`/可重试，不创建重复 |
+
+> 以上为候选规则，需 D-04/D-05/D-06/D-10 签署；不是已实现 DDL。
 
 ## 5. 选项与推荐
 
@@ -91,7 +109,10 @@ RETIRED
 
 - D-04：变体/封装/多版本是否进入自然键；
 - D-05：全局 ID 方案与产品/文档/运行模型；
-- D-06：合并/拆分/冲突裁决与审计。
+- D-06：合并/拆分/冲突裁决与审计；
+- D-21：正式唯一约束的状态范围（仅 CONFIRMED）；
+- D-22：PENDING_BRAND/PENDING_VARIANT/PENDING_CONFLICT 的待确认队列与键隔离；
+- D-23：合并/拆分/normalizer 升级的历史键保留策略。
 - 当前 `PROPOSED_NOT_APPROVED`；不得把模型写成已批准实现。
 
 ## 8. 测试要求（详见 07）
