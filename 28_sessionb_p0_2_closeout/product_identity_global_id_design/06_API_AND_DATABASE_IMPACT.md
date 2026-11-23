@@ -3,11 +3,11 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-006 |
-| 版本 | v2.1-R2.1 |
+| 版本 | v2.2-R2.2 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 性质 | 影响分析；**不修改** OpenAPI、75 矩阵正式状态或数据库 |
 | 事实基线 | 契约候选 `CANDIDATE_NOT_FROZEN`；75 项 0/75 可执行；无 Business API 实现 |
-| 相关决策 | D-05、D-08、D-09、D-10、D-24…D-34 |
+| 相关决策 | D-05、D-08、D-09、D-10、D-24…D-34、D-41…D-46 |
 
 ## 1. 16 个 API operations 的影响
 
@@ -83,9 +83,9 @@ get_lineage(product_uid)
 | `audit_log` | audit_id, scope, tenant_id?, site_id?, actor, action, ref, at | CHECK((scope='GLOBAL' AND tenant_id IS NULL) OR (scope='TENANT' AND tenant_id IS NOT NULL)); index(tenant_id, at); index(ref) | 首期必需 |
 | `identity_pending` | pending_id, tenant_id, site_id, reason, status, idempotency_key | unique(idempotency_key); index(status) | 支撑身份 |
 | `identity_conflict` | conflict_id, pending_id?, scope, tenant_id?, conflict_type, status | index(status) | 支撑身份 |
-| `brand_registry` / `brand_alias` | brand_id / alias_norm, brand_id, scope, tenant_id? | `brand_registry` GLOBAL 无 tenant_id；`brand_alias` 部分唯一：GLOBAL(`alias_norm`)、TENANT(`tenant_id, alias_norm`)，并 CHECK scope/tenant_id 一致 | 支撑身份 |
-| `mpn_alias` / `mpn_profile` | alias_norm, brand_id, mpn_norm, scope, tenant_id? / profile_scope, status | `mpn_alias` 部分唯一：GLOBAL(`brand_id, alias_norm`)、TENANT(`tenant_id, brand_id, alias_norm`)；`brand_id NOT NULL`；`mpn_profile` GLOBAL 无 tenant_id | 支撑身份 |
-| `tenant_assertion` / `global_adjudication` | tenant_id, site_id, status / subject_type, decision, decided_by, approved_by | `tenant_assertion` 仅 TENANT；`global_adjudication` 仅 GLOBAL 且无 tenant_id；二者独立记录 | 支撑治理 |
+| `brand_registry` / `brand_alias` | brand_id / alias_norm, brand_id, scope, tenant_id?, is_current | `brand_registry` GLOBAL 无 tenant_id；`brand_alias` 当前映射部分唯一：GLOBAL(`alias_norm WHERE is_current`)、TENANT(`tenant_id, alias_norm WHERE is_current`)，历史行可多行；CHECK scope/tenant_id 一致 | 支撑身份 |
+| `mpn_alias` / `mpn_profile` | alias_norm, brand_id, mpn_norm, scope, tenant_id?, is_current / profile_scope, status | `mpn_alias` 当前映射部分唯一：GLOBAL(`brand_id, alias_norm WHERE is_current`)、TENANT(`tenant_id, brand_id, alias_norm WHERE is_current`)；`brand_id NOT NULL`；历史行可多行；`mpn_profile` GLOBAL 无 tenant_id | 支撑身份 |
+| `tenant_assertion` / `global_adjudication` | submitted_by, tenant_approved_by, status / decided_by, approved_by, decision_status | `tenant_assertion` 仅 TENANT（Site-level）；`global_adjudication` 仅 GLOBAL 且无 tenant_id；决策与批准必须不同人 | 支撑治理 |
 | `global_product_alias` | alias_type, alias_value, product_uid | unique(alias_type, alias_value) | 兼容 |
 | `product_lineage` / `product_import_event` | event_id, from/to, type / idempotency_key | index(from/to); unique(idempotency_key) | 审计/幂等 |
 | `legacy_map` | legacy_product_id, product_uid, tenant_id, site_id | unique(legacy_product_id) | 兼容 |
@@ -245,7 +245,7 @@ audit_log              -- 混合审计：GLOBAL/TENANT 分开
 
 | 规则 | 内容 |
 |---|---|
-| R2-1-T1 | **TENANT-scoped 业务行**（`tenant_document`、`tenant_evidence`、`tenant_assertion`、`identity_pending`、`tenant_product_access`）必须带 `tenant_id`；缺失即拒绝写入。**GLOBAL-scoped 行**（`global_product`、`brand_registry`、GLOBAL 作用域 alias、`mpn_profile`、`global_adjudication`）不得伪造 `tenant_id`；`site_id` 仅在 TENANT 行必填 |
+| R2-1-T1 | 按三类归属写入：**Global-level**（`global_product`、`brand_registry`、GLOBAL 作用域 alias、`mpn_profile`、`global_adjudication`、`product_lineage`）`tenant_id`/`site_id` 均必须为 NULL；**Tenant-level**（`tenant_product_access`、`tenant`）`tenant_id` NOT NULL、`site_id` 必须为 NULL；**Site-level**（`tenant_document`、`tenant_evidence`、`tenant_assertion`、`identity_pending`、`oauth_client`）`tenant_id` 与 `site_id` 均 NOT NULL。混用即拒绝写入（见 §8.12） |
 | R2-1-T2 | 所有 token 必须绑定 `tenant_id + site_id + client_id`，三者必须自洽；绑定值来自服务端关系，不采信请求体（见 §7.1） |
 | R2-1-T3 | Site 不可跨 Tenant；OAuth Client 不可跨 Site；`site.tenant_id` 是唯一真值 |
 | R2-1-T4 | Global Product 只承载 CONFIRMED 身份与公共字段，不存客户私有 PDF/证据 |
@@ -303,11 +303,12 @@ ALLOW = OAuth Scope
 | 厂商公开 datasheet 证据 | 全局/公共 | 受许可与策略 | 记录来源与 license |
 | 客户上传 PDF | `tenant_document` 私有 | 否 | 默认不出租户 |
 | 解析 run/候选/表格 | 私有派生 | 否 | 随源 PDF |
-| 客户私有证据 bbox/原文 | `tenant_evidence` 私有 | 否 | 不进 `global_product` |
+| 客户私有证据 bbox/原文 | `tenant_evidence` 私有 | 否 | 首期 `visibility` 仅 `PRIVATE`；不进 `global_product` |
 | 客户备注/报价/内部状态 | 私有 | 否 | 不进全局 |
 | 待确认/冲突记录 | 租户可见 | 否（首期） | 不含其他租户候选 |
 
 - 全局产品与租户访问是两层：产品可以全局存在而不被某租户访问；产品被租户访问也不代表其私有证据可被别家访问。
+- **首期 Evidence 隔离（R2.2-4）**：`tenant_evidence.visibility` 首期只支持 `PRIVATE`；`SHARED`/`PUBLIC` 仅作枚举预留，跨租户共享暂缓（D-38），任何跨租户读取一律拒绝。
 
 ### 8.6 各接口隔离规则（候选）
 
@@ -369,7 +370,7 @@ ALLOW = OAuth Scope
 - D-35…D-40：延后项（Organization Tree、权限继承、计费、跨租户协作、多 Site、第三方 OAuth）。
 - 当前 `PROPOSED_NOT_APPROVED`；不执行 DDL/实现。
 
-### 8.11 Tenant Assertion 与 Global Identity Adjudication（R2.1）
+### 8.11 Tenant Assertion 与 Global Identity Adjudication（R2.1，R2.2 补强）
 
 两层必须分开，**不得共用同一个 CONFIRMED 状态**：
 
@@ -378,30 +379,50 @@ ALLOW = OAuth Scope
 | Tenant Assertion | Morrishk（未来其他租户）授权用户 | 仅本租户 | 对自己上传资料、产品归属、Brand/MPN 提出确认/修正；附证据 | 写/改 `global_product`；代表他租户；替代全局审核 | `tenant_assertion`（`tenant_id`/`site_id` NOT NULL）+ `audit_log(scope='TENANT')` |
 | Global Identity Adjudication | Ds Bit 全局治理角色 | 全局 | 审核 pending/conflict/assertion；批准后写 `global_product` | 覆盖/删除客户原始 assertion 记录 | `global_adjudication`（无 `tenant_id`）+ `audit_log(scope='GLOBAL')` |
 
-- 客户断言状态：`SUBMITTED` / `UNDER_REVIEW` / `ACCEPTED_BY_GLOBAL` / `REJECTED_BY_GLOBAL` / `WITHDRAWN`；**不存在**客户可直接达成的 `CONFIRMED`。
-- `ACCEPTED_BY_GLOBAL` 只表示全局采纳了断言，不等于 `global_product` 已创建；写入全局身份仍由 `global_adjudication` 的执行/批准分离流程完成。
+**四角色审批链（R2.2-3）：**
+
+| 步骤 | 角色 | 建议权限 | 输出状态 | 禁止 |
+|---|---|---|---|---|
+| 1 提交 | Submitter | `tenant.editor` | `SUBMITTED` | 自我审批 |
+| 2 Tenant 审批 | Tenant Approver | `tenant.admin` | `TENANT_APPROVED` | 写 `global_product` |
+| 3 Global 决策 | Global Decision Maker | `identity.admin` | `global_adjudication.decision_status=PROPOSED` | 自我批准；直接写 `global_product` |
+| 4 Global 审批 | Global Approver | `identity.approver` | `decision_status=APPROVED` | 与决策者同人 |
+
+- **审批前不得更新 Global Product**：只有在步骤 4 完成（`decision_status=APPROVED`）后，才允许在同一事务内写 `global_product`；步骤 1–3 均不得触碰。
+- 客户断言状态：`SUBMITTED` / `UNDER_REVIEW` / `TENANT_APPROVED` / `ACCEPTED_BY_GLOBAL` / `REJECTED_BY_GLOBAL` / `WITHDRAWN`；**不存在**客户可直接达成的 `CONFIRMED`。
+- `ACCEPTED_BY_GLOBAL` 只表示全局采纳了断言，不等于 `global_product` 已创建；写入仍由 `global_adjudication` 的决策+批准完成。
 - 全局拒绝或修改客户断言时，只追加裁决引用，**不得覆盖**客户原始记录。
-- 首期角色边界：Morrishk 可提交 Tenant Assertion（建议 `tenant.editor` 提交、`tenant.admin` 确认），但**不得**持有 `identity.admin`，不得执行 Global Adjudication。
+- 首期角色边界：Morrishk 可提交并完成 Tenant 审批（`tenant.editor` → `tenant.admin`），但**不得**持有 `identity.admin`/`identity.approver`，不得执行 Global Adjudication。
 - 裁决接口属未来身份管理操作，需独立 scope 评估；本轮不实现、不接真实 OAuth。
 
-### 8.12 全局/租户数据归属对照（R2.1）
+### 8.12 资源归属三类与全局/租户审计（R2.1，R2.2 补强）
 
-| 数据 | 归属 | `tenant_id` | `site_id` | 审计 scope |
+所有身份域资源按三类归属判定，**不得混用**：
+
+| 类别 | `tenant_id` | `site_id` | 代表表 |
+|---|---|---|---|
+| **Global-level** | 必须为 NULL（禁止伪造） | 必须为 NULL | `global_product`、`brand_registry`、GLOBAL 作用域 `brand_alias`/`mpn_alias`、`mpn_profile`、`global_adjudication`、`product_lineage` |
+| **Tenant-level** | NOT NULL | 必须为 NULL | `tenant_product_access`、`tenant`、TENANT 作用域 `identity_conflict` |
+| **Site-level** | NOT NULL | NOT NULL，且 `site.tenant_id = tenant_id` | `tenant_document`、`tenant_evidence`、`tenant_assertion`、`identity_pending`、`oauth_client`、`tenant` 下的 `site` 本身 |
+
+| 数据 | 归属类别 | `tenant_id` | `site_id` | 审计 scope |
 |---|---|---|---|---|
-| `global_product` | GLOBAL | 禁止出现 | 禁止出现 | GLOBAL |
-| `brand_registry` | GLOBAL | 禁止出现 | 禁止出现 | GLOBAL |
-| `brand_alias` / `mpn_alias` | 按 `scope` 判定 | `TENANT` 必填；`GLOBAL` 必须为 NULL | 不需要 | 按 scope |
-| `mpn_profile` | GLOBAL | 禁止出现 | 禁止出现 | GLOBAL |
-| `global_adjudication` / `product_lineage` | GLOBAL | 禁止出现 | 禁止出现 | GLOBAL |
-| `tenant_document` / `tenant_evidence` | TENANT | 必填 | 必填 | TENANT |
-| `tenant_assertion` | TENANT | 必填 | 必填 | TENANT |
-| `tenant_product_access` | TENANT | 必填 | 不需要 | TENANT |
-| `identity_pending` | TENANT | 必填 | 必填 | TENANT |
-| `identity_conflict` | 混合（`scope`） | `TENANT` 必填 / `GLOBAL` 必须为 NULL | `TENANT` 必填 | 按 scope |
-| `audit_log` | 混合（`scope`） | `TENANT` 必填 / `GLOBAL` 必须为 NULL | `TENANT` 必填 | 自身 |
+| `global_product` | Global-level | 禁止出现 | 禁止出现 | GLOBAL |
+| `brand_registry` | Global-level | 禁止出现 | 禁止出现 | GLOBAL |
+| `brand_alias` / `mpn_alias` | 按 `scope`：GLOBAL 为 Global-level，TENANT 为 Tenant-level | `GLOBAL` 必须 NULL；`TENANT` 必填 | 必须 NULL | 按 scope |
+| `mpn_profile` | Global-level | 禁止出现 | 禁止出现 | GLOBAL |
+| `global_adjudication` / `product_lineage` | Global-level | 禁止出现 | 禁止出现 | GLOBAL |
+| `tenant_product_access` | Tenant-level | 必填 | 必须 NULL | TENANT |
+| `tenant_document` / `tenant_evidence` | Site-level | 必填 | 必填 | TENANT |
+| `tenant_assertion` | Site-level | 必填 | 必填 | TENANT |
+| `identity_pending` | Site-level | 必填 | 必填 | TENANT |
+| `oauth_client` | Site-level（绑定 site） | 必填 | 必填 | TENANT |
+| `identity_conflict` | 混合：GLOBAL 为 Global-level，TENANT 为 Tenant-level | `GLOBAL` 必须 NULL；`TENANT` 必填 | GLOBAL 必须 NULL；TENANT 必须 NULL | 按 scope |
+| `audit_log` | 混合 | **允许 `tenant_id = NULL`（仅 `scope='GLOBAL'`）**；`scope='TENANT'` 必填 | GLOBAL 允许 NULL；TENANT 必填 | 自身 |
 
-- “所有业务行必须带 `tenant_id`”是过度宽泛表述，已废止；改为按上表判定。
-- 全局身份治理事件不得强行归属 Morrishk；若事件实际由 Morrishk 的断言触发，则同时保留 TENANT 侧 assertion 记录与 GLOBAL 侧裁决记录，二者独立可追溯。
+- `audit_log` 的 GLOBAL 记录**允许且要求 `tenant_id = NULL`**，不得填入 Morrishk；TENANT 记录必须有 `tenant_id`（及 `site_id`）。
+- “所有业务行必须带 `tenant_id`”是过度宽泛表述，已废止；改为按三类归属判定。
+- 全局身份治理事件不得强行归属 Morrishk；若事件由 Morrishk 的断言触发，则 TENANT 侧 assertion 与 GLOBAL 侧裁决分别留存、互不覆盖。
 
 ## 9. 对契约冻结的影响
 

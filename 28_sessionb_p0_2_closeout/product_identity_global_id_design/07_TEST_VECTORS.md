@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-007 |
-| 版本 | v2.1-R2.1 |
+| 版本 | v2.2-R2.2 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 性质 | 未来实现期测试设计；**本轮未执行**，不替代现有 83 项 Parser 测试 |
 | 关联 | `03_PRODUCT_IDENTITY_MODEL.md`、`04_GLOBAL_ID_REGISTRY.md`、`05_BACKWARD_COMPATIBILITY.md`、`06_API_AND_DATABASE_IMPACT.md`、`10_MORRISHK_FIRST_SCOPE_AND_DEFERRED.md` |
@@ -16,6 +16,7 @@
 - 测试数据全部使用合成/脱敏 fixture，不接生产。
 - **本轮 R2 新增 V-29…V-50 均未执行**；只作为实现期的验收设计。
 - **R2.1 新增 V-51…V-70 亦未执行**；覆盖 Brand 上下文 MPN Alias、Alias 有效期、Global/Tenant 归属、Tenant Assertion、Global Adjudication、伪造 tenant_id、禁用 Client/Site。
+- **R2.2 新增 V-71…V-76 亦未执行**；覆盖当前/历史 Alias 唯一与并发、三类归属、四角色审批链、GLOBAL 审计 `tenant_id=NULL`、首期 Evidence 仅 PRIVATE。
 
 ## 2. 测试向量
 
@@ -70,6 +71,11 @@
 | Tenant Assertion / Global Adjudication（R2.1） | V-62/V-63/V-64 |
 | tenant_evidence Site 边界（R2.1） | V-65/V-66 |
 | 伪造 tenant_id / 禁用 Client、Site（R2.1） | V-67/V-68/V-69/V-70 |
+| Alias 当前/历史映射与并发（R2.2） | V-71/V-72 |
+| Global/Tenant/Site 三类归属（R2.2） | V-73 |
+| 四角色审批链（R2.2） | V-74 |
+| GLOBAL 审计 tenant_id=NULL（R2.2） | V-75 |
+| 首期 Evidence 仅 PRIVATE（R2.2） | V-76 |
 
 ### 2.2 本轮 R2（Morrishk-first）新增向量 V-29…V-50
 
@@ -127,6 +133,19 @@
 
 > V-51…V-70 共 20 个 R2.1 向量，全部**未执行**，与 `03` §4.4、`04` §3.3.1、`06` §7/§8.11/§8.12、`08` D-41…D-45、`10` §4 规则一致。
 
+### 2.4 R2.2 定点修订新增向量 V-71…V-76
+
+| # | 场景 | 输入 | 预期结果 | 校验方法 | 风险 |
+|---|---|---|---|---|---|
+| V-71 | Alias 当前映射唯一、历史可保留 | 同一唯一键已有历史行（`is_current=false`），新增当前映射 | 仅一条 `is_current=true`；历史行保留且不参与唯一冲突 | DB 部分唯一索引 + Repository | 历史行被唯一约束误拒或当前映射重复 |
+| V-72 | Alias 并发写入与区间不重叠 | 两个并发请求对同一唯一键写入不同目标 | 一方成功、另一方回滚并返回可重试/`PENDING_CONFLICT`；区间无重叠 | 并发测试 + 事务校验 | 双写成功或区间重叠 |
+| V-73 | 三类归属混用拒绝 | 向 Global-level 写 tenant_id/site_id；向 Tenant-level 写 site_id；向 Site-level 缺 site_id | 全部拒绝写入 | DB CHECK 断言 | 归属混用未被拦截 |
+| V-74 | 四角色审批链 | 仅有提交者或仅有 Tenant 审批或仅有 Global 决策 | 未到 Global 审批前 `global_product` 不变；决策者不能自我批准 | 授权单测 + DB 断言 | 审批前写全局或同人决策+批准 |
+| V-75 | GLOBAL 审计 tenant_id 允许 NULL | 写入全局裁决审计 | `scope='GLOBAL'`、`tenant_id IS NULL` 成功；写成 Morrishk 则拒绝 | DB CHECK + 审计断言 | GLOBAL 审计被强制填 tenant_id |
+| V-76 | 首期 Evidence 仅 PRIVATE | 写入 `visibility=SHARED/PUBLIC` 或跨租户读取私有证据 | 写入拒绝或标记预留；跨租户读取 DENY | DB 约束 + API 集成 | 首期跨租户证据共享 |
+
+> V-71…V-76 共 6 个 R2.2 向量，全部**未执行**，与 `01` §6.5.1、`02` §4.6、`03` §4.4、`04` §3/§3.3.1、`06` §8.5/§8.11/§8.12、`08` D-41…D-46、`10` §4 规则一致。
+
 ## 3. 测试分层（未来）
 
 | 层 | 内容 | 依赖 |
@@ -148,4 +167,4 @@
 
 - 本轮未执行这些向量；现有 83 项测试只覆盖 Parser/Domain/Evidence，不覆盖本文件场景。
 - 不修改 OpenAPI/75 矩阵/数据库。
-- 所有预期以负责人签署后的 D-04/D-05/D-08/D-31…D-34/D-41…D-45 为准。
+- 所有预期以负责人签署后的 D-04/D-05/D-08/D-31…D-34/D-41…D-46 为准。

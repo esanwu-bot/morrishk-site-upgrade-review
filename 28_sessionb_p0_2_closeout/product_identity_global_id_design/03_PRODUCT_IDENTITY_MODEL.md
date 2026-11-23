@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-003 |
-| 版本 | v2.1-R2.1 |
+| 版本 | v2.2-R2.2 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | 当前 `product_id=prod-{document_id}`；`document_id=doc-{sha[:12]}`；`run_id` 执行级 |
 | 相关决策 | D-04、D-05、D-06、D-21、D-22、D-23、D-41、D-42（见 `08_DECISION_REGISTER.md`） |
@@ -150,7 +150,7 @@ identity_conflict
 
 > 以上为候选规则，需 D-04/D-05/D-06/D-10/D-21/D-22/D-23 签署；不是已实现 DDL。
 
-### 4.4 Tenant Assertion 与 Global Identity Adjudication（R2.1）
+### 4.4 Tenant Assertion 与 Global Identity Adjudication（R2.1，R2.2 补强）
 
 这是两个独立层次，**不得共用同一个 CONFIRMED 状态**：
 
@@ -159,6 +159,18 @@ identity_conflict
 | **Tenant Assertion** | Morrishk（或未来租户）授权用户 | 仅本租户 | 对自己上传资料、产品归属、Brand/MPN 提出确认或修正；附证据 | 直接写/改 `global_product`；代表其他租户；替代全局审核 |
 | **Global Identity Adjudication** | Ds Bit 全局治理角色 | 全局 | 审核 pending/conflict/assertion；批准后写 `global_product` | 覆盖/删除客户原始 assertion 记录 |
 
+**四角色审批链（R2.2-3）：**
+
+| 角色 | 建议权限 | 职责 | 边界 |
+|---|---|---|---|
+| 提交者 Submitter | `tenant.editor` | 提交 Tenant Assertion（附证据） | 不得自我审批 |
+| Tenant 审批者 | `tenant.admin` | 审批本租户断言；通过后状态 `TENANT_APPROVED` 才可进入全局 | 不得写入 `global_product` |
+| Global 决策者 | `identity.admin` | 审核并给出裁决（`PROPOSED`） | 不得自我批准 |
+| Global 审批者 | `identity.approver` | 复核并批准/驳回裁决 | 必须与决策者不同人 |
+
+- 审批链顺序：提交者 → Tenant 审批者 → Global 决策者 → Global 审批者；任一步未完成，不得更新 `global_product`。
+- 同一自然人不得同时承担相邻两个审批角色（提交/审批、决策/批准分离）；审计记录须记录四个角色。
+
 **Tenant Assertion 规则：**
 
 ```text
@@ -166,23 +178,26 @@ tenant_assertion
   assertion_id
   tenant_id            NOT NULL
   site_id              NOT NULL
-  actor                提交人
+  submitted_by         提交者
+  tenant_approved_by   Tenant 审批者（nullable，未审批时为空）
+  tenant_approved_at   nullable
   assertion_type       BRAND_CONFIRM / MPN_CONFIRM / PRODUCT_OWNERSHIP /
                        PRODUCT_CORRECTION / DOCUMENT_ATTRIBUTION
   target_ref           文档/待确认记录/产品候选
   asserted_values      结构化确认内容
   evidence_ref         必须可追溯
-  status               SUBMITTED / UNDER_REVIEW / ACCEPTED_BY_GLOBAL /
-                       REJECTED_BY_GLOBAL / WITHDRAWN
+  status               SUBMITTED / UNDER_REVIEW / TENANT_APPROVED /
+                       ACCEPTED_BY_GLOBAL / REJECTED_BY_GLOBAL / WITHDRAWN
   created_at / updated_at
   global_decision_ref  nullable
 ```
 
 1. 仅在 `tenant_id` 范围内生效；不得改变其他租户的可见性/映射。
-2. 必须保存 `tenant_id`、`site_id`、actor、evidence、时间、状态。
-3. `ACCEPTED_BY_GLOBAL` 只表示全局已采纳，不等于 `global_product` 的 CONFIRMED 本身；写入全局身份仍由 `global_adjudication` 完成并留独立记录。
-4. 提交/撤回均写租户审计；不得物理删除历史。
-5. 客户断言与全局裁决分别留存；全局拒绝或修改客户断言时，**不得覆盖**客户原始记录，只追加裁决引用。
+2. 必须保存 `tenant_id`、`site_id`、提交者、Tenant 审批者、evidence、时间、状态。
+3. 只有 `TENANT_APPROVED` 及之后的状态才允许进入全局裁决流程；`SUBMITTED`/`UNDER_REVIEW` 不触发全局写入。
+4. `ACCEPTED_BY_GLOBAL` 只表示全局已采纳，不等于 `global_product` 的 CONFIRMED 本身；写入全局身份仍由 `global_adjudication` 经决策+批准后完成并留独立记录。
+5. 提交/审批/撤回均写租户审计；不得物理删除历史。
+6. 客户断言与全局裁决分别留存；全局拒绝或修改客户断言时，**不得覆盖**客户原始记录，只追加裁决引用。
 
 **Global Adjudication 规则：**
 
@@ -193,22 +208,24 @@ global_adjudication
   subject_ref
   decision             CONFIRM / REJECT / MERGE / SPLIT / REASSIGN
   rationale
-  decided_by           全局治理角色
-  approved_by          复核人（执行/批准分离）
+  decided_by           Global 决策者
+  approved_by          Global 审批者（必须与 decided_by 不同）
+  decision_status      PROPOSED / APPROVED / REJECTED
   decided_at
+  approved_at          nullable
   audit_ref
 ```
 
-1. 只有全局治理角色可执行；需执行/批准分离。
-2. 批准 CONFIRM 时才允许在事务内创建/更新 `global_product`，并回写 pending/assertion 状态与引用。
+1. 只有全局治理角色可执行；决策与批准必须由不同人完成。
+2. **只有 `decision_status = APPROVED` 时才允许在事务内创建/更新 `global_product`**，并回写 pending/assertion 状态与引用；`PROPOSED` 阶段不得写 `global_product`。
 3. 拒绝时只更新裁决记录与状态，不删除客户 assertion / pending / 证据。
-4. 全局事件写 `audit_log(scope=GLOBAL)`；不得伪造 `tenant_id`（详见 `06` §8.2）。
+4. 全局事件写 `audit_log(scope=GLOBAL)`；`tenant_id` 必须为 NULL（允许 NULL，不得伪造；详见 `06` §8.2/§8.12）。
 
 **首期 Morrishk 边界：**
 
-- Morrishk **可以**提交 Tenant Assertion（角色建议 `tenant.editor` 提交、`tenant.admin` 确认），但**不能**执行 Global Adjudication。
-- 首期 Global Adjudication 由 Ds Bit 侧 `identity.admin` 承担；Morrishk 不得持有该角色。
-- Tenant Assertion 不自动提升为 CONFIRMED；无全局审核时保持 `SUBMITTED`/`UNDER_REVIEW`。
+- Morrishk **可以**提交 Tenant Assertion（`tenant.editor` 提交、`tenant.admin` 审批），但**不能**执行 Global Adjudication。
+- 首期 Global Adjudication 由 Ds Bit 侧 `identity.admin`（决策）与 `identity.approver`（批准）承担；Morrishk 不得持有这两个角色。
+- Tenant Assertion 不自动提升为 CONFIRMED；无 Tenant 审批或无全局审批时分别停留在 `UNDER_REVIEW` / `PROPOSED`。
 
 ## 5. 选项与推荐
 

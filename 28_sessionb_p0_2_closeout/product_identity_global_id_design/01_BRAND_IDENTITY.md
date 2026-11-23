@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-001 |
-| 版本 | v2.1-R2.1 |
+| 版本 | v2.2-R2.2 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | Ds Bit `600439a5`；当前 `Product` 无 Brand |
 | 相关决策 | D-01、D-02、D-16、D-17、D-18、D-44（见 `08_DECISION_REGISTER.md`） |
@@ -150,14 +150,14 @@ brand_evidence
 3. 任何 alias 变更必须写 `audit_log`（actor、tenant、before/after、evidence、approved_by）。
 4. 未签署的 alias 规则只能用于候选匹配，不得生成正式 `pbk1_`/`product_uid`。
 
-### 6.5.1 Brand Alias 唯一约束与有效期（R2.1 候选）
+### 6.5.1 Brand Alias 唯一约束与有效期（R2.1，R2.2 补强）
 
 **唯一性范围（不是 `unique(alias_norm, scope, tenant_id)`）：**
 
-| 作用域 | 唯一键 | 说明 |
+| 作用域 | 当前映射唯一键（`is_current = true`） | 说明 |
 |---|---|---|
-| `GLOBAL` | `alias_norm` 全局唯一（`WHERE scope='GLOBAL'`） | 全局别名不得重复指向不同 `brand_id` |
-| `TENANT` | `(tenant_id, alias_norm)` 唯一（`WHERE scope='TENANT'`） | 同一租户内唯一；不同租户可各自持有同名别名 |
+| `GLOBAL` | `alias_norm` 唯一（`WHERE scope='GLOBAL' AND is_current`） | 同一时刻全局别名只能指向一个 `brand_id` |
+| `TENANT` | `(tenant_id, alias_norm)` 唯一（`WHERE scope='TENANT' AND is_current`） | 同一时刻单租户内只能指向一个 `brand_id`；不同租户可各自持有同名别名 |
 
 **一致性约束：**
 
@@ -166,16 +166,39 @@ CHECK (scope = 'GLOBAL' AND tenant_id IS NULL)
    OR (scope = 'TENANT' AND tenant_id IS NOT NULL)
 ```
 
+**当前映射 vs 历史映射（R2.2-1）：**
+
+1. 每条 alias 行有 `is_current` 标记（或等价判定：`valid_to IS NULL` 且未失效）。
+2. **唯一约束只作用于当前映射**：同一唯一键同一时刻最多一条 `is_current = true`。
+3. **历史映射可保留多行**：`is_current = false` 的旧行不参与唯一冲突，保留 `valid_from`/`valid_to` 与原因，供回溯。
+4. 新增/重新分配时：先关闭旧行（写 `valid_to`、`is_current = false`），再插入新行（`is_current = true`），两步必须在同一事务内完成。
+5. 同目标（同一 `brand_id`）的连续区间允许首尾相接；若重叠同目标，可合并为一行并留审计。
+
 **有效期语义：**
 
-1. `valid_from` 必填；`valid_to` 可空表示持续有效。
+1. `valid_from` 必填；`valid_to` 可空表示持续有效（当前映射）。
 2. 区间为半开 `[valid_from, valid_to)`；`valid_to > valid_from`。
-3. 同一唯一键（GLOBAL 的 `alias_norm`；TENANT 的 `tenant_id+alias_norm`）的有效期**不得重叠**指向不同 `brand_id`；重叠写入 → 拒绝或 `PENDING_CONFLICT`。
-4. 同一 `brand_id` 的连续区间允许首尾相接；重叠同目标可合并为一行并留审计。
-5. 失效（`valid_to` 已过）的别名**允许重新分配**，但必须新增一行并保留旧行；不得原地改写历史。
-6. 版本/规则变更不得删除旧行；旧行保留 `valid_to` 与原因，审计可追溯。
+3. 同一唯一键的有效期**不得重叠**指向不同 `brand_id`；重叠写入 → 拒绝或 `PENDING_CONFLICT`。
+4. 失效（`valid_to` 已过）的别名**允许重新分配**，但必须新增一行并保留旧行；不得原地改写历史。
+5. 版本/规则变更不得删除旧行；旧行保留 `valid_to` 与原因，审计可追溯。
 
-**实现说明（非 DDL）：** 可用部分唯一索引（如 PostgreSQL `CREATE UNIQUE INDEX ... WHERE scope='GLOBAL'` 与 `... WHERE scope='TENANT'`）+ 区间排斥约束/应用层事务校验；本轮不建索引、不迁移。
+**并发写入防护（R2.2-1）：**
+
+```text
+BEGIN
+  对同唯一键加锁（SELECT ... FOR UPDATE 或 advisory lock / SERIALIZABLE）
+  校验目标区间与既有行不重叠
+  若存在 is_current 行：写 valid_to = new.valid_from，is_current = false
+  插入新行 is_current = true
+  写 audit_log
+COMMIT
+```
+
+- 唯一部分索引负责“当前映射唯一”；区间排斥约束（exclusion constraint）或事务内校验负责“历史区间不重叠”。
+- 并发冲突时，后到事务失败回滚并返回可重试/`PENDING_CONFLICT`，不得静默覆盖。
+- 幂等：同一 alias 变更请求携带幂等键，重复提交返回同一结果。
+
+**实现说明（非 DDL）：** 可用部分唯一索引（PostgreSQL `CREATE UNIQUE INDEX ... WHERE scope='GLOBAL' AND is_current` 等）+ 区间排斥约束/应用层事务校验；本轮不建索引、不迁移。
 
 ## 7. 数据来源与证据要求
 

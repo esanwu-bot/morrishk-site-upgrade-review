@@ -3,10 +3,10 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-004 |
-| 版本 | v2.1-R2.1 |
+| 版本 | v2.2-R2.2 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | 无全局产品 ID/注册表；`product_id=prod-doc`；lake 仅 3 表 |
-| 相关决策 | D-05、D-06、D-10、D-21、D-22、D-23、D-31…D-34、D-41…D-45（见 `08_DECISION_REGISTER.md`） |
+| 相关决策 | D-05、D-06、D-10、D-21、D-22、D-23、D-31…D-34、D-41…D-46（见 `08_DECISION_REGISTER.md`） |
 | 收敛模型 | **仅 CONFIRMED 进入 `global_product`**；PENDING/CONFLICT 独立队列；Morrishk 首期单 Tenant；全局/租户数据归属分离 |
 
 ## 1. 目标
@@ -91,9 +91,11 @@ brand_alias
   scope                GLOBAL / TENANT
   tenant_id            NULL for GLOBAL；NOT NULL for TENANT
   valid_from / valid_to
+  is_current           boolean NOT NULL（当前映射标记；历史行 false）
   merged_into          brand_id nullable（更名/合并目标）
   reason / audit_ref
-  -- 唯一：GLOBAL(alias_norm)；TENANT(tenant_id, alias_norm)
+  -- 当前映射唯一：GLOBAL(alias_norm) WHERE is_current；TENANT(tenant_id, alias_norm) WHERE is_current
+  -- 历史行可多条保留；区间不得重叠
   -- CHECK：(scope='GLOBAL' AND tenant_id IS NULL) OR (scope='TENANT' AND tenant_id IS NOT NULL)
 
 mpn_alias
@@ -104,9 +106,11 @@ mpn_alias
   scope                GLOBAL / TENANT
   tenant_id            NULL for GLOBAL；NOT NULL for TENANT
   valid_from / valid_to
+  is_current           boolean NOT NULL（当前映射标记；历史行 false）
   normalizer_version
   reason / audit_ref
-  -- 唯一：GLOBAL(brand_id, alias_norm)；TENANT(tenant_id, brand_id, alias_norm)
+  -- 当前映射唯一：GLOBAL(brand_id, alias_norm) WHERE is_current；TENANT(tenant_id, brand_id, alias_norm) WHERE is_current
+  -- 历史行可多条保留；区间不得重叠
   -- CHECK：(scope='GLOBAL' AND tenant_id IS NULL) OR (scope='TENANT' AND tenant_id IS NOT NULL)
 
 mpn_profile
@@ -142,7 +146,7 @@ tenant_document        -- 租户私有文档；TENANT-scoped
   ownership            CUSTOMER_PRIVATE / SHARED_PUBLIC
   source / evidence_ref
 
-tenant_evidence        -- Site 级私有证据；TENANT-scoped
+tenant_evidence        -- Site-level 私有证据；TENANT-scoped
   evidence_id
   tenant_id            NOT NULL
   site_id              NOT NULL（必须属于同一 tenant）
@@ -150,7 +154,7 @@ tenant_evidence        -- Site 级私有证据；TENANT-scoped
   run_id               nullable（来源解析任务）
   source_ref           至少 document_id 或 run_id 之一必须可追溯
   product_uid          nullable（关联 CONFIRMED；不改变证据归属）
-  visibility           PRIVATE / SHARED / PUBLIC
+  visibility           首期仅 PRIVATE（SHARED/PUBLIC 为预留，跨租户共享不启用）
   license_ref
   created_at
   -- 约束：site.tenant_id = tenant_evidence.tenant_id；私有证据不跨租户
@@ -159,14 +163,16 @@ tenant_assertion       -- 客户确认；TENANT-scoped，不能写 global_produc
   assertion_id
   tenant_id            NOT NULL
   site_id              NOT NULL
-  actor
+  submitted_by         提交者（建议 tenant.editor）
+  tenant_approved_by   Tenant 审批者（建议 tenant.admin；审批前不得提交全局）
+  tenant_approved_at   nullable
   assertion_type       BRAND_CONFIRM / MPN_CONFIRM / PRODUCT_OWNERSHIP /
                        PRODUCT_CORRECTION / DOCUMENT_ATTRIBUTION
   target_ref
   asserted_values
   evidence_ref
-  status               SUBMITTED / UNDER_REVIEW / ACCEPTED_BY_GLOBAL /
-                       REJECTED_BY_GLOBAL / WITHDRAWN
+  status               SUBMITTED / UNDER_REVIEW / TENANT_APPROVED /
+                       ACCEPTED_BY_GLOBAL / REJECTED_BY_GLOBAL / WITHDRAWN
   global_decision_ref  nullable -> global_adjudication
   created_at / updated_at
 
@@ -176,9 +182,11 @@ global_adjudication    -- 全局身份裁决；GLOBAL-scoped，无 tenant_id
   subject_ref
   decision             CONFIRM / REJECT / MERGE / SPLIT / REASSIGN
   rationale
-  decided_by
-  approved_by
+  decided_by           Global 决策者（identity.admin）
+  approved_by          Global 审批者（identity.approver，必须与 decided_by 不同）
+  decision_status      PROPOSED / APPROVED / REJECTED
   decided_at
+  approved_at          nullable（未审批前不得写 global_product）
   audit_ref
 
 product_lineage
@@ -257,24 +265,27 @@ audit_log              -- 混合审计：按 scope 归属，不得伪造 tenant_
 - alias 变更必须写 `audit_log`；未签署规则不得用于自动确认/合并。
 - Brand 与 MPN 的 alias 解析结果不得互相推断（Brand 命中不代表 MPN 合法，反之亦然）。
 
-#### 3.3.1 Alias 唯一约束与有效期（R2.1）
+#### 3.3.1 Alias 唯一约束与有效期（R2.1，R2.2 补强）
 
-| 注册表 | `GLOBAL` 唯一键 | `TENANT` 唯一键 |
+| 注册表 | `GLOBAL` 当前映射唯一键 | `TENANT` 当前映射唯一键 |
 |---|---|---|
-| `brand_alias` | `alias_norm`（`WHERE scope='GLOBAL'`） | `(tenant_id, alias_norm)`（`WHERE scope='TENANT'`） |
-| `mpn_alias` | `(brand_id, alias_norm)`（`WHERE scope='GLOBAL'`） | `(tenant_id, brand_id, alias_norm)`（`WHERE scope='TENANT'`） |
+| `brand_alias` | `alias_norm`（`WHERE scope='GLOBAL' AND is_current`） | `(tenant_id, alias_norm)`（`WHERE scope='TENANT' AND is_current`） |
+| `mpn_alias` | `(brand_id, alias_norm)`（`WHERE scope='GLOBAL' AND is_current`） | `(tenant_id, brand_id, alias_norm)`（`WHERE scope='TENANT' AND is_current`） |
 
 ```text
 CHECK (scope = 'GLOBAL' AND tenant_id IS NULL)
    OR (scope = 'TENANT' AND tenant_id IS NOT NULL)
 ```
 
-1. `valid_from` 必填、`valid_to` 可空；区间半开 `[valid_from, valid_to)`，`valid_to > valid_from`。
-2. 同一唯一键的有效期不得重叠指向不同目标（`brand_id` / `canonical mpn_norm`）；重叠写入拒绝或 `PENDING_CONFLICT`。
-3. 失效别名允许重新分配，但必须新增一行并保留旧行；不得原地改写。
-4. `normalizer_version` 升级只新增行、不改旧行；旧解析可按旧版本回溯。
-5. 实现形式：部分唯一索引 + 区间排斥约束或应用层事务校验；本轮不建索引、不迁移。
-6. Brand Alias 的完整规则见 `01` §6.5.1；MPN Alias 的完整规则见 `02` §4.6。
+1. **当前映射唯一**：同一唯一键同一时刻最多一条 `is_current = true`。
+2. **历史映射可保留**：`is_current = false` 的旧行可多条，不参与唯一冲突，保留 `valid_from`/`valid_to` 与原因。
+3. `valid_from` 必填、`valid_to` 可空；区间半开 `[valid_from, valid_to)`，`valid_to > valid_from`。
+4. **有效期不得重叠**：同一唯一键区间不得重叠指向不同目标（`brand_id` / `canonical mpn_norm`）；重叠写入拒绝或 `PENDING_CONFLICT`。
+5. 失效别名允许重新分配，但必须新增一行并保留旧行；变更时在同一事务内“关闭旧行 + 插入新行”。
+6. `normalizer_version` 升级只新增行、不改旧行；旧解析可按旧版本回溯。
+7. **并发写入防护**：对同唯一键加行锁/advisory lock/SERIALIZABLE，事务内校验区间不重叠并写入；唯一部分索引保证当前映射唯一，区间排斥约束或事务校验保证历史不重叠；冲突回滚并返回可重试/`PENDING_CONFLICT`。
+8. 实现形式：部分唯一索引 + 区间排斥约束或应用层事务校验；本轮不建索引、不迁移。
+9. Brand Alias 的完整规则见 `01` §6.5.1；MPN Alias 的完整规则见 `02` §4.6。
 
 ### 3.4 MPN Profile 选择（R2-4）
 

@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-008 |
-| 版本 | v2.1-R2.1 |
+| 版本 | v2.2-R2.2 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 说明 | 以下均为 Agent 推荐与待决事项；**不是**负责人已批准的架构决策 |
 | 签署栏 | 决策人/日期/结论均留白；未签署前不得用于实现、冻结或生产 |
@@ -66,15 +66,16 @@
 | D-39 | 多 Site 运营 | A 只启用一个 site；B 现在多 site；C 预留多 site+单站点启用 | **C** | 架构预留 | 预留字段误用导致越权 | 架构/API | 是 | PROPOSED_NOT_APPROVED |
 | D-40 | 第三方 OAuth Client / 多客户端治理 | A 只自有 client；B 开放注册；C 预留 client 注册/治理 | **A（C 为预留方向）** | 架构预留 | 客户端治理缺失导致凭证滥用 | 授权/安全/运维 | 是 | PROPOSED_NOT_APPROVED |
 
-### 1.2.1 R2.1 定点修订新增决策（D-41…D-45）
+### 1.2.1 R2.1/R2.2 定点修订新增决策（D-41…D-46）
 
 | 编号 | 决策问题 | 可选方案 | 推荐 | 主要风险 | 影响范围 | 需签署 | 当前状态 |
 |---|---|---|---|---|---|---|---|
-| D-41 | Tenant Assertion 模型与首期 Morrishk 可提交范围 | A 客户确认即写全局；B 客户断言仅本租户 + 全局独立裁决；C 不允许客户提交 | **B** | 断言积压；与全局裁决状态混淆 | 身份/治理/API | 是 | PROPOSED_NOT_APPROVED |
-| D-42 | Global Identity Adjudication 角色、执行/批准分离与首期承担方 | A 无独立裁决；B Ds Bit 全局治理角色执行/批准分离；C 客户自审 | **B** | 角色缺位导致身份无法确认 | 治理/审计/API | 是 | PROPOSED_NOT_APPROVED |
-| D-43 | GLOBAL/TENANT 数据归属与全局审计归属 | A 所有行强制 tenant_id；B 按作用域区分 + 混合审计按 scope | **B** | 归属混乱导致跨租户或伪造租户 | DB/审计/安全 | 是 | PROPOSED_NOT_APPROVED |
-| D-44 | Brand Alias / MPN Alias 唯一约束与有效期 | A 单一 `unique(alias_norm, scope, tenant_id)`；B 按作用域部分唯一索引 + 有效期不重叠 | **B** | 约束/索引实现复杂度 | Brand/MPN/DB | 是 | PROPOSED_NOT_APPROVED |
+| D-41 | Tenant Assertion 模型与首期 Morrishk 可提交范围 | A 客户确认即写全局；B 客户断言仅本租户 + 四角色审批链；C 不允许客户提交 | **B** | 断言积压；与全局裁决状态混淆 | 身份/治理/API | 是 | PROPOSED_NOT_APPROVED |
+| D-42 | Global Identity Adjudication 角色、执行/批准分离与首期承担方 | A 无独立裁决；B Ds Bit `identity.admin` 决策 + `identity.approver` 批准，审批前不写全局；C 客户自审 | **B** | 角色缺位导致身份无法确认 | 治理/审计/API | 是 | PROPOSED_NOT_APPROVED |
+| D-43 | Global/Tenant/Site 三类归属与全局审计归属 | A 所有行强制 tenant_id；B 三类归属 + GLOBAL 审计允许 tenant_id=NULL | **B** | 归属混乱导致跨租户或伪造租户 | DB/审计/安全 | 是 | PROPOSED_NOT_APPROVED |
+| D-44 | Brand Alias / MPN Alias 唯一约束与有效期 | A 单一 `unique(alias_norm, scope, tenant_id)`；B 当前映射部分唯一 + 历史行保留 + 有效期不重叠 + 并发锁 | **B** | 约束/索引实现复杂度 | Brand/MPN/DB | 是 | PROPOSED_NOT_APPROVED |
 | D-45 | OAuth Token 可信上下文与 Client/Site 状态变化处理 | A 信任请求体 tenant/site；B 服务端派生 + 运行期复核 + 禁用即拒绝 | **B** | 校验遗漏导致越权/伪造 | 授权/API/安全 | 是 | PROPOSED_NOT_APPROVED |
+| D-46 | 首期 Evidence visibility 范围 | A PRIVATE/SHARED/PUBLIC 全启用；B 首期仅 PRIVATE，其余预留；C 全部公开 | **B** | 跨租户证据泄露 | 证据/API/安全 | 是 | PROPOSED_NOT_APPROVED |
 
 ### 1.3 决策分类（每项至少一类）
 
@@ -125,6 +126,7 @@
 | D-43 | 安全/租户隔离 | 首期必需（归属） |
 | D-44 | 技术（DB） | 首期必需（身份） |
 | D-45 | 安全/租户隔离 | 首期必需（授权） |
+| D-46 | 安全/租户隔离 | 首期必需（证据） |
 
 ### 1.4 责任方与签署建议（不代表已指定）
 
@@ -140,6 +142,7 @@
 | D-41/D-42/D-43 | 项目负责人 | 安全、客户代表 | 客户断言、全局裁决与数据归属 |
 | D-44 | 项目负责人 | 技术、DBA | Alias 唯一约束与有效期 |
 | D-45 | 项目负责人 | 安全、运维 | Token 可信上下文与凭证状态处理 |
+| D-46 | 项目负责人 | 安全、业务 | 首期证据可见性范围 |
 
 > 以上仅为建议；实际决策人/会签以签署栏填写为准，Agent 不代指定、不代签。
 
@@ -192,6 +195,7 @@
 | D-43 |  |  |  |  |
 | D-44 |  |  |  |  |
 | D-45 |  |  |  |  |
+| D-46 |  |  |  |  |
 
 ## 3. 决策依赖顺序（建议）
 
@@ -220,6 +224,7 @@ D-14 来源优先级
   -> D-43 全局/租户数据归属与审计归属（R2.1）
   -> D-44 Alias 唯一约束与有效期（R2.1）
   -> D-45 OAuth Token 可信上下文（R2.1）
+  -> D-46 首期 Evidence visibility 范围（R2.2）
 ```
 
 ## 4. 当前状态声明

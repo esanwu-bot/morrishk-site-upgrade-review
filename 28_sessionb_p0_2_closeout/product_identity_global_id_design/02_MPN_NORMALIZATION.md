@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-002 |
-| 版本 | v2.1-R2.1 |
+| 版本 | v2.2-R2.2 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | 当前 `normalized_mpn` 恒等于 `requested_mpn`（`pipeline.py:154-155`）；`normalizer_version` 未实现 |
 | 相关决策 | D-03、D-04、D-19、D-20、D-44（见 `08_DECISION_REGISTER.md`） |
@@ -127,7 +127,7 @@ BRAND profile (brand_id 精确匹配)
 3. Profile 变更影响已确认产品时，必须生成迁移/影响清单并审计，不得静默重算。
 4. `mpn_norm` 为空/非法 → `INVALID_MPN`，无论 profile 状态如何都不得确认。
 
-### 4.6 MPN Alias 的 Brand 上下文、唯一约束与有效期（R2.1 候选）
+### 4.6 MPN Alias 的 Brand 上下文、唯一约束与有效期（R2.1，R2.2 补强）
 
 **Brand 上下文（强制）：**
 
@@ -136,12 +136,12 @@ BRAND profile (brand_id 精确匹配)
 3. 同 Alias 在不同 Brand 下可分别存在，互不推断；不得把 Brand A 的 alias 结果用于 Brand B。
 4. 无可靠 Brand 时，MPN alias 不得参与自动确认（回到 `PENDING_BRAND`）。
 
-**唯一性范围：**
+**唯一性范围（当前映射）：**
 
-| 作用域 | 唯一键 | 说明 |
+| 作用域 | 当前映射唯一键（`is_current = true`） | 说明 |
 |---|---|---|
-| `GLOBAL` | `(brand_id, alias_norm)` 唯一（`WHERE scope='GLOBAL'`） | 同一 Brand 的全局别名唯一 |
-| `TENANT` | `(tenant_id, brand_id, alias_norm)` 唯一（`WHERE scope='TENANT'`） | 同一租户、同一 Brand 内唯一 |
+| `GLOBAL` | `(brand_id, alias_norm)` 唯一（`WHERE scope='GLOBAL' AND is_current`） | 同一 Brand 的全局别名当前唯一 |
+| `TENANT` | `(tenant_id, brand_id, alias_norm)` 唯一（`WHERE scope='TENANT' AND is_current`） | 同一租户、同一 Brand 内当前唯一 |
 
 **一致性约束：**
 
@@ -150,6 +150,12 @@ CHECK (scope = 'GLOBAL' AND tenant_id IS NULL)
    OR (scope = 'TENANT' AND tenant_id IS NOT NULL)
 ```
 
+**当前映射 vs 历史映射（R2.2-1）：**
+
+1. 唯一约束只作用于 `is_current = true` 的行；同一唯一键同一时刻最多一条当前映射。
+2. 历史行（`is_current = false`）可多条保留，不参与唯一冲突，保留 `valid_from`/`valid_to` 与原因。
+3. 变更映射时在同一事务内“关闭旧行 + 插入新行”，不得先删后建，也不得原地改写。
+
 **有效期与冲突：**
 
 1. `valid_from` 必填；`valid_to` 可空；区间半开 `[valid_from, valid_to)`，`valid_to > valid_from`。
@@ -157,7 +163,15 @@ CHECK (scope = 'GLOBAL' AND tenant_id IS NULL)
 3. 同作用域、同 Brand、同 Alias 指向多个 canonical MPN → `PENDING_CONFLICT`，不得自动选一。
 4. 失效别名可重新分配，但必须新增一行、保留旧行并写审计；不得原地改写。
 5. `normalizer_version` 升级不得覆盖旧 alias 行：旧行保留原版本与 `valid_to`，新行记录新版本；历史解析可按旧版本回溯。
-6. 版本化实现可用部分唯一索引 + 区间校验/事务；本轮不建索引、不迁移。
+
+**并发写入防护（R2.2-1）：**
+
+- 对同唯一键加行锁（`SELECT ... FOR UPDATE`）或使用 advisory lock / `SERIALIZABLE`，再校验区间不重叠并写入。
+- 唯一部分索引保证当前映射唯一；区间排斥约束或事务内校验保证历史区间不重叠。
+- 并发冲突时后到事务回滚，返回可重试/`PENDING_CONFLICT`；不得静默覆盖。
+- 同一 alias 变更请求带幂等键，重复提交返回同一结果。
+
+**实现说明：** 部分唯一索引 + 区间排斥约束/事务校验；本轮不建索引、不迁移。
 
 ## 5. 归一化与证据追溯
 
