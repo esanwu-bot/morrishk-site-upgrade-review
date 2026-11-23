@@ -3,9 +3,10 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-002 |
+| 版本 | v2.0-R2 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | 当前 `normalized_mpn` 恒等于 `requested_mpn`（`pipeline.py:154-155`）；`normalizer_version` 未实现 |
-| 相关决策 | D-03、D-04（见 `08_DECISION_REGISTER.md`） |
+| 相关决策 | D-03、D-04、D-19、D-20（见 `08_DECISION_REGISTER.md`） |
 
 ## 1. 设计目标
 
@@ -48,6 +49,7 @@ mpn_alias
   alias_norm           normalized MPN alias (独立于 brand_alias)
   alias_scope          GLOBAL / TENANT
   tenant_id            nullable
+  brand_id             nullable（按 Brand 作用域）
   canonical_mpn_norm
   source / evidence
 ```
@@ -81,7 +83,7 @@ mpn_alias
 | 适用范围 | `GLOBAL`（无更具体 profile 时的通用规则）、`BRAND`、`MANUFACTURER`；更具体者优先 |
 | 版本 | 每个 profile 独立版本（如 `MPN-NORM-v1`）；规则集与测试向量绑定 |
 | 状态 | `PROPOSED` → 负责人/维护人批准 → `APPROVED`；旧版 `RETIRED` 但保留可复算 |
-| fallback | 无匹配 profile → 使用 `GLOBAL` fallback，并标记 `LOW_CONFIDENCE`；不得自动 CONFIRMED |
+| fallback | 无匹配 profile → 仅当 `GLOBAL` 自身为 `APPROVED` 时使用 GLOBAL fallback，并标记 `LOW_CONFIDENCE`；不得自动 CONFIRMED |
 | 升级 | 新版本不得静默覆盖旧 `mpn_norm`；旧值进入 alias/历史，保留可追溯 |
 | 审计 | 记录 profile_id/version/规则摘要/输入输出/批准人 |
 
@@ -93,6 +95,35 @@ mpn_alias
 - 两者都可有 `GLOBAL`/`TENANT` 作用域；
 - MPN alias（如厂商旧型号、替代料）不得自动改变 Brand；Brand alias 也不得改写 MPN；
 - 两者冲突均进入人工裁决，不静默覆盖。
+
+### 4.5 R2 Profile 优先级、审批与自动确认
+
+**Profile 选择优先级（候选，唯一顺序）：**
+
+```text
+BRAND profile (brand_id 精确匹配)
+  > MANUFACTURER profile (manufacturer_id 精确匹配)
+  > GLOBAL profile (唯一通用规则)
+  > 无匹配 profile -> PENDING（LOW_CONFIDENCE）
+```
+
+| 规则 | 要求 |
+|---|---|
+| 选中条件 | 仅 `status = APPROVED` 且 `effective_from <= now` 的 profile 可被选用 |
+| 不可用状态 | `PROPOSED`/`RETIRED`/过期 profile 不参与归一化，不得自动确认 |
+| fallback | 仅当 `GLOBAL` profile 自身为 `APPROVED` 时才可作为 fallback；否则 `PENDING_CONFLICT`/`LOW_CONFIDENCE` |
+| 自动确认 | **只有 APPROVED profile** 产出的 `mpn_norm` 才可进入 `CONFIRMED`；其余只能进待确认队列 |
+| 版本记录 | 每次归一化必须记录 `profile_id`、`profile_version`、`normalizer_version` |
+| 版本升级 | 新版本不覆盖旧值；旧 `mpn_norm` 进 alias/历史，重算需审计 |
+| 审批材料 | profile 必须绑定测试向量、适用范围、负责人、生效日期；缺一不得 APPROVED |
+| 租户维度 | Profile 是规则，不是租户数据；首期不存在租户私有 profile；租户私有 MPN alias 另行处理 |
+
+**强制规则（R2-4）：**
+
+1. 没有 APPROVED profile 时，不得自动拆分/合并产品，不得生成正式 `pbk1_`。
+2. 同一 Brand 下多个 APPROVED profile 并存属于治理错误，必须拒绝并报 `PENDING_CONFLICT`；不得“取最新”。
+3. Profile 变更影响已确认产品时，必须生成迁移/影响清单并审计，不得静默重算。
+4. `mpn_norm` 为空/非法 → `INVALID_MPN`，无论 profile 状态如何都不得确认。
 
 ## 5. 归一化与证据追溯
 
@@ -131,7 +162,7 @@ mpn_alias
 
 ## 8.1 无 Profile/低置信度的强制规则
 
-1. 无匹配 profile → `GLOBAL` fallback + `LOW_CONFIDENCE`，不得 CONFIRMED；
+1. 无匹配 profile → 仅当 `GLOBAL` 为 `APPROVED` 时使用 fallback + `LOW_CONFIDENCE`，不得 CONFIRMED；
 2. 低置信度 MPN 不得自动合并/拆分产品；
 3. 只有经批准的 profile + 足够证据才能进入 CONFIRMED；
 4. 负责人可裁定是否允许特定低置信度场景例外，并留下签署记录。

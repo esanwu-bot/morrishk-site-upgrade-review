@@ -3,9 +3,10 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-000 |
-| 版本 | v1.0 |
+| 版本 | v2.0-R2 |
 | 日期 | 2026-11-23 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
+| 策略 | **Morrishk-first / Tenant-ready / Multi-site-later** |
 | 性质 | 架构选项、推荐与待决事项；不是已批准架构、不是实现、不是契约冻结 |
 | 事实基线 | Ds Bit `feat/gate6a-audit` / `600439a5eee69fb3a1cec2715e37080e48ca9840`（干净工作区） |
 | 上游 | `12_/API_CONTRACT_CANDIDATE_v1.md`（IQ-01/§4/§11）；`14_/IQ01_PRODUCT_IDENTITY_ADJUDICATION.md`；`25_/RULE_STATUS_REGISTER.md` R-ID-01…09；`26_/` Phase 2 计划 |
@@ -18,7 +19,31 @@
 3. 设计跨文档、跨批次的全局产品 ID 与注册表；
 4. 给出与现有 `product_id=prod-{document_id}`、`document_id`、`pbk1_` 的兼容/迁移路径；
 5. 分析对 16 操作、75 矩阵、Repository/DB、DTO/错误码、OAuth 边界的影响；
-6. 给出可执行测试向量与负责人决策清单。
+6. 给出可执行测试向量与负责人决策清单；
+7. 以 Morrishk 首期单租户收敛 Tenant / Site / OAuth Client / Global Product / Tenant Product Access 边界，不做通用 SaaS 多租户平台设计。
+
+## 1.1 R2 收敛策略（Morrishk-first）
+
+| 维度 | 首期决定 | 说明 |
+|---|---|---|
+| Tenant | **Morrishk 是唯一首期 Tenant** | 不引入组织树；不为其他客户建模 |
+| Site | **Morrishk 官网是首期 Site** | `Tenant 1:N Site`；首期只启用一个 Site |
+| OAuth Client | **Site 下绑定 OAuth Client** | `Site 1:N OAuth Client`；token 必须绑定 tenant/site/client |
+| Global Product | **仅 CONFIRMED 身份进入 `global_product`** | `PENDING_*` 留在待确认/冲突队列，不占正式键 |
+| Product Access | **Tenant N:M Global Product** | 通过 `tenant_product_access`；全局身份 ≠ 租户访问权 |
+| Organization Tree | **明确延后** | 首期无组织层级、无复杂权限继承、无计费、无跨租户协作 |
+| 多 Site | **架构预留、首期不启用** | 实体保留 `site_id`，但不做多站点运营 |
+
+> 允许公式（候选）：`ALLOW = OAuth Scope AND Tenant ACL AND Site-to-Tenant Binding AND Resource Access Policy`。
+> 四者缺一即拒绝；Scope 不替代租户 ACL，全局产品身份也不替代访问权。
+
+## 1.2 首期实体（仅这八类）
+
+`tenant`、`site`、`oauth_client`、`global_product`、`tenant_product_access`、`tenant_document`、`tenant_evidence`、`audit_log`。
+
+- 关系：`Tenant 1:N Site 1:N OAuth Client`；`Tenant N:M Global Product`（经 `tenant_product_access`）。
+- 不建 `organization`、`billing`、`cross_tenant_share` 等首期实体；需要时另立决策。
+- 实体细节、全局/租户私有数据边界与延后清单见 `10_MORRISHK_FIRST_SCOPE_AND_DEFERRED.md`。
 
 ## 2. 当前系统问题（已复验）
 
@@ -54,6 +79,11 @@
 | D-08 | API 暴露 `pbk1_` 还是 `product_uid`，或双字段 | `06_API_AND_DATABASE_IMPACT.md` |
 | D-09 | 75 矩阵/16 操作的路径与 DTO 影响 | `06_API_AND_DATABASE_IMPACT.md` |
 | D-10 | 幂等/并发/回滚与生产迁移 | `04`/`05` |
+| D-31 | Tenant/Site/OAuth Client 首期边界 | `06`/`08`/`10` |
+| D-32 | Site-to-Tenant Binding 与 OAuth Client 绑定 | `06`/`10` |
+| D-33 | Tenant Product Access 模型与访问级别 | `06`/`10` |
+| D-34 | Resource Access Policy 与 allow/deny 语义 | `06`/`10` |
+| D-35…D-40 | 延后项（Organization Tree、权限继承、计费、跨租户协作、多 Site、第三方 OAuth） | `08`/`10` |
 
 完整清单见 `08_DECISION_REGISTER.md`。
 
@@ -76,9 +106,9 @@
 
 ## 7. 阅读顺序
 
-`01 Brand` → `02 MPN` → `03 产品身份` → `04 全局 ID` → `05 兼容` → `06 API/DB 影响` → `07 测试向量` → `08 决策清单` → `09 R1 复核回应`。
+`01 Brand` → `02 MPN` → `03 产品身份` → `04 全局 ID` → `05 兼容` → `06 API/DB 影响` → `07 测试向量` → `08 决策清单` → `09 R1 复核回应` → `10 Morrishk 首期范围与延后清单` → `11 R2 复核回应`。
 
-> R1 新增租户隔离（`06` §8）、状态/唯一约束、Alias/Profile 治理；回应见 `09_R1_REVIEW_RESPONSE.md`。
+> R1 新增租户隔离、状态/唯一约束、Alias/Profile 治理；R2 收敛为 Morrishk-first 八实体模型，明确首期/预留/延后，并修复 Product Registry、Pending、Variant、Alias、Profile 矛盾。回应见 `11_R2_REVIEW_RESPONSE.md`。
 
 ## 8. 非声明
 
@@ -86,4 +116,6 @@
 - 不宣布 Brand/MPN 规则已冻结。
 - 不宣布 `pbk1_` 已批准。
 - 不宣布 P0-2 关闭、Contract Freeze 或 Production API 准入。
+- 不宣布已建成通用 SaaS 多租户平台；首期仅为 Morrishk 单 Tenant 收敛。
+- 不宣布 Organization Tree、复杂权限继承、计费或跨租户协作已设计完成；这些明确延后。
 - 所有推荐均待负责人签署；未签署前状态为 `PROPOSED_NOT_APPROVED`。

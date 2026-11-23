@@ -3,9 +3,10 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-001 |
+| 版本 | v2.0-R2 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | Ds Bit `600439a5`；当前 `Product` 无 Brand |
-| 相关决策 | D-01、D-02（见 `08_DECISION_REGISTER.md`） |
+| 相关决策 | D-01、D-02、D-16、D-17、D-18（见 `08_DECISION_REGISTER.md`） |
 
 ## 1. 现状与问题
 
@@ -128,6 +129,26 @@ brand_evidence
 - Brand 缺失/低置信度 → `PENDING_BRAND`；
 - Brand 别名冲突/多候选 → `PENDING_CONFLICT`；
 - 只有经负责人签署的 Brand 注册表/别名规则才能用于正式身份。
+
+### 6.5 R2 Alias 注册表收敛（Brand Alias vs MPN Alias）
+
+| 规则 | Brand Alias | MPN Alias | 说明 |
+|---|---|---|---|
+| 注册表 | `brand_alias` | `mpn_alias` | **物理/逻辑均独立**，不共用命名空间 |
+| 主键 | `brand_id` | `canonical_mpn_norm` + profile | 不得把 MPN 原文写进 Brand 注册表，反之亦然 |
+| 作用域 | `GLOBAL` / `TENANT` | `GLOBAL` / `TENANT` | `TENANT` 必须带 `tenant_id` |
+| 查找优先级 | `TENANT` 精确 → `GLOBAL` 精确 → 未匹配 | 同左 | **禁止跨租户回退** |
+| 冲突 | 同作用域多 `brand_id` → `PENDING_CONFLICT` | 同作用域多 canonical MPN → `PENDING_CONFLICT` | 冲突不静默选一 |
+| 租户覆盖 | 租户别名仅本租户解析，不改变全局 `brand_id` 语义 | 同左 | 不得用一个客户的私有叫法改写其他客户 |
+| 自动确认 | 仅经批准的 Brand 注册表/别名规则可参与 CONFIRMED | 仅经批准的 MPN Profile 可参与 CONFIRMED | 否则 `PENDING_BRAND`/`PENDING_CONFLICT` |
+| 历史 | 更名/合并保留旧名为 alias + `valid_to` | 旧型号/替代料保留为 alias + `valid_to` | 不删除、不复用 |
+
+**强制规则（R2-4）：**
+
+1. Brand Alias 不得改写 MPN，MPN Alias 不得改写 Brand；两者只能各自解析到 `brand_id` / `canonical_mpn_norm`。
+2. 租户别名冲突必须在租户内经人工裁决；不得因租户别名冲突阻塞其他租户。
+3. 任何 alias 变更必须写 `audit_log`（actor、tenant、before/after、evidence、approved_by）。
+4. 未签署的 alias 规则只能用于候选匹配，不得生成正式 `pbk1_`/`product_uid`。
 
 ## 7. 数据来源与证据要求
 

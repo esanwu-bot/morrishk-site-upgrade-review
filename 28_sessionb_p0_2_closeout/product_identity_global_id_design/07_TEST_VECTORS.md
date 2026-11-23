@@ -3,9 +3,10 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-007 |
+| 版本 | v2.0-R2 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 性质 | 未来实现期测试设计；**本轮未执行**，不替代现有 83 项 Parser 测试 |
-| 关联 | `04_GLOBAL_ID_REGISTRY.md`、`05_BACKWARD_COMPATIBILITY.md`、`06_API_AND_DATABASE_IMPACT.md` |
+| 关联 | `03_PRODUCT_IDENTITY_MODEL.md`、`04_GLOBAL_ID_REGISTRY.md`、`05_BACKWARD_COMPATIBILITY.md`、`06_API_AND_DATABASE_IMPACT.md`、`10_MORRISHK_FIRST_SCOPE_AND_DEFERRED.md` |
 
 ## 1. 使用说明
 
@@ -13,6 +14,7 @@
 - ID 行为中的 `product_uid` 为候选 surrogate；`pbk1_` 为候选自然键编码。
 - 在 D-04/D-05/D-08 未签署前，这些向量是验收设计，不是已实现断言。
 - 测试数据全部使用合成/脱敏 fixture，不接生产。
+- **本轮 R2 新增 V-29…V-43 均未执行**；只作为实现期的验收设计。
 
 ## 2. 测试向量
 
@@ -29,7 +31,7 @@
 | V-09 | 产品合并 | 两个已存在 product_uid 被裁决为同产品 | 合并后一个主产品 | 保留两 uid；`merged_into` + alias；旧 ID 可重定向 | 物理删除旧 ID/断链 |
 | V-10 | 产品拆分 | 一个 product_uid 被裁决包含两个变体 | 拆成两个产品 | 新 product_uid；旧 uid 标记 SPLIT/别名；谱系记录 | 丢失旧映射 |
 | V-11 | 并发导入 | 同一身份两个并发请求 | 只创建一个产品 | 唯一约束/幂等键；一方 CREATED，一方 MATCHED | 创建重复产品 |
-| V-12 | 历史 ID 兼容 | 旧 `product_id=prod-doc` 查询 | 映射到 product_uid | legacy_map 解析；旧字段保留 | 旧 ID 失效/破坏性替换 |
+| V-12 | 历史 ID 兼容 | 旧 `product_id=prod-doc` 查询 | 映射到 product_uid | legacy_map 解析；旧字段保留；校验 tenant | 旧 ID 失效/破坏性替换 |
 | V-13 | API Scope 隔离 | 缺 `product.evidence.read` 调 evidence | 授权拒绝 | 403 INSUFFICIENT_SCOPE；不泄露身份/证据 | 越权返回 |
 | V-14 | 变体/封装 | 同 Brand/MPN 不同封装 | 按 D-04 决定独立产品或 variant 属性 | variant_key 或独立 uid | 未裁定即合并/拆分 |
 | V-15 | 数据手册版本 | 同产品 v1/v2 datasheet | 同一产品，多文档/版本 | 同 product_uid；版本关系 | 每版生成新产品 |
@@ -47,9 +49,9 @@
 | V-27 | 全局产品 vs 租户 ACL | 客户 A 可见产品 X，客户 B 无 ACL | 全局身份共享，访问不共享 | A 可见；B 不可见（403/404 按策略） | B 因全局身份看到 X/私有证据 |
 | V-28 | 私有证据隔离 | 客户 A 私有 PDF/证据，客户 B 有全局产品访问 | 产品可共享，私有证据不共享 | B 看不到 A 的 bbox/原文/文件 | 私有证据跨租户泄露 |
 
-### 2.1 R2 新增向量覆盖映射
+### 2.1 早期复核（R1/R2 评审）向量覆盖映射
 
-| R2 要求 | 向量 |
+| 早期要求 | 向量 |
 |---|---|
 | 正式唯一约束适用状态 | V-19/V-20/V-21 |
 | PENDING_BRAND 是否进入正式注册表 | V-19 |
@@ -60,26 +62,56 @@
 | 拆分新自然键生成 | V-24 |
 | normalizer_version 升级 | V-25 |
 | 并发导入防重复 | V-11/V-26 |
-| 租户/私有证据隔离（R1） | V-27/V-28 |
+| 租户/私有证据隔离（早期 R1） | V-27/V-28 |
+
+### 2.2 本轮 R2（Morrishk-first）新增向量 V-29…V-43
+
+| # | 场景 | 输入 | 预期结果 | 校验方法 | 风险 |
+|---|---|---|---|---|---|
+| V-29 | 四因子全部满足 | Morrishk tenant + 官网 site + 有效 client；scope 有；ACL 有；资源公开 | ALLOW；返回产品与文档 | 授权单测 + API 集成 | 因子顺序/短路错误导致误放行 |
+| V-30 | 缺 Tenant ACL | scope 有；site 绑定有效；产品不在 `tenant_product_access` | DENY（403 或 404） | 授权单测 | 仅凭全局身份放行 |
+| V-31 | Site 不属于 Tenant | token site 属于其他 tenant | DENY `SITE_BINDING_INVALID` | 授权单测 + token fixture | 配置错配导致跨租户 |
+| V-32 | Client 跨 Site 复用 | client 属于 site A，token 声称 site B（同 tenant） | DENY | 授权单测 | 多站点预留被滥用 |
+| V-33 | 全局产品 + 他租户私有证据 | 产品 ACL 有；证据 visibility=私有且属其他租户 | DENY / 过滤；不返回 bbox/原文 | API 集成 | 私有证据泄露 |
+| V-34 | 本租户私有证据 | 产品 ACL 有；证据属本租户 | ALLOW | API 集成 | 误过滤导致功能缺失 |
+| V-35 | PENDING_BRAND 不落正式表 | 缺 Brand 的导入 | 仅 `identity_pending`；无 `global_product`；无 uid/pbk1 | Repository + DB 断言 | 默认建 CONFIRMED |
+| V-36 | PENDING_VARIANT 三态 | variant_state=UNKNOWN | 仅 pending；不得写 `global_product` | Repository + DB 断言 | NULL 穿透唯一索引 |
+| V-37 | NOT_APPLICABLE 哨兵 | variant_state=NOT_APPLICABLE | `variant_key=__NO_VARIANT__` 且写入成功；无 NULL | DB 约束 + 单测 | 用 NULL 表示无变体 |
+| V-38 | KNOWN 变体独立键 | 同 Brand/MPN，variant=KNOWN A/B | 两个 `global_product`；两个 uid；自然键不同 | Repository + DB 断言 | 变体被合并 |
+| V-39 | 待确认裁决事务 | pending → 裁决为 CONFIRMED | 一个事务内写 `global_product`、标记 ADJUDICATED、写 alias/lineage/audit | 事务故障注入 | 部分成功/重复确认 |
+| V-40 | 裁决失败回滚 | 在写 audit 时人为失败 | 全部回滚；pending 仍 OPEN；无 global_product | 故障注入 | 半成品身份 |
+| V-41 | Brand Alias 租户隔离 | 租户 T1 私有 alias；T2 查询同 raw name | T1 解析成功；T2 不命中该 alias | Repository + 多租户 fixture | 租户 alias 泄露 |
+| V-42 | Brand Alias 冲突 | 同 raw name 两个 GLOBAL 冲突候选 | `PENDING_CONFLICT` + 人工裁决 | Repository | 静默取一 |
+| V-43 | MPN Profile 优先级 | 同 Brand 同时有 BRAND/MANUFACTURER/GLOBAL APPROVED | 选 BRAND；记录 profile_id/version | 单测 | 选错 profile |
+| V-44 | 无 APPROVED Profile | 只有 DRAFT/PROPOSED/RETIRED | 不自动确认；PENDING（LOW_CONFIDENCE） | 单测 | 用未批准规则确认 |
+| V-45 | 同 Brand 多个同优先级 APPROVED Profile | 两个 BRAND APPROVED | 阻断并报治理错误/冲突 | 单测 | 任意选一 |
+| V-46 | normalizer 升级 + 旧 alias | v1→v2 norm 变化；旧值已有 CONFIRMED | 旧 norm 进 `mpn_alias`；新键匹配或冲突；audit | Repository + DB | 静默重写/重复产品 |
+| V-47 | MERGED 旧键唯一性 | A 合并入 B | A 的键进 alias；ACTIVE 唯一索引只剩 B | DB 约束测试 | 旧键仍占唯一索引 |
+| V-48 | 待确认记录幂等 | 同 idempotency_key 两次提交 | 同一 `pending_id`/`conflict_id`；不重复 | Repository | 重复队列项 |
+| V-49 | 旧 `product_id` + tenant ACL | 旧映射存在但产品不在 ACL | 拒绝；不因旧 ID 绕过 | API 集成 | 兼容路径越权 |
+| V-50 | 拒绝审计 | 任意 DENY 场景 | 写 `audit_log`，不含 token/secret | 审计断言 | 无法追查/泄露敏感 |
+
+> V-29…V-50 共 22 个向量，覆盖 R2-1…R2-4；全部**未执行**。若负责人只要求最小集，至少保留 V-29…V-40。
 
 ## 3. 测试分层（未来）
 
 | 层 | 内容 | 依赖 |
 |---|---|---|
-| Unit | Brand/MPN 规范化、状态机、键编码 | no DB |
-| Repository | resolve/match/merge/split、幂等、并发 | 内存/隔离 DB |
-| API | 16 操作、错误码、scope 隔离 | 隔离 Runtime |
-| Migration | 旧 ID 映射、双读、回滚 | 迁移 fixture |
+| Unit | Brand/MPN 规范化、variant_state、状态机、键编码、四因子判定 | no DB |
+| Repository | resolve/match/merge/split、pending/conflict、幂等、并发 | 内存/隔离 DB |
+| API | 16 操作、错误码、scope+ACL+site+resource 四因子 | 隔离 Runtime |
+| Migration | 旧 ID 映射、tenant 回填、双读、回滚 | 迁移 fixture |
 
 ## 4. 失败判定原则
 
-- 任一“预期身份关系”被违反即 FAIL；
+- 任一“预期身份关系/结果”被违反即 FAIL；
 - 任一“预期 ID 行为”被违反即 FAIL；
-- 静默合并/拆分、旧 ID 断链、越权返回均视为 FAIL；
+- 静默合并/拆分、旧 ID 断链、越权返回、私有证据跨租户均视为 FAIL；
+- 部分成功（事务未回滚）视为 FAIL；
 - 测试通过不得替代 Contract Freeze 或生产准入。
 
 ## 5. 边界
 
 - 本轮未执行这些向量；现有 83 项测试只覆盖 Parser/Domain/Evidence，不覆盖本文件场景。
 - 不修改 OpenAPI/75 矩阵/数据库。
-- 所有预期以负责人签署后的 D-04/D-05/D-08 为准。
+- 所有预期以负责人签署后的 D-04/D-05/D-08/D-31…D-34 为准。
