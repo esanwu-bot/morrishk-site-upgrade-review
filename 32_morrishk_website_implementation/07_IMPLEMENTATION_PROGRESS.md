@@ -29,9 +29,10 @@
 | 仓库 | `https://codeup.aliyun.com/5f0af04d5fd102f22f6b747c/morrishk-site.git` |
 | 分支 | `feat/morrishk-website-implementation` |
 | 基线 | `cdb9c044dd2f2fc86967dc6738341b11bbeba7f5` |
-| 提交 | `25afffbeba37a31e4f13932e5daf9434bdc6fcfd` |
-| 提交信息 | `feat(seo): add robots meta support and noindex inquiry/search pages` |
-| 远端分支 | 已推送，`git ls-remote` 返回同一 SHA |
+| 提交 1 | `25afffbeba37a31e4f13932e5daf9434bdc6fcfd` |
+| 提交 2 | `0891ce6e925ed493fba137c9d98a6cf50a0e4b6b` |
+| 提交 3 | `d80491bcbb0efe4d930a333308a9ffef599c4318` |
+| 远端分支 | 已推送，`git ls-remote` 返回 `d80491b` |
 
 ### 2.1 变更文件
 
@@ -41,15 +42,23 @@
 | `controllers/SearchController.php` | 搜索结果页 `noindex,follow` | 避免搜索页被索引 |
 | `controllers/CartController.php` | 询价/无结果 `noindex,follow`；成功页 `noindex,nofollow` | 避免表单页被索引 |
 | `web/robots.txt` | `Allow:/` → `Allow: /` | 格式规范化（不断言原写法在所有爬虫下无效） |
+| `controllers/CartController.php`（提交 2） | `/order/success` → `/cart/success` | 修复询盘成功路由与 `actionSuccess` 不一致 |
+| `views/site/index.php`（提交 2） | 轮播中 2 个 `<h1>` 改为 `<h2>` | 首页保留唯一 H1 |
+| `commands/SnSiiController.php`（提交 3） | `seo()` 支持 canonical/OG/jsonLd | 页面级 SEO 元素 |
+| `controllers/SiteController.php`（提交 3） | 首页 canonical/OG | 首页 SEO |
+| `controllers/ProController.php`（提交 3） | 列表/分类 canonical/OG；PDP JSON-LD | 分类/PDP SEO |
+| `views/layouts/main.php`（提交 3） | 输出 JSON-LD | 结构化数据 |
 
-对应：FR-1-047（部分）、FR-1-049（部分）、P1-02、P1-07。代码级复核材料见 `08_CODE_REVIEW_EVIDENCE.md`。
+对应：FR-1-001（部分）、FR-1-029…034（部分）、FR-1-047（部分）、FR-1-049（部分）、P1-01、P1-02、P1-05（部分）、P1-07。代码级复核材料见 `08_CODE_REVIEW_EVIDENCE.md`。
 
 ### 2.2 回滚
 
 ```bash
+git revert d80491b
+git revert 0891ce6
 git revert 25afffb
-# 或
-git checkout cdb9c04 -- commands/SnSiiController.php controllers/SearchController.php controllers/CartController.php web/robots.txt
+# 或按文件恢复
+git checkout cdb9c04 -- commands/SnSiiController.php controllers/SearchController.php controllers/CartController.php controllers/SiteController.php controllers/ProController.php views/site/index.php views/layouts/main.php web/robots.txt
 ```
 
 本轮未部署，生产不受影响。
@@ -63,7 +72,13 @@ git checkout cdb9c04 -- commands/SnSiiController.php controllers/SearchControlle
 | PHP 语法 | `php -l commands/SnSiiController.php` | PASS：No syntax errors |
 | PHP 语法 | `php -l controllers/SearchController.php` | PASS |
 | PHP 语法 | `php -l controllers/CartController.php` | PASS |
+| PHP 语法 | `php -l controllers/SiteController.php` | PASS |
+| PHP 语法 | `php -l controllers/ProController.php` | PASS |
+| PHP 语法 | `php -l views/layouts/main.php` | PASS |
 | Git 范围 | `git show --stat 25afffb` | 4 文件，+12/−3 |
+| Git 范围 | `git show --stat 0891ce6` | 2 文件，+3/−3 |
+| Git 范围 | `git show --stat d80491b` | 4 文件，+94/−9 |
+| 补丁格式 | `git diff --check cdb9c04..d80491b` | PASS |
 | 工作区 | `git status --short --branch` | 干净，与 origin 同步 |
 
 **未执行**：应用启动、路由请求、单元/集成/E2E、SEO 抓取、性能、部署。
@@ -96,7 +111,7 @@ git checkout cdb9c04 -- commands/SnSiiController.php controllers/SearchControlle
 | B-01B | 合同/报价/详细范围未冻结 | 范围与费用口径 | 客户/商务确认（不阻塞已授权非生产开发） |
 | B-01C | 生产与上线未授权 | 部署/上线 | 书面授权（只阻塞生产） |
 | B-02 | 服务器/数据库/备份无权限 | P0-02/P0-06/P0-07 | 客户提供 |
-| B-03 | 询盘第三方 API 与归属未确认 | P1-05 | 客户决策 |
+| B-03 | 询盘第三方 API 与归属未确认；成功路由已修复 | P1-05 仍未验收 | 客户决策 + 运行环境 |
 | B-04 | 旧域名/URL 未提供 | P2-02 | 客户提供 |
 | B-05 | GSC/GA4/GTM/询盘系统未授权 | P1-12/SD-01 | 客户授权 |
 | B-06 | 104 FR + 15 交付待确认 | 范围冻结 | 客户选择 |
