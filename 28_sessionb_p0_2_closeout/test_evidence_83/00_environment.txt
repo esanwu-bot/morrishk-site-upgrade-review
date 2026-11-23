@@ -1,0 +1,12 @@
+execution_start=2026-11-23T15:19:05+08:00
+repo=/e/workspace/icpdf-extractor
+branch=feat/gate6a-audit
+head=600439a5eee69fb3a1cec2715e37080e48ca9840
+status_before:
+python=Python 3.13.15
+pytest=pytest 9.2.0
+test_files:
+tests/unit/test_domain_contract.py
+tests/unit/test_evidence_validation.py
+tests/integration/test_phase1_pdf.py
+command=python -m pytest tests/unit/test_domain_contract.py tests/unit/test_evidence_validation.py tests/integration/test_phase1_pdf.py -o addopts="" -v --tb=short

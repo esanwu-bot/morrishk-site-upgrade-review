@@ -1,0 +1,6 @@
+execution_end=2026-11-23T15:19:16+08:00
+exit_code=0
+status_after:
+stash:
+stash@{0}: On backup/full-local-20261114: P0-2 exclude 20 worktree items 2026-11-23
+head_after=600439a5eee69fb3a1cec2715e37080e48ca9840
