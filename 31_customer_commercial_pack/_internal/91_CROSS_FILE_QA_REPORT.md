@@ -14,14 +14,14 @@
 
 | 文件 | 可读取字符数 |
 |---|---:|
-| 00_CUSTOMER_PACK_INDEX_AND_VERSION.docx | 2147 |
-| 00_CUSTOMER_PACK_INDEX_AND_VERSION.md | 2573 |
-| 01_MORRISHK_PROJECT_PLAN_AND_ROADMAP.docx | 7465 |
-| 02_FUNCTION_SCOPE_CONFIRMATION.docx | 31045 |
-| 03_SEO_IMPLEMENTATION_AND_MONTHLY_OPERATION.docx | 9281 |
-| 04_COMMERCIAL_QUOTATION_AND_COST_BOUNDARIES.docx | 15966 |
-| 04_COMMERCIAL_QUOTATION_AND_COST_BOUNDARIES.xlsx | 38185 |
-| 05_PROJECT_KICKOFF_AND_ACCEPTANCE_PLAN.docx | 9482 |
+| 00_客户商务启动包目录及版本说明.docx | 2169 |
+| 00_客户商务启动包目录及版本说明.md | 2595 |
+| 01_Morrishk项目总规划与实施路线图.docx | 7465 |
+| 02_项目功能范围确认书.docx | 31045 |
+| 03_SEO首期实施与月度运营方案.docx | 9281 |
+| 04_商务报价与费用边界表.docx | 15966 |
+| 04_商务报价与费用边界表.xlsx | 38185 |
+| 05_项目启动及验收计划.docx | 9482 |
 
 ## 二、14 项独立质量检查
 
