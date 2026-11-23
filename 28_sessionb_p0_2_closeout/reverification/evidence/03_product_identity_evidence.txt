@@ -1,0 +1,54 @@
+# product identity code
+
+    37	class Product(BaseModel):
+    38	    """A product instance inside one document.
+    39	
+    40	    `requested_mpn` is what the caller asked for. `normalized_mpn` is what the
+    41	    document actually supports. They must never overwrite each other.
+    42	    """
+    43	
+    44	    model_config = ConfigDict(extra="forbid", frozen=True)
+    45	
+    46	    product_id: NonEmptyStr
+    47	    document_id: NonEmptyStr
+    48	    requested_mpn: NonEmptyStr
+    49	    normalized_mpn: NonEmptyStr
+    50	    identity_scope: IdentityScope = IdentityScope.UNKNOWN
+    51	    product_type: ProductType = ProductType.UNKNOWN
+    52	    manufacturer: str | None = None
+    53	    package: str | None = None
+    54	    identity_evidence: list[IdentityEvidence] = Field(default_factory=list)
+    55	
+    56	    @model_validator(mode="after")
+    57	    def _check_product(self) -> "Product":
+    58	        if self.normalized_mpn.casefold() == self.requested_mpn.casefold():
+    59	            return self
+    60	        if not self.identity_evidence:
+    61	            raise ValueError(
+    62	                "normalized_mpn differs from requested_mpn; identity_evidence is required"
+    63	            )
+    64	        return self
+
+   151	    product = Product(
+   152	        product_id=f"prod-{document.document_id}",
+   153	        document_id=document.document_id,
+   154	        requested_mpn=requested_mpn,
+   155	        normalized_mpn=requested_mpn,
+   156	        identity_scope="unknown",
+   157	        product_type="unknown",
+   158	    )
+   159	    run.write_json("product.json", product.model_dump(mode="json"))
+
+    58	            document = Document(
+    59	                document_id=document_id or f"doc-{sha[:12]}",
+    60	                filename=path.name,
+    61	                sha256=sha,
+    62	                page_count=doc.page_count,
+    63	                manufacturer=doc.metadata.get("author") or None,
+    64	                document_title=doc.metadata.get("title") or None,
+    65	                document_type=document_type,
+    66	                parser_version=PARSER_VERSION,
+    67	                created_at=datetime.now(timezone.utc),
+
+# brand/supplier search in src
+no brand/supplier/product_business_key/pbk1 in src

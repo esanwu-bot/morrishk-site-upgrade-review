@@ -1,0 +1,140 @@
+{
+ "requested_mpn": "SAME-MPN",
+ "runs": [
+  {
+   "tag": "A",
+   "source_pdf": "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\p02_parse_8py79ljs\\a_simple.pdf",
+   "run_id": "20261123T070219Z-1edde6",
+   "document_id": "doc-f39845a452d2",
+   "document_sha256": "f39845a452d2b679c04a80cc7e5cdc4db53020578b90ba527fc1e37b4c99655b",
+   "product_id": "prod-doc-f39845a452d2",
+   "requested_mpn": "SAME-MPN",
+   "normalized_mpn": "SAME-MPN",
+   "identity_scope": "unknown",
+   "manufacturer": null,
+   "tables": 1,
+   "candidates": 16,
+   "table_sample": {
+    "table_id": "p001-t01",
+    "document_id": "doc-f39845a452d2",
+    "page_number": 1,
+    "bbox": [
+     50.0,
+     89.25,
+     418.8899841308594,
+     162.99000549316406
+    ],
+    "table_type": "other"
+   },
+   "candidate_sample": {
+    "candidate_id": "doc-f39845a452d2:p001-t01-r01-c00",
+    "document_id": "doc-f39845a452d2",
+    "table_id": "p001-t01",
+    "row_id": "p001-t01-r01",
+    "cell_id": "p001-t01-r01-c00",
+    "page_number": 1,
+    "bbox": [
+     50.0,
+     89.25,
+     83.33999633789062,
+     102.98999786376953
+    ],
+    "raw_text": "Symbol"
+   },
+   "manifest_keys": [
+    "artifacts",
+    "boundary_decisions",
+    "candidate_count",
+    "contract_version",
+    "detection_methods",
+    "document_id",
+    "document_sha256",
+    "dpi",
+    "model",
+    "page_count",
+    "parser_config",
+    "parser_config_sha256",
+    "parser_version",
+    "platform",
+    "project_version",
+    "prompt_version",
+    "python_version",
+    "rendered_pages",
+    "requested_mpn",
+    "run_id",
+    "table_count",
+    "table_params",
+    "table_params_sha256"
+   ]
+  },
+  {
+   "tag": "B",
+   "source_pdf": "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\p02_parse_8py79ljs\\b_dupe.pdf",
+   "run_id": "20261123T070220Z-7538b9",
+   "document_id": "doc-7baea8f1117d",
+   "document_sha256": "7baea8f1117d262894bc501599b2412cc41d92d88c95ae59b61e9cf258decac7",
+   "product_id": "prod-doc-7baea8f1117d",
+   "requested_mpn": "SAME-MPN",
+   "normalized_mpn": "SAME-MPN",
+   "identity_scope": "unknown",
+   "manufacturer": null,
+   "tables": 2,
+   "candidates": 24,
+   "table_sample": {
+    "table_id": "p001-t01",
+    "document_id": "doc-7baea8f1117d",
+    "page_number": 1,
+    "bbox": [
+     50.0,
+     89.25,
+     418.8899841308594,
+     142.99000549316406
+    ],
+    "table_type": "recommended_operating"
+   },
+   "candidate_sample": {
+    "candidate_id": "doc-7baea8f1117d:p001-t01-r01-c00",
+    "document_id": "doc-7baea8f1117d",
+    "table_id": "p001-t01",
+    "row_id": "p001-t01-r01",
+    "cell_id": "p001-t01-r01-c00",
+    "page_number": 1,
+    "bbox": [
+     50.0,
+     89.25,
+     83.33999633789062,
+     102.98999786376953
+    ],
+    "raw_text": "Symbol"
+   },
+   "manifest_keys": [
+    "artifacts",
+    "boundary_decisions",
+    "candidate_count",
+    "contract_version",
+    "detection_methods",
+    "document_id",
+    "document_sha256",
+    "dpi",
+    "model",
+    "page_count",
+    "parser_config",
+    "parser_config_sha256",
+    "parser_version",
+    "platform",
+    "project_version",
+    "prompt_version",
+    "python_version",
+    "rendered_pages",
+    "requested_mpn",
+    "run_id",
+    "table_count",
+    "table_params",
+    "table_params_sha256"
+   ]
+  }
+ ],
+ "same_requested_mpn": true,
+ "different_product_id": true,
+ "different_document_id": true
+}

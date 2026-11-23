@@ -1,0 +1,47 @@
+# excluded untracked B2B stub (pre-stash)
+
+9690706b67305bf4a4c10c88325f2198ef2db184c132a418a7ac66e8514cd91a *workbench/b2b/serve_b2b.py
+
+# tracked?
+error: pathspec 'workbench/b2b/serve_b2b.py' did not match any file(s) known to git
+Did you forget to 'git add'?
+
+# key lines
+7:1. ``ICEX_WORKBENCH_ALLOW_PARSE`` 必须为 ``0``；非 0 直接拒绝启动。
+9:   不写 runs/ 与 uploads/，只读取**本地已经生成好**的 V101 JSON 与页面 PNG。
+11:   不签发可用凭证。返回体一律带 ``x_local_static_stub: true`` 与醒目告警。
+18:    ICEX_WORKBENCH_ALLOW_PARSE=0 py -3.13 -m uvicorn serve_b2b:app \
+34:ALLOW_PARSE = os.getenv("ICEX_WORKBENCH_ALLOW_PARSE", "0")
+35:if ALLOW_PARSE != "0":
+37:        "ICEX_WORKBENCH_ALLOW_PARSE 必须为 0：本服务只回放本地已生成结果，禁止解析"
+43:QA_JSON = REPO / "runs/gate6a_replay_v2_postfix/per_sample_json/V101.json"
+44:PILOT = REPO / "runs/_pilot/V101"
+50:SUPPORTED_SAMPLES = ("V101",)
+116:@app.get("/", include_in_schema=False)
+122:@app.get("/qa", include_in_schema=False)
+129:@app.get("/api/control")
+135:        "allow_parse": ALLOW_PARSE,
+144:@app.get("/api/qa/samples")
+149:        "x_local_static_stub": True,
+153:@app.get("/api/qa/sample/{sample_no}")
+156:        raise HTTPException(404, "仅支持本地已生成的 V101 样本")
+163:        "allow_parse": ALLOW_PARSE,
+177:        "x_local_static_stub": True,
+181:@app.get("/api/qa/page/{page}", include_in_schema=False)
+189:@app.get("/.well-known/oauth-authorization-server")
+195:        "token_endpoint": base + "/oauth/token",
+199:        "scopes_supported": ["read:parts"],
+200:        **{"x_local_static_stub": True, "x_not_real_auth": True,
+205:@app.get("/oauth/authorize")
+211:        "x_local_static_stub": True,
+216:@app.post("/oauth/token")
+224:        "scope": form.get("scope", ["read:parts"])[0],
+226:        "x_local_static_stub": True,
+233:@app.get("/v1/health")
+236:            "allow_parse": ALLOW_PARSE, "parse_calls": PARSE_CALLS,
+240:@app.get("/v1/parts")
+241:def v1_parts() -> dict:
+243:            "x_local_static_stub": True}
+246:@app.get("/v1/parts/{model}")
+253:            "hint": "本地静态桩：先 POST /oauth/token 取演示用标记",
+278:        "x_local_static_stub": True,

@@ -1,0 +1,11 @@
+# final git status
+
+# clean?
+CLEAN
+
+# stash
+stash@{0}: On backup/full-local-20261114: P0-2 exclude 20 worktree items 2026-11-23
+
+# HEAD/branch
+feat/gate6a-audit
+600439a5eee69fb3a1cec2715e37080e48ca9840

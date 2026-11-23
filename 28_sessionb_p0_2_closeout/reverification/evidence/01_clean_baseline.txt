@@ -1,0 +1,32 @@
+Switched to branch 'feat/gate6a-audit'
+Your branch is up to date with 'origin/feat/gate6a-audit'.
+
+# branch
+feat/gate6a-audit
+
+# HEAD
+600439a5eee69fb3a1cec2715e37080e48ca9840
+
+# feat/gate6a-audit
+600439a5eee69fb3a1cec2715e37080e48ca9840
+
+# origin/feat/gate6a-audit
+600439a5eee69fb3a1cec2715e37080e48ca9840
+
+# status --short
+
+# clean?
+CLEAN
+
+# log -1 --format=fuller
+commit 600439a5eee69fb3a1cec2715e37080e48ca9840
+Author:     esan <esan.wu@gmail.com>
+AuthorDate: Fri Nov 13 07:36:21 2026 +0800
+Commit:     esan <esan.wu@gmail.com>
+CommitDate: Fri Nov 13 07:36:21 2026 +0800
+
+    docs(lake): 把 V101 的语义零命中拆成 symbol / condition 两类原因
+    
+    原文写「9 行全部被语义门槛卡掉」，把两道门混成一道。按 eval.json 的
+    reason_counts 改准：6 行 symbol_not_on_row、3 行
+    condition_not_on_row:grouped_subheader。

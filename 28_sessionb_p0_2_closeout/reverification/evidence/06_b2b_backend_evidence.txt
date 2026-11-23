@@ -1,0 +1,43 @@
+# tracked b2b/business files
+none
+
+# workbench b2b path
+total 8
+drwxr-xr-x 1 Administrator 197121 0 Nov 23 14:59 .
+drwxr-xr-x 1 Administrator 197121 0 Nov 23 14:59 ..
+drwxr-xr-x 1 Administrator 197121 0 Nov 13 15:27 __pycache__
+
+# workbench routes (parser lab)
+5:* ``POST /api/parse``   —— Gate 6A **Parser-only 测试入口**。
+8:* ``POST /api/process`` —— **正式用户入口**（Pre-Parse Gate）。
+183:    两个入口共用同一个开关：冻结期内 /api/process 也不得借「只做分类」
+202:    L2 ``_execute_parse`` 入口直接抛 ``SafetyBlocked``，覆盖 /api/parse 与未来新增调用方；
+741:    """真正调用 Parser 的唯一路径。/api/parse 与 /api/process 共用。
+902:@app.get("/")
+907:@app.get("/favicon.ico", include_in_schema=False)
+913:@app.get("/api/health")
+925:        "note": "冻结期内 /api/parse 与 /api/process 均只返回 FROZEN",
+927:            "/api/parse": {
+932:            "/api/process": {
+971:@app.post("/api/parse")
+981:    # /api/parse 是 Parser-only 入口：CLASSIFY_ONLY 下它没有存在意义，直接拒绝。
+988:            "ICEX_CLASSIFY_ONLY=1：/api/parse 为 Parser-only 入口，本模式下拒绝执行；"
+1022:@app.post("/api/process")
+1174:@app.get("/api/page", response_model=None)
+
+# api/db/oauth deps in pyproject
+no Business API/DB/OAuth dependency in pyproject
+
+# api/db/oauth search in src
+no Business API/DB/OAuth code in src
+
+# lake tables
+365:        CREATE TABLE raw_docs (
+374:        CREATE TABLE parse_runs (
+389:        CREATE TABLE eval_results (
+405:        con.execute("INSERT INTO raw_docs VALUES (?,?,?,?,?)",
+411:        con.execute("INSERT INTO parse_runs VALUES (?,?,?,?,?,?,?,?,?)", [
+418:        con.execute("INSERT INTO eval_results VALUES (?,?,?,?,?,?,?,?,?,?)", [
+445:        FROM eval_results e
+446:        JOIN parse_runs  p USING (run_id)
+447:        JOIN raw_docs    r ON r.source_sha256 = p.source_sha256

@@ -1,0 +1,47 @@
+# lake tables
+   360	    if db.exists():
+   361	        db.unlink()
+   362	    con = duckdb.connect(str(db))
+   363	
+   364	    con.execute("""
+   365	        CREATE TABLE raw_docs (
+   366	            source_sha256 VARCHAR PRIMARY KEY,
+   367	            file          VARCHAR NOT NULL,
+   368	            bytes         BIGINT  NOT NULL,
+   369	            immutable     BOOLEAN NOT NULL,
+   370	            first_seen    VARCHAR
+   371	        )
+   372	    """)
+   373	    con.execute("""
+   374	        CREATE TABLE parse_runs (
+   375	            run_id               VARCHAR PRIMARY KEY,
+   376	            source_sha256        VARCHAR NOT NULL,
+   377	            parser_fingerprint   VARCHAR NOT NULL,
+   378	            parser_commit        VARCHAR,
+   379	            parser_version       VARCHAR,
+   380	            config_hash          VARCHAR NOT NULL,
+   381	            reproducibility_key  VARCHAR NOT NULL,
+   382	            created_at           VARCHAR NOT NULL,
+   383	            manifest_path        VARCHAR NOT NULL
+   384	        )
+   385	    """)
+   386	    # 刻意**不**在 (source_sha256, parser_fingerprint, config_hash) 上加唯一约束：
+   387	    # 同一组条件允许跑多次，run_id 才是主键。这条设计由 SQL 反证（见 _query_demo.py）。
+   388	    con.execute("""
+   389	        CREATE TABLE eval_results (
+   390	            run_id                 VARCHAR PRIMARY KEY,
+   391	            source_sha256          VARCHAR NOT NULL,
+   392	            gold_version           VARCHAR NOT NULL,
+   393	            evaluator_version      VARCHAR NOT NULL,
+   394	            evaluator_fingerprint  VARCHAR NOT NULL,
+   395	            gold_rows              INTEGER,
+   396	            symbol_gated           INTEGER,
+   397	            condition_gated        INTEGER,
+   398	            semantic_hit_rate      DOUBLE,
+   399	            created_at             VARCHAR
+   400	        )
+
+# auth/oauth/b2b search in workbench (excluding _diff/_guard/_smoke)
+workbench/serve_parser.py:256:        prefix, datetime.now().strftime("%Y%m%d-%H%M%S"), secrets.token_hex(2))
+workbench/serve_parser.py:284:        "classifier_token_usage": 0,
+workbench/serve_parser.py:730:        "classifier_token_usage": 0,

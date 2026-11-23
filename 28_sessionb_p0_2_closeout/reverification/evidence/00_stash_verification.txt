@@ -1,0 +1,63 @@
+# stash list
+stash@{0}: On backup/full-local-20261114: P0-2 exclude 20 worktree items 2026-11-23
+
+# stash commit
+3a7364b09299b8c7a3f83137bb6fbb17a2019748
+
+# stash tracked/untracked names
+.dockerignore
+.gitignore
+deploy/dsb/Dockerfile
+deploy/dsb/README.md
+deploy/dsb/docker-compose.yml
+deploy/dsb/evidence/ratelimit/02_nginx_T_dsb_server_block.conf
+deploy/dsb/evidence/ratelimit/04_param_matrix.txt
+deploy/dsb/evidence/ratelimit/05_deploy_patch.md
+deploy/dsb/evidence/ratelimit/_ratelimit_evidence.sh
+deploy/dsb/nginx/README.md
+deploy/dsb/nginx/dsb-allow-ips.conf
+deploy/dsb/nginx/dsb-limit-req.conf
+deploy/dsb/nginx/dsb-proxy-headers.conf
+deploy/dsb/nginx/dsb.0668xgwl.com.conf
+deploy/dsb/rollback.sh
+docs/g0_evidence/00_do_deploy/backend_service.txt
+docs/g0_evidence/00_do_deploy/dsb_ext_before_upload.png
+docs/g0_evidence/00_do_deploy/dsb_ext_frozen_on_upload.png
+docs/g0_evidence/00_do_deploy/dsb_external_landing.png
+docs/g0_evidence/00_do_deploy/dsb_https_verified.png
+docs/g0_evidence/01_bbox/01_bbox_transcript.txt
+docs/g0_evidence/01_bbox/bbox_5boxes.csv
+docs/g0_evidence/01_bbox/bbox_5boxes.json
+docs/g0_evidence/01_bbox/bbox_missing_fallback.png
+docs/g0_evidence/01_bbox/bbox_page1_closeup.png
+docs/g0_evidence/01_bbox/bbox_page1_full.png
+workbench/_g0/browser.py
+workbench/_g0/common.py
+workbench/_g0/t1_bbox.py
+workbench/b2b/qa_console.html
+workbench/b2b/serve_b2b.py
+workbench/index.html
+workbench/serve_parser.py
+
+# stash untracked tree (third parent)
+deploy/dsb/evidence/ratelimit/02_nginx_T_dsb_server_block.conf
+deploy/dsb/evidence/ratelimit/04_param_matrix.txt
+deploy/dsb/evidence/ratelimit/05_deploy_patch.md
+deploy/dsb/evidence/ratelimit/_ratelimit_evidence.sh
+docs/g0_evidence/00_do_deploy/backend_service.txt
+docs/g0_evidence/00_do_deploy/dsb_ext_before_upload.png
+docs/g0_evidence/00_do_deploy/dsb_ext_frozen_on_upload.png
+docs/g0_evidence/00_do_deploy/dsb_external_landing.png
+docs/g0_evidence/00_do_deploy/dsb_https_verified.png
+docs/g0_evidence/01_bbox/01_bbox_transcript.txt
+docs/g0_evidence/01_bbox/bbox_5boxes.csv
+docs/g0_evidence/01_bbox/bbox_5boxes.json
+docs/g0_evidence/01_bbox/bbox_missing_fallback.png
+docs/g0_evidence/01_bbox/bbox_page1_closeup.png
+docs/g0_evidence/01_bbox/bbox_page1_full.png
+workbench/b2b/serve_b2b.py
+
+# status after stash
+
+# clean?
+CLEAN

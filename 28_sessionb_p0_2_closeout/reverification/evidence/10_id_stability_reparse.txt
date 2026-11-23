@@ -1,0 +1,6 @@
+# same PDF parsed twice (content identity vs run identity)
+{"attempt": 1, "run_id": "20261123T070357Z-62b63b", "document_id": "doc-4398f9eb5d94", "product_id": "prod-doc-4398f9eb5d94", "document_sha256": "4398f9eb5d9452ea228332834e44e0e8f1ab2b76aeb576001ca9930bc2a993c1"}
+{"attempt": 2, "run_id": "20261123T070357Z-77791f", "document_id": "doc-4398f9eb5d94", "product_id": "prod-doc-4398f9eb5d94", "document_sha256": "4398f9eb5d9452ea228332834e44e0e8f1ab2b76aeb576001ca9930bc2a993c1"}
+same_document_id=true
+same_product_id=true
+different_run_id=true

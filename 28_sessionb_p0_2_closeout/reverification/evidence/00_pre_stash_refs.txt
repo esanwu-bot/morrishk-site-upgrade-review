@@ -1,0 +1,36 @@
+# date
+2026-11-23T14:58:15+08:00
+
+# absolute path
+/e/workspace/icpdf-extractor
+
+# remote
+origin	https://codeup.aliyun.com/5f0af04d5fd102f22f6b747c/icpdf-extractor.git (fetch)
+origin	https://codeup.aliyun.com/5f0af04d5fd102f22f6b747c/icpdf-extractor.git (push)
+
+# branch/HEAD
+backup/full-local-20261114
+600439a5eee69fb3a1cec2715e37080e48ca9840
+
+# candidates
+feat/gate6a-audit 600439a5eee69fb3a1cec2715e37080e48ca9840
+origin/feat/gate6a-audit 600439a5eee69fb3a1cec2715e37080e48ca9840
+backup/full-local-20261114 600439a5eee69fb3a1cec2715e37080e48ca9840
+main a11131a80474f3d5bea5ab6fb5204e77b8839eed
+origin/main 853a80dd664c79ef90baaac53eefb9bbc2155dde
+
+# remote ls-remote
+600439a5eee69fb3a1cec2715e37080e48ca9840	refs/heads/feat/gate6a-audit
+
+# log
+commit 600439a5eee69fb3a1cec2715e37080e48ca9840
+Author:     esan <esan.wu@gmail.com>
+AuthorDate: Fri Nov 13 07:36:21 2026 +0800
+Commit:     esan <esan.wu@gmail.com>
+CommitDate: Fri Nov 13 07:36:21 2026 +0800
+
+    docs(lake): 把 V101 的语义零命中拆成 symbol / condition 两类原因
+    
+    原文写「9 行全部被语义门槛卡掉」，把两道门混成一道。按 eval.json 的
+    reason_counts 改准：6 行 symbol_not_on_row、3 行
+    condition_not_on_row:grouped_subheader。

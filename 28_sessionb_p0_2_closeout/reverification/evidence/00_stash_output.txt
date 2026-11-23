@@ -1,0 +1,5 @@
+warning: in the working copy of 'deploy/dsb/evidence/ratelimit/02_nginx_T_dsb_server_block.conf', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'deploy/dsb/evidence/ratelimit/04_param_matrix.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/g0_evidence/00_do_deploy/backend_service.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'workbench/b2b/serve_b2b.py', LF will be replaced by CRLF the next time Git touches it
+Saved working directory and index state On backup/full-local-20261114: P0-2 exclude 20 worktree items 2026-11-23
