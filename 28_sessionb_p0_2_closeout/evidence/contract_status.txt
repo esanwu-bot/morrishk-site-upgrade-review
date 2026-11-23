@@ -1,0 +1,8 @@
+file: 12_dsbit_business_api_integration_design/contract/openapi.candidate.v1.json
+sha256: fdeec48ecf44439776e61245ca7b98fc94f7ce0d481a7c9aea639900f1e71023
+openapi: 3.1.0
+title: Ds Bit Business API v1 (Contract Candidate)
+version: 1.0.0-candidate
+x-contract-status: CANDIDATE_NOT_FROZEN
+paths: 16
+operations: 16

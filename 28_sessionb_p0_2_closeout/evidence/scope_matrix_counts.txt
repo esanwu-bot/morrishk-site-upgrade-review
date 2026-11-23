@@ -1,0 +1,7 @@
+source: 26_sessionb_phase2_isolated_api_plan/SECURITY_AND_SCOPE_TEST_PLAN.md
+rows: 75
+scopes: {'S1': 15, 'S2': 15, 'S3': 15, 'S4': 15, 'S5': 15}
+allow_deny: {'是': 15, '否': 60}
+expected: {'允许': 15, '拒绝': 60}
+all_rows_proposed: True
+rows_with_business_blockers: ['1', '27', '30', '35', '63']

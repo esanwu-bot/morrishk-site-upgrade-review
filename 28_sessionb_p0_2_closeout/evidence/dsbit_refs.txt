@@ -1,0 +1,41 @@
+# repo
+/e/workspace/icpdf-extractor
+
+# remote
+origin	https://codeup.aliyun.com/5f0af04d5fd102f22f6b747c/icpdf-extractor.git (fetch)
+origin	https://codeup.aliyun.com/5f0af04d5fd102f22f6b747c/icpdf-extractor.git (push)
+
+# current branch/HEAD
+backup/full-local-20261114
+600439a5eee69fb3a1cec2715e37080e48ca9840
+
+# branches -vv
+* backup/full-local-20261114 600439a docs(lake): 把 V101 的语义零命中拆成 symbol / condition 两类原因
+  docs/s2b-r15-review        9d84975 docs(s2b): add r15 design revision and review delta chunks
+  docs/s2b-r21-review        2be4ec2 docs(s2b): add r21 frozen design revision
+  feat/gate6a-annotation     a633bf4 [origin/feat/gate6a-annotation: behind 11] Gate 6A: Batch 2 精简 Gold（6 件 18 行，机检 18/18 OK）
+  feat/gate6a-audit          600439a [origin/feat/gate6a-audit] docs(lake): 把 V101 的语义零命中拆成 symbol / condition 两类原因
+  feat/s2b-schema-d4-d6      60a503c G7b: D' —— 板级证据足以裁决时抑制 DS_PRODUCT_MODEL_TITLE
+  main                       a11131a [origin/main: ahead 47] Gate 6A Batch 2：24 行 Gold 并入 main（Reviewer 已批准）
+
+# remote heads
+df67dfd865fab761be11fa5d1cbae627e8e66967	refs/heads/feat/gate6a-annotation
+600439a5eee69fb3a1cec2715e37080e48ca9840	refs/heads/feat/gate6a-audit
+55da90610cfb7760e4ef1ff79152dbf2865d2e1d	refs/heads/feat/s2b-schema-d4-d6
+853a80dd664c79ef90baaac53eefb9bbc2155dde	refs/heads/main
+
+# divergence
+main...backup:
+0	15
+origin/main...main:
+0	47
+
+# recent log
+600439a docs(lake): 把 V101 的语义零命中拆成 symbol / condition 两类原因
+8de84b5 docs: New Gate 受控灰度方案（v0.1）+ Ds Bit 本地端到端截图
+7d8ab3f feat(lake): Stage B 三层血缘 Demo（raw / parse / eval）+ 工作台运行时代码入库
+8879e58 chore: 建立 archive/final_drafts 归档，忽略全部过程稿
+bc29c78 docs: 修正台账计数 56→57，澄清 main 分支 SHA 变化的性质
+f64775a feat: 新增 classify 子命令；R1' 结论更正；Batch 导出名可注入
+169e9c8 chore: 忽略本地浏览器配置与缓存目录，阻断凭据误入库
+8bae97c audit: v3.3 语义门槛落地（58/105 = 55.24%），补安全事件报告

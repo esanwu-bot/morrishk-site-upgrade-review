@@ -1,0 +1,60 @@
+=== PHASE3 SELF-CHECK ===
+PASS  C-1 exists PHASE3_README.md
+PASS  C-1 exists DECISION_REGISTER.md
+PASS  C-1 exists CONTRACT_DECISION_MATRIX.md
+PASS  C-1 exists IQ_SIGNOFF_REGISTER.md
+PASS  C-1 exists B5_B8_DEPENDENCY_MATRIX.md
+PASS  C-1 exists SCOPE_AUTHORIZATION_READINESS.md
+PASS  C-1 exists P0_2_AUTHORITY_CONFIRMATION.md
+PASS  C-1 exists CONTRACT_FREEZE_GATE.md
+PASS  C-1 exists SELF_CHECK.md
+PASS  C-1b exists tools/self_check.js
+PASS  C-2 all 16 IDs registered as rows — 16 rows
+PASS  C-2b all 16 IDs covered across package docs
+PASS  C-3a DIFF-CONTRACT-01/03 stay PENDING
+PASS  C-3b DIFF-MOCK-05/11 stay OPEN
+PASS  C-3c IQ-01/02/13 DECIDED + pending signature + acceptance not done
+PASS  C-3d IQ-05/09/15/21 stay OPEN
+PASS  C-3e B5 PROPOSED / B6 OPEN / B7 awaiting PM / B8 OPEN / P0-2 DECISION_REQUIRED
+PASS  C-3f authoritative register unchanged (3/7 ruled, 4/7 open, 3 pending signature)
+PASS  C-3g 25_ authoritative: DIFF-CONTRACT-01/03 rows stay [PENDING]
+PASS  C-3h 25_ authoritative: DIFF-MOCK-05/11 rows stay [CONFIRMED]-as-fact
+PASS  C-3h2 26_ authoritative: DIFF-MOCK-05/11 resolution stays OPEN
+PASS  C-3i 12_ §11.2: B5 PROPOSED / B6 OPEN / B7 awaiting PM / B8 OPEN (per-item)
+PASS  C-3i2 rule registry: B5-gated rule PROPOSED; B6/B7/B8-gated rules non-CONFIRMED with BLOCKED present
+PASS  C-3j1 IQ-01/02/13 rows registered 2026-11-17 with pending signature
+PASS  C-3j2 IQ-05/09/15/21 rows have empty adjudication columns (—)
+PASS  C-4a 26_ matrix baseline: candidate 75 / formal-executable 0 / pending 75 — cand=75, exec=0, pend=75
+PASS  C-4b R-OA-05 remains PROPOSED in rule registry
+PASS  C-4c readiness doc states candidate 75 / confirmed 0 / formal-executable 0 / pending 75
+PASS  C-4d readiness doc forbids treating candidates as approved
+PASS  C-5a gate states NOT_READY / CANDIDATE_NOT_FROZEN / NOT_APPROVED
+PASS  C-5b gates G1..G6 registered with current status
+PASS  C-5c no freeze record exists
+PASS  C-5d gate refuses self-declaration
+PASS  C-6a no unauthorized closure claims in real docs
+PASS  C-6b closure predicate still detects '未关闭' correctly (negation exempt)
+PASS  C-7a no freeze-approval claims in real docs
+PASS  C-7b gate keeps refusal wording
+PASS  C-8a agent cannot fill signature/acceptance
+PASS  C-8b no reviewer-acceptance claims
+PASS  C-8c acceptance counters remain zero
+PASS  C-9a P0-2 makes no branch selection
+PASS  C-9b P0-2 lists three candidates
+PASS  C-9c P0-2 states DECISION_REQUIRED
+PASS  C-10a five re-verification items present
+PASS  C-10b confirmation request template with blanks
+PASS  C-11 readiness path SA-1..SA-4 present
+PASS  C-12a B5 section: F-10 is source conflict, not normalization conflict
+PASS  C-12b F-11 remains pending placeholder
+PASS  C-12c 42202 gated by future B5 adjudication
+PASS  C-12d R-ID-04 is enum source only
+PASS  C-13 referenced external files exist — all exist
+PASS  C-25a counter-example: unauthorized closure must be detected — "DIFF-CONTRACT-01 已关闭，状态 CLOSED；由执行 Agent 裁定。"
+PASS  C-25b counter-example: freeze-approval claim must be detected — "Contract Freeze 已通过，CONTRACT_FREEZE_APPROVED，生产 API 同步获批。"
+PASS  C-25c counter-example: branch self-selection must be detected — "经研究，权威分支为 backup/full-local-20261114，无需决策人确认。"
+PASS  C-25d counter-example: negation-followed-by-claim in one sentence must be detected — "本文件不宣布 CONTRACT_FREEZE_APPROVED，但实际上 CONTRACT_FREEZE_APPROVED 已获批准。"
+PASS  C-25e counter-example: prior-clause negation must NOT exempt next-clause claim — "本文件并非冻结审批说明；但 CONTRACT_FREEZE_APPROVED 已获批准。"
+PASS  C-25f pure-negation statement must NOT be flagged — "本文件不宣布 CONTRACT_FREEZE_APPROVED。"
+PASS  C-25g counter-example: unrelated same-clause negation must NOT exempt the claim — "本文件并非冻结审批说明，另外 CONTRACT_FREEZE_APPROVED 已获批准。"
+=== summary: 58/58 PASS, failures: 0 ===

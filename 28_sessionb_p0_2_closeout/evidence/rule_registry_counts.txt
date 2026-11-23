@@ -1,0 +1,8 @@
+source: 25_sessionb_phase1_contract_closure/rules/rule_registry.json
+rules: 55
+status_counts: {'CONFIRMED': 9, 'PROPOSED': 26, 'PENDING': 7, 'BLOCKED': 13}
+R-OA-05: PROPOSED
+summary_line_in_README: CONFIRMED 9 / PROPOSED 26 / PENDING 8 / BLOCKED 12
+summary_line_in_RULE_STATUS_REGISTER: CONFIRMED 9 / PROPOSED 26 / PENDING 8 / BLOCKED 12
+actual_detail_rows_and_json: CONFIRMED 9 / PROPOSED 26 / PENDING 7 / BLOCKED 13
+note: summary counts are stale by one; individual rule rows match JSON.

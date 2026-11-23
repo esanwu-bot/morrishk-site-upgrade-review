@@ -1,0 +1,6 @@
+# branch heads
+069ab827800447f4a0d96353cb3cac003b1e4a88 2026-11-21 10:57:05 +0800 docs(dsbit): 阶段一复核最小修正——README 测试命名改为 Contract Annotation & Governance Tests 并明确测试范围
+096fc36f830deba8bc6d6d5137a984e608372d49 2026-11-21 12:57:25 +0800 docs(dsbit): Phase 2 计划 R9 自检语义收尾——谓词化 C-24b/c/d + 肯定语义排除 + C-25 反例测试（前向提交，不 amend bc759a2）
+573012ad01f05191ccc4721afd7d39fa87a081b1 2026-11-21 13:38:43 +0800 docs(dsbit): Phase 3 R3-A/R3-B 收尾——否定谓词收紧为直接修饰判定 + C-25g 反例 + 计数勘误（前向提交，不 amend aa31079）
+
+# worktree vs phase heads (git diff --stat; empty = identical)

@@ -1,0 +1,23 @@
+✔ T01 baseline candidate is byte-identical to reviewed hash (12_ untouched) (4.8982ms)
+✔ T02 draft keeps x-contract-status = CANDIDATE_NOT_FROZEN and OpenAPI 3.1.0 (0.5907ms)
+✔ T03 zero wire-shape change: stripping all x-* keys from draft deep-equals baseline (11.324ms)
+✔ T04 endpoint inventory unchanged: 16 paths / 16 ops / 13 required / 3 optional (0.9796ms)
+✔ T05 registry statuses use the fixed vocabulary only (0.7427ms)
+✔ T06 BLOCKED rules must cite at least one known blocker; PENDING must cite blockers too (0.6813ms)
+✔ T07 CONFIRMED rules must cite a registered ruling / verified fact, never only design prose (1.0814ms)
+✔ T08 every operation carries x-rule-status with resolvable rule ids (0.7926ms)
+✔ T09 error catalog unchanged: 20 error_keys in ErrorMeta enum (0.524ms)
+✔ T10 x-open-blockers preserved exactly from baseline (6 entries) (0.7475ms)
+✔ T11 critical patterns unchanged: pbk1 / req_ / tax_ / cat_ / ev_ (0.4149ms)
+✔ T12 B5-B8 are represented as blocked/proposed rules (0.7936ms)
+✔ T13 IQ-01/02/13 ruling directions are present as CONFIRMED rules with unsigned caveat (0.9081ms)
+✔ T14 no rule is simultaneously CONFIRMED and blocked (0.5526ms)
+✔ T15 draft does not claim freeze: no FROZEN status anywhere in x-* governance fields (0.6574ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 627.1624
