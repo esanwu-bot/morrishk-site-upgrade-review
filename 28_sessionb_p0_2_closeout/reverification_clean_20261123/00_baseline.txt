@@ -1,0 +1,14 @@
+== date ==
+2026-11-23T07:59:02Z
+== cwd ==
+/e/workspace/.scratch/dsbit-clean-600439a5
+== branch ==
+HEAD
+== HEAD ==
+600439a5eee69fb3a1cec2715e37080e48ca9840
+== status (count) ==
+0
+== remote feat/gate6a-audit ==
+600439a5eee69fb3a1cec2715e37080e48ca9840
+== stash in main repo ==
+stash@{0} 3a7364b09299b8c7a3f83137bb6fbb17a2019748 On backup/full-local-20261114: P0-2 exclude 20 worktree items 2026-11-23

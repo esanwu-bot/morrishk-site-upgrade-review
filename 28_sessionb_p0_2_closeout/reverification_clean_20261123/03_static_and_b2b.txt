@@ -1,0 +1,135 @@
+== HEAD ==
+600439a5eee69fb3a1cec2715e37080e48ca9840
+
+== tracked b2b/business_api/openapi ==
+NONE
+
+== workbench b2b paths ==
+ls: cannot access 'workbench/b2b': No such file or directory
+
+== brand/supplier/pbk1 in src ==
+NONE
+
+== web/db/oauth deps in src ==
+NONE
+
+== pyproject deps ==
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "icpdf-extractor"
+version = "0.1.0"
+description = "Evidence-first semiconductor datasheet extraction engine"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+dependencies = [
+  "pymupdf>=1.24",
+  "pydantic>=2.7",
+  "typer>=0.12",
+  "rich>=13.7",
+  "python-dotenv>=1.0",
+  "pillow>=10.0",
+  "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+icpdf = "icpdf.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/icpdf"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q"
+
+== parser lab routes ==
+5:* ``POST /api/parse``   —— Gate 6A **Parser-only 测试入口**。
+8:* ``POST /api/process`` —— **正式用户入口**（Pre-Parse Gate）。
+183:    两个入口共用同一个开关：冻结期内 /api/process 也不得借「只做分类」
+202:    L2 ``_execute_parse`` 入口直接抛 ``SafetyBlocked``，覆盖 /api/parse 与未来新增调用方；
+741:    """真正调用 Parser 的唯一路径。/api/parse 与 /api/process 共用。
+902:@app.get("/")
+907:@app.get("/favicon.ico", include_in_schema=False)
+913:@app.get("/api/health")
+925:        "note": "冻结期内 /api/parse 与 /api/process 均只返回 FROZEN",
+927:            "/api/parse": {
+932:            "/api/process": {
+971:@app.post("/api/parse")
+981:    # /api/parse 是 Parser-only 入口：CLASSIFY_ONLY 下它没有存在意义，直接拒绝。
+988:            "ICEX_CLASSIFY_ONLY=1：/api/parse 为 Parser-only 入口，本模式下拒绝执行；"
+1022:@app.post("/api/process")
+1174:@app.get("/api/page", response_model=None)
+
+== parser lab health database_written ==
+282:        "database_written": False,
+921:        "database_written": False,
+
+== lake tables ==
+365:        CREATE TABLE raw_docs (
+374:        CREATE TABLE parse_runs (
+389:        CREATE TABLE eval_results (
+405:        con.execute("INSERT INTO raw_docs VALUES (?,?,?,?,?)",
+411:        con.execute("INSERT INTO parse_runs VALUES (?,?,?,?,?,?,?,?,?)", [
+418:        con.execute("INSERT INTO eval_results VALUES (?,?,?,?,?,?,?,?,?,?)", [
+445:        FROM eval_results e
+446:        JOIN parse_runs  p USING (run_id)
+447:        JOIN raw_docs    r ON r.source_sha256 = p.source_sha256
+
+== tests mentioning api/b2b/oauth ==
+NONE
+
+== key code excerpts ==
+class Product(BaseModel):
+    """A product instance inside one document.
+
+    `requested_mpn` is what the caller asked for. `normalized_mpn` is what the
+    document actually supports. They must never overwrite each other.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    product_id: NonEmptyStr
+    document_id: NonEmptyStr
+    requested_mpn: NonEmptyStr
+    normalized_mpn: NonEmptyStr
+    identity_scope: IdentityScope = IdentityScope.UNKNOWN
+    product_type: ProductType = ProductType.UNKNOWN
+    manufacturer: str | None = None
+    package: str | None = None
+    identity_evidence: list[IdentityEvidence] = Field(default_factory=list)
+---pipeline 151-159---
+    product = Product(
+        product_id=f"prod-{document.document_id}",
+        document_id=document.document_id,
+        requested_mpn=requested_mpn,
+        normalized_mpn=requested_mpn,
+        identity_scope="unknown",
+        product_type="unknown",
+    )
+    run.write_json("product.json", product.model_dump(mode="json"))
+---pdf_loader 58-67---
+            document = Document(
+                document_id=document_id or f"doc-{sha[:12]}",
+                filename=path.name,
+                sha256=sha,
+                page_count=doc.page_count,
+                manufacturer=doc.metadata.get("author") or None,
+                document_title=doc.metadata.get("title") or None,
+                document_type=document_type,
+                parser_version=PARSER_VERSION,
+                created_at=datetime.now(timezone.utc),
+---product.py sha---
+44f6dc6b512dd237b48278810797dd53c8376b1dd54350d9a47d28fe29d5b8d7 *src/icpdf/domain/product.py
+86c0054969572c17f8bc19d5bd14f332053a5926c0a2300777c79ac6ab1b2fa5 *src/icpdf/parser/pipeline.py
+d8834e356ba5a3552263127d50f95f9ee47e791d454be75cc4cf7bd743b6d0d4 *src/icpdf/parser/pdf_loader.py
+b2aca0821e0f6131119e86c95dadf3e8f45c43466ebbb44603cbdeeb4799549a *src/icpdf/domain/evidence.py
+ae35b5844c6ae989f85aa1a834bd91313569867f5e4273c36025894599f7050c *lake/_build_lake.py
+7b926d62183db6d17859e351a5611d2ccb80d199ccb923acac30d5aa5889b68a *workbench/serve_parser.py
+ea0fabb69d4736a27b21b4483e3e38e0d89eb33351d6815fc10a515eed9bebee *pyproject.toml

@@ -1,0 +1,21 @@
+{
+  "document_id": "doc-07343bfb293d",
+  "filename": "sample_a.pdf",
+  "sha256": "07343bfb293d223d7acf68355df8427a565b721430e3dd8b439b5c981cd21829",
+  "page_count": 1,
+  "source_uri": null,
+  "manufacturer": null,
+  "document_title": null,
+  "document_type": "datasheet",
+  "parser_version": "0.1.0-phase1",
+  "created_at": "2026-11-23T07:59:51.512110Z",
+  "page_sizes": [
+    [
+      612.0,
+      792.0
+    ]
+  ],
+  "page_rotations": [
+    0
+  ]
+}

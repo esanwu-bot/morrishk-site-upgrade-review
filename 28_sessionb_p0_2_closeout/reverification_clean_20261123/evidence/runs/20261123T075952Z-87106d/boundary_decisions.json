@@ -1,0 +1,450 @@
+{
+  "contract_version": "data-contract/v0.2",
+  "design_document": "docs/PHASE1_4_S2B_DESIGN_r21.md",
+  "disclosure": {
+    "completed_does_not_mean": [
+      "all_logical_boundaries_decided",
+      "content_review_passed",
+      "content_review_failed",
+      "content_approved"
+    ],
+    "completed_means": "assembly_finished_only",
+    "label_aligned": false,
+    "logical_mapping_status": "deferred_to_a4",
+    "no_decision_tables": [],
+    "tables_with_skipped_groups": [
+      "doc-9dbee7d58f7b|p001-t01",
+      "doc-9dbee7d58f7b|p001-t02"
+    ],
+    "unproduced_evidence_kinds": [
+      "header_canopy",
+      "label_aligned",
+      "subrule_promoted",
+      "subrule_partial",
+      "region_extent"
+    ]
+  },
+  "document_id": "doc-9dbee7d58f7b",
+  "schema": "s2b-boundary-decisions/v1",
+  "tables": [
+    {
+      "band_count": 2,
+      "canon_version": 1,
+      "completed": true,
+      "counts": {
+        "bound_evidence_count": 0,
+        "bound_identity_record_count": 0,
+        "deferred_identity_record_count": 2,
+        "evidence_count": 2,
+        "group_count": 5,
+        "indeterminate_evidence_count": 0,
+        "owner_collision_count": 0,
+        "skipped_group_count": 2,
+        "table_decision_count": 3,
+        "unanchored_evidence_count": 2,
+        "unique_owner_count": 0,
+        "unique_physical_source_count": 0,
+        "unique_source_instance_id_count": 0,
+        "unit_count": 3,
+        "unknown_upstream_count": 0
+      },
+      "decision_state": "decided",
+      "discarded_candidates": [],
+      "evidence": [
+        {
+          "evidence_index": 0,
+          "kind": "table_bbox",
+          "owner": null,
+          "projection_status": "unanchored",
+          "reason": "table_bbox_not_drawn",
+          "source_instance_id": null
+        },
+        {
+          "evidence_index": 1,
+          "kind": "table_bbox",
+          "owner": null,
+          "projection_status": "unanchored",
+          "reason": "table_bbox_not_drawn",
+          "source_instance_id": null
+        }
+      ],
+      "evidence_scope": "synthetic_scan_v1",
+      "groups": [
+        {
+          "anchor_x": 125.0,
+          "bound_evidence_indices": [],
+          "boundary_sources": [],
+          "boundary_x": null,
+          "candidate_x": 125.0,
+          "decision": "demote_no_evidence",
+          "deferred_evidence_indices": [],
+          "demoted_to": "no_evidence",
+          "evidence_indices": [],
+          "group_index": 1,
+          "reasons": [
+            "boundary_no_evidence"
+          ],
+          "role": "internal",
+          "row_band_count": 2,
+          "source_xs": [
+            125.0
+          ],
+          "sources": [
+            "grid"
+          ],
+          "support": {
+            "band_count": 2,
+            "condition_bands": 0,
+            "crossed_body_rows": [],
+            "crossing_bands": 0,
+            "gutter_bands": 0,
+            "label_word_rows": 2,
+            "rule_bands": 0,
+            "short_label_bands": 0,
+            "subrule_word_rows": 0,
+            "support_ratio": 0.0,
+            "supported_bands": 0,
+            "supporting_bands": 0
+          },
+          "visual_boundary_index": null,
+          "visual_coverage": null
+        },
+        {
+          "anchor_x": 250.0,
+          "bound_evidence_indices": [],
+          "boundary_sources": [],
+          "boundary_x": null,
+          "candidate_x": 250.0,
+          "decision": "demote_no_evidence",
+          "deferred_evidence_indices": [],
+          "demoted_to": "no_evidence",
+          "evidence_indices": [],
+          "group_index": 2,
+          "reasons": [
+            "boundary_no_evidence"
+          ],
+          "role": "internal",
+          "row_band_count": 2,
+          "source_xs": [
+            250.0
+          ],
+          "sources": [
+            "grid"
+          ],
+          "support": {
+            "band_count": 2,
+            "condition_bands": 0,
+            "crossed_body_rows": [],
+            "crossing_bands": 0,
+            "gutter_bands": 0,
+            "label_word_rows": 2,
+            "rule_bands": 0,
+            "short_label_bands": 0,
+            "subrule_word_rows": 0,
+            "support_ratio": 0.0,
+            "supported_bands": 0,
+            "supporting_bands": 0
+          },
+          "visual_boundary_index": null,
+          "visual_coverage": null
+        },
+        {
+          "anchor_x": 350.0,
+          "bound_evidence_indices": [],
+          "boundary_sources": [],
+          "boundary_x": null,
+          "candidate_x": 350.0,
+          "decision": "demote_no_evidence",
+          "deferred_evidence_indices": [],
+          "demoted_to": "no_evidence",
+          "evidence_indices": [],
+          "group_index": 3,
+          "reasons": [
+            "boundary_no_evidence"
+          ],
+          "role": "internal",
+          "row_band_count": 2,
+          "source_xs": [
+            350.0
+          ],
+          "sources": [
+            "grid"
+          ],
+          "support": {
+            "band_count": 2,
+            "condition_bands": 0,
+            "crossed_body_rows": [],
+            "crossing_bands": 0,
+            "gutter_bands": 0,
+            "label_word_rows": 2,
+            "rule_bands": 0,
+            "short_label_bands": 0,
+            "subrule_word_rows": 0,
+            "support_ratio": 0.0,
+            "supported_bands": 0,
+            "supporting_bands": 0
+          },
+          "visual_boundary_index": null,
+          "visual_coverage": null
+        }
+      ],
+      "page_number": 1,
+      "quantum_pt": 0.01,
+      "skipped_groups": [
+        {
+          "anchor_x": 50.0,
+          "candidate_x": 50.0,
+          "evidence": [
+            {
+              "evidence_index": 0,
+              "projection_status": "unanchored",
+              "reason": "table_bbox_not_drawn"
+            }
+          ],
+          "evidence_indices": [
+            0
+          ],
+          "group_index": 0,
+          "reason": "outer_group_deferred",
+          "role": "outer_left"
+        },
+        {
+          "anchor_x": 418.8899841308594,
+          "candidate_x": 418.8899841308594,
+          "evidence": [
+            {
+              "evidence_index": 1,
+              "projection_status": "unanchored",
+              "reason": "table_bbox_not_drawn"
+            }
+          ],
+          "evidence_indices": [
+            1
+          ],
+          "group_index": 4,
+          "reason": "outer_group_deferred",
+          "role": "outer_right"
+        }
+      ],
+      "table_context_id": "doc-9dbee7d58f7b|p001-t01",
+      "table_index": 1
+    },
+    {
+      "band_count": 2,
+      "canon_version": 1,
+      "completed": true,
+      "counts": {
+        "bound_evidence_count": 0,
+        "bound_identity_record_count": 0,
+        "deferred_identity_record_count": 2,
+        "evidence_count": 2,
+        "group_count": 5,
+        "indeterminate_evidence_count": 0,
+        "owner_collision_count": 0,
+        "skipped_group_count": 2,
+        "table_decision_count": 3,
+        "unanchored_evidence_count": 2,
+        "unique_owner_count": 0,
+        "unique_physical_source_count": 0,
+        "unique_source_instance_id_count": 0,
+        "unit_count": 3,
+        "unknown_upstream_count": 0
+      },
+      "decision_state": "decided",
+      "discarded_candidates": [],
+      "evidence": [
+        {
+          "evidence_index": 0,
+          "kind": "table_bbox",
+          "owner": null,
+          "projection_status": "unanchored",
+          "reason": "table_bbox_not_drawn",
+          "source_instance_id": null
+        },
+        {
+          "evidence_index": 1,
+          "kind": "table_bbox",
+          "owner": null,
+          "projection_status": "unanchored",
+          "reason": "table_bbox_not_drawn",
+          "source_instance_id": null
+        }
+      ],
+      "evidence_scope": "synthetic_scan_v1",
+      "groups": [
+        {
+          "anchor_x": 125.0,
+          "bound_evidence_indices": [],
+          "boundary_sources": [],
+          "boundary_x": null,
+          "candidate_x": 125.0,
+          "decision": "demote_no_evidence",
+          "deferred_evidence_indices": [],
+          "demoted_to": "no_evidence",
+          "evidence_indices": [],
+          "group_index": 1,
+          "reasons": [
+            "boundary_no_evidence"
+          ],
+          "role": "internal",
+          "row_band_count": 2,
+          "source_xs": [
+            125.0
+          ],
+          "sources": [
+            "grid"
+          ],
+          "support": {
+            "band_count": 2,
+            "condition_bands": 0,
+            "crossed_body_rows": [],
+            "crossing_bands": 0,
+            "gutter_bands": 0,
+            "label_word_rows": 2,
+            "rule_bands": 0,
+            "short_label_bands": 0,
+            "subrule_word_rows": 0,
+            "support_ratio": 0.0,
+            "supported_bands": 0,
+            "supporting_bands": 0
+          },
+          "visual_boundary_index": null,
+          "visual_coverage": null
+        },
+        {
+          "anchor_x": 250.0,
+          "bound_evidence_indices": [],
+          "boundary_sources": [],
+          "boundary_x": null,
+          "candidate_x": 250.0,
+          "decision": "demote_no_evidence",
+          "deferred_evidence_indices": [],
+          "demoted_to": "no_evidence",
+          "evidence_indices": [],
+          "group_index": 2,
+          "reasons": [
+            "boundary_no_evidence"
+          ],
+          "role": "internal",
+          "row_band_count": 2,
+          "source_xs": [
+            250.0
+          ],
+          "sources": [
+            "grid"
+          ],
+          "support": {
+            "band_count": 2,
+            "condition_bands": 0,
+            "crossed_body_rows": [],
+            "crossing_bands": 0,
+            "gutter_bands": 0,
+            "label_word_rows": 2,
+            "rule_bands": 0,
+            "short_label_bands": 0,
+            "subrule_word_rows": 0,
+            "support_ratio": 0.0,
+            "supported_bands": 0,
+            "supporting_bands": 0
+          },
+          "visual_boundary_index": null,
+          "visual_coverage": null
+        },
+        {
+          "anchor_x": 350.0,
+          "bound_evidence_indices": [],
+          "boundary_sources": [],
+          "boundary_x": null,
+          "candidate_x": 350.0,
+          "decision": "demote_no_evidence",
+          "deferred_evidence_indices": [],
+          "demoted_to": "no_evidence",
+          "evidence_indices": [],
+          "group_index": 3,
+          "reasons": [
+            "boundary_no_evidence"
+          ],
+          "role": "internal",
+          "row_band_count": 2,
+          "source_xs": [
+            350.0
+          ],
+          "sources": [
+            "grid"
+          ],
+          "support": {
+            "band_count": 2,
+            "condition_bands": 0,
+            "crossed_body_rows": [],
+            "crossing_bands": 0,
+            "gutter_bands": 0,
+            "label_word_rows": 2,
+            "rule_bands": 0,
+            "short_label_bands": 0,
+            "subrule_word_rows": 0,
+            "support_ratio": 0.0,
+            "supported_bands": 0,
+            "supporting_bands": 0
+          },
+          "visual_boundary_index": null,
+          "visual_coverage": null
+        }
+      ],
+      "page_number": 1,
+      "quantum_pt": 0.01,
+      "skipped_groups": [
+        {
+          "anchor_x": 50.0,
+          "candidate_x": 50.0,
+          "evidence": [
+            {
+              "evidence_index": 0,
+              "projection_status": "unanchored",
+              "reason": "table_bbox_not_drawn"
+            }
+          ],
+          "evidence_indices": [
+            0
+          ],
+          "group_index": 0,
+          "reason": "outer_group_deferred",
+          "role": "outer_left"
+        },
+        {
+          "anchor_x": 418.8899841308594,
+          "candidate_x": 418.8899841308594,
+          "evidence": [
+            {
+              "evidence_index": 1,
+              "projection_status": "unanchored",
+              "reason": "table_bbox_not_drawn"
+            }
+          ],
+          "evidence_indices": [
+            1
+          ],
+          "group_index": 4,
+          "reason": "outer_group_deferred",
+          "role": "outer_right"
+        }
+      ],
+      "table_context_id": "doc-9dbee7d58f7b|p001-t02",
+      "table_index": 2
+    }
+  ],
+  "totals": {
+    "completed_tables": 2,
+    "decision_count": 6,
+    "decisions": {
+      "demote": 6,
+      "keep": 0,
+      "unresolved": 0
+    },
+    "failed_tables": 0,
+    "no_decision_tables": 0,
+    "skipped_groups": {
+      "outer_group_deferred": 4
+    },
+    "table_count": 2
+  }
+}

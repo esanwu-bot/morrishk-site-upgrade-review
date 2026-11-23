@@ -1,0 +1,21 @@
+{
+  "sample_counts": [
+    [
+      "A",
+      "doc-07343bfb293d",
+      "prod-doc-07343bfb293d",
+      1,
+      16
+    ],
+    [
+      "B",
+      "doc-9dbee7d58f7b",
+      "prod-doc-9dbee7d58f7b",
+      2,
+      24
+    ]
+  ],
+  "document_id_stable": true,
+  "product_id_stable": true,
+  "run_id_changed": true
+}

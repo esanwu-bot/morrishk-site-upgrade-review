@@ -1,0 +1,503 @@
+[
+  {
+    "table_id": "p001-t01",
+    "document_id": "doc-07343bfb293d",
+    "page_number": 1,
+    "page_end": null,
+    "bbox": [
+      50.0,
+      89.25,
+      418.8899841308594,
+      162.99000549316406
+    ],
+    "title": "Symbol / Min / Typ / Max",
+    "table_type": "other",
+    "headers": [
+      "Symbol",
+      "Min",
+      "Typ",
+      "Max"
+    ],
+    "header_rows": 1,
+    "header_path": [
+      [
+        "Symbol"
+      ],
+      [
+        "Min"
+      ],
+      [
+        "Typ"
+      ],
+      [
+        "Max"
+      ]
+    ],
+    "header_cells": [
+      {
+        "header_cell_id": "p001-t01-h00-c00",
+        "column_id": 0,
+        "level": 0,
+        "text": "Symbol",
+        "bbox": [
+          50.0,
+          89.25,
+          83.33999633789062,
+          102.98999786376953
+        ],
+        "page_number": 1,
+        "source_cell_id": "p001-t01-r01-c00"
+      },
+      {
+        "header_cell_id": "p001-t01-h00-c01",
+        "column_id": 1,
+        "level": 0,
+        "text": "Min",
+        "bbox": [
+          200.0,
+          89.25,
+          216.11000061035156,
+          102.98999786376953
+        ],
+        "page_number": 1,
+        "source_cell_id": "p001-t01-r01-c01"
+      },
+      {
+        "header_cell_id": "p001-t01-h00-c02",
+        "column_id": 2,
+        "level": 0,
+        "text": "Typ",
+        "bbox": [
+          300.0,
+          89.25,
+          316.66998291015625,
+          102.98999786376953
+        ],
+        "page_number": 1,
+        "source_cell_id": "p001-t01-r01-c02"
+      },
+      {
+        "header_cell_id": "p001-t01-h00-c03",
+        "column_id": 3,
+        "level": 0,
+        "text": "Max",
+        "bbox": [
+          400.0,
+          89.25,
+          418.8899841308594,
+          102.98999786376953
+        ],
+        "page_number": 1,
+        "source_cell_id": "p001-t01-r01-c03"
+      }
+    ],
+    "rows": [
+      {
+        "row_id": "p001-t01-r01",
+        "cells": [
+          {
+            "cell_id": "p001-t01-r01-c00",
+            "row_id": "p001-t01-r01",
+            "column_id": 0,
+            "text": "Symbol",
+            "bbox": [
+              50.0,
+              89.25,
+              83.33999633789062,
+              102.98999786376953
+            ],
+            "page_number": 1,
+            "extraction_method": "table_detector",
+            "raw_tokens": [
+              "Symbol"
+            ],
+            "word_ids": [
+              "p1-b0-l0-w0"
+            ]
+          },
+          {
+            "cell_id": "p001-t01-r01-c01",
+            "row_id": "p001-t01-r01",
+            "column_id": 1,
+            "text": "Min",
+            "bbox": [
+              200.0,
+              89.25,
+              216.11000061035156,
+              102.98999786376953
+            ],
+            "page_number": 1,
+            "extraction_method": "table_detector",
+            "raw_tokens": [
+              "Min"
+            ],
+            "word_ids": [
+              "p1-b0-l1-w0"
+            ]
+          },
+          {
+            "cell_id": "p001-t01-r01-c02",
+            "row_id": "p001-t01-r01",
+            "column_id": 2,
+            "text": "Typ",
+            "bbox": [
+              300.0,
+              89.25,
+              316.66998291015625,
+              102.98999786376953
+            ],
+            "page_number": 1,
+            "extraction_method": "table_detector",
+            "raw_tokens": [
+              "Typ"
+            ],
+            "word_ids": [
+              "p1-b0-l2-w0"
+            ]
+          },
+          {
+            "cell_id": "p001-t01-r01-c03",
+            "row_id": "p001-t01-r01",
+            "column_id": 3,
+            "text": "Max",
+            "bbox": [
+              400.0,
+              89.25,
+              418.8899841308594,
+              102.98999786376953
+            ],
+            "page_number": 1,
+            "extraction_method": "table_detector",
+            "raw_tokens": [
+              "Max"
+            ],
+            "word_ids": [
+              "p1-b0-l3-w0"
+            ]
+          }
+        ],
+        "bbox": [
+          50.0,
+          89.25,
+          418.8899841308594,
+          102.98999786376953
+        ]
+      },
+      {
+        "row_id": "p001-t01-r02",
+        "cells": [
+          {
+            "cell_id": "p001-t01-r02-c00",
+            "row_id": "p001-t01-r02",
+            "column_id": 0,
+            "text": "VOH",
+            "bbox": [
+              50.0,
+              109.25,
+              71.67000579833984,
+              122.98999786376953
+            ],
+            "page_number": 1,
+            "extraction_method": "table_detector",
+            "raw_tokens": [
+              "VOH"
+            ],
+            "word_ids": [
+              "p1-b1-l0-w0"
+            ]
+          },
+          {
+            "cell_id": "p001-t01-r02-c01",
+            "row_id": "p001-t01-r02",
+            "column_id": 1,
+            "text": "2.4",
+            "bbox": [
+              200.0,
+              109.25,
+              213.89999389648438,
+              122.98999786376953
+            ],
+            "page_number": 1,
+            "extraction_method": "table_detector",
+            "raw_tokens": [
+              "2.4"
+            ],
+            "word_ids": [
+              "p1-b1-l1-w0"
+            ]
+          },
+          {
+            "cell_id": "p001-t01-r02-c02",
+            "row_id": "p001-t01-r02",
+            "column_id": 2,
+            "text": "3.3",
+            "bbox": [
+              300.0,
+              109.25,
+              313.8999938964844,
+              122.98999786376953
+            ],
+            "page_number": 1,
+            "extraction_method": "table_detector",
+            "raw_tokens": [
+              "3.3"
+            ],
+            "word_ids": [
+              "p1-b1-l2-w0"
+            ]
+          },
+          {
+            "cell_id": "p001-t01-r02-c03",
+            "row_id": "p001-t01-r02",
+            "column_id": 3,
+            "text": "·",
+            "bbox": [
+              400.0,
+              109.25,
+              402.7799987792969,
+              122.98999786376953
+            ],
+            "page_number": 1,
+            "extraction_method": "table_detector",
+            "raw_tokens": [
+              "·"
+            ],
+            "word_ids": [
+              "p1-b1-l3-w0"
+            ]
+          }
+        ],
+        "bbox": [
+          50.0,
+          109.25,
+          402.7799987792969,
+          122.98999786376953
+        ]
+      },
+      {
+        "row_id": "p001-t01-r03",
+        "cells": [
+          {
+            "cell_id": "p001-t01-r03-c00",
+            "row_id": "p001-t01-r03",
+            "column_id": 0,
+            "text": "VOL",
+            "bbox": [
+              50.0,
+              129.25,
+              70.01000213623047,
+              142.99000549316406
+            ],
+            "page_number": 1,
+            "extraction_method": "table_detector",
+            "raw_tokens": [
+              "VOL"
+            ],
+            "word_ids": [
+              "p1-b2-l0-w0"
+            ]
+          },
+          {
+            "cell_id": "p001-t01-r03-c01",
+            "row_id": "p001-t01-r03",
+            "column_id": 1,
+            "text": "0.2",
+            "bbox": [
+              200.0,
+              129.25,
+              213.89999389648438,
+              142.99000549316406
+            ],
+            "page_number": 1,
+            "extraction_method": "table_detector",
+            "raw_tokens": [
+              "0.2"
+            ],
+            "word_ids": [
+              "p1-b2-l1-w0"
+            ]
+          },
+          {
+            "cell_id": "p001-t01-r03-c02",
+            "row_id": "p001-t01-r03",
+            "column_id": 2,
+            "text": "0.4",
+            "bbox": [
+              300.0,
+              129.25,
+              313.8999938964844,
+              142.99000549316406
+            ],
+            "page_number": 1,
+            "extraction_method": "table_detector",
+            "raw_tokens": [
+              "0.4"
+            ],
+            "word_ids": [
+              "p1-b2-l2-w0"
+            ]
+          },
+          {
+            "cell_id": "p001-t01-r03-c03",
+            "row_id": "p001-t01-r03",
+            "column_id": 3,
+            "text": "0.6",
+            "bbox": [
+              400.0,
+              129.25,
+              413.8999938964844,
+              142.99000549316406
+            ],
+            "page_number": 1,
+            "extraction_method": "table_detector",
+            "raw_tokens": [
+              "0.6"
+            ],
+            "word_ids": [
+              "p1-b2-l3-w0"
+            ]
+          }
+        ],
+        "bbox": [
+          50.0,
+          129.25,
+          413.8999938964844,
+          142.99000549316406
+        ]
+      },
+      {
+        "row_id": "p001-t01-r04",
+        "cells": [
+          {
+            "cell_id": "p001-t01-r04-c00",
+            "row_id": "p001-t01-r04",
+            "column_id": 0,
+            "text": "ICC",
+            "bbox": [
+              50.0,
+              149.25,
+              67.22000122070312,
+              162.99000549316406
+            ],
+            "page_number": 1,
+            "extraction_method": "table_detector",
+            "raw_tokens": [
+              "ICC"
+            ],
+            "word_ids": [
+              "p1-b3-l0-w0"
+            ]
+          },
+          {
+            "cell_id": "p001-t01-r04-c01",
+            "row_id": "p001-t01-r04",
+            "column_id": 1,
+            "text": "1.0",
+            "bbox": [
+              200.0,
+              149.25,
+              213.89999389648438,
+              162.99000549316406
+            ],
+            "page_number": 1,
+            "extraction_method": "table_detector",
+            "raw_tokens": [
+              "1.0"
+            ],
+            "word_ids": [
+              "p1-b3-l1-w0"
+            ]
+          },
+          {
+            "cell_id": "p001-t01-r04-c02",
+            "row_id": "p001-t01-r04",
+            "column_id": 2,
+            "text": "2.0",
+            "bbox": [
+              300.0,
+              149.25,
+              313.8999938964844,
+              162.99000549316406
+            ],
+            "page_number": 1,
+            "extraction_method": "table_detector",
+            "raw_tokens": [
+              "2.0"
+            ],
+            "word_ids": [
+              "p1-b3-l2-w0"
+            ]
+          },
+          {
+            "cell_id": "p001-t01-r04-c03",
+            "row_id": "p001-t01-r04",
+            "column_id": 3,
+            "text": "3.0",
+            "bbox": [
+              400.0,
+              149.25,
+              413.8999938964844,
+              162.99000549316406
+            ],
+            "page_number": 1,
+            "extraction_method": "table_detector",
+            "raw_tokens": [
+              "3.0"
+            ],
+            "word_ids": [
+              "p1-b3-l3-w0"
+            ]
+          }
+        ],
+        "bbox": [
+          50.0,
+          149.25,
+          413.8999938964844,
+          162.99000549316406
+        ]
+      }
+    ],
+    "detection_method": "text_alignment",
+    "confidence": 0.65,
+    "reconstruction_status": "reconstructed",
+    "uncertainty_reason": null,
+    "region_components": [],
+    "boundary_source": "implied_alignment",
+    "merge_evidence": [],
+    "visual_boundaries": [
+      50.0,
+      418.8899841308594
+    ],
+    "visual_boundary_status": "not_printed",
+    "visual_columns": null,
+    "partial_boundaries": [],
+    "visual_boundary_evidence": [
+      {
+        "x": 50.0,
+        "role": "outer_left",
+        "drawn": false,
+        "coverage": 0.0,
+        "component_ids": [],
+        "segment_count": 0,
+        "segments": []
+      },
+      {
+        "x": 418.8899841308594,
+        "role": "outer_right",
+        "drawn": false,
+        "coverage": 0.0,
+        "component_ids": [],
+        "segment_count": 0,
+        "segments": []
+      }
+    ],
+    "grid_ys": [
+      89.25,
+      106.11999893188477,
+      126.11999893188477,
+      146.12000274658203,
+      162.99000549316406
+    ],
+    "n_rows": 4
+  }
+]

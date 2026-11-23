@@ -1,0 +1,140 @@
+{
+  "run_id": "20261123T075952Z-87106d",
+  "document_id": "doc-9dbee7d58f7b",
+  "document_sha256": "9dbee7d58f7bdaa0a8f0d7679228f45e974bd3cc4db34e5c837b2ba06605e608",
+  "requested_mpn": "SAME-MPN",
+  "python_version": "3.13.15",
+  "project_version": "0.1.0",
+  "parser_version": "0.1.0-phase1",
+  "contract_version": "data-contract/v0.2",
+  "parser_config": {
+    "pdf": {
+      "render_dpi": 150,
+      "text_min_chars": 1
+    },
+    "tables": {
+      "cell_gap_pt": 8.0,
+      "row_gap_factor": 2.5,
+      "column_tolerance": 2,
+      "header_min_hits": 2,
+      "max_title_chars": 120,
+      "max_cell_chars": 80,
+      "min_numeric_cells": 2,
+      "rule_min_width_pt": 70.0,
+      "rule_min_height_pt": 15.0,
+      "alignment_min_rows": 3,
+      "merge_min_gap_pt": 2.0,
+      "merge_max_gap_pt": 24.0,
+      "merge_column_tol_pt": 2.5,
+      "merge_min_shared_columns": 2,
+      "merge_shared_ratio": 0.6,
+      "merge_extent_tol_pt": 3.0,
+      "merge_min_x_overlap_ratio": 0.6,
+      "visual_min_rule_span_pt": 4.0,
+      "visual_boundary_tol_pt": 2.5,
+      "visual_full_height_coverage": 0.85,
+      "logical_label_min_band_ratio": 0.6,
+      "logical_label_min_bands": 2,
+      "logical_subrule_promote_min_ratio": 0.5,
+      "logical_subrule_promote_min_bands": 2,
+      "logical_subrule_ambiguous_min_ratio": 0.25,
+      "logical_short_label_max_words": 2,
+      "logical_short_label_max_chars": 12
+    }
+  },
+  "parser_config_sha256": "859f816c7c2a9c0d32cda82d73b3f28d37f5082efce73dff2eed121156823546",
+  "table_params": {
+    "snapshot_version": "table-params/v2",
+    "params": {
+      "cell_gap_pt": 8.0,
+      "row_gap_factor": 2.5,
+      "column_tolerance": 2,
+      "header_min_hits": 2,
+      "max_title_chars": 120,
+      "max_cell_chars": 80,
+      "min_numeric_cells": 2,
+      "rule_min_width_pt": 70.0,
+      "rule_min_height_pt": 15.0,
+      "alignment_min_rows": 3,
+      "merge_min_gap_pt": 2.0,
+      "merge_max_gap_pt": 24.0,
+      "merge_column_tol_pt": 2.5,
+      "merge_min_shared_columns": 2,
+      "merge_shared_ratio": 0.6,
+      "merge_extent_tol_pt": 3.0,
+      "merge_min_x_overlap_ratio": 0.6,
+      "visual_min_rule_span_pt": 4.0,
+      "visual_boundary_tol_pt": 2.5,
+      "visual_full_height_coverage": 0.85,
+      "logical_label_min_band_ratio": 0.6,
+      "logical_label_min_bands": 2,
+      "logical_subrule_promote_min_ratio": 0.5,
+      "logical_subrule_promote_min_bands": 2,
+      "logical_subrule_ambiguous_min_ratio": 0.25,
+      "logical_short_label_max_words": 2,
+      "logical_short_label_max_chars": 12
+    }
+  },
+  "table_params_sha256": "ef234126223d93c5134069611c190b893d8f03b28b789b057a209b6845b49783",
+  "platform": "Windows-10-10.0.19045-SP0",
+  "dpi": 150.0,
+  "page_count": 1,
+  "table_count": 2,
+  "boundary_decisions": {
+    "table_count": 2,
+    "completed_count": 2,
+    "failed_count": 0,
+    "skipped_group_count": 4
+  },
+  "candidate_count": 24,
+  "detection_methods": {
+    "text_alignment": 2
+  },
+  "rendered_pages": [
+    1
+  ],
+  "model": "",
+  "prompt_version": "",
+  "artifacts": [
+    {
+      "name": "document.json",
+      "sha256": "487926fbde0575337f313ffae0ad79b9493c9fbc6a3a9161c79ad7650c5e71ef",
+      "bytes": 449
+    },
+    {
+      "name": "pages/geometry.json",
+      "sha256": "7780b56faa73c11bb051b0da9dc45006b5ecfa573756724dcfcf4fe3a6d53b24",
+      "bytes": 364
+    },
+    {
+      "name": "text_blocks.json",
+      "sha256": "c52704ab521d76939b071170817f91ea9c1704f09f2b334ed3b190ea531dbf53",
+      "bytes": 20547
+    },
+    {
+      "name": "tables.json",
+      "sha256": "e37562d6a2dc8388143c589d9982f483c77d7cc5c2875ee4920d419351e7ed6a",
+      "bytes": 19395
+    },
+    {
+      "name": "candidates.json",
+      "sha256": "b30dde6ab598ab3c69521c0af91fa78df161d76ec3db950f66e9fb1f0659fcdc",
+      "bytes": 17055
+    },
+    {
+      "name": "boundary_decisions.json",
+      "sha256": "67f59acbcd7a5571b0c017a2915c98ad2f24001ea5858a1be1d234670db573a6",
+      "bytes": 12612
+    },
+    {
+      "name": "product.json",
+      "sha256": "fae6d7c7a7a326b1efbaba3799b58cf4445541b69e8503cb57341c590a134f9c",
+      "bytes": 274
+    },
+    {
+      "name": "run_config.json",
+      "sha256": "99d1114276df2855361a71c77249e06a83d42bbbbe68d63c8e1486dde684271f",
+      "bytes": 2566
+    }
+  ]
+}
