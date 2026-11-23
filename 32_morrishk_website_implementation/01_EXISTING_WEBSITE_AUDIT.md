@@ -81,8 +81,22 @@
 其他事实：
 
 - 语言互指仅体现在页脚 80 个语言链接的 `hreflang` 属性上（部分页面），不是 `<head>` 的 alternate 标签。
-- `web/robots.txt` 首行为 `Allow:/`（缺空格，语法不规范）；GPTBot、facebookexternalhit 等条目重复且 Crawl-delay 与 Disallow 冲突。
+- `web/robots.txt` 首行为 `Allow:/`，属于**格式规范化问题**（建议写作 `Allow: /`）；是否被具体爬虫接受取决于其解析器，本文不据此断言“语法无效”。
 - 根 `sitemap.xml` 返回 404；`commands/MapController.php` 能生成 sitemap，但未证明生产已生成或定时更新。
+
+#### 3.1.1 robots.txt 细项复核
+
+| 检查项 | 现状 | 影响/建议 |
+|---|---|---|
+| User-agent 分组 | `*` 后连续多个 UA 组，部分组之间无空行 | 部分爬虫按最近 UA 组解析；建议每组之间空行分隔 |
+| `Allow`/`Disallow` 适用范围 | `User-agent: *` 仅 `Allow: /`，无 Disallow | 对未列出的爬虫等于全站允许 |
+| 重复规则 | `GPTBot`、`facebookexternalhit`、`Amazonbot` 多次出现 | 同一 UA 多组时行为依实现而异；建议合并为单组 |
+| Crawl-delay | `Amazonbot`、`facebookexternalhit` 先有 `Crawl-delay:10`，后又 `Disallow: /` | 两条规则语义冲突；建议保留一种策略 |
+| Sitemap 声明 | 无 `Sitemap:` 行 | 建议在根 robots 声明 sitemap（前提是 sitemap 可访问） |
+| 目标搜索引擎行为 | Google 忽略 Crawl-delay；Bing/Yandex 支持程度不同 | 需按实际目标引擎验证，不能仅凭文件文本判断 |
+| 生产与仓库一致性 | 生产 `/robots.txt` 与本轮修改前仓库内容一致 | 说明生产尚未应用本轮修改 |
+
+> 结论：当前问题应描述为“格式与分组不规范、规则重复/冲突、缺少 Sitemap 声明”，而不是“缺少空格导致语法无效”。
 - 标题/描述在多个页面重复使用同一模板文案，未与具体分类/型号/意图一一对应。
 
 ### 3.2 分析与追踪
@@ -154,7 +168,7 @@
 | A-03 | 搜索/询价页无 noindex | 低质页面被索引 | P1 | 已在本轮分支修复（未部署） |
 | A-04 | 无 canonical、无 JSON-LD、无 head hreflang | 重复内容、富结果缺失 | P1 | P1-07 技术 SEO |
 | A-05 | 根 sitemap 404 | 收录效率低 | P1 | 生成并发布 sitemap index；robots 加 Sitemap |
-| A-06 | robots.txt 语法/重复条目 | 抓取策略不确定 | P2 | 已修语法；策略需客户确认 |
+| A-06 | robots.txt 格式/分组/重复规则 | 抓取策略不确定 | P2 | 已做格式规范化；分组与策略需客户确认 |
 | A-07 | 首页 3 个 H1 | 语义结构混乱 | P2 | 保留一个 H1，其余改 H2 |
 | A-08 | 80 域名/语种与“第一阶段仅 en”冲突 | 索引与 hreflang 混乱 | P1 | 第一阶段收敛 en；其余按阶段治理 |
 | A-09 | CSRF 关闭 + 文件上传无限制 | 滥用/垃圾询盘/存储风险 | P1 | 开启 CSRF、限制类型大小、加验证码/速率限制 |

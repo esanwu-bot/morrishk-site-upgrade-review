@@ -6,6 +6,7 @@
 | 版本 | V1.0 |
 | 日期 | 2026-11-23 |
 | 当前阶段 | 第一阶段（基线审计与需求追踪）+ 第二阶段小范围代码启动 |
+| 启动状态 | 客户正式启动已由项目负责人确认；启动原件归档与合同/范围冻结分别跟踪 |
 | 结论口径 | 文档与代码准备已完成；生产执行未开始；未验收 |
 
 ---
@@ -39,9 +40,9 @@
 | `commands/SnSiiController.php` | `seo()` 支持 `robots` 并注册 `meta-robots` | 页面级索引控制 |
 | `controllers/SearchController.php` | 搜索结果页 `noindex,follow` | 避免搜索页被索引 |
 | `controllers/CartController.php` | 询价/无结果 `noindex,follow`；成功页 `noindex,nofollow` | 避免表单页被索引 |
-| `web/robots.txt` | `Allow:/` → `Allow: /` | 修正语法 |
+| `web/robots.txt` | `Allow:/` → `Allow: /` | 格式规范化（不断言原写法在所有爬虫下无效） |
 
-对应：FR-1-047（部分）、FR-1-049（部分）、P1-02、P1-07。
+对应：FR-1-047（部分）、FR-1-049（部分）、P1-02、P1-07。代码级复核材料见 `08_CODE_REVIEW_EVIDENCE.md`。
 
 ### 2.2 回滚
 
@@ -91,7 +92,9 @@ git checkout cdb9c04 -- commands/SnSiiController.php controllers/SearchControlle
 
 | 编号 | 阻塞 | 影响 | 责任/所需 |
 |---|---|---|---|
-| B-01 | 客户启动 Gate 未书面满足 | 不能正式开发/排期 | 客户签署 SG-1…6 |
+| B-01A | 启动确认原件未归档 | 文件追溯 | 补充归档（不阻塞非生产开发） |
+| B-01B | 合同/报价/详细范围未冻结 | 范围与费用口径 | 客户/商务确认（不阻塞已授权非生产开发） |
+| B-01C | 生产与上线未授权 | 部署/上线 | 书面授权（只阻塞生产） |
 | B-02 | 服务器/数据库/备份无权限 | P0-02/P0-06/P0-07 | 客户提供 |
 | B-03 | 询盘第三方 API 与归属未确认 | P1-05 | 客户决策 |
 | B-04 | 旧域名/URL 未提供 | P2-02 | 客户提供 |
