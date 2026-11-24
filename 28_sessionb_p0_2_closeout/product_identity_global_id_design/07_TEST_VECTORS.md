@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-007 |
-| 版本 | v2.11-R2.2.8 |
+| 版本 | v2.12-R2.2.9 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 性质 | 未来实现期测试设计；**本轮未执行**，不替代现有 83 项 Parser 测试 |
 | 关联 | `03_PRODUCT_IDENTITY_MODEL.md`、`04_GLOBAL_ID_REGISTRY.md`、`05_BACKWARD_COMPATIBILITY.md`、`06_API_AND_DATABASE_IMPACT.md`、`10_MORRISHK_FIRST_SCOPE_AND_DEFERRED.md` |
@@ -93,6 +93,7 @@
 | 旧两作用域审计拒绝（R2.2.3） | V-101 |
 | 无匹配导入结果语义（R2.2.4） | V-102 |
 | same key 指纹一致/冲突与原子回滚（R2.2.8） | V-103/V-104/V-105 |
+| 同 key 并发提交/回滚（R2.2.9） | V-106/V-107 |
 
 > **V-11 说明（R2.2.5）**：不再使用 `CREATED` 作为导入结果。已存在 CONFIRMED 产品时并发只允许 `MATCHED` 复用；无匹配时只允许写 `identity_pending`，结果使用 `PENDING_CREATED`/`PENDING_UPDATED`。不同 document/import 请求之间的 pending 去重规则尚未定义，标记为**待决**，不得假定并发请求必然合并为单条 pending。
 
@@ -231,8 +232,10 @@
 | V-103 | same key、指纹相同 | 同 Tenant/Site/key，`request_fingerprint` 与首次一致 | 返回原 event `result`/`pending_id`/`conflict_id`；不新增 event/pending/conflict；不写 `global_product` | Repository + DB 断言 | 重复写入或返回不同结果 |
 | V-104 | same key、指纹不同 | 同 Tenant/Site/key，`request_fingerprint` 与首次不同 | 返回 `IDEMPOTENCY_CONFLICT`；原 event 不变；不新建 pending/conflict/`global_product` | Repository + DB 断言 | 覆盖原事件或二次业务写入 |
 | V-105 | 首次请求 pending/conflict 阶段故障 | 创建 pending/conflict 时人为失败 | 整个事务回滚；无半成品 event/pending/conflict；同 key 重试可正常完成 | 故障注入 + DB 断言 | 半成品记录或重试永久失败 |
+| V-106 | 同 key 并发、A 提交 | A 先插 event 未提交；B 同 key 到达；A 提交 | B 等待后以新语句/新事务读取；指纹相同返回原结果，不同返回 `IDEMPOTENCY_CONFLICT`；仅一条 event | 并发测试 + DB 断言 | 误判无记录/重复创建 |
+| V-107 | 同 key 并发、A 回滚 | A 插入后回滚；B 同 key 竞争 | B 接管首次创建；最终仅一条权威 event；pending/conflict 与 event 一致；无半成品 | 故障注入 + 并发测试 | 重复 event 或孤立 pending |
 
-> V-103…V-105 共 3 个 R2.2.8 向量，全部**未执行**，与 `04` §3/§8、`06` §4/§6、`07` V-26 一致。
+> V-103…V-107 共 5 个 R2.2.8/R2.2.9 向量，全部**未执行**，与 `04` §3/§8、`06` §4/§6、`07` V-26 一致。
 
 ## 3. 测试分层（未来）
 

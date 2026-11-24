@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-004 |
-| 版本 | v2.9-R2.2.8 |
+| 版本 | v2.10-R2.2.9 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | 无全局产品 ID/注册表；`product_id=prod-doc`；lake 仅 3 表 |
 | 相关决策 | D-05、D-06、D-10、D-21、D-22、D-23、D-31…D-34、D-41…D-49（见 `08_DECISION_REGISTER.md`） |
@@ -612,21 +612,35 @@ COMMIT   -- 任一步失败整体回滚
 - 权威记录：`product_import_event`；`identity_pending`/`identity_conflict` 通过 `created_by_import_event_id`/`pending_id` 关联，不各自维护幂等键；
 - different key：不得自动合并；跨 document/import 身份级去重**待决**；均不创建 `global_product`。
 
-**普通导入原子流程（R2.2.8）：**
+**普通导入原子流程（R2.2.8 / R2.2.9）：**
 
 ```text
 BEGIN
   1. 从已验证认证上下文取得 tenant_id、site_id
-  2. INSERT product_import_event(idempotency_key, request_fingerprint, ...)
-     -- 依赖 UNIQUE (tenant_id, site_id, idempotency_key)
-  3. 若唯一冲突：
-       读取已提交 event（或等待并发事务提交）
-       比较 request_fingerprint
-         相同 -> COMMIT/返回原 result、pending_id、conflict_id
-         不同 -> 回滚并返回 IDEMPOTENCY_CONFLICT
+  2. INSERT INTO product_import_event(tenant_id, site_id, idempotency_key,
+        request_fingerprint, request_fields, ...)
+     VALUES (...)
+     ON CONFLICT (tenant_id, site_id, idempotency_key) DO NOTHING
+     RETURNING event_id;
+  3. 分支：
+     (a) 返回本请求 event_id -> 首次创建，继续步骤 4。
+     (b) 返回 0 行（已存在/并发竞争）-> 不使事务失败，执行步骤 3.1。
+  3.1 读取权威 event（使用新语句，非失败语句）：
+        SELECT ... FROM product_import_event
+         WHERE tenant_id=$1 AND site_id=$2 AND idempotency_key=$3;
+      若不可见（竞争方尚未提交）-> 等待并重试（指数退避/超时上限）。
+  3.2 快照与可见性：
+      - READ COMMITTED：新语句可看到竞争方已提交行，直接比较；
+      - REPEATABLE READ / SERIALIZABLE：新语句仍用旧快照，必须
+        新事务/新连接重试，或回滚到 SAVEPOINT 后重新读取；
+      - 不得因“当前快照看不到”而误判无记录并继续创建。
+  3.3 比较 request_fingerprint：
+      相同 -> 返回原 result / pending_id / conflict_id（不执行第二次业务写入）
+      不同 -> 返回 IDEMPOTENCY_CONFLICT（不覆盖原 event）
+      重试耗尽仍不可见 -> 返回可重试错误（如 RETRYABLE_CONFLICT），不得继续创建。
   4. 首次请求继续身份解析：
        MATCHED  -> 回写 event.product_uid
-       PENDING  -> INSERT identity_pending(created_by_import_event_id=event.id)
+       PENDING  -> INSERT identity_pending(created_by_import_event_id=event_id)
                    -> 回写 event.pending_id
        CONFLICT -> 创建 pending/conflict，关联 event
                    -> 回写 event.pending_id / conflict_id
@@ -637,8 +651,14 @@ BEGIN
 COMMIT
 ```
 
+- **冲突安全机制二选一（必须明确实现）**：
+  1. `INSERT ... ON CONFLICT (tenant_id, site_id, idempotency_key) DO NOTHING RETURNING ...`，零行时用新语句读取；
+  2. `SAVEPOINT sp; INSERT ...;` 捕获唯一冲突后 `ROLLBACK TO SAVEPOINT sp;`，再用新语句读取。
+  不得使用“普通 INSERT 抛异常后在同一失败事务中直接 SELECT”的写法。
+- **并发情形 A（竞争方提交）**：A 先插 event 未提交；B 同 key 到达并竞争唯一键；B 等待 A 提交；A 提交后 B 以新语句/新事务读取已提交 event，按指纹相同返回原结果、不同返回 `IDEMPOTENCY_CONFLICT`。
+- **并发情形 B（竞争方回滚）**：A 回滚；B 的唯一键竞争解除并可成为首次成功创建者；最终只有一条权威 event，pending/conflict 与 event 关联一致，无重复/半成品。
 - 若实现采用延迟约束/独立事务表等不同机制，必须提供等价原子性保证（event 与 pending/conflict 要么同时可见，要么都不可见），不得只描述理想结果。
-- 并发 same key：唯一约束竞争；失败方等待/读取已提交权威 event 后按指纹分支返回；不得重复写入。
+- 隔离级别：推荐 `READ COMMITTED`；若使用更高隔离级别，必须在新事务/新快照中重读权威 event，或使用 SAVEPOINT 回滚后的新语句，不得沿用旧快照。
 - 重试：事务失败后可用同一 key 重试；若首次已提交则返回原结果，若首次回滚则可正常完成首次请求。
 
 **其他并发规则：**

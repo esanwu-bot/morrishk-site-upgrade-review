@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-006 |
-| 版本 | v2.8-R2.2.8 |
+| 版本 | v2.9-R2.2.9 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 性质 | 影响分析；**不修改** OpenAPI、75 矩阵正式状态或数据库 |
 | 事实基线 | 契约候选 `CANDIDATE_NOT_FROZEN`；75 项 0/75 可执行；无 Business API 实现 |
@@ -137,6 +137,7 @@ tenant_id / site_id (由 token 上下文注入，不信任客户端自报)
 - 幂等：`product_import_event` 为请求幂等权威，`UNIQUE (tenant_id, site_id, idempotency_key)`；首次请求保存 `request_fingerprint`（覆盖 `document_sha256`/`requested_mpn`/`brand_norm`/`normalizer_version`/`operation`）。同 key 指纹相同返回原 event 结果；指纹不同返回 `IDEMPOTENCY_CONFLICT`；不同 tenant/site 不构成冲突。`identity_pending`/`identity_conflict` 不单独维护幂等键。
 - 并发：自然键部分唯一约束 + 事务 + 乐观锁；同 key 唯一约束竞争，失败方读取已提交权威结果并按指纹分支；不创建重复 pending/conflict，不创建 `global_product`。
 - 原子性：event、pending/conflict、关联与审计在同一业务事务提交（或等价的延迟约束机制），失败整体回滚；普通导入事务不含 `global_product` 写入。详见 `04` §8。
+- 同 key 唯一冲突处理：必须使用 `INSERT ... ON CONFLICT DO NOTHING RETURNING` 或 `SAVEPOINT + ROLLBACK TO SAVEPOINT` 等等价机制；不得在同一失败事务中直接 SELECT。竞争方未提交时等待/重试，提交后以新语句/新事务读取并比较 `request_fingerprint`；更高隔离级别需新快照，不得因旧快照不可见而继续创建。
 - 审计日志不得含 token/secret；只记录 ID/原因/证据引用。
 - 拒绝访问也必须审计（防止枚举探测）。
 
