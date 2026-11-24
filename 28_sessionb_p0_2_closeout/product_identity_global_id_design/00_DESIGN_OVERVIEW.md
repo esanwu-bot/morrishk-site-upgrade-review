@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-000 |
-| 版本 | v2.7-R2.2.5 |
+| 版本 | v2.8-R2.2.6 |
 | 日期 | 2026-11-23 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 策略 | **Morrishk-first / Tenant-ready / Multi-site-later** |
@@ -106,9 +106,9 @@
 
 ## 7. 阅读顺序
 
-`01 Brand` → `02 MPN` → `03 产品身份` → `04 全局 ID` → `05 兼容` → `06 API/DB 影响` → `07 测试向量` → `08 决策清单` → `09 R1 复核回应` → `10 Morrishk 首期范围与延后清单` → `11 R2 复核回应` → `12 R2.1 复核回应` → `13 R2.2 复核回应` → `14 R2.2.1 复核回应` → `15 R2.2.2 复核回应` → `16 R2.2.3 复核回应` → `17 R2.2.4 复核回应` → `18 R2.2.5 复核回应`。
+`01 Brand` → `02 MPN` → `03 产品身份` → `04 全局 ID` → `05 兼容` → `06 API/DB 影响` → `07 测试向量` → `08 决策清单` → `09 R1 复核回应` → `10 Morrishk 首期范围与延后清单` → `11 R2 复核回应` → `12 R2.1 复核回应` → `13 R2.2 复核回应` → `14 R2.2.1 复核回应` → `15 R2.2.2 复核回应` → `16 R2.2.3 复核回应` → `17 R2.2.4 复核回应` → `18 R2.2.5 复核回应` → `19 R2.2.6 复核回应`。
 
-> R1 新增租户隔离、状态/唯一约束、Alias/Profile 治理；R2 收敛 Morrishk-first 八实体模型；R2.1 修复 Alias Brand 上下文、归属、证据边界与 Token 上下文；R2.2 补强映射、三类归属、四角色与证据可见性；R2.2.1 落实时间语义、复合外键与审批分离事务；R2.2.2 统一 Alias 规则、principal 与审批状态约束；R2.2.3 封闭 Global Product 旁路、principal 域互斥、审计三作用域与 Alias 约束细节；R2.2.4 修正 principal binding 唯一键、pending reason 与 import_event 结果语义、Alias `scope` 字段名；R2.2.5 仅修正 V-11 并发导入向量，移除旧 `CREATED` 语义并标记 pending 去重为待决。回应分别见 `11`…`18`。
+> R1 新增租户隔离、状态/唯一约束、Alias/Profile 治理；R2 收敛 Morrishk-first 八实体模型；R2.1 修复 Alias Brand 上下文、归属、证据边界与 Token 上下文；R2.2 补强映射、三类归属、四角色与证据可见性；R2.2.1 落实时间语义、复合外键与审批分离事务；R2.2.2 统一 Alias 规则、principal 与审批状态约束；R2.2.3 封闭 Global Product 旁路、principal 域互斥、审计三作用域与 Alias 约束细节；R2.2.4 修正 principal binding 唯一键、pending reason 与 import_event 结果语义、Alias `scope` 字段名；R2.2.5 修正 V-11；R2.2.6 区分 V-26 的 same/different `idempotency_key`，跨 import 去重仍待决。回应分别见 `11`…`19`。
 
 ## 8. 非声明
 

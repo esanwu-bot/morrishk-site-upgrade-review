@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-004 |
-| 版本 | v2.6-R2.2.4 |
+| 版本 | v2.7-R2.2.6 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | 无全局产品 ID/注册表；`product_id=prod-doc`；lake 仅 3 表 |
 | 相关决策 | D-05、D-06、D-10、D-21、D-22、D-23、D-31…D-34、D-41…D-49（见 `08_DECISION_REGISTER.md`） |
@@ -554,7 +554,8 @@ raw MPN/Brand (tenant_id, site_id)
 | 产品合并 | 保留两个 product_uid；`merged_into` + alias + lineage；不物理删除 |
 | 产品拆分 | 新 product_uid/新键；旧 uid 保留并标 SPLIT/别名，谱系记录；新旧键均不删除 |
 | 并发导入 | 部分唯一索引 + 事务 + 幂等键；失败方返回 MATCHED/CONFLICT |
-| 待确认记录重复提交 | 同 idempotency_key 返回同一 `pending_id`；不产生重复冲突 |
+| 待确认记录重复提交（same `idempotency_key`） | 返回同一 `pending_id`；不产生重复冲突 |
+| 同身份不同 `idempotency_key`（跨 document/import） | 不得自动合并；去重规则**待决**；各自 pending/conflict 记录均不得创建 `global_product` |
 
 ## 6. 冲突检测与人工裁决
 

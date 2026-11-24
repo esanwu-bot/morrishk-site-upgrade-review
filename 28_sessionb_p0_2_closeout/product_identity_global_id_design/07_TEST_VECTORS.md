@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-007 |
-| 版本 | v2.7-R2.2.5 |
+| 版本 | v2.8-R2.2.6 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 性质 | 未来实现期测试设计；**本轮未执行**，不替代现有 83 项 Parser 测试 |
 | 关联 | `03_PRODUCT_IDENTITY_MODEL.md`、`04_GLOBAL_ID_REGISTRY.md`、`05_BACKWARD_COMPATIBILITY.md`、`06_API_AND_DATABASE_IMPACT.md`、`10_MORRISHK_FIRST_SCOPE_AND_DEFERRED.md` |
@@ -51,7 +51,7 @@
 | V-23 | 合并旧自然键保留 | 两个已 CONFIRMED 产品合并 | 目标产品保留 | 旧 natural key → alias/redirect；不删除/不复用 | 旧键消失或指向新空产品 |
 | V-24 | 拆分新自然键生成 | 一个产品拆成两个身份 | 两个新身份 | 新 natural key/product_uid；旧键标 SPLIT/alias | 复用旧键或丢失谱系 |
 | V-25 | normalizer 版本升级 | `MPN-NORM-v1` → v2，norm 变化 | 同一产品关系尽量保持 | 旧 norm 进 alias/历史；新 norm 重算；审计 | 静默改写历史/生成重复产品 |
-| V-26 | 并发 PENDING_CONFLICT | 同身份两并发请求，均缺 variant | 只产生一个冲突记录 | 幂等键/唯一约束防重复；返回同一冲突 | 重复冲突/重复产品 |
+| V-26 | 并发 PENDING_CONFLICT（两种幂等键情形） | (A) same `idempotency_key`：同身份两并发请求，均缺 variant；(B) different `idempotency_key`：同身份两并发请求，均缺 variant | (A) 返回同一 pending/conflict，不得重复创建，不创建 `global_product`；(B) 不得自动合并为一个 pending/conflict；跨 document/import 去重为**待决**，不创建 `global_product` | 幂等键唯一约束 + 事务竞争 + DB 断言 | 重复冲突/重复产品，或用 V-26 误批自动合并 |
 | V-27 | 全局产品 vs 租户 ACL | 客户 A 可见产品 X，客户 B 无 ACL | 全局身份共享，访问不共享 | A 可见；B 不可见（403/404 按策略） | B 因全局身份看到 X/私有证据 |
 | V-28 | 私有证据隔离 | 客户 A 私有 PDF/证据，客户 B 有全局产品访问 | 产品可共享，私有证据不共享 | B 看不到 A 的 bbox/原文/文件 | 私有证据跨租户泄露 |
 
@@ -94,6 +94,8 @@
 | 无匹配导入结果语义（R2.2.4） | V-102 |
 
 > **V-11 说明（R2.2.5）**：不再使用 `CREATED` 作为导入结果。已存在 CONFIRMED 产品时并发只允许 `MATCHED` 复用；无匹配时只允许写 `identity_pending`，结果使用 `PENDING_CREATED`/`PENDING_UPDATED`。不同 document/import 请求之间的 pending 去重规则尚未定义，标记为**待决**，不得假定并发请求必然合并为单条 pending。
+
+> **V-26 说明（R2.2.6）**：幂等键作用域为 `(tenant_id, site_id, idempotency_key)` 的请求级去重；same key 由唯一约束与事务竞争保证只产生一条结果。different key 不得自动合并，跨 document/import 的身份级去重仍为**待决**；两种情形都不得创建 `global_product`。
 
 ### 2.2 本轮 R2（Morrishk-first）新增向量 V-29…V-50
 
