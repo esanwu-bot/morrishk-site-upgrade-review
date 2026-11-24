@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-007 |
-| 版本 | v2.6-R2.2.4 |
+| 版本 | v2.7-R2.2.5 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 性质 | 未来实现期测试设计；**本轮未执行**，不替代现有 83 项 Parser 测试 |
 | 关联 | `03_PRODUCT_IDENTITY_MODEL.md`、`04_GLOBAL_ID_REGISTRY.md`、`05_BACKWARD_COMPATIBILITY.md`、`06_API_AND_DATABASE_IMPACT.md`、`10_MORRISHK_FIRST_SCOPE_AND_DEFERRED.md` |
@@ -36,7 +36,7 @@
 | V-08 | MPN 格式冲突 | `AD-123` vs `AD123` 同 Brand | 需按 profile 判定；冲突则人工裁决 | 同 norm 则同产品；不同 norm 则 PENDING_CONFLICT | 静默合并或静默拆分 |
 | V-09 | 产品合并 | 两个已存在 product_uid 被裁决为同产品 | 合并后一个主产品 | 保留两 uid；`merged_into` + alias；旧 ID 可重定向 | 物理删除旧 ID/断链 |
 | V-10 | 产品拆分 | 一个 product_uid 被裁决包含两个变体 | 拆成两个产品 | 新 product_uid；旧 uid 标记 SPLIT/别名；谱系记录 | 丢失旧映射 |
-| V-11 | 并发导入 | 同一身份两个并发请求 | 只创建一个产品 | 唯一约束/幂等键；一方 CREATED，一方 MATCHED | 创建重复产品 |
+| V-11 | 并发导入（两种前置） | (a) 已存在 CONFIRMED 产品：两并发导入同一身份；(b) 无匹配 CONFIRMED 产品：两并发导入同一身份 | (a) 仅复用已有 `product_uid`，结果均 `MATCHED`，不得重复创建；(b) 不得创建 `global_product`，只能创建/复用/更新 `identity_pending`；pending 去重为**待决规则**，不得假定必然合并为一条 | 并发测试 + DB 断言 | 重复创建产品或误建正式产品 |
 | V-12 | 历史 ID 兼容 | 旧 `product_id=prod-doc` 查询 | 映射到 product_uid | legacy_map 解析；旧字段保留；校验 tenant | 旧 ID 失效/破坏性替换 |
 | V-13 | API Scope 隔离 | 缺 `product.evidence.read` 调 evidence | 授权拒绝 | 403 INSUFFICIENT_SCOPE；不泄露身份/证据 | 越权返回 |
 | V-14 | 变体/封装 | 同 Brand/MPN 不同封装 | 按 D-04 决定独立产品或 variant 属性 | variant_key 或独立 uid | 未裁定即合并/拆分 |
@@ -92,6 +92,8 @@
 | Alias 作用域并存与重叠（R2.2.3） | V-99/V-100 |
 | 旧两作用域审计拒绝（R2.2.3） | V-101 |
 | 无匹配导入结果语义（R2.2.4） | V-102 |
+
+> **V-11 说明（R2.2.5）**：不再使用 `CREATED` 作为导入结果。已存在 CONFIRMED 产品时并发只允许 `MATCHED` 复用；无匹配时只允许写 `identity_pending`，结果使用 `PENDING_CREATED`/`PENDING_UPDATED`。不同 document/import 请求之间的 pending 去重规则尚未定义，标记为**待决**，不得假定并发请求必然合并为单条 pending。
 
 ### 2.2 本轮 R2（Morrishk-first）新增向量 V-29…V-50
 
