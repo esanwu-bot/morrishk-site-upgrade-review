@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-008 |
-| 版本 | v2.2-R2.2 |
+| 版本 | v2.3-R2.2.1 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 说明 | 以下均为 Agent 推荐与待决事项；**不是**负责人已批准的架构决策 |
 | 签署栏 | 决策人/日期/结论均留白；未签署前不得用于实现、冻结或生产 |
@@ -71,9 +71,9 @@
 | 编号 | 决策问题 | 可选方案 | 推荐 | 主要风险 | 影响范围 | 需签署 | 当前状态 |
 |---|---|---|---|---|---|---|---|
 | D-41 | Tenant Assertion 模型与首期 Morrishk 可提交范围 | A 客户确认即写全局；B 客户断言仅本租户 + 四角色审批链；C 不允许客户提交 | **B** | 断言积压；与全局裁决状态混淆 | 身份/治理/API | 是 | PROPOSED_NOT_APPROVED |
-| D-42 | Global Identity Adjudication 角色、执行/批准分离与首期承担方 | A 无独立裁决；B Ds Bit `identity.admin` 决策 + `identity.approver` 批准，审批前不写全局；C 客户自审 | **B** | 角色缺位导致身份无法确认 | 治理/审计/API | 是 | PROPOSED_NOT_APPROVED |
-| D-43 | Global/Tenant/Site 三类归属与全局审计归属 | A 所有行强制 tenant_id；B 三类归属 + GLOBAL 审计允许 tenant_id=NULL | **B** | 归属混乱导致跨租户或伪造租户 | DB/审计/安全 | 是 | PROPOSED_NOT_APPROVED |
-| D-44 | Brand Alias / MPN Alias 唯一约束与有效期 | A 单一 `unique(alias_norm, scope, tenant_id)`；B 当前映射部分唯一 + 历史行保留 + 有效期不重叠 + 并发锁 | **B** | 约束/索引实现复杂度 | Brand/MPN/DB | 是 | PROPOSED_NOT_APPROVED |
+| D-42 | Global Identity Adjudication 角色、执行/批准分离与首期承担方 | A 无独立裁决；B `identity.admin` 决策 + `identity.approver` 批准，身份取自 token，审批+写全局原子事务；C 客户自审 | **B** | 角色缺位或身份伪造导致越权 | 治理/审计/API | 是 | PROPOSED_NOT_APPROVED |
+| D-43 | Global/Tenant/Site 三类归属与全局审计归属 | A 所有行强制 tenant_id；B 三类归属 + CHECK + 复合外键 + GLOBAL 审计 tenant_id=NULL；C 仅应用层校验 | **B** | 归属混乱导致跨租户或伪造租户 | DB/审计/安全 | 是 | PROPOSED_NOT_APPROVED |
+| D-44 | Brand Alias / MPN Alias 唯一约束与有效期 | A 单一 `unique(alias_norm, scope, tenant_id)`；B 当前映射部分唯一 + 历史行保留 + UTC 半开区间不重叠 + 并发锁 | **B** | 时间语义/并发冲突导致歧义映射 | Brand/MPN/DB | 是 | PROPOSED_NOT_APPROVED |
 | D-45 | OAuth Token 可信上下文与 Client/Site 状态变化处理 | A 信任请求体 tenant/site；B 服务端派生 + 运行期复核 + 禁用即拒绝 | **B** | 校验遗漏导致越权/伪造 | 授权/API/安全 | 是 | PROPOSED_NOT_APPROVED |
 | D-46 | 首期 Evidence visibility 范围 | A PRIVATE/SHARED/PUBLIC 全启用；B 首期仅 PRIVATE，其余预留；C 全部公开 | **B** | 跨租户证据泄露 | 证据/API/安全 | 是 | PROPOSED_NOT_APPROVED |
 

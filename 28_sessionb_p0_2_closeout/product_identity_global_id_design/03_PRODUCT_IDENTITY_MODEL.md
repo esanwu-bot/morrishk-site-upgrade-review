@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-003 |
-| 版本 | v2.2-R2.2 |
+| 版本 | v2.3-R2.2.1 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | 当前 `product_id=prod-{document_id}`；`document_id=doc-{sha[:12]}`；`run_id` 执行级 |
 | 相关决策 | D-04、D-05、D-06、D-21、D-22、D-23、D-41、D-42（见 `08_DECISION_REGISTER.md`） |
@@ -170,6 +170,15 @@ identity_conflict
 
 - 审批链顺序：提交者 → Tenant 审批者 → Global 决策者 → Global 审批者；任一步未完成，不得更新 `global_product`。
 - 同一自然人不得同时承担相邻两个审批角色（提交/审批、决策/批准分离）；审计记录须记录四个角色。
+
+**可信身份与分离约束（R2.2.1）：**
+
+1. **身份来源**：`submitted_by` / `tenant_approved_by` / `decided_by` / `approved_by` 必须来自校验后的 token 上下文（`client_id` + `subject` + 服务端角色绑定），不采信请求体自报的 actor/tenant/site；每次写入记录 `auth_context_ref` 与角色快照。
+2. **数据库 CHECK**：`submitted_by <> tenant_approved_by`；`decided_by <> approved_by`；应用层额外禁止同一自然人跨相邻角色复用。
+3. **角色绑定互斥**：Morrishk 仅可持有 `tenant.editor`/`tenant.admin`；`identity.admin`/`identity.approver` 仅 Ds Bit 治理侧持有；绑定表需有互斥约束，禁止同一主体同时拥有租户审批与全局决策/批准角色。
+4. **原子事务**：`tenant_assertion.status→TENANT_APPROVED`、`global_adjudication.decision_status→APPROVED` 与 `approved_at`、`global_product` 创建/更新、alias/lineage、`audit_log` 必须在**同一事务**提交；任一步失败整体回滚，不得出现“已批准未写产品”或“已写产品未批准”。
+5. **幂等**：同一 `(subject_type, subject_ref, decision_version)` 只允许一次 APPROVED 生效；重复审批返回既有结果，不重复写 `global_product`。
+6. **越权路径隔离**：Tenant 侧接口不持有写 `global_product` 的权限；Global 侧接口不复用 Tenant 审批代码路径，避免“确认即全局生效”。
 
 **Tenant Assertion 规则：**
 

@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-000 |
-| 版本 | v2.2-R2.2 |
+| 版本 | v2.3-R2.2.1 |
 | 日期 | 2026-11-23 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 策略 | **Morrishk-first / Tenant-ready / Multi-site-later** |
@@ -106,9 +106,9 @@
 
 ## 7. 阅读顺序
 
-`01 Brand` → `02 MPN` → `03 产品身份` → `04 全局 ID` → `05 兼容` → `06 API/DB 影响` → `07 测试向量` → `08 决策清单` → `09 R1 复核回应` → `10 Morrishk 首期范围与延后清单` → `11 R2 复核回应` → `12 R2.1 复核回应` → `13 R2.2 复核回应`。
+`01 Brand` → `02 MPN` → `03 产品身份` → `04 全局 ID` → `05 兼容` → `06 API/DB 影响` → `07 测试向量` → `08 决策清单` → `09 R1 复核回应` → `10 Morrishk 首期范围与延后清单` → `11 R2 复核回应` → `12 R2.1 复核回应` → `13 R2.2 复核回应` → `14 R2.2.1 复核回应`。
 
-> R1 新增租户隔离、状态/唯一约束、Alias/Profile 治理；R2 收敛为 Morrishk-first 八实体模型，明确首期/预留/延后，并修复 Product Registry、Pending、Variant、Alias、Profile 矛盾；R2.1 定点修复 Alias Brand 上下文与唯一约束/有效期、Global/Tenant 数据归属、tenant_evidence Site 边界、Tenant Assertion 与 Global Adjudication 分层、OAuth Token 可信上下文；R2.2 补强 Alias 当前/历史映射与并发、Global/Tenant/Site 三类归属、四角色审批链、GLOBAL 审计 tenant_id=NULL 与首期 Evidence 仅 PRIVATE。回应分别见 `11`/`12`/`13`。
+> R1 新增租户隔离、状态/唯一约束、Alias/Profile 治理；R2 收敛为 Morrishk-first 八实体模型，明确首期/预留/延后；R2.1 定点修复 Alias Brand 上下文、Global/Tenant 归属、tenant_evidence Site 边界、裁决分层与 Token 可信上下文；R2.2 补强当前/历史映射、三类归属、四角色审批链、GLOBAL 审计与证据可见性；R2.2.1 将 Alias 时间语义/区间互斥/并发、三类资源复合外键与 CHECK、四角色可信身份/分离/原子事务落实为可实施约束。回应分别见 `11`/`12`/`13`/`14`。
 
 ## 8. 非声明
 

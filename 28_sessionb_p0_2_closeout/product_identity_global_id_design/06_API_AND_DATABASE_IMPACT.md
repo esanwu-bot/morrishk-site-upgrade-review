@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-006 |
-| 版本 | v2.2-R2.2 |
+| 版本 | v2.3-R2.2.1 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 性质 | 影响分析；**不修改** OpenAPI、75 矩阵正式状态或数据库 |
 | 事实基线 | 契约候选 `CANDIDATE_NOT_FROZEN`；75 项 0/75 可执行；无 Business API 实现 |
@@ -74,13 +74,13 @@ get_lineage(product_uid)
 | 表 | 关键列 | 索引/约束 | 首期归属 |
 |---|---|---|---|
 | `tenant` | tenant_id, tenant_code, status | unique(tenant_code) | 首期必需 |
-| `site` | site_id, tenant_id, domain, status | unique(tenant_id, domain); index(tenant_id) | 首期必需 |
-| `oauth_client` | client_id, site_id, tenant_id, scopes, status | unique(client_id); index(site_id) | 首期必需 |
+| `site` | site_id, tenant_id, domain, status | unique(tenant_id, site_id)（复合外键锚点）; unique(tenant_id, domain); index(tenant_id) | 首期必需 |
+| `oauth_client` | client_id, site_id, tenant_id, scopes, status | unique(client_id); index(site_id); 复合外键 `(tenant_id, site_id) → site(tenant_id, site_id)` | 首期必需 |
 | `global_product` | product_uid, brand_id, mpn_norm, variant_state, variant_key, lifecycle_state | 部分唯一 `(brand_id, mpn_norm, variant_state, variant_key) WHERE lifecycle_state='ACTIVE'` | 首期必需 |
 | `tenant_product_access` | tenant_id, product_uid, access_level, valid_from/to, revoked_at | PK(tenant_id, product_uid); index(product_uid) | 首期必需 |
-| `tenant_document` | tenant_id, site_id, document_id, product_uid?, ownership | unique(tenant_id, document_id); index(site_id) | 首期必需 |
-| `tenant_evidence` | tenant_id, site_id, evidence_id, document_id, run_id?, visibility, license_ref | unique(tenant_id, site_id, evidence_id); CHECK(site.tenant_id = tenant_id); index(document_id) | 首期必需 |
-| `audit_log` | audit_id, scope, tenant_id?, site_id?, actor, action, ref, at | CHECK((scope='GLOBAL' AND tenant_id IS NULL) OR (scope='TENANT' AND tenant_id IS NOT NULL)); index(tenant_id, at); index(ref) | 首期必需 |
+| `tenant_document` | tenant_id, site_id, document_id, product_uid?, ownership | unique(tenant_id, site_id, document_id); 复合外键 `(tenant_id, site_id) → site(...)`; index(site_id) | 首期必需 |
+| `tenant_evidence` | tenant_id, site_id, evidence_id, document_id, run_id?, visibility, license_ref | unique(tenant_id, site_id, evidence_id); 复合外键 `(tenant_id, site_id) → site(...)`; index(document_id) | 首期必需 |
+| `audit_log` | audit_id, scope, tenant_id?, site_id?, actor, action, ref, at | `CHECK ((scope='GLOBAL' AND tenant_id IS NULL AND site_id IS NULL) OR (scope='TENANT' AND tenant_id IS NOT NULL))`；`site_id` 非空时复合外键；index(tenant_id, at); index(ref) | 首期必需 |
 | `identity_pending` | pending_id, tenant_id, site_id, reason, status, idempotency_key | unique(idempotency_key); index(status) | 支撑身份 |
 | `identity_conflict` | conflict_id, pending_id?, scope, tenant_id?, conflict_type, status | index(status) | 支撑身份 |
 | `brand_registry` / `brand_alias` | brand_id / alias_norm, brand_id, scope, tenant_id?, is_current | `brand_registry` GLOBAL 无 tenant_id；`brand_alias` 当前映射部分唯一：GLOBAL(`alias_norm WHERE is_current`)、TENANT(`tenant_id, alias_norm WHERE is_current`)，历史行可多行；CHECK scope/tenant_id 一致 | 支撑身份 |
@@ -423,6 +423,27 @@ ALLOW = OAuth Scope
 - `audit_log` 的 GLOBAL 记录**允许且要求 `tenant_id = NULL`**，不得填入 Morrishk；TENANT 记录必须有 `tenant_id`（及 `site_id`）。
 - “所有业务行必须带 `tenant_id`”是过度宽泛表述，已废止；改为按三类归属判定。
 - 全局身份治理事件不得强行归属 Morrishk；若事件由 Morrishk 的断言触发，则 TENANT 侧 assertion 与 GLOBAL 侧裁决分别留存、互不覆盖。
+
+**复合外键与 CHECK（R2.2.1，非 DDL）：**
+
+| 类别 | 约束 |
+|---|---|
+| Global-level | `CHECK (tenant_id IS NULL AND site_id IS NULL)` |
+| Tenant-level | `CHECK (tenant_id IS NOT NULL AND site_id IS NULL)` + `FK(tenant_id) → tenant` |
+| Site-level | `CHECK (tenant_id IS NOT NULL AND site_id IS NOT NULL)` + 复合外键 `FK(tenant_id, site_id) → site(tenant_id, site_id)` |
+| `audit_log` | `CHECK (scope='GLOBAL' AND tenant_id IS NULL AND site_id IS NULL) OR (scope='TENANT' AND tenant_id IS NOT NULL)`；`site_id` 非空时按 `(tenant_id, site_id)` 复合外键校验 |
+
+- 前置：`site` 必须有 `UNIQUE (tenant_id, site_id)`；仅 `site_id` 单列外键不能保证 Site 属于该 Tenant，不采用。
+- 复合外键使“归属混用”在数据库层直接失败，而不是仅靠应用层校验。
+
+**四角色可信身份与审批分离（R2.2.1）：**
+
+- 提交/审批/决策身份一律来自**校验后的 token 上下文**（`client_id`、`subject`、服务端角色绑定），不采信请求体自报的 `actor`/`tenant_id`。
+- 持久化字段：`submitted_by`、`tenant_approved_by`、`decided_by`、`approved_by`，并记录 `auth_context_ref` 与角色快照。
+- 数据库 CHECK：`submitted_by <> tenant_approved_by`；`decided_by <> approved_by`；应用层额外禁止同一自然人跨相邻角色。
+- 角色绑定互斥：Morrishk 侧仅可持有 `tenant.editor`/`tenant.admin`；`identity.admin`/`identity.approver` 仅 Ds Bit 治理侧持有，绑定表需有互斥约束。
+- 审批原子性：`decision_status → APPROVED`、写 `approved_at`、创建/更新 `global_product`、写 alias/lineage、写 `audit_log` 必须在同一事务内；任一失败整体回滚，不得出现“已批准但未写产品”或“写了产品但未批准”。
+- 幂等：同一 `(subject_type, subject_ref, decision_version)` 只允许一次 APPROVED 生效；重复提交返回既有结果。
 
 ## 9. 对契约冻结的影响
 

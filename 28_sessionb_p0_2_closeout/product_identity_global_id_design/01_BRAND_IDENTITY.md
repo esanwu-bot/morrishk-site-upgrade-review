@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-001 |
-| 版本 | v2.2-R2.2 |
+| 版本 | v2.3-R2.2.1 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | Ds Bit `600439a5`；当前 `Product` 无 Brand |
 | 相关决策 | D-01、D-02、D-16、D-17、D-18、D-44（见 `08_DECISION_REGISTER.md`） |
@@ -178,25 +178,41 @@ CHECK (scope = 'GLOBAL' AND tenant_id IS NULL)
 
 1. `valid_from` 必填；`valid_to` 可空表示持续有效（当前映射）。
 2. 区间为半开 `[valid_from, valid_to)`；`valid_to > valid_from`。
-3. 同一唯一键的有效期**不得重叠**指向不同 `brand_id`；重叠写入 → 拒绝或 `PENDING_CONFLICT`。
+3. 同一唯一键的有效期**不得重叠**（含指向相同 `brand_id`；仅允许首尾相接）；重叠写入一律拒绝。
 4. 失效（`valid_to` 已过）的别名**允许重新分配**，但必须新增一行并保留旧行；不得原地改写历史。
 5. 版本/规则变更不得删除旧行；旧行保留 `valid_to` 与原因，审计可追溯。
 
-**并发写入防护（R2.2-1）：**
+**时间语义与区间互斥（R2.2.1）：**
+
+1. 时间统一使用 UTC `timestamptz`；区间半开 `[valid_from, valid_to)`，`valid_to IS NULL` 表示开放至今。
+2. 硬约束：`valid_from NOT NULL`；`CHECK (valid_to IS NULL OR valid_to > valid_from)`。
+3. 当前映射一致性：`CHECK ((is_current AND valid_to IS NULL) OR (NOT is_current AND valid_to IS NOT NULL))`；首期不允许未来生效行（未来生效行如需支持另行决策）。
+4. **任意两行同一唯一键的区间不得重叠**（无论目标是否相同）；唯一例外是首尾相接（`old.valid_to = new.valid_from`）。重叠写入一律拒绝，不进入 `PENDING_CONFLICT` 自动裁决。
+5. 同一目标的连续区间允许合并为一行，但必须在事务内完成并写审计，不得产生重叠。
+6. 数据库实现（非 DDL）：
+   - 当前映射：部分唯一索引 `UNIQUE (alias_norm) WHERE scope='GLOBAL' AND is_current`；`UNIQUE (tenant_id, alias_norm) WHERE scope='TENANT' AND is_current`。
+   - 历史互斥：排斥约束 `EXCLUDE USING gist (alias_norm WITH =, tstzrange(valid_from, valid_to, '[)') WITH &&) WHERE scope='GLOBAL'`；TENANT 版本键为 `(tenant_id, alias_norm)`。
+   - 两套约束同时生效：部分唯一索引防“当前双写”，排斥约束防“历史重叠”。
+
+**并发写入防护（R2.2.1）：**
 
 ```text
 BEGIN
-  对同唯一键加锁（SELECT ... FOR UPDATE 或 advisory lock / SERIALIZABLE）
-  校验目标区间与既有行不重叠
-  若存在 is_current 行：写 valid_to = new.valid_from，is_current = false
-  插入新行 is_current = true
-  写 audit_log
+  -- 以唯一键为粒度串行化（行锁或 advisory lock）
+  SELECT ... FROM brand_alias
+   WHERE <唯一键> ORDER BY valid_from
+   FOR UPDATE;                      -- 或 pg_advisory_xact_lock(hash(唯一键))
+  -- 校验新行 [valid_from, valid_to) 与既有行不重叠
+  -- 关闭当前行：valid_to = new.valid_from, is_current = false
+  -- 插入新行：is_current = true, valid_to = NULL
+  -- 写 audit_log
 COMMIT
 ```
 
-- 唯一部分索引负责“当前映射唯一”；区间排斥约束（exclusion constraint）或事务内校验负责“历史区间不重叠”。
-- 并发冲突时，后到事务失败回滚并返回可重试/`PENDING_CONFLICT`，不得静默覆盖。
-- 幂等：同一 alias 变更请求携带幂等键，重复提交返回同一结果。
+- 隔离级别至少 `READ COMMITTED` + 行锁；无法串行化时使用 `SERIALIZABLE` 并允许重试。
+- 约束冲突（唯一索引/排斥约束）统一映射为 `409 ALIAS_CONFLICT` 或 `PENDING_CONFLICT`，调用方可重试；不得静默覆盖、不得原地改写。
+- 幂等：alias 变更请求必须携带幂等键（如 `(tenant_id, alias_norm, requested_valid_from, idempotency_key)`），重复提交返回首次结果。
+- 时间来源：`valid_from`/`valid_to` 由服务端时钟生成或经审批的生效时间，不接受客户端任意指定历史区间。
 
 **实现说明（非 DDL）：** 可用部分唯一索引（PostgreSQL `CREATE UNIQUE INDEX ... WHERE scope='GLOBAL' AND is_current` 等）+ 区间排斥约束/应用层事务校验；本轮不建索引、不迁移。
 

@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-007 |
-| 版本 | v2.2-R2.2 |
+| 版本 | v2.3-R2.2.1 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 性质 | 未来实现期测试设计；**本轮未执行**，不替代现有 83 项 Parser 测试 |
 | 关联 | `03_PRODUCT_IDENTITY_MODEL.md`、`04_GLOBAL_ID_REGISTRY.md`、`05_BACKWARD_COMPATIBILITY.md`、`06_API_AND_DATABASE_IMPACT.md`、`10_MORRISHK_FIRST_SCOPE_AND_DEFERRED.md` |
@@ -17,6 +17,7 @@
 - **本轮 R2 新增 V-29…V-50 均未执行**；只作为实现期的验收设计。
 - **R2.1 新增 V-51…V-70 亦未执行**；覆盖 Brand 上下文 MPN Alias、Alias 有效期、Global/Tenant 归属、Tenant Assertion、Global Adjudication、伪造 tenant_id、禁用 Client/Site。
 - **R2.2 新增 V-71…V-76 亦未执行**；覆盖当前/历史 Alias 唯一与并发、三类归属、四角色审批链、GLOBAL 审计 `tenant_id=NULL`、首期 Evidence 仅 PRIVATE。
+- **R2.2.1 新增 V-77…V-86 亦未执行**；覆盖 Alias 时间语义与区间互斥、站点复合外键、三类 CHECK、审计 scope、可信身份、角色分离、审批原子事务。
 
 ## 2. 测试向量
 
@@ -76,6 +77,10 @@
 | 四角色审批链（R2.2） | V-74 |
 | GLOBAL 审计 tenant_id=NULL（R2.2） | V-75 |
 | 首期 Evidence 仅 PRIVATE（R2.2） | V-76 |
+| Alias 时间语义/区间互斥/并发（R2.2.1） | V-77/V-78/V-79 |
+| Site 复合外键与三类 CHECK（R2.2.1） | V-80/V-81 |
+| 审计 scope 与复合外键（R2.2.1） | V-82 |
+| 可信身份/角色分离/原子事务（R2.2.1） | V-83/V-84/V-85/V-86 |
 
 ### 2.2 本轮 R2（Morrishk-first）新增向量 V-29…V-50
 
@@ -145,6 +150,23 @@
 | V-76 | 首期 Evidence 仅 PRIVATE | 写入 `visibility=SHARED/PUBLIC` 或跨租户读取私有证据 | 写入拒绝或标记预留；跨租户读取 DENY | DB 约束 + API 集成 | 首期跨租户证据共享 |
 
 > V-71…V-76 共 6 个 R2.2 向量，全部**未执行**，与 `01` §6.5.1、`02` §4.6、`03` §4.4、`04` §3/§3.3.1、`06` §8.5/§8.11/§8.12、`08` D-41…D-46、`10` §4 规则一致。
+
+### 2.5 R2.2.1 定点修订新增向量 V-77…V-86
+
+| # | 场景 | 输入 | 预期结果 | 校验方法 | 风险 |
+|---|---|---|---|---|---|
+| V-77 | Alias 时间字段一致性 | 写入 `is_current=true` 但 `valid_to` 非空；或 `is_current=false` 但 `valid_to` 为空 | 拒绝写入（CHECK 失败） | DB CHECK 断言 | 当前/历史标记与有效期脱节 |
+| V-78 | Alias 区间互斥 | 同一唯一键两行区间重叠（含同目标）；另一组仅首尾相接 | 重叠拒绝；首尾相接允许 | 排斥约束 + Repository | 历史区间重叠导致歧义 |
+| V-79 | Alias 并发切换 | 两个并发请求同时切换同一唯一键映射 | 串行化后一方成功、一方重试/冲突；无双重当前行、无重叠 | 并发测试 + 锁断言 | 双当前映射或丢失历史 |
+| V-80 | Site 复合外键 | Site-level 行引用不存在或属于他租户的 `(tenant_id, site_id)` | 拒绝写入（复合外键失败） | DB 外键断言 | Site 跨租户挂靠 |
+| V-81 | 三类 CHECK | Global 行带 tenant/site；Tenant-level 行带 site；Site-level 行缺 site | 全部拒绝 | DB CHECK 断言 | 归属混用 |
+| V-82 | 审计 scope 与复合外键 | GLOBAL 审计带 tenant/site；TENANT 审计缺 tenant_id；带 site_id 但 site 不属于该 tenant | 全部拒绝 | DB CHECK + 外键断言 | 审计归属伪造 |
+| V-83 | 可信身份来源 | 请求体自报 `actor`/`tenant_id`，与 token 上下文不一致 | 以 token 为准并拒绝不一致请求；落库身份来自 token | 授权单测 + DB 断言 | 伪造审批人 |
+| V-84 | 角色分离 | 同一人同时作为提交者与 Tenant 审批者，或 Global 决策者与批准者 | 拒绝（CHECK/应用校验） | DB CHECK + 单测 | 自我审批 |
+| V-85 | 审批原子事务 | 在写 `global_product` 或 audit 时人为失败 | 全部回滚；`decision_status` 不生效；无部分产品 | 故障注入 | 已批准未写产品/半成品 |
+| V-86 | 角色绑定互斥 | 给 Morrishk 主体授予 `identity.admin`/`identity.approver` | 拒绝绑定 | 授权/绑定断言 | 客户侧越权裁决 |
+
+> V-77…V-86 共 10 个 R2.2.1 向量，全部**未执行**，与 `01` §6.5.1、`02` §4.6、`03` §4.4、`04` §3.3.1/§3.3.2、`06` §8.12、`08` D-42/D-43/D-44、`10` §4（B-09/B-15/B-16/B-17）一致。
 
 ## 3. 测试分层（未来）
 

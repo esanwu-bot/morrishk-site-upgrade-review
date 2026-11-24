@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-010 |
-| 版本 | v1.2-R2.2 |
+| 版本 | v1.3-R2.2.1 |
 | 日期 | 2026-11-23 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 性质 | 范围说明；不是架构批准、不是实现、不是工期承诺 |
@@ -42,11 +42,12 @@
 
 - `Tenant 1:N Site 1:N OAuth Client`；`Tenant N:M Global Product`。
 - Site 不得跨 Tenant；OAuth Client 不得跨 Site；`oauth_client.tenant_id` 必须等于其 site 的 tenant。
-- **三类资源归属（R2.2-2）**：
+- **三类资源归属（R2.2.2，R2.2.1 约束化）**：
   1. **Global-level**：`tenant_id` 必须为 NULL、`site_id` 必须为 NULL —— `global_product`、`brand_registry`、GLOBAL 作用域 `brand_alias`/`mpn_alias`、`mpn_profile`、`global_adjudication`、`product_lineage`。
   2. **Tenant-level**：`tenant_id` NOT NULL、`site_id` 必须为 NULL —— `tenant_product_access`、`tenant`、TENANT 作用域 `identity_conflict`。
-  3. **Site-level**：`tenant_id` NOT NULL 且 `site_id` NOT NULL（`site.tenant_id = tenant_id`）—— `tenant_document`、`tenant_evidence`、`tenant_assertion`、`identity_pending`、`oauth_client`、`site`。
-- `audit_log` 为混合作用域：GLOBAL 记录**允许且要求 `tenant_id = NULL`**；TENANT 记录必带 `tenant_id`/`site_id`。全局身份治理事件不得强行归属 Morrishk。
+  3. **Site-level**：`tenant_id` NOT NULL 且 `site_id` NOT NULL —— `tenant_document`、`tenant_evidence`、`tenant_assertion`、`identity_pending`、`oauth_client`、`site`。
+- 数据库约束（非 DDL）：`site` 增加 `UNIQUE (tenant_id, site_id)`；Site-level 表使用复合外键 `(tenant_id, site_id) → site(tenant_id, site_id)`；三类各自 `CHECK` 归属列；`audit_log` 按 `scope` CHECK，`site_id` 非空时复合外键。详见 `04` §3.3.2 / `06` §8.12。
+- `audit_log` 为混合作用域：GLOBAL 记录**允许且要求 `tenant_id = NULL`（且 `site_id = NULL`）**；TENANT 记录必带 `tenant_id`，涉及 Site 层级时必须带 `site_id`。全局身份治理事件不得强行归属 Morrishk。
 - GLOBAL 与 TENANT 归属混用（全局行伪造 tenant_id、租户行缺 tenant_id、站点行缺 site_id）一律视为错误。
 
 ## 3. 支撑表（身份域内部，不是新平台实体）
@@ -72,12 +73,15 @@
 | B-06 | 拒绝访问也必须审计，避免枚举探测 |
 | B-07 | 旧 `product_id` 兼容路径不得绕过 tenant ACL |
 | B-08 | 任何跨租户共享必须显式记录来源/授权/有效期，不得默认共享 |
-| B-09 | 三类归属不得混用：Global-level 不得带 `tenant_id`/`site_id`；Tenant-level 必须 `tenant_id` 且不得带 `site_id`；Site-level 必须同时带 `tenant_id` 与 `site_id` |
+| B-09 | 三类归属不得混用：Global-level 不得带 `tenant_id`/`site_id`；Tenant-level 必须 `tenant_id` 且不得带 `site_id`；Site-level 必须同时带 `tenant_id` 与 `site_id`；以 CHECK + 复合外键落地 |
 | B-10 | 全局身份治理事件写 `audit_log(scope='GLOBAL')`，`tenant_id` 允许且要求为 NULL，不得归属 Morrishk |
 | B-11 | `tenant_evidence` 是 Site-level 资源：必须同时带 `tenant_id` 与 `site_id`，且 `site.tenant_id = tenant_evidence.tenant_id`；产品全局化不改变证据归属 |
 | B-12 | Client/Site 禁用、撤销或绑定变化后，既有 token 必须在运行期复核时被拒绝，不得仅依赖自然过期 |
 | B-13 | 首期 `tenant_evidence.visibility` 仅 `PRIVATE`；`SHARED`/`PUBLIC` 为预留，跨租户证据共享暂缓 |
 | B-14 | Tenant Assertion 审批链：提交者 → Tenant 审批者 → Global 决策者 → Global 审批者；任一步未完成不得更新 `global_product`；决策者与审批者必须不同人 |
+| B-15 | 审批身份必须来自校验后的 token 上下文，不采信请求体自报；四角色身份落库并可审计 |
+| B-16 | 审批通过、写 `global_product`、写 alias/lineage、写审计必须在同一事务内原子完成；失败整体回滚 |
+| B-17 | Alias 变更使用 UTC 半开区间；同唯一键历史区间不得重叠；当前映射唯一；并发切换加锁并可重试 |
 
 ## 5. 四因子授权
 
