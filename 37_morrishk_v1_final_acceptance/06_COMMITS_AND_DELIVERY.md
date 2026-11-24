@@ -41,21 +41,22 @@ deploy/nginx/morrishk.conf
 - 本轮内容：
   - `README.md` 与 6 份说明文档；
   - `evidence/` 10 个文件（平台探测、Composer 两项、DB 校验、下载矩阵、Nginx 矩阵、CKEditor、口令轮换、两份配置副本）；
-  - `scripts/` 2 个可复跑脚本；
+  - `scripts/` 3 个脚本（下载授权矩阵、Nginx 矩阵、提交对象哈希校验）；
   - `SHA256SUMS`；
   - `36_.../02_TEST_ENVIRONMENT.md` 明文口令移除（修改）。
 
 ## 4. SHA256SUMS
 
-生成方式（在 `37_morrishk_v1_final_acceptance/` 下）：
+SHA256SUMS 覆盖本目录全部文件（不含 `SHA256SUMS` 自身），按相对路径排序。
 
+由于仓库 `core.autocrlf=true`，直接对检出后的工作区文件取哈希会受 CRLF 影响，因此提供按**提交对象**校验的脚本：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\verify_sha256.ps1
+# 输出: checked=N mismatches=0 / SHA256SUMS OK
 ```
-find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
-```
 
-（Windows 可用 PowerShell 等价实现，见验证说明。）
-
-校验命令：
+等价的 Linux 校验方式（在 LF 检出下）：
 
 ```
 sha256sum -c SHA256SUMS
