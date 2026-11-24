@@ -1,4 +1,4 @@
-﻿Codeception PHP Testing Framework v5.3.1 https://stand-with-ukraine.pp.ua
+Codeception PHP Testing Framework v5.3.1 https://stand-with-ukraine.pp.ua
 
 Tests.Unit Tests (2) ---------------------------------------------------------------------------------------------------
 - MockInquirySenderTest: Send writes local files only

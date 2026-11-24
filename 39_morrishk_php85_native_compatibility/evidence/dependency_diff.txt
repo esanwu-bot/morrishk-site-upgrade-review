@@ -1,4 +1,4 @@
-﻿behat/gherkin                              v4.9.0 -> v4.16.0
+behat/gherkin                              v4.9.0 -> v4.16.0
 bower-asset/inputmask                      3.3.11 -> 5.0.10
 bower-asset/jquery                         3.6.0 -> 3.7.1
 bower-asset/punycode                       v1.3.2 -> v1.4.1

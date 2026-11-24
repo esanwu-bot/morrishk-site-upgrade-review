@@ -1,10 +1,10 @@
-﻿php.exe : Loading composer repositories with package information
+php.exe : Loading composer repositories with package information
 所在位置 行:17 字符: 1
 + & $php $c update yiisoft/yii2 egulias/email-validator codeception/cod ...
 + ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     + CategoryInfo          : NotSpecified: (Loading compose...age information:String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
- 
+
 Updating dependencies
 Lock file operations: 10 installs, 58 updates, 13 removals
   - Removing codeception/phpunit-wrapper (8.1.4)
@@ -216,11 +216,11 @@ r/dists/codeception/module-filesystem/2a81b5534a6679b4f17256f8275ca0048add6ef8.z
 2 404 ))
   - Downloading codeception/module-filesystem (3.0.2)
     Failed downloading codeception/module-asserts, trying the next URL (404: The "https://mirrors.aliyun.com/composer/d
-ists/codeception/module-asserts/8acceb7915a9645230bde14c305c5652d5b229db.zip" file could not be downloaded (HTTP/2 404 
+ists/codeception/module-asserts/8acceb7915a9645230bde14c305c5652d5b229db.zip" file could not be downloaded (HTTP/2 404
 ))
   - Downloading codeception/module-asserts (3.2.1)
     Failed downloading codeception/lib-innerbrowser, trying the next URL (404: The "https://mirrors.aliyun.com/composer
-/dists/codeception/lib-innerbrowser/cf2ddaae5e07eb3cceb504d93bd95f4a2d892dab.zip" file could not be downloaded (HTTP/2 
+/dists/codeception/lib-innerbrowser/cf2ddaae5e07eb3cceb504d93bd95f4a2d892dab.zip" file could not be downloaded (HTTP/2
 404 ))
   - Downloading codeception/lib-innerbrowser (4.0.7)
     Failed downloading codeception/module-yii2, trying the next URL (404: The "https://mirrors.aliyun.com/composer/dist

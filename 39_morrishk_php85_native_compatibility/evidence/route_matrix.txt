@@ -1,4 +1,4 @@
-﻿# Round 39 native route matrix (env-only entry, no overrides)
+# Round 39 native route matrix (env-only entry, no overrides)
 /                                                    200 38032
 /products.html                                       200 30577
 /products/39000001/r39-test-part.html                200 55534

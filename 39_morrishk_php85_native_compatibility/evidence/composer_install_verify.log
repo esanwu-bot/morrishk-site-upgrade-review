@@ -1,10 +1,10 @@
-﻿php.exe : Installing dependencies from lock file (including require-dev)
+php.exe : Installing dependencies from lock file (including require-dev)
 所在位置 行:16 字符: 1
 + & $php $c install --no-interaction --prefer-dist --no-progress --work ...
 + ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     + CategoryInfo          : NotSpecified: (Installing depe...ng require-dev):String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
- 
+
 Verifying lock file contents can be installed on current platform.
 Nothing to install, update or remove
 Package swiftmailer/swiftmailer is abandoned, you should avoid using it. Use symfony/mailer instead.
