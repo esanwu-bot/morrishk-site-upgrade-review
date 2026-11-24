@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-006 |
-| 版本 | v2.6-R2.2.4 |
+| 版本 | v2.7-R2.2.7 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 性质 | 影响分析；**不修改** OpenAPI、75 矩阵正式状态或数据库 |
 | 事实基线 | 契约候选 `CANDIDATE_NOT_FROZEN`；75 项 0/75 可执行；无 Business API 实现 |
@@ -81,13 +81,13 @@ get_lineage(product_uid)
 | `tenant_document` | tenant_id, site_id, document_id, product_uid?, ownership | unique(tenant_id, site_id, document_id); 复合外键 `(tenant_id, site_id) → site(...)`; index(site_id) | 首期必需 |
 | `tenant_evidence` | tenant_id, site_id, evidence_id, document_id, run_id?, visibility, license_ref | unique(tenant_id, site_id, evidence_id); 复合外键 `(tenant_id, site_id) → site(...)`; index(document_id) | 首期必需 |
 | `audit_log` | audit_id, scope, tenant_id?, site_id?, actor, action, ref, at | `CHECK ((scope='GLOBAL' AND tenant_id IS NULL AND site_id IS NULL) OR (scope='TENANT' AND tenant_id IS NOT NULL AND site_id IS NULL) OR (scope='SITE' AND tenant_id IS NOT NULL AND site_id IS NOT NULL))`；SITE 复合外键；index(tenant_id, at); index(ref) | 首期必需 |
-| `identity_pending` | pending_id, tenant_id, site_id, reason, status, idempotency_key | unique(idempotency_key); unique(tenant_id, site_id, pending_id); 复合外键 `(tenant_id, site_id) → site`; index(status) | 支撑身份 |
+| `identity_pending` | pending_id, tenant_id, site_id, reason, status, created_by_import_event_id | unique(tenant_id, site_id, pending_id); 复合外键 `(tenant_id, site_id) → site`; FK `created_by_import_event_id → product_import_event`; index(status) | 支撑身份 |
 | `identity_conflict` | conflict_id, scope, tenant_id?, site_id?, pending_id?, conflict_type, status | `CHECK ((scope='GLOBAL' AND tenant_id IS NULL AND site_id IS NULL AND pending_id IS NULL) OR (scope='TENANT' AND tenant_id IS NOT NULL AND site_id IS NOT NULL AND pending_id IS NOT NULL))`；TENANT 复合外键 `(tenant_id, site_id)` 与 `(tenant_id, site_id, pending_id)` | 支撑身份 |
 | `brand_registry` / `brand_alias` | brand_id / alias_norm, brand_id, scope, tenant_id?, is_current | `brand_registry` GLOBAL 无 tenant_id；`brand_alias` 当前映射部分唯一：GLOBAL(`alias_norm WHERE is_current`)、TENANT(`tenant_id, alias_norm WHERE is_current`)，历史行可多行；CHECK scope/tenant_id 一致 | 支撑身份 |
 | `mpn_alias` / `mpn_profile` | alias_norm, brand_id, mpn_norm, scope, tenant_id?, is_current / profile_scope, status | `mpn_alias` 当前映射部分唯一：GLOBAL(`brand_id, alias_norm WHERE is_current`)、TENANT(`tenant_id, brand_id, alias_norm WHERE is_current`)；`brand_id NOT NULL`；历史行可多行；`mpn_profile` GLOBAL 无 tenant_id | 支撑身份 |
 | `tenant_assertion` / `global_adjudication` | submitted_by, tenant_approved_by, status / decided_by, approved_by, decision_status | `tenant_assertion` 仅 TENANT（Site-level）；`global_adjudication` 仅 GLOBAL 且无 tenant_id；决策与批准必须不同人 | 支撑治理 |
 | `global_product_alias` | alias_type, alias_value, product_uid | unique(alias_type, alias_value) | 兼容 |
-| `product_lineage` / `product_import_event` | event_id, from/to, type / idempotency_key | index(from/to); unique(idempotency_key) | 审计/幂等 |
+| `product_lineage` / `product_import_event` | event_id, from/to, type / tenant_id, site_id, idempotency_key, result | index(from/to); `UNIQUE (tenant_id, site_id, idempotency_key)`（请求幂等权威） | 审计/幂等 |
 | `legacy_map` | legacy_product_id, product_uid, tenant_id, site_id | unique(legacy_product_id) | 兼容 |
 
 - 八类首期实体为 `tenant`、`site`、`oauth_client`、`global_product`、`tenant_product_access`、`tenant_document`、`tenant_evidence`、`audit_log`；其余为身份/兼容支撑表，见 `10` §3。
@@ -134,8 +134,8 @@ tenant_id / site_id (由 token 上下文注入，不信任客户端自报)
 ## 6. 审计、幂等与并发
 
 - 审计：身份创建/匹配/冲突/合并/拆分/别名/迁移/授权拒绝全部记录 actor/approved_by/time/tenant/site/evidence。
-- 幂等：`idempotency_key` 唯一；重复请求返回同一结果。
-- 并发：自然键部分唯一约束 + 事务 + 乐观锁；冲突返回明确错误，不创建重复。
+- 幂等：`product_import_event` 为请求幂等权威，`UNIQUE (tenant_id, site_id, idempotency_key)`；同 key 重复/并发返回同一 event 结果（`result`/`pending_id`/`conflict_id`）。`identity_pending`/`identity_conflict` 不单独维护幂等键。
+- 并发：自然键部分唯一约束 + 事务 + 乐观锁；同 key 唯一约束竞争，失败方读取已提交权威结果；不创建重复 pending/conflict，不创建 `global_product`。
 - 审计日志不得含 token/secret；只记录 ID/原因/证据引用。
 - 拒绝访问也必须审计（防止枚举探测）。
 

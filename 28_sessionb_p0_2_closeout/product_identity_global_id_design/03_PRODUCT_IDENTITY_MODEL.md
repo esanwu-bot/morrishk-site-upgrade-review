@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-003 |
-| 版本 | v2.5-R2.2.3 |
+| 版本 | v2.6-R2.2.7 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | 当前 `product_id=prod-{document_id}`；`document_id=doc-{sha[:12]}`；`run_id` 执行级 |
 | 相关决策 | D-04、D-05、D-06、D-21、D-22、D-23、D-41、D-42（见 `08_DECISION_REGISTER.md`） |
@@ -117,9 +117,9 @@ identity_pending
   brand_raw / brand_norm
   mpn_raw / mpn_norm
   variant_state / variant_raw
-  reason               PENDING_BRAND / PENDING_VARIANT / PENDING_CONFLICT
+  reason               PENDING_BRAND / PENDING_VARIANT / PENDING_CONFLICT / PENDING_NEW_IDENTITY
   status               OPEN / ADJUDICATED / REJECTED
-  idempotency_key
+  created_by_import_event_id  FK -> product_import_event（nullable；请求幂等由 event 负责）
   evidence_ref
   created_at / updated_at
 
@@ -131,6 +131,8 @@ identity_conflict
   status               OPEN / RESOLVED / REJECTED
   resolution_ref
 ```
+
+- **请求幂等性权威是 `product_import_event`**：`UNIQUE (tenant_id, site_id, idempotency_key)`；`identity_pending`/`identity_conflict` 不重复承担幂等键，只通过 `created_by_import_event_id` 关联权威请求结果。
 
 - `identity_pending`/`identity_conflict` **不得**使用 `product_uid` 或 `pbk1_` 作为主键。
 - `PENDING_*` 可关联 `tenant_document`，但不得因此获得全局产品身份。

@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-004 |
-| 版本 | v2.7-R2.2.6 |
+| 版本 | v2.8-R2.2.7 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | 无全局产品 ID/注册表；`product_id=prod-doc`；lake 仅 3 表 |
 | 相关决策 | D-05、D-06、D-10、D-21、D-22、D-23、D-31…D-34、D-41…D-49（见 `08_DECISION_REGISTER.md`） |
@@ -65,13 +65,14 @@ identity_pending
   variant_raw
   reason               PENDING_BRAND / PENDING_VARIANT / PENDING_CONFLICT / PENDING_NEW_IDENTITY
   status               OPEN / ADJUDICATED / REJECTED
-  idempotency_key      unique
+  created_by_import_event_id  FK -> product_import_event（nullable）
   evidence_ref
   created_at / updated_at
   -- CHECK：tenant_id IS NOT NULL AND site_id IS NOT NULL
   -- FK (tenant_id, site_id) -> site(tenant_id, site_id)
   -- UNIQUE (tenant_id, site_id, pending_id)（供 identity_conflict 复合外键）
   -- CHECK：reason IN ('PENDING_BRAND','PENDING_VARIANT','PENDING_CONFLICT','PENDING_NEW_IDENTITY')
+  -- 不设 idempotency_key：请求幂等性权威在 product_import_event
 
 -- reason 触发条件与状态转换（R2.2.4）
 -- PENDING_BRAND        Brand 缺失/低置信       -> OPEN -> ADJUDICATED/REJECTED
@@ -227,7 +228,7 @@ product_lineage
   evidence_ref
 
 product_import_event   -- TENANT-scoped 导入事件
-  idempotency_key      unique
+  idempotency_key      请求级不透明标识
   tenant_id            NOT NULL
   site_id              NOT NULL
   document_id / run_id
@@ -241,7 +242,11 @@ product_import_event   -- TENANT-scoped 导入事件
   -- 不存在 "CREATED" 表示创建 global_product；正式注册只在 Global APPROVED 最终事务
   product_uid          nullable
   pending_id           nullable
+  conflict_id          nullable
   created_at
+  -- 请求幂等性权威：UNIQUE (tenant_id, site_id, idempotency_key)
+  -- 不接受客户端自报 tenant_id/site_id；二者来自可信认证上下文
+  -- 内容指纹（document_sha256/requested_mpn/brand_norm/normalizer_version/operation）与幂等键是不同概念
 
 audit_log              -- 三作用域审计：GLOBAL / TENANT / SITE
   audit_id
@@ -590,12 +595,23 @@ COMMIT   -- 任一步失败整体回滚
 
 ## 8. 并发与重复请求
 
-- 幂等键：`(tenant_id, site_id, document_sha256, requested_mpn, brand_norm, normalizer_version, operation)` 或客户端请求 ID；
+**请求幂等键（R2.2.7）：**
+
+- `idempotency_key` 是**请求级不透明标识**，不是内容指纹；
+- 唯一作用域：`UNIQUE (tenant_id, site_id, idempotency_key)`；
+- `tenant_id`/`site_id` 来自可信服务端认证上下文，不接受客户端自报；
+- 内容指纹（`document_sha256`、`requested_mpn`、`brand_norm`、`normalizer_version`、`operation`）用于业务去重/审计，**不得**替代或混同请求幂等键；
+- 权威记录：`product_import_event`（`tenant_id, site_id, idempotency_key` 唯一）；`identity_pending`/`identity_conflict` 通过 `created_by_import_event_id`/`pending_id` 关联，不各自维护幂等键；
+- same key 重复/并发请求：唯一约束竞争，失败方读取已提交的权威 event，返回同一 `result`/`pending_id`/`conflict_id`；不得重复建 pending/conflict，不得创建 `global_product`；
+- different key：不得自动合并；跨 document/import 身份级去重**待决**；均不创建 `global_product`。
+
+**其他并发规则：**
+
 - 唯一约束：`(brand_id, mpn_norm, variant_state, variant_key) WHERE lifecycle_state='ACTIVE'`；
 - 事务：普通导入的 resolve/match/pending/link/audit 原子化，但**不含** `global_product` 写入；该写入只在 Global 最终审批事务中发生；
 - 冲突：返回明确错误码（`PENDING_CONFLICT`/`CONFLICTING_IDENTITY`），不静默创建重复产品；
 - 合并/拆分：对涉及 `product_uid` 加行锁/乐观版本，谱系与别名同事务；
-- 重试：幂等键命中返回同一结果。
+- 重试：same `idempotency_key` 命中返回同一权威 event 结果。
 
 ## 9. 与 `pbk1_` 的关系
 
