@@ -1,0 +1,33 @@
+login[qa_r39_a]                                GET=200 POST=302 location=http://127.0.0.1:8099/ejadmin-index.html err=no
+login[qa_r39_admin]                            GET=200 POST=302 location=http://127.0.0.1:8099/ejadmin-index.html err=no
+login[qa_r39_b]                                GET=200 POST=302 location=http://127.0.0.1:8099/ejadmin-index.html err=no
+login[qa_r39_a]                                GET=200 POST=200 location=- err=yes
+login[no_such_user_r40]                        GET=200 POST=200 location=- err=yes
+staff_admin_index                              http=200
+admin_admin_index                              http=200
+staff_menu                                     {"Products":3029,"Product List":3299,"Categories":3508}
+admin_menu                                     {"Products":3041,"Content":3854,"Settings":4447,"Product List":3311,"Categories":3520,"News":4120,"Accounts":4716}
+staff_denied_items                             News=absent Accounts=absent
+duplicate_menu_items                           none
+menu_deterministic                             identical-nav-fragment
+menu_parent_child_order                        ok
+identity_cookie_present                        yes
+persistent_cookie_valid                        http=200
+logout                                         http=302 location=http://127.0.0.1:8099/
+session_after_logout                           http=302
+copied_cookie_after_logout                     http=200
+old_cookie_after_secret_rotation               http=302
+login[qa_r39_a]                                GET=200 POST=302 location=http://127.0.0.1:8099/ejadmin-index.html err=no
+old_cookie_after_secret_restore                http=200
+old_cookie_after_password_change               http=302
+old_cookie_after_username_change               http=302
+login_page_secret_missing                      http=503
+login_post_secret_missing                      http=503
+login[qa_r39_a]                                GET=200 POST=302 location=http://127.0.0.1:8099/ejadmin-index.html err=no
+login[qa_r39_admin]                            GET=200 POST=302 location=http://127.0.0.1:8099/ejadmin-index.html err=no
+login[qa_r39_b]                                GET=200 POST=302 location=http://127.0.0.1:8099/ejadmin-index.html err=no
+download_file                                  OnumG9L4EM3yHuBzSaQ0ipfw.pdf
+download[owner_a]                              http=200 disposition=attachment; filename="OnumG9L4EM3yHuBzSaQ0ipfw.pdf" nosniff=yes
+download[other_b]                              http=403 disposition=- nosniff=no
+download[admin]                                http=200 disposition=attachment; filename="OnumG9L4EM3yHuBzSaQ0ipfw.pdf" nosniff=yes
+download[guest]                                http=403 disposition=- nosniff=no

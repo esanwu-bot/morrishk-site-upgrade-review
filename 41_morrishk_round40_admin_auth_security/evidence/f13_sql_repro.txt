@@ -1,0 +1,6 @@
+# F-13 SQL before/after
+before_sql: SELECT `Pid` FROM `snsii_nav` WHERE `id` IN (11,12) GROUP BY `Pid` ORDER BY `id`
+before_error: SQLSTATE[42000]: Syntax error or access violation: 1055 Expression #1 of ORDER BY clause is not in GROUP BY clause and contains nonaggregated column 'morrishk_r39.snsii_nav.id' which is not functionally dependent on columns in GROUP BY clause; this is incompatible with sql_mode=only_full_group_by
+after_sql: SELECT `Pid` FROM `snsii_nav` WHERE `id` IN (11,12) GROUP BY `Pid` ORDER BY `Pid`
+after_result: [1]
+nav_rows=7
