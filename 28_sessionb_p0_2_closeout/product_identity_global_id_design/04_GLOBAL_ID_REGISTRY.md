@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-004 |
-| 版本 | v2.10-R2.2.9 |
+| 版本 | v2.11-R2.2.10 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | 无全局产品 ID/注册表；`product_id=prod-doc`；lake 仅 3 表 |
 | 相关决策 | D-05、D-06、D-10、D-21、D-22、D-23、D-31…D-34、D-41…D-49（见 `08_DECISION_REGISTER.md`） |
@@ -630,10 +630,13 @@ BEGIN
          WHERE tenant_id=$1 AND site_id=$2 AND idempotency_key=$3;
       若不可见（竞争方尚未提交）-> 等待并重试（指数退避/超时上限）。
   3.2 快照与可见性：
-      - READ COMMITTED：新语句可看到竞争方已提交行，直接比较；
-      - REPEATABLE READ / SERIALIZABLE：新语句仍用旧快照，必须
-        新事务/新连接重试，或回滚到 SAVEPOINT 后重新读取；
-      - 不得因“当前快照看不到”而误判无记录并继续创建。
+      - READ COMMITTED：新 SQL statement 获得新的 statement snapshot，
+        可看到竞争方已提交行，直接比较；
+      - REPEATABLE READ / SERIALIZABLE：事务级快照不会因新语句或
+        ROLLBACK TO SAVEPOINT 而刷新；若看不到竞争方已提交 event，
+        必须结束并回滚整个事务，在新事务/新快照中重新读取；
+      - 数据库返回 serialization failure 时，整个事务回滚并重试；
+      - 不得在旧事务中反复 SELECT 并误判无记录，不得继续创建第二条 event。
   3.3 比较 request_fingerprint：
       相同 -> 返回原 result / pending_id / conflict_id（不执行第二次业务写入）
       不同 -> 返回 IDEMPOTENCY_CONFLICT（不覆盖原 event）
@@ -655,10 +658,11 @@ COMMIT
   1. `INSERT ... ON CONFLICT (tenant_id, site_id, idempotency_key) DO NOTHING RETURNING ...`，零行时用新语句读取；
   2. `SAVEPOINT sp; INSERT ...;` 捕获唯一冲突后 `ROLLBACK TO SAVEPOINT sp;`，再用新语句读取。
   不得使用“普通 INSERT 抛异常后在同一失败事务中直接 SELECT”的写法。
-- **并发情形 A（竞争方提交）**：A 先插 event 未提交；B 同 key 到达并竞争唯一键；B 等待 A 提交；A 提交后 B 以新语句/新事务读取已提交 event，按指纹相同返回原结果、不同返回 `IDEMPOTENCY_CONFLICT`。
+- **SAVEPOINT 职责（R2.2.10）**：仅用于恢复唯一约束冲突导致的语句/事务错误状态；`ROLLBACK TO SAVEPOINT` **不刷新** REPEATABLE READ / SERIALIZABLE 的事务快照。READ COMMITTED 下回滚到 SAVEPOINT 后可执行新语句读取；更高隔离级别下仍需结束旧事务、在新事务中获取新快照。
+- **并发情形 A（竞争方提交）**：A 先插 event 未提交；B 同 key 到达并竞争唯一键；B 等待 A 提交；A 提交后 B 按隔离级别读取已提交 event（RC 新语句；RR/SERIALIZABLE 新事务），按指纹相同返回原结果、不同返回 `IDEMPOTENCY_CONFLICT`。
 - **并发情形 B（竞争方回滚）**：A 回滚；B 的唯一键竞争解除并可成为首次成功创建者；最终只有一条权威 event，pending/conflict 与 event 关联一致，无重复/半成品。
 - 若实现采用延迟约束/独立事务表等不同机制，必须提供等价原子性保证（event 与 pending/conflict 要么同时可见，要么都不可见），不得只描述理想结果。
-- 隔离级别：推荐 `READ COMMITTED`；若使用更高隔离级别，必须在新事务/新快照中重读权威 event，或使用 SAVEPOINT 回滚后的新语句，不得沿用旧快照。
+- 隔离级别：推荐 `READ COMMITTED`；若使用 REPEATABLE READ / SERIALIZABLE，必须在冲突或序列化失败后回滚整个事务，并在新事务/新快照中重读权威 event；SAVEPOINT 回滚不能替代新快照。
 - 重试：事务失败后可用同一 key 重试；若首次已提交则返回原结果，若首次回滚则可正常完成首次请求。
 
 **其他并发规则：**

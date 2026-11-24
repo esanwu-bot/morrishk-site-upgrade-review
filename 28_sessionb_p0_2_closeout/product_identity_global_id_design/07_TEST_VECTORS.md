@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-007 |
-| 版本 | v2.12-R2.2.9 |
+| 版本 | v2.13-R2.2.10 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 性质 | 未来实现期测试设计；**本轮未执行**，不替代现有 83 项 Parser 测试 |
 | 关联 | `03_PRODUCT_IDENTITY_MODEL.md`、`04_GLOBAL_ID_REGISTRY.md`、`05_BACKWARD_COMPATIBILITY.md`、`06_API_AND_DATABASE_IMPACT.md`、`10_MORRISHK_FIRST_SCOPE_AND_DEFERRED.md` |
@@ -236,6 +236,12 @@
 | V-107 | 同 key 并发、A 回滚 | A 插入后回滚；B 同 key 竞争 | B 接管首次创建；最终仅一条权威 event；pending/conflict 与 event 一致；无半成品 | 故障注入 + 并发测试 | 重复 event 或孤立 pending |
 
 > V-103…V-107 共 5 个 R2.2.8/R2.2.9 向量，全部**未执行**，与 `04` §3/§8、`06` §4/§6、`07` V-26 一致。
+>
+> **V-106/V-107 隔离级别断言（R2.2.10，设计断言，未执行）：**
+> 1. `READ COMMITTED`：竞争结束后新 SQL statement 获得新 statement snapshot，可读取已提交 event；
+> 2. `REPEATABLE READ`：旧事务快照不可见时必须结束旧事务，在新事务中读取，不得继续创建第二条 event；
+> 3. `SERIALIZABLE`：返回 serialization failure 时整个事务回滚并重试；
+> 4. `SAVEPOINT` 仅恢复错误状态，**不得**被描述为刷新事务快照。
 
 ## 3. 测试分层（未来）
 

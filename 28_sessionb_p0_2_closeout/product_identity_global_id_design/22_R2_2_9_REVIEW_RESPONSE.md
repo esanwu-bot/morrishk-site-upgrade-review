@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-022 |
-| 版本 | v1.0-R2.2.9 |
+| 版本 | v1.1-R2.2.10（隔离级别表述修正） |
 | 日期 | 2026-11-24 |
 | 状态 | **DESIGN_PACKAGE_R2_2_9_SUBMITTED** |
 | 性质 | 仅明确唯一键竞争的冲突安全机制与并发可见性；不是架构批准、不是实现、不是契约冻结 |
@@ -37,7 +37,7 @@
 ### 隔离级别
 
 - 推荐 `READ COMMITTED`；新语句可看到竞争方已提交行；
-- `REPEATABLE READ`/`SERIALIZABLE` 下新语句仍用旧快照，必须在新事务/新连接中重试，或 SAVEPOINT 回滚后重新读取；
+- `REPEATABLE READ`/`SERIALIZABLE` 下事务快照不因新语句或 `ROLLBACK TO SAVEPOINT` 刷新；若看不到竞争方已提交 event 或遇到 serialization failure，必须回滚整个事务，在新事务/新快照中重读；
 - 不得因“当前快照看不到”误判无记录并继续创建；重试耗尽返回可重试错误（`RETRYABLE_CONFLICT`），不得继续创建。
 
 ## 3. 修改文件与章节
@@ -68,7 +68,7 @@
 | 冲突安全机制明确 | `ON CONFLICT DO NOTHING RETURNING` / SAVEPOINT |
 | A 提交场景 | 04 §8、V-106 一致 |
 | A 回滚场景 | 04 §8、V-107 一致 |
-| 高隔离级别快照处理 | 新事务/新连接重试或 SAVEPOINT 回读 |
+| 高隔离级别快照处理 | 回滚整个事务并在新事务/新快照重读；SAVEPOINT 不刷新快照 |
 | 83 项证据 | 未修改；Git Blob 与基线一致 |
 | 决策状态 | 全部 `PROPOSED_NOT_APPROVED` |
 
