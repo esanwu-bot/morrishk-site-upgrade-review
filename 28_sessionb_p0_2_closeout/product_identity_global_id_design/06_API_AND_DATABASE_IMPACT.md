@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-006 |
-| 版本 | v2.5-R2.2.3 |
+| 版本 | v2.6-R2.2.4 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 性质 | 影响分析；**不修改** OpenAPI、75 矩阵正式状态或数据库 |
 | 事实基线 | 契约候选 `CANDIDATE_NOT_FROZEN`；75 项 0/75 可执行；无 Business API 实现 |

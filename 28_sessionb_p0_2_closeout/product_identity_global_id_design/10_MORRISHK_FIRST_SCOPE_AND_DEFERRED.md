@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-010 |
-| 版本 | v1.5-R2.2.3 |
+| 版本 | v1.6-R2.2.4 |
 | 日期 | 2026-11-23 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 性质 | 范围说明；不是架构批准、不是实现、不是工期承诺 |
@@ -86,7 +86,7 @@
 | B-17 | Alias 变更使用 UTC 半开区间；同唯一键历史区间不得重叠（含同目标）；当前映射唯一；并发首次插入必须用唯一键级 advisory lock，不能依赖空结果行锁 |
 | B-18 | 角色域互斥：同一 principal 不得同时持有 TENANT 域角色（`tenant.editor`/`tenant.admin`）与 GLOBAL 域角色（`identity.admin`/`identity.approver`）；由 `principal_domain_binding` 单有效域唯一约束 + `principal_role` 复合外键强制 |
 | B-19 | 审批状态与批准字段强一致：`PROPOSED`/`REJECTED` 批准字段为空，`APPROVED` 必填；Tenant Assertion 同理 |
-| B-20 | `global_product` 唯一写入入口是 Global Adjudication `APPROVED` 后的最终事务；普通导入、重解析、批量、后台、管理员无匹配时只能写 `identity_pending` |
+| B-20 | `global_product` 唯一写入入口是 Global Adjudication `APPROVED` 后的最终事务；普通导入、重解析、批量、后台、管理员无匹配时只能写 `identity_pending(reason=PENDING_NEW_IDENTITY)`；`product_import_event.result` 使用 `PENDING_CREATED` 表示建 pending，不得暗示建正式产品 |
 | B-21 | 角色撤销/换域只置 `REVOKED` 并保留历史行；换域需新建 binding，旧 binding 与角色记录可追溯 |
 
 ## 5. 四因子授权

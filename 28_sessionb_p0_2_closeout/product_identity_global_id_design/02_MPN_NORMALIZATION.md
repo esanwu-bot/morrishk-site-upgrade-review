@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-002 |
-| 版本 | v2.5-R2.2.3 |
+| 版本 | v2.6-R2.2.4 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | 当前 `normalized_mpn` 恒等于 `requested_mpn`（`pipeline.py:154-155`）；`normalizer_version` 未实现 |
 | 相关决策 | D-03、D-04、D-19、D-20、D-44（见 `08_DECISION_REGISTER.md`） |
@@ -47,7 +47,7 @@ mpn_profile_registry
 
 mpn_alias
   alias_norm           normalized MPN alias (独立于 brand_alias)
-  alias_scope          GLOBAL / TENANT
+  scope                GLOBAL / TENANT（全文统一字段名，不使用 alias_scope）
   tenant_id            nullable（GLOBAL 必须为 NULL；TENANT 必填）
   brand_id             **NOT NULL**（Brand 上下文必填）
   canonical_mpn_norm

@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-007 |
-| 版本 | v2.5-R2.2.3 |
+| 版本 | v2.6-R2.2.4 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 性质 | 未来实现期测试设计；**本轮未执行**，不替代现有 83 项 Parser 测试 |
 | 关联 | `03_PRODUCT_IDENTITY_MODEL.md`、`04_GLOBAL_ID_REGISTRY.md`、`05_BACKWARD_COMPATIBILITY.md`、`06_API_AND_DATABASE_IMPACT.md`、`10_MORRISHK_FIRST_SCOPE_AND_DEFERRED.md` |
@@ -20,6 +20,7 @@
 - **R2.2.1 新增 V-77…V-86 亦未执行**；覆盖 Alias 时间语义与区间互斥、站点复合外键、三类 CHECK、审计 scope、可信身份、角色分离、审批原子事务。
 - **R2.2.2 新增 V-87…V-94 亦未执行**；覆盖跨 Client 主体归一、审批状态字段一致性、Tenant 前置审批、空键并发首插、同目标重叠拒绝、冲突双作用域、审计三作用域。
 - **R2.2.3 新增 V-95…V-101 亦未执行**；覆盖无匹配导入不建全局产品、后台/批量/管理员旁路、角色域并发与撤销历史、Alias 作用域并存、旧两作用域审计拒绝。
+- **R2.2.4 新增 V-102 亦未执行**；验证无匹配导入只建 pending，且 `product_import_event.result=PENDING_CREATED` 不被误解为正式产品创建。
 
 ## 2. 测试向量
 
@@ -90,6 +91,7 @@
 | 角色域并发与撤销（R2.2.3） | V-97/V-98 |
 | Alias 作用域并存与重叠（R2.2.3） | V-99/V-100 |
 | 旧两作用域审计拒绝（R2.2.3） | V-101 |
+| 无匹配导入结果语义（R2.2.4） | V-102 |
 
 ### 2.2 本轮 R2（Morrishk-first）新增向量 V-29…V-50
 
@@ -198,13 +200,14 @@
 |---|---|---|---|---|---|
 | V-95 | 普通导入无匹配不建全局产品 | 导入一个无匹配 MPN/Brand | 只创建 `identity_pending`；`global_product` 行数不变 | Repository + DB 断言 | 导入即建 CONFIRMED |
 | V-96 | 后台/批量/管理员旁路 | 批量任务或管理员“修复数据”尝试无审批建产品 | 拒绝；仅可写 pending/别名/证据 | 权限单测 + DB 断言 | 后台路径绕过审批 |
-| V-97 | 角色域并发授予 | 同一 principal 并发获得 TENANT 与 GLOBAL 域 binding | 部分唯一索引仅允许一方成功；另一方 409；无双域 | 并发测试 + DB 约束断言 | 双域并存 |
-| V-98 | 撤销后换域与历史 | 撤销 TENANT binding 及角色后重新授予 GLOBAL binding | 新 binding 成功；旧 binding/角色保留 `REVOKED`/`revoked_at`；审计可追溯 | Repository + 审计断言 | 删除历史/无法追溯 |
+| V-97 | 角色域并发授予 | 同一 principal 并发获得 TENANT 与 GLOBAL 域 binding | 部分唯一索引 `UNIQUE(principal_id) WHERE status='ACTIVE'` 仅允许一方成功；另一方 409；不得出现两个 ACTIVE binding | 并发测试 + DB 约束断言 | 双域并存 |
+| V-98 | 撤销后同域重新授权与历史 | 撤销同一 principal 的 TENANT binding 及角色后，再次授予 TENANT binding | 新 binding（新 `binding_id`）成功；旧 binding 保持 `REVOKED`、旧角色保留 `revoked_at`；历史与审计完整 | Repository + 审计断言 | 历史行阻止重新授权或历史丢失 |
 | V-99 | GLOBAL 与 TENANT 同名 Alias 并存 | 同一 `alias_norm` 分别注册 GLOBAL 与 TENANT | 两行合法并存；解析按作用域隔离 | DB 约束 + 解析单测 | 作用域混淆 |
 | V-100 | 跨租户同名与同租户重叠 | T1/T2 各自同名 TENANT alias；T1 内两行区间重叠 | 跨租户并存合法；T1 重叠拒绝 | DB 排斥约束断言 | 跨租户误拒或同租户重叠放行 |
 | V-101 | 旧两作用域审计记录 | 写入 `scope='TENANT'` 但 `tenant_id` 为空或 `scope='GLOBAL'` 带 tenant/site | 拒绝写入 | DB CHECK 断言 | 旧模型残留 |
+| V-102 | 无匹配导入结果语义 | 普通导入无匹配产品 | 创建 `identity_pending(reason=PENDING_NEW_IDENTITY)`；`product_import_event.result='PENDING_CREATED'`；`global_product` 行数不变 | Repository + DB 断言 | 结果被误解为创建正式产品 |
 
-> V-95…V-101 共 7 个 R2.2.3 向量，全部**未执行**，与 `01` §6.5.1、`02` §4.6、`03` §4.4、`04` §3.3.1/§3.3.2/§3.3.3、`06` §8.1/§8.11/§8.12、`08` D-42/D-43/D-44/D-47/D-49、`10` §4（B-18…B-21）一致。
+> V-95…V-102 共 8 个 R2.2.3/R2.2.4 向量，全部**未执行**，与 `01` §6.5.1、`02` §4.6、`03` §4.4、`04` §3/§3.3.1/§3.3.2/§3.3.3、`06` §8.1/§8.11/§8.12、`08` D-42/D-43/D-44/D-47/D-49、`10` §4（B-18…B-21）一致。
 
 ## 3. 测试分层（未来）
 

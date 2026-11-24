@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-001 |
-| 版本 | v2.5-R2.2.3 |
+| 版本 | v2.6-R2.2.4 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | Ds Bit `600439a5`；当前 `Product` 无 Brand |
 | 相关决策 | D-01、D-02、D-16、D-17、D-18、D-44（见 `08_DECISION_REGISTER.md`） |
@@ -40,7 +40,7 @@ brand_registry
 
 brand_alias
   alias_norm          normalized alias (unique per alias scope)
-  alias_scope         GLOBAL / TENANT [候选]
+  scope               GLOBAL / TENANT [候选]（全文统一字段名，不使用 alias_scope）
   tenant_id           nullable (仅 TENANT scope)
   brand_id            FK
   alias_raw           original text
