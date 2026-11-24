@@ -1,0 +1,12 @@
+== HTTP 8080 (no TLS, no proxy trust) ==
+HTTP/1.1 200 OK
+Set-Cookie: PHPSESSID=<redacted>; path=/; HttpOnly; SameSite=Lax
+Set-Cookie: _csrf=<redacted>; path=/; HttpOnly; SameSite=Lax
+
+== HTTP 8080 + spoofed X-Forwarded-Proto: https (trust disabled) ==
+Set-Cookie: PHPSESSID=<redacted>; path=/; HttpOnly; SameSite=Lax
+Set-Cookie: _csrf=<redacted>; path=/; HttpOnly; SameSite=Lax
+
+== HTTP 8081 (X-Forwarded-Proto: https + MORRISHK_TRUST_PROXY_HEADERS=1) ==
+Set-Cookie: PHPSESSID=<redacted>; path=/; secure; HttpOnly; SameSite=Lax
+Set-Cookie: _csrf=<redacted>; path=/; secure; HttpOnly; SameSite=Lax

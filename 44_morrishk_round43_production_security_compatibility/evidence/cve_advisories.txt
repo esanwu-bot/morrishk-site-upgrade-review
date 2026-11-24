@@ -1,0 +1,78 @@
+=== firebase/php-jwt (installed v5.5.1) ===
+advisories=2
+  PKSA-y2cr-5h3j-g3ys | CVE-2025-45769 | affected=<7.0.0 | php-jwt contains weak encryption
+  PKSA-2kqm-ps5x-s4f5 | CVE-2021-46743 | affected=<6.0.0 | Key/algorithm type confusion
+
+=== guzzlehttp/guzzle (installed 7.4.1) ===
+advisories=14
+  PKSA-gcrk-3vtt-1r14 | CVE-2026-69246 | affected=>=8.0.0,<8.0.1|<7.15.2 | Guzzle: Noncanonical host can bypass host-based checks
+  PKSA-cnw1-2ytm-cgr8 | CVE-2026-69245 | affected=>=8.0.0,<8.0.1|<7.15.2 | Guzzle: Noncanonical cookie domain keeps subdomain scope
+  PKSA-fy2t-3c5f-827y | CVE-2026-67354 | affected=<7.15.1 | Guzzle: URI fragments disclosed in redirect Referer headers
+  PKSA-qxvb-2bpp-dnk6 | CVE-2026-67355 | affected=<7.15.1 | Guzzle: Host-only cookie scope is not preserved
+  PKSA-bbs6-q5q9-f3t4 | CVE-2026-67353 | affected=<7.15.1 | Guzzle: Unbounded response cookies risk denial of service
+  PKSA-bcdd-5xc7-gwfb | CVE-2026-59883 | affected=<7.12.3 | Guzzle: Cookie Disclosure and Injection via IP-Address Domains
+  PKSA-pwsk-hy21-4gby | CVE-2026-67339 | affected=<7.14.2 | Guzzle: Proxy-Authorization headers can be sent to origin servers
+  PKSA-93qv-9n9h-6k6p | CVE-2026-55767 | affected=<7.12.1 | Dot-only cookie domains match all hosts
+  PKSA-k22t-f949-t9g6 | CVE-2026-55568 | affected=<7.12.1 | Silent HTTPS proxy downgrade to cleartext
+  PKSA-yfw5-9gnj-n2c7 | CVE-2022-31091 | affected=>=7,<7.4.5|>=4,<6.5.8 | Change in port should be considered a change in origin
+  PKSA-k1b4-kshy-xgbh | CVE-2022-31090 | affected=>=7,<7.4.5|>=4,<6.5.8 | CURLOPT_HTTPAUTH option not cleared on change of origin
+  PKSA-2z36-j4q9-rsfy | CVE-2022-31043 | affected=>=7,<7.4.4|>=4,<6.5.7 | Fix failure to strip Authorization header on HTTP downgrade
+  PKSA-fvw5-9t6n-nwvr | CVE-2022-31042 | affected=>=7,<7.4.4|>=4,<6.5.7 | Failure to strip the Cookie header on change in host or HTTP downgrade
+  PKSA-6d8m-6kgw-18zr | CVE-2022-29248 | affected=>=7,<7.4.3|>=4,<6.5.6 | Cross-domain cookie leakage
+
+=== guzzlehttp/psr7 (installed 2.8.0) ===
+advisories=4
+  PKSA-vznr-tgp9-fd7d | CVE-2026-59882 | affected=<2.12.3 | guzzlehttp/psr7: Host Confusion via Weak URI Host Validation
+  PKSA-7qs6-zvnz-h66r | CVE-2026-55766 | affected=<2.12.1 | CRLF injection in HTTP start-line serialization
+  PKSA-gm5x-j3mz-71n9 | CVE-2026-49214 | affected=<2.10.2 | CRLF injection via URI host component
+  PKSA-jj5t-2zs1-dcfm | CVE-2026-48998 | affected=<2.10.2 | Host confusion via authority reinterpretation
+
+=== phpoffice/phpspreadsheet (installed 1.19.0) ===
+advisories=31
+  PKSA-r15m-kszr-8n8q | CVE-2026-108360 | affected=<=1.30.6|>=2.0.0,<=2.1.18|>=2.2.0,<=2.4.7|>=3.3.0,<=3.10.7|>=4.0.0,<=5.9.0 | PhpSpreadsheet: SSRF whitelist bypass via unre-validated HTTP redirect in Drawing::setPath external image loading
+  PKSA-dxd5-wy68-pq29 | CVE-2026-108359 | affected=<=1.30.6|>=2.0.0,<=2.1.18|>=2.2.0,<=2.4.7|>=3.3.0,<=3.10.7|>=4.0.0,<=5.9.0 | PhpSpreadsheet ODS Reader: Unbounded number-rows-repeated → CPU & Memory Exhaustion (DoS)
+  PKSA-96jv-mtjg-g2v8 | CVE-2026-108358 | affected=<=1.30.6|>=2.0.0,<=2.1.18|>=2.2.0,<=2.4.7|>=3.3.0,<=3.10.7|>=4.0.0,<=5.9.0 | PhpSpreadsheet: XmlScanner Bypass via ISO-2022 Escape Sequences Allows XXE and Denial of Service
+  PKSA-r22k-87hv-mfk4 | CVE-2026-59933 | affected=<=1.30.5|>=2.0.0,<=2.1.17|>=2.2.0,<=2.4.6|>=3.3.0,<=3.10.6|>=4.0.0,<=5.8.0 | PHPSpreadsheet: XLS/OLE sector-chain self-loop causes memory exhaustion
+  PKSA-m9cr-9614-rsf7 | CVE-2026-59932 | affected=<=1.30.5|>=2.0.0,<=2.1.17|>=2.2.0,<=2.4.6|>=3.3.0,<=3.10.6|>=4.0.0,<=5.8.0 | PHPSpreadsheet: Gnumeric reader unbounded gzip expansion causes memory exhaustion
+  PKSA-dqzt-yst9-1w9y | CVE-2026-59931 | affected=<=1.30.5|>=2.0.0,<=2.1.17|>=2.2.0,<=2.4.6|>=3.3.0,<=3.10.6|>=4.0.0,<=5.8.0 | PHPSpreadsheet: SSRF bypass via HTTP redirect in WEBSERVICE() domain whitelist
+  PKSA-x678-4z45-v3d5 | CVE-2026-45034 | affected=<=1.30.4 | PHPSpreadsheet has a patch bypass for CVE-2026-34084
+  PKSA-gz3f-3cz3-3wsw | CVE-2026-40902 | affected=<=1.30.3|>=2.0.0,<=2.1.15|>=2.2.0,<=2.4.4|>=3.3.0,<=3.10.4|>=4.0.0,<=5.6.0 | PhpSpreadsheet has CPU Denial of Service via Unbounded Row Number in XLSX Row Dimensions
+  PKSA-x13r-n4wc-4gcr | CVE-2026-40863 | affected=<=1.30.5|>=2.0.0,<=2.1.15|>=2.2.0,<=2.4.4|>=3.3.0,<=3.10.4|>=4.0.0,<=5.6.0 | PhpSpreadsheet has CPU Denial of Service via Unbounded Row Index in SpreadsheetML XML Reader
+  PKSA-8cfg-tzhf-fr83 | CVE-2026-34084 | affected=<=1.30.2|>=2.0.0,<=2.1.14|>=2.2.0,<=2.4.3|>=3.3.0,<=3.10.3|>=4.0.0,<=5.5.0 | PhpSpreadsheet has SSRF/RCE in IOFactory::load when $filename is user controlled
+  PKSA-hznc-gbby-6w16 | CVE-2026-40296 | affected=<=1.30.3|>=2.0.0,<=2.1.15|>=2.2.0,<=2.4.4|>=3.3.0,<=3.10.4|>=4.0.0,<=5.6.0 | PhpSpreadsheet has XSS via number format code with @ text placeholder bypasses htmlspecialchars in HTML writer
+  PKSA-jtdk-dcr5-f11n | CVE-2026-35453 | affected=<=1.30.3|>=2.0.0,<=2.1.15|>=2.2.0,<=2.4.4|>=3.3.0,<=3.10.4|>=4.0.0,<=5.6.0 | PhpSpreadsheet has XSS via NumberFormat @ Text Substitution in HTML Writer
+  PKSA-64jn-3d9t-gncx | CVE-2025-54370 | affected=<1.30.0|>=2.0.0,<2.1.0|>=2.1.0,<2.1.12|>=2.2.0,<2.3.0|>=2.3.0,<2.4.0|>=3.0.0,<3.10.0|>=4.0.0,<5.0.0 | PhpSpreadsheet vulnerable to SSRF when reading and displaying a processed HTML document in the browser
+  PKSA-8b16-mcgz-h4cz | CVE-2025-23210 | affected=>=2.0.0,<2.1.8|>=2.2.0,<2.3.7|<1.29.9|>=3.0.0,<3.9.0 | PhpSpreadsheet allows bypassing of XSS sanitizer using the javascript protocol and special characters
+  PKSA-s99r-9yxm-hjvt | CVE-2025-22131 | affected=>=2.2.0,<2.3.6|>=2.0.0,<2.1.7|<1.29.8|>=3.0.0,<3.8.0 | Cross-Site Scripting (XSS) vulnerability in generateNavigation() function in PhpSpreadsheet
+  PKSA-7jd6-nb49-bz4v | CVE-2024-56412 | affected=>=2.2.0,<=2.3.4|>=2.0.0,<=2.1.5|<=1.29.6|>=3.0.0,<3.7.0 | PhpSpreadsheet allows bypass XSS sanitizer using the javascript protocol and special characters
+  PKSA-nm34-xhtz-ww9p | CVE-2024-56411 | affected=>=2.2.0,<=2.3.4|>=2.0.0,<=2.1.5|<=1.29.6|>=3.0.0,<3.7.0 | PhpSpreadsheet has a Cross-Site Scripting (XSS) vulnerability of the hyperlink base in the HTML page header
+  PKSA-4ckb-wpj6-c29d | CVE-2024-56410 | affected=>=2.2.0,<=2.3.4|>=2.0.0,<=2.1.5|<=1.29.6|>=3.0.0,<3.7.0 | PhpSpreadsheet has a Cross-Site Scripting (XSS) vulnerability in custom properties
+  PKSA-ybqb-vyrq-8pdt | CVE-2024-56409 | affected=>=2.2.0,<=2.3.4|>=2.0.0,<=2.1.5|<=1.29.6|>=3.0.0,<3.7.0 | PhpSpreadsheet allows unauthorized Reflected XSS in Currency.php file
+  PKSA-285y-y5bt-kvd9 | CVE-2024-56366 | affected=>=2.2.0,<=2.3.4|>=2.0.0,<=2.1.5|<=1.29.6|>=3.0.0,<3.7.0 | PhpSpreadsheet allows unauthorized Reflected XSS in the Accounting.php file
+  PKSA-jw5c-q9nd-tzj9 | CVE-2024-56365 | affected=>=2.2.0,<=2.3.4|>=2.0.0,<=2.1.5|<=1.29.6|>=3.0.0,<3.7.0 | PhpSpreadsheet allows unauthorized Reflected XSS in the constructor of the Downloader class
+  PKSA-bcnb-9tc9-bjb8 | CVE-2024-56408 | affected=>=2.2.0,<=2.3.4|>=2.0.0,<=2.1.5|<=1.29.6|>=3.0.0,<3.7.0 | PhpSpreadsheet allows unauthorized Reflected XSS in `Convert-Online.php` file
+  PKSA-gst3-cdk3-bpqt | CVE-2024-48917 | affected=>=3.3.0,<3.4.0|>=2.2.0,<2.3.2|>=2.0.0,<2.1.3|<1.29.4 | XXE in PHPSpreadsheet's XLSX reader
+  PKSA-dbrb-pvhs-h3st | CVE-2024-47873 | affected=>=3.3.0,<3.4.0|>=2.2.0,<2.3.2|>=2.0.0,<2.1.3|<1.29.4 | XmlScanner bypass leads to XXE
+  PKSA-mkg2-1wyw-57y7 | CVE-2024-45293 | affected=>=2.0.0,<2.1.1|<1.29.1|>=2.2.0,<2.3.0 | XXE in PHPSpreadsheet's XLSX reader
+  PKSA-p1pj-q951-6f1x | CVE-2024-45292 | affected=>=2.0.0,<2.1.1|<1.29.2|>=2.2.0,<2.3.0 | PhpSpreadsheet HTML writer is vulnerable to Cross-Site Scripting via JavaScript hyperlinks
+  PKSA-7f9v-sb8k-krfb | CVE-2024-45291 | affected=>=2.0.0,<2.1.1|<1.29.2|>=2.2.0,<2.3.0 | PhpSpreadsheet allows absolute path traversal and Server-Side Request Forgery in HTML writer when embedding images is enabled
+  PKSA-xk3k-rd1m-pxmg | CVE-2024-45290 | affected=>=2.0.0,<2.1.1|<1.29.2|>=2.2.0,<2.3.0 | PhpSpreadsheet allows absolute path traversal and Server-Side Request Forgery when opening XLSX file
+  PKSA-dvbq-8ft2-ngrw | CVE-2024-45060 | affected=>=2.0.0,<2.1.1|<1.29.2|>=2.2.0,<2.3.0 | PhpSpreadsheet has an Unauthenticated Cross-Site-Scripting (XSS) in sample file
+  PKSA-xp7t-fbrb-qjv4 | CVE-2024-45048 | affected=>=2.0.0,<2.1.1|>=2.2.0,<2.2.1|<1.29.1 | XXE in PHPSpreadsheet encoding is returned
+  PKSA-m4hk-rk8p-4t5p | CVE-2024-45046 | affected=<1.29.1|>=2.0.0,<2.1.0 | PhpSpreadsheet HTML writer is vulnerable to Cross-Site Scripting via style information
+
+=== phpseclib/phpseclib (installed 3.0.37) ===
+advisories=6
+  PKSA-h7cz-q7zq-mdkt | no-cve | affected=>=4.0.0,<4.0.3|>=3.0.0,<3.0.58|>=2.0.0,<2.0.56|>=1.0.0,<1.0.31 | phpseclib unbounded PBKDF iteration count in encrypted key/PFX/CMS parsing enables CPU-exhaustion DoS
+  PKSA-12sz-bcny-pk4m | CVE-2026-84308 | affected=>=4.0.0,<4.0.1|<3.0.57 | phpseclib — non-constant-time X25519 scalar multiplication permits full private-key recovery
+  PKSA-432p-hv1d-chf7 | CVE-2026-55599 | affected=>=3.0.0,<=3.0.53|>=2.0.0,<=2.0.54|>=0.1.1,<=1.0.29 | phpseclib: X.509 certificate validation sends attacker-controlled outbound requests (server-side request forgery) via Authority Information Access
+  PKSA-smrh-yx37-92ws | CVE-2026-44167 | affected=>=0.1.1,<=1.0.28|>=3.0.0,<=3.0.51|>=2.0.0,<=2.0.53 | phpseclib has a CVE-2024-27355 mitigation bypass — OID amplification DoS in ASN1::decodeOID()
+  PKSA-zh4j-by9m-7mz8 | CVE-2026-40194 | affected=>=0.1.1,<1.0.28|>=3.0.0,<3.0.51|>=2.0.0,<2.0.53 | phpseclib has a variable-time HMAC comparison in SSH2::get_binary_packet() using != instead of hash_equals()
+  PKSA-km2b-zc3b-mjm3 | CVE-2026-32935 | affected=>=0.1.1,<=1.0.26|>=2.0.0,<=2.0.51|>=3.0.0,<=3.0.49 | phpseclib's AES-CBC unpadding susceptible to padding oracle timing attack
+
+=== league/flysystem (installed 1.1.9) ===
+advisories=1
+  PKSA-w9tt-7782-78jx | CVE-2026-102601 | affected=<=3.35.2 | Flysystem: WhitespacePathNormalizer's control-character (CorruptedPathDetected) check is bypassed by malformed UTF-8 in the path, affecting every adapter
+
+=== abandoned ===
+swiftmailer/swiftmailer -> symfony/mailer

@@ -1,0 +1,8 @@
+Round 43 F-23 MySQL 8.4.13 staging with production schema (scratch DB morrishk_r43_schema)
+server_version: 8.4.13
+snsii_manage_engine: MyISAM
+rows: 1000
+ALTER(us): 359920
+idempotent(us): 144056
+rollback(us): 433261
+column_after_rollback: 0

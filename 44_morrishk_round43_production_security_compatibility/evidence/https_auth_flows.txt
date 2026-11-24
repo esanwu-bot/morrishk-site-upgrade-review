@@ -1,0 +1,7 @@
+login_without_csrf http=400
+login_with_csrf http=302
+persistent_cookie_only http=200
+session_cookie_only http=200
+logout http=302
+session_after_logout http=302
+identity_after_logout http=302

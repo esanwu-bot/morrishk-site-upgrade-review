@@ -1,0 +1,13 @@
+Round 43 F-24 call-path scan (project source, vendor excluded)
+PATTERN GuzzleHttp hits=1
+  commands\MapController.php:20 use GuzzleHttp\Client;
+PATTERN Firebase\\JWT hits=0
+PATTERN JWT:: hits=0
+PATTERN PhpSpreadsheet hits=0
+PATTERN IOFactory hits=0
+PATTERN PHPExcel hits=0
+PATTERN phpseclib hits=0
+PATTERN League\\Flysystem hits=0
+PATTERN Google_Client hits=0
+PATTERN Google\\Client hits=1
+  commands\CController.php:21 use Google\Client;

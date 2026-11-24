@@ -1,0 +1,114 @@
+diff --git a/commands/AuthKeyController.php b/commands/AuthKeyController.php
+new file mode 100644
+index 0000000..f2fb2f1
+--- /dev/null
++++ b/commands/AuthKeyController.php
+@@ -0,0 +1,32 @@
++<?php
++
++namespace app\commands;
++
++use app\modules\ejadmin\models\SnSiiManage;
++use yii\console\Controller;
++use yii\console\ExitCode;
++
++/**
++ * 持久登录密钥轮换辅助命令。
++ *
++ * 用法：MORRISHK_AUTH_KEY_SECRET=<新 Secret> php yii auth-key/rotate
++ * 必须在每次更换或回滚 Secret 后执行，使该账号的全部旧 Cookie 永久失效。
++ */
++class AuthKeyController extends Controller
++{
++    /**
++     * 将全部账号的 AuthKeyVersion +1，吊销所有已签发的持久登录 Cookie。
++     * @return int
++     */
++    public function actionRotate()
++    {
++        try {
++            $affected = SnSiiManage::bumpAllAuthKeyVersions();
++        } catch (\Throwable $e) {
++            $this->stderr("auth-key rotation failed: " . $e->getMessage() . "\n");
++            return ExitCode::UNSPECIFIED_ERROR;
++        }
++        $this->stdout("AuthKeyVersion incremented for {$affected} account(s).\n");
++        return ExitCode::OK;
++    }
++}
+diff --git a/config/web.php b/config/web.php
+index 81e8267..6503b22 100644
+--- a/config/web.php
++++ b/config/web.php
+@@ -3,6 +3,22 @@
+ $params = require __DIR__ . '/params.php';
+ $db     = require __DIR__ . '/db.php';
+
++// Round 43: 认证相关 Cookie 的 Secure 属性按实际 HTTPS 状态设置。
++// - 直接 TLS 终止：依赖 $_SERVER['HTTPS']（Nginx 需传 fastcgi_param HTTPS on）。
++// - 反向代理 TLS 终止：必须显式设置 MORRISHK_TRUST_PROXY_HEADERS=1 且由代理覆盖 X-Forwarded-Proto，
++//   避免客户端伪造该头把 HTTP 请求误判为 HTTPS。
++// - 显式强制：MORRISHK_FORCE_SECURE_COOKIES=1（仅用于确认全站 HTTPS 的部署）。
++$httpsOn = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== '' && strcasecmp($_SERVER['HTTPS'], 'off') !== 0;
++$proxyHttps = getenv('MORRISHK_TRUST_PROXY_HEADERS') === '1'
++    && isset($_SERVER['HTTP_X_FORWARDED_PROTO'])
++    && strcasecmp($_SERVER['HTTP_X_FORWARDED_PROTO'], 'https') === 0;
++$secureCookies = $httpsOn || $proxyHttps || getenv('MORRISHK_FORCE_SECURE_COOKIES') === '1';
++$authCookieOptions = [
++    'httpOnly' => true,
++    'secure'   => $secureCookies,
++    'sameSite' => 'Lax',
++];
++
+ $config = [
+     'id'         => 'basic',
+     'basePath'   => dirname(__DIR__),
+@@ -18,6 +34,7 @@ $config = [
+         'request'      => [
+             // !!! insert a secret key in the following (if it is empty) - this is required by cookie validation
+             'cookieValidationKey' => getenv('MORRISHK_COOKIE_VALIDATION_KEY') ?: '',
++            'csrfCookie' => $authCookieOptions,
+             'parsers' => [
+                 'application/json' => 'yii\web\JsonParser',
+                 // 允许解析JSON请求体
+@@ -35,6 +52,15 @@ $config = [
+             'identityClass'   => 'app\modules\ejadmin\models\SnSiiManage',
+             'enableAutoLogin' => true,
+             'loginUrl'        => ['site/login'],
++            'identityCookie'  => array_merge(['name' => '_identity'], $authCookieOptions),
++        ],
++        'session'      => [
++            // PHP Session Cookie 与认证 Cookie 使用同一安全策略（Secure / HttpOnly / SameSite=Lax）
++            'cookieParams' => [
++                'httponly' => true,
++                'secure'   => $secureCookies,
++                'samesite' => 'Lax',
++            ],
+         ],
+         'errorHandler' => [
+             'errorAction' => 'site/error',
+diff --git a/modules/ejadmin/models/SnSiiManage.php b/modules/ejadmin/models/SnSiiManage.php
+index f5a88ba..d4e18d3 100644
+--- a/modules/ejadmin/models/SnSiiManage.php
++++ b/modules/ejadmin/models/SnSiiManage.php
+@@ -179,6 +179,20 @@ class SnSiiManage extends ActiveRecord implements \yii\web\IdentityInterface
+         return $affected;
+     }
+
++    /**
++     * 账号级全量递增：用于 Secret 轮换。旧 Cookie 携带旧版本号，递增后永久失效，
++     * 即使之后恢复旧 Secret 也不会复活。
++     */
++    public static function bumpAllAuthKeyVersions()
++    {
++        self::assertAuthKeyVersionColumn();
++        $affected = static::updateAll([
++            'AuthKeyVersion' => new \yii\db\Expression('AuthKeyVersion + 1'),
++        ]);
++        Yii::info('AuthKeyVersion rotated for ' . $affected . ' accounts', __METHOD__);
++        return $affected;
++    }
++
+     public function getAuthKey()
+     {
+         self::assertAuthKeyVersionColumn();

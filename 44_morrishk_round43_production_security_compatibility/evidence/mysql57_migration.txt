@@ -1,0 +1,9 @@
+Round 43 F-23 MySQL 5.7.26 staging (production schema copy, scratch DB morris_r43)
+server_version: 5.7.26
+snsii_manage_engine: MyISAM
+rows: 1000
+ALTER(us): 69352
+idempotent(us): 3341
+rollback(us): 60123
+grants: GRANT SELECT, ALTER, EXECUTE, CREATE ROUTINE, ALTER ROUTINE ON `morris_r43`.* TO 'r43_mig'@'127.0.0.1'
+column_after_rollback: 0

@@ -1,0 +1,12 @@
+GET /site/login.html http=200
+GET-login                    PHPSESSID  value_len=32   Secure=no  HttpOnly=yes SameSite=(none) Path=/           Domain=(none)   (session)
+GET-login                    _csrf      value_len=166  Secure=no  HttpOnly=yes SameSite=Lax    Path=/           Domain=(none)   (session)
+POST /site/login.html http=302
+POST-login                   PHPSESSID  value_len=32   Secure=no  HttpOnly=yes SameSite=(none) Path=/           Domain=(none)   (session)
+POST-login                   _identity  value_len=230  Secure=no  HttpOnly=yes SameSite=Lax    Path=/           Domain=(none)   Max-Age=2592000
+POST-login                   _csrf      value_len=166  Secure=no  HttpOnly=yes SameSite=Lax    Path=/           Domain=(none)   (session)
+GET /ejadmin-index.html http=200
+POST /site/logout.html http=302
+POST-logout                  PHPSESSID  value_len=32   Secure=no  HttpOnly=yes SameSite=(none) Path=/           Domain=(none)   (session)
+POST-logout                  _identity  value_len=7    Secure=no  HttpOnly=yes SameSite=Lax    Path=/           Domain=(none)   Max-Age=0
+GET /ejadmin-index.html after logout http=302

@@ -1,0 +1,6 @@
+Round 43 F-23 lock-wait and least-privilege checks (MySQL 5.7.26)
+ALTER_under_global_read_lock(us): 7708052
+without_CREATE_ROUTINE_exit=1
+without_CREATE_ROUTINE_error: mysql.exe : ERROR 1044 (42000) at line 6 in file: 'D:\dev\tmp\r43_authkey_mig.sql': Access denied for user 'r43_mig'@'1 27.0.0.1' to database 'morris_r43' 所在位置 行:15 字符: 3097 + ... p"; $err = (& $my --host=127.0.0.1 --port=3417 --user=r43_mig morris_ ... +                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~     + CategoryInfo          : NotSpecified: (ERROR 1044 (420...se 'morris_r43':String) [], RemoteException     + FullyQualifiedErrorId : NativeCommandError
+with_full_minimal_grants_exit=0
+column_after_recheck: 1
