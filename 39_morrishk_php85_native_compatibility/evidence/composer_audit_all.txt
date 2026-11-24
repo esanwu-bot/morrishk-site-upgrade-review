@@ -1,0 +1,759 @@
+Found 70 security vulnerability advisories affecting 14 packages:
++-------------------+----------------------------------------------------------------------------------+
+| Package           | firebase/php-jwt                                                                 |
+| Severity          | low                                                                              |
+| Advisory ID       | PKSA-y2cr-5h3j-g3ys                                                              |
+| CVE               | CVE-2025-45769                                                                   |
+| Title             | php-jwt contains weak encryption                                                 |
+| URL               | https://github.com/advisories/GHSA-2x45-7fc3-mxwq                                |
+| Affected versions | <7.0.0                                                                           |
+| Reported at       | 2025-07-31T21:31:53+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | firebase/php-jwt                                                                 |
+| Severity          | critical                                                                         |
+| Advisory ID       | PKSA-2kqm-ps5x-s4f5                                                              |
+| CVE               | CVE-2021-46743                                                                   |
+| Title             | Key/algorithm type confusion                                                     |
+| URL               | https://github.com/advisories/GHSA-8xf4-w7qw-pjjw                                |
+| Affected versions | <6.0.0                                                                           |
+| Reported at       | 2022-03-30T00:00:00+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | guzzlehttp/guzzle                                                                |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-gcrk-3vtt-1r14                                                              |
+| CVE               | CVE-2026-69246                                                                   |
+| Title             | Guzzle: Noncanonical host can bypass host-based checks                           |
+| URL               | https://github.com/advisories/GHSA-v5mv-p594-2x33                                |
+| Affected versions | >=8.0.0,<8.0.1|<7.15.2                                                           |
+| Reported at       | 2026-08-03T21:07:26+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | guzzlehttp/guzzle                                                                |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-cnw1-2ytm-cgr8                                                              |
+| CVE               | CVE-2026-69245                                                                   |
+| Title             | Guzzle: Noncanonical cookie domain keeps subdomain scope                         |
+| URL               | https://github.com/advisories/GHSA-f7vp-7xgx-4w4r                                |
+| Affected versions | >=8.0.0,<8.0.1|<7.15.2                                                           |
+| Reported at       | 2026-08-03T21:05:26+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | guzzlehttp/guzzle                                                                |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-fy2t-3c5f-827y                                                              |
+| CVE               | CVE-2026-67354                                                                   |
+| Title             | Guzzle: URI fragments disclosed in redirect Referer headers                      |
+| URL               | https://github.com/advisories/GHSA-h95v-h523-3mw8                                |
+| Affected versions | <7.15.1                                                                          |
+| Reported at       | 2026-07-20T23:28:36+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | guzzlehttp/guzzle                                                                |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-qxvb-2bpp-dnk6                                                              |
+| CVE               | CVE-2026-67355                                                                   |
+| Title             | Guzzle: Host-only cookie scope is not preserved                                  |
+| URL               | https://github.com/advisories/GHSA-wm3w-8rrp-j577                                |
+| Affected versions | <7.15.1                                                                          |
+| Reported at       | 2026-07-20T23:27:49+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | guzzlehttp/guzzle                                                                |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-bbs6-q5q9-f3t4                                                              |
+| CVE               | CVE-2026-67353                                                                   |
+| Title             | Guzzle: Unbounded response cookies risk denial of service                        |
+| URL               | https://github.com/advisories/GHSA-f283-ghqc-fg79                                |
+| Affected versions | <7.15.1                                                                          |
+| Reported at       | 2026-07-20T23:27:02+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | guzzlehttp/guzzle                                                                |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-bcdd-5xc7-gwfb                                                              |
+| CVE               | CVE-2026-59883                                                                   |
+| Title             | Guzzle: Cookie Disclosure and Injection via IP-Address Domains                   |
+| URL               | https://github.com/advisories/GHSA-g446-98w2-8p5w                                |
+| Affected versions | <7.12.3                                                                          |
+| Reported at       | 2026-07-20T22:00:09+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | guzzlehttp/guzzle                                                                |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-pwsk-hy21-4gby                                                              |
+| CVE               | CVE-2026-67339                                                                   |
+| Title             | Guzzle: Proxy-Authorization headers can be sent to origin servers                |
+| URL               | https://github.com/advisories/GHSA-94pj-82f3-465w                                |
+| Affected versions | <7.14.2                                                                          |
+| Reported at       | 2026-07-20T21:46:02+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | guzzlehttp/guzzle                                                                |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-93qv-9n9h-6k6p                                                              |
+| CVE               | CVE-2026-55767                                                                   |
+| Title             | Dot-only cookie domains match all hosts                                          |
+| URL               | https://github.com/guzzle/guzzle/security/advisories/GHSA-cwxw-98qj-8qjx         |
+| Affected versions | <7.12.1                                                                          |
+| Reported at       | 2026-06-18T14:12:49+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | guzzlehttp/guzzle                                                                |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-k22t-f949-t9g6                                                              |
+| CVE               | CVE-2026-55568                                                                   |
+| Title             | Silent HTTPS proxy downgrade to cleartext                                        |
+| URL               | https://github.com/guzzle/guzzle/security/advisories/GHSA-wpwq-4j6v-78m3         |
+| Affected versions | <7.12.1                                                                          |
+| Reported at       | 2026-06-18T14:12:49+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | guzzlehttp/guzzle                                                                |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-yfw5-9gnj-n2c7                                                              |
+| CVE               | CVE-2022-31091                                                                   |
+| Title             | Change in port should be considered a change in origin                           |
+| URL               | https://github.com/guzzle/guzzle/security/advisories/GHSA-q559-8m2m-g699         |
+| Affected versions | >=7,<7.4.5|>=4,<6.5.8                                                            |
+| Reported at       | 2022-06-20T22:16:07+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | guzzlehttp/guzzle                                                                |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-k1b4-kshy-xgbh                                                              |
+| CVE               | CVE-2022-31090                                                                   |
+| Title             | CURLOPT_HTTPAUTH option not cleared on change of origin                          |
+| URL               | https://github.com/guzzle/guzzle/security/advisories/GHSA-25mq-v84q-4j7r         |
+| Affected versions | >=7,<7.4.5|>=4,<6.5.8                                                            |
+| Reported at       | 2022-06-20T22:16:07+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | guzzlehttp/guzzle                                                                |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-2z36-j4q9-rsfy                                                              |
+| CVE               | CVE-2022-31043                                                                   |
+| Title             | Fix failure to strip Authorization header on HTTP downgrade                      |
+| URL               | https://github.com/guzzle/guzzle/security/advisories/GHSA-w248-ffj2-4v5q         |
+| Affected versions | >=7,<7.4.4|>=4,<6.5.7                                                            |
+| Reported at       | 2022-06-09T21:36:50+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | guzzlehttp/guzzle                                                                |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-fvw5-9t6n-nwvr                                                              |
+| CVE               | CVE-2022-31042                                                                   |
+| Title             | Failure to strip the Cookie header on change in host or HTTP downgrade           |
+| URL               | https://github.com/guzzle/guzzle/security/advisories/GHSA-f2wf-25xc-69c9         |
+| Affected versions | >=7,<7.4.4|>=4,<6.5.7                                                            |
+| Reported at       | 2022-06-09T21:36:50+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | guzzlehttp/guzzle                                                                |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-6d8m-6kgw-18zr                                                              |
+| CVE               | CVE-2022-29248                                                                   |
+| Title             | Cross-domain cookie leakage                                                      |
+| URL               | https://github.com/guzzle/guzzle/security/advisories/GHSA-cwmx-hcrq-mhc3         |
+| Affected versions | >=7,<7.4.3|>=4,<6.5.6                                                            |
+| Reported at       | 2022-05-25T13:19:12+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | guzzlehttp/psr7                                                                  |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-vznr-tgp9-fd7d                                                              |
+| CVE               | CVE-2026-59882                                                                   |
+| Title             | guzzlehttp/psr7: Host Confusion via Weak URI Host Validation                     |
+| URL               | https://github.com/advisories/GHSA-c2w2-prh8-qm98                                |
+| Affected versions | <2.12.3                                                                          |
+| Reported at       | 2026-07-21T18:35:25+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | guzzlehttp/psr7                                                                  |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-7qs6-zvnz-h66r                                                              |
+| CVE               | CVE-2026-55766                                                                   |
+| Title             | CRLF injection in HTTP start-line serialization                                  |
+| URL               | https://github.com/guzzle/psr7/security/advisories/GHSA-vm85-hxw5-5432           |
+| Affected versions | <2.12.1                                                                          |
+| Reported at       | 2026-06-18T09:49:37+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | guzzlehttp/psr7                                                                  |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-gm5x-j3mz-71n9                                                              |
+| CVE               | CVE-2026-49214                                                                   |
+| Title             | CRLF injection via URI host component                                            |
+| URL               | https://github.com/guzzle/psr7/security/advisories/GHSA-hq7v-mx3g-29hw           |
+| Affected versions | <2.10.2                                                                          |
+| Reported at       | 2026-05-25T22:58:15+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | guzzlehttp/psr7                                                                  |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-jj5t-2zs1-dcfm                                                              |
+| CVE               | CVE-2026-48998                                                                   |
+| Title             | Host confusion via authority reinterpretation                                    |
+| URL               | https://github.com/guzzle/psr7/security/advisories/GHSA-34xg-wgjx-8xph           |
+| Affected versions | <2.10.2                                                                          |
+| Reported at       | 2026-05-25T22:58:15+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | league/flysystem                                                                 |
+| Severity          | low                                                                              |
+| Advisory ID       | PKSA-w9tt-7782-78jx                                                              |
+| CVE               | CVE-2026-102601                                                                  |
+| Title             | Flysystem: WhitespacePathNormalizer's control-character (CorruptedPathDetected)  |
+|                   | check is bypassed by malformed UTF-8 in the path, affecting every adapter        |
+| URL               | https://github.com/advisories/GHSA-cxf4-7mrp-vvpr                                |
+| Affected versions | <=3.35.2                                                                         |
+| Reported at       | 2026-09-29T18:10:14+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-r15m-kszr-8n8q                                                              |
+| CVE               | CVE-2026-108360                                                                  |
+| Title             | PhpSpreadsheet: SSRF whitelist bypass via unre-validated HTTP redirect in        |
+|                   | Drawing::setPath external image loading                                          |
+| URL               | https://github.com/advisories/GHSA-2phh-27fw-q4gc                                |
+| Affected versions | <=1.30.6|>=2.0.0,<=2.1.18|>=2.2.0,<=2.4.7|>=3.3.0,<=3.10.7|>=4.0.0,<=5.9.0       |
+| Reported at       | 2026-10-27T15:38:39+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-dxd5-wy68-pq29                                                              |
+| CVE               | CVE-2026-108359                                                                  |
+| Title             | PhpSpreadsheet ODS Reader: Unbounded number-rows-repeated → CPU & Memory         |
+|                   | Exhaustion (DoS)                                                                 |
+| URL               | https://github.com/advisories/GHSA-j2w7-387v-m2rq                                |
+| Affected versions | <=1.30.6|>=2.0.0,<=2.1.18|>=2.2.0,<=2.4.7|>=3.3.0,<=3.10.7|>=4.0.0,<=5.9.0       |
+| Reported at       | 2026-10-27T15:38:33+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-96jv-mtjg-g2v8                                                              |
+| CVE               | CVE-2026-108358                                                                  |
+| Title             | PhpSpreadsheet: XmlScanner Bypass via ISO-2022 Escape Sequences Allows XXE and   |
+|                   | Denial of Service                                                                |
+| URL               | https://github.com/advisories/GHSA-3x94-m842-937c                                |
+| Affected versions | <=1.30.6|>=2.0.0,<=2.1.18|>=2.2.0,<=2.4.7|>=3.3.0,<=3.10.7|>=4.0.0,<=5.9.0       |
+| Reported at       | 2026-10-27T15:38:28+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-r22k-87hv-mfk4                                                              |
+| CVE               | CVE-2026-59933                                                                   |
+| Title             | PHPSpreadsheet: XLS/OLE sector-chain self-loop causes memory exhaustion          |
+| URL               | https://github.com/advisories/GHSA-xh5m-36r6-47m3                                |
+| Affected versions | <=1.30.5|>=2.0.0,<=2.1.17|>=2.2.0,<=2.4.6|>=3.3.0,<=3.10.6|>=4.0.0,<=5.8.0       |
+| Reported at       | 2026-07-23T15:01:50+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-m9cr-9614-rsf7                                                              |
+| CVE               | CVE-2026-59932                                                                   |
+| Title             | PHPSpreadsheet: Gnumeric reader unbounded gzip expansion causes memory           |
+|                   | exhaustion                                                                       |
+| URL               | https://github.com/advisories/GHSA-2mrg-gjxq-2gvr                                |
+| Affected versions | <=1.30.5|>=2.0.0,<=2.1.17|>=2.2.0,<=2.4.6|>=3.3.0,<=3.10.6|>=4.0.0,<=5.8.0       |
+| Reported at       | 2026-07-23T15:00:17+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-dqzt-yst9-1w9y                                                              |
+| CVE               | CVE-2026-59931                                                                   |
+| Title             | PHPSpreadsheet: SSRF bypass via HTTP redirect in WEBSERVICE() domain whitelist   |
+| URL               | https://github.com/advisories/GHSA-6hq5-7373-42rg                                |
+| Affected versions | <=1.30.5|>=2.0.0,<=2.1.17|>=2.2.0,<=2.4.6|>=3.3.0,<=3.10.6|>=4.0.0,<=5.8.0       |
+| Reported at       | 2026-07-23T14:55:48+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | critical                                                                         |
+| Advisory ID       | PKSA-x678-4z45-v3d5                                                              |
+| CVE               | CVE-2026-45034                                                                   |
+| Title             | PHPSpreadsheet has a patch bypass for CVE-2026-34084                             |
+| URL               | https://github.com/advisories/GHSA-87m4-826x-3crx                                |
+| Affected versions | <=1.30.4                                                                         |
+| Reported at       | 2026-06-08T23:00:14+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-gz3f-3cz3-3wsw                                                              |
+| CVE               | CVE-2026-40902                                                                   |
+| Title             | PhpSpreadsheet has CPU Denial of Service via Unbounded Row Number in XLSX Row    |
+|                   | Dimensions                                                                       |
+| URL               | https://github.com/advisories/GHSA-7c6m-4442-2x6m                                |
+| Affected versions | <=1.30.3|>=2.0.0,<=2.1.15|>=2.2.0,<=2.4.4|>=3.3.0,<=3.10.4|>=4.0.0,<=5.6.0       |
+| Reported at       | 2026-04-29T20:24:13+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-x13r-n4wc-4gcr                                                              |
+| CVE               | CVE-2026-40863                                                                   |
+| Title             | PhpSpreadsheet has CPU Denial of Service via Unbounded Row Index in              |
+|                   | SpreadsheetML XML Reader                                                         |
+| URL               | https://github.com/advisories/GHSA-84wq-86v6-x5j6                                |
+| Affected versions | <=1.30.5|>=2.0.0,<=2.1.15|>=2.2.0,<=2.4.4|>=3.3.0,<=3.10.4|>=4.0.0,<=5.6.0       |
+| Reported at       | 2026-04-29T20:23:27+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | critical                                                                         |
+| Advisory ID       | PKSA-8cfg-tzhf-fr83                                                              |
+| CVE               | CVE-2026-34084                                                                   |
+| Title             | PhpSpreadsheet has SSRF/RCE in IOFactory::load when $filename is user controlled |
+| URL               | https://github.com/advisories/GHSA-q4q6-r8wh-5cgh                                |
+| Affected versions | <=1.30.2|>=2.0.0,<=2.1.14|>=2.2.0,<=2.4.3|>=3.3.0,<=3.10.3|>=4.0.0,<=5.5.0       |
+| Reported at       | 2026-04-29T20:22:30+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-hznc-gbby-6w16                                                              |
+| CVE               | CVE-2026-40296                                                                   |
+| Title             | PhpSpreadsheet has XSS via number format code with @ text placeholder bypasses   |
+|                   | htmlspecialchars in HTML writer                                                  |
+| URL               | https://github.com/advisories/GHSA-hrmw-qprp-wgmc                                |
+| Affected versions | <=1.30.3|>=2.0.0,<=2.1.15|>=2.2.0,<=2.4.4|>=3.3.0,<=3.10.4|>=4.0.0,<=5.6.0       |
+| Reported at       | 2026-04-28T22:57:13+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-jtdk-dcr5-f11n                                                              |
+| CVE               | CVE-2026-35453                                                                   |
+| Title             | PhpSpreadsheet has XSS via NumberFormat @ Text Substitution in HTML Writer       |
+| URL               | https://github.com/advisories/GHSA-6wpp-88cp-7q68                                |
+| Affected versions | <=1.30.3|>=2.0.0,<=2.1.15|>=2.2.0,<=2.4.4|>=3.3.0,<=3.10.4|>=4.0.0,<=5.6.0       |
+| Reported at       | 2026-04-28T22:50:31+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-64jn-3d9t-gncx                                                              |
+| CVE               | CVE-2025-54370                                                                   |
+| Title             | PhpSpreadsheet vulnerable to SSRF when reading and displaying a processed HTML   |
+|                   | document in the browser                                                          |
+| URL               | https://github.com/PHPOffice/PhpSpreadsheet/security/advisories/GHSA-rx7m-68vc-p |
+|                   | pxh                                                                              |
+| Affected versions | <1.30.0|>=2.0.0,<2.1.0|>=2.1.0,<2.1.12|>=2.2.0,<2.3.0|>=2.3.0,<2.4.0|>=3.0.0,<3. |
+|                   | 10.0|>=4.0.0,<5.0.0                                                              |
+| Reported at       | 2025-08-03T01:06:00+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-8b16-mcgz-h4cz                                                              |
+| CVE               | CVE-2025-23210                                                                   |
+| Title             | PhpSpreadsheet allows bypassing of XSS sanitizer using the javascript protocol   |
+|                   | and special characters                                                           |
+| URL               | https://github.com/advisories/GHSA-r57h-547h-w24f                                |
+| Affected versions | >=2.0.0,<2.1.8|>=2.2.0,<2.3.7|<1.29.9|>=3.0.0,<3.9.0                             |
+| Reported at       | 2025-02-03T15:39:31+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-s99r-9yxm-hjvt                                                              |
+| CVE               | CVE-2025-22131                                                                   |
+| Title             | Cross-Site Scripting (XSS) vulnerability in generateNavigation() function in     |
+|                   | PhpSpreadsheet                                                                   |
+| URL               | https://github.com/advisories/GHSA-79xx-vf93-p7cx                                |
+| Affected versions | >=2.2.0,<2.3.6|>=2.0.0,<2.1.7|<1.29.8|>=3.0.0,<3.8.0                             |
+| Reported at       | 2025-01-21T21:09:13+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-7jd6-nb49-bz4v                                                              |
+| CVE               | CVE-2024-56412                                                                   |
+| Title             | PhpSpreadsheet allows bypass XSS sanitizer using the javascript protocol and     |
+|                   | special characters                                                               |
+| URL               | https://github.com/advisories/GHSA-q9jv-mm3r-j47r                                |
+| Affected versions | >=2.2.0,<=2.3.4|>=2.0.0,<=2.1.5|<=1.29.6|>=3.0.0,<3.7.0                          |
+| Reported at       | 2025-01-03T17:29:10+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-nm34-xhtz-ww9p                                                              |
+| CVE               | CVE-2024-56411                                                                   |
+| Title             | PhpSpreadsheet has a Cross-Site Scripting (XSS) vulnerability of the hyperlink   |
+|                   | base in the HTML page header                                                     |
+| URL               | https://github.com/advisories/GHSA-hwcp-2h35-p66w                                |
+| Affected versions | >=2.2.0,<=2.3.4|>=2.0.0,<=2.1.5|<=1.29.6|>=3.0.0,<3.7.0                          |
+| Reported at       | 2025-01-03T17:28:50+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-4ckb-wpj6-c29d                                                              |
+| CVE               | CVE-2024-56410                                                                   |
+| Title             | PhpSpreadsheet has a Cross-Site Scripting (XSS) vulnerability in custom          |
+|                   | properties                                                                       |
+| URL               | https://github.com/advisories/GHSA-wv23-996v-q229                                |
+| Affected versions | >=2.2.0,<=2.3.4|>=2.0.0,<=2.1.5|<=1.29.6|>=3.0.0,<3.7.0                          |
+| Reported at       | 2025-01-03T17:25:45+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-ybqb-vyrq-8pdt                                                              |
+| CVE               | CVE-2024-56409                                                                   |
+| Title             | PhpSpreadsheet allows unauthorized Reflected XSS in Currency.php file            |
+| URL               | https://github.com/advisories/GHSA-j2xg-cjcx-4677                                |
+| Affected versions | >=2.2.0,<=2.3.4|>=2.0.0,<=2.1.5|<=1.29.6|>=3.0.0,<3.7.0                          |
+| Reported at       | 2025-01-03T17:06:51+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-285y-y5bt-kvd9                                                              |
+| CVE               | CVE-2024-56366                                                                   |
+| Title             | PhpSpreadsheet allows unauthorized Reflected XSS in the Accounting.php file      |
+| URL               | https://github.com/advisories/GHSA-c6fv-7vh8-2rhr                                |
+| Affected versions | >=2.2.0,<=2.3.4|>=2.0.0,<=2.1.5|<=1.29.6|>=3.0.0,<3.7.0                          |
+| Reported at       | 2025-01-03T17:06:23+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-jw5c-q9nd-tzj9                                                              |
+| CVE               | CVE-2024-56365                                                                   |
+| Title             | PhpSpreadsheet allows unauthorized Reflected XSS in the constructor of the       |
+|                   | Downloader class                                                                 |
+| URL               | https://github.com/advisories/GHSA-jmpx-686v-c3wx                                |
+| Affected versions | >=2.2.0,<=2.3.4|>=2.0.0,<=2.1.5|<=1.29.6|>=3.0.0,<3.7.0                          |
+| Reported at       | 2025-01-03T17:06:05+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-bcnb-9tc9-bjb8                                                              |
+| CVE               | CVE-2024-56408                                                                   |
+| Title             | PhpSpreadsheet allows unauthorized Reflected XSS in `Convert-Online.php` file    |
+| URL               | https://github.com/advisories/GHSA-x88g-h956-m5xg                                |
+| Affected versions | >=2.2.0,<=2.3.4|>=2.0.0,<=2.1.5|<=1.29.6|>=3.0.0,<3.7.0                          |
+| Reported at       | 2025-01-03T16:05:26+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-gst3-cdk3-bpqt                                                              |
+| CVE               | CVE-2024-48917                                                                   |
+| Title             | XXE in PHPSpreadsheet's XLSX reader                                              |
+| URL               | https://github.com/advisories/GHSA-7cc9-j4mv-vcjp                                |
+| Affected versions | >=3.3.0,<3.4.0|>=2.2.0,<2.3.2|>=2.0.0,<2.1.3|<1.29.4                             |
+| Reported at       | 2024-11-18T20:01:46+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-dbrb-pvhs-h3st                                                              |
+| CVE               | CVE-2024-47873                                                                   |
+| Title             | XmlScanner bypass leads to XXE                                                   |
+| URL               | https://github.com/advisories/GHSA-jw4x-v69f-hh5w                                |
+| Affected versions | >=3.3.0,<3.4.0|>=2.2.0,<2.3.2|>=2.0.0,<2.1.3|<1.29.4                             |
+| Reported at       | 2024-11-18T20:01:20+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-mkg2-1wyw-57y7                                                              |
+| CVE               | CVE-2024-45293                                                                   |
+| Title             | XXE in PHPSpreadsheet's XLSX reader                                              |
+| URL               | https://github.com/advisories/GHSA-6hwr-6v2f-3m88                                |
+| Affected versions | >=2.0.0,<2.1.1|<1.29.1|>=2.2.0,<2.3.0                                            |
+| Reported at       | 2024-10-07T15:58:52+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-p1pj-q951-6f1x                                                              |
+| CVE               | CVE-2024-45292                                                                   |
+| Title             | PhpSpreadsheet HTML writer is vulnerable to Cross-Site Scripting via JavaScript  |
+|                   | hyperlinks                                                                       |
+| URL               | https://github.com/advisories/GHSA-r8w8-74ww-j4wh                                |
+| Affected versions | >=2.0.0,<2.1.1|<1.29.2|>=2.2.0,<2.3.0                                            |
+| Reported at       | 2024-10-07T15:58:25+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-7f9v-sb8k-krfb                                                              |
+| CVE               | CVE-2024-45291                                                                   |
+| Title             | PhpSpreadsheet allows absolute path traversal and Server-Side Request Forgery in |
+|                   | HTML writer when embedding images is enabled                                     |
+| URL               | https://github.com/advisories/GHSA-w9xv-qf98-ccq4                                |
+| Affected versions | >=2.0.0,<2.1.1|<1.29.2|>=2.2.0,<2.3.0                                            |
+| Reported at       | 2024-10-07T15:58:06+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-xk3k-rd1m-pxmg                                                              |
+| CVE               | CVE-2024-45290                                                                   |
+| Title             | PhpSpreadsheet allows absolute path traversal and Server-Side Request Forgery    |
+|                   | when opening XLSX file                                                           |
+| URL               | https://github.com/advisories/GHSA-5gpr-w2p5-6m37                                |
+| Affected versions | >=2.0.0,<2.1.1|<1.29.2|>=2.2.0,<2.3.0                                            |
+| Reported at       | 2024-10-07T15:57:38+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-dvbq-8ft2-ngrw                                                              |
+| CVE               | CVE-2024-45060                                                                   |
+| Title             | PhpSpreadsheet has an Unauthenticated Cross-Site-Scripting (XSS) in sample file  |
+| URL               | https://github.com/advisories/GHSA-v66g-p9x6-v98p                                |
+| Affected versions | >=2.0.0,<2.1.1|<1.29.2|>=2.2.0,<2.3.0                                            |
+| Reported at       | 2024-10-07T14:43:30+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-xp7t-fbrb-qjv4                                                              |
+| CVE               | CVE-2024-45048                                                                   |
+| Title             | XXE in PHPSpreadsheet encoding is returned                                       |
+| URL               | https://github.com/advisories/GHSA-ghg6-32f9-2jp7                                |
+| Affected versions | >=2.0.0,<2.1.1|>=2.2.0,<2.2.1|<1.29.1                                            |
+| Reported at       | 2024-08-29T17:58:27+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpoffice/phpspreadsheet                                                         |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-m4hk-rk8p-4t5p                                                              |
+| CVE               | CVE-2024-45046                                                                   |
+| Title             | PhpSpreadsheet HTML writer is vulnerable to Cross-Site Scripting via style       |
+|                   | information                                                                      |
+| URL               | https://github.com/advisories/GHSA-wgmf-q9vr-vww6                                |
+| Affected versions | <1.29.1|>=2.0.0,<2.1.0                                                           |
+| Reported at       | 2024-08-29T17:56:56+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpseclib/phpseclib                                                              |
+| Severity          |                                                                                  |
+| Advisory ID       | PKSA-h7cz-q7zq-mdkt                                                              |
+| CVE               | NO CVE                                                                           |
+| Title             | phpseclib unbounded PBKDF iteration count in encrypted key/PFX/CMS parsing       |
+|                   | enables CPU-exhaustion DoS                                                       |
+| URL               | https://github.com/phpseclib/phpseclib/security/advisories/GHSA-w3p9-g4p2-h3rr   |
+| Affected versions | >=4.0.0,<4.0.3|>=3.0.0,<3.0.58|>=2.0.0,<2.0.56|>=1.0.0,<1.0.31                   |
+| Reported at       | 2026-11-02T00:00:00+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpseclib/phpseclib                                                              |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-12sz-bcny-pk4m                                                              |
+| CVE               | CVE-2026-84308                                                                   |
+| Title             | phpseclib — non-constant-time X25519 scalar multiplication permits full          |
+|                   | private-key recovery                                                             |
+| URL               | https://github.com/advisories/GHSA-q97c-8qh3-fpc6                                |
+| Affected versions | >=4.0.0,<4.0.1|<3.0.57                                                           |
+| Reported at       | 2026-09-08T21:24:29+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpseclib/phpseclib                                                              |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-432p-hv1d-chf7                                                              |
+| CVE               | CVE-2026-55599                                                                   |
+| Title             | phpseclib: X.509 certificate validation sends attacker-controlled outbound       |
+|                   | requests (server-side request forgery) via Authority Information Access          |
+| URL               | https://github.com/advisories/GHSA-m557-wrgg-6rp4                                |
+| Affected versions | >=3.0.0,<=3.0.53|>=2.0.0,<=2.0.54|>=0.1.1,<=1.0.29                               |
+| Reported at       | 2026-06-16T15:03:58+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpseclib/phpseclib                                                              |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-smrh-yx37-92ws                                                              |
+| CVE               | CVE-2026-44167                                                                   |
+| Title             | phpseclib has a CVE-2024-27355 mitigation bypass — OID amplification DoS in      |
+|                   | ASN1::decodeOID()                                                                |
+| URL               | https://github.com/advisories/GHSA-3qpq-r242-jqj7                                |
+| Affected versions | >=0.1.1,<=1.0.28|>=3.0.0,<=3.0.51|>=2.0.0,<=2.0.53                               |
+| Reported at       | 2026-05-05T21:17:57+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpseclib/phpseclib                                                              |
+| Severity          | low                                                                              |
+| Advisory ID       | PKSA-zh4j-by9m-7mz8                                                              |
+| CVE               | CVE-2026-40194                                                                   |
+| Title             | phpseclib has a variable-time HMAC comparison in SSH2::get_binary_packet() using |
+|                   | != instead of hash_equals()                                                      |
+| URL               | https://github.com/advisories/GHSA-r854-jrxh-36qx                                |
+| Affected versions | >=0.1.1,<1.0.28|>=3.0.0,<3.0.51|>=2.0.0,<2.0.53                                  |
+| Reported at       | 2026-04-10T20:58:10+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpseclib/phpseclib                                                              |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-km2b-zc3b-mjm3                                                              |
+| CVE               | CVE-2026-32935                                                                   |
+| Title             | phpseclib's AES-CBC unpadding susceptible to padding oracle timing attack        |
+| URL               | https://github.com/advisories/GHSA-94g3-g5v7-q4jg                                |
+| Affected versions | >=0.1.1,<=1.0.26|>=2.0.0,<=2.0.51|>=3.0.0,<=3.0.49                               |
+| Reported at       | 2026-03-19T16:42:18+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | phpunit/phpunit                                                                  |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-z3gr-8qht-p93v                                                              |
+| CVE               | CVE-2026-24765                                                                   |
+| Title             | Unsafe Deserialization in PHPT Code Coverage Handling                            |
+| URL               | https://github.com/sebastianbergmann/phpunit/security/advisories/GHSA-vvj3-c3rp- |
+|                   | c85p                                                                             |
+| Affected versions | >=0,<8.5.52|>=9.0.0,<9.6.33|>=10.0.0,<10.5.62|>=11.0.0,<11.5.50|>=12.0.0,<12.5.8 |
+| Reported at       | 2026-01-27T05:21:14+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | psy/psysh                                                                        |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-4s4z-t146-6123                                                              |
+| CVE               | CVE-2026-25129                                                                   |
+| Title             | PsySH has Local Privilege Escalation via CWD .psysh.php auto-load                |
+| URL               | https://github.com/advisories/GHSA-4486-gxhx-5mg7                                |
+| Affected versions | <=0.11.22|>=0.12.0,<=0.12.18                                                     |
+| Reported at       | 2026-01-30T21:28:44+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | symfony/dom-crawler                                                              |
+| Severity          | low                                                                              |
+| Advisory ID       | PKSA-5r1g-c7b7-y1zg                                                              |
+| CVE               | CVE-2026-45071                                                                   |
+| Title             | CVE-2026-45071: XXE (Local File Disclosure) in DomCrawler::addXmlContent() via   |
+|                   | validateOnParse = true                                                           |
+| URL               | https://symfony.com/cve-2026-45071                                               |
+| Affected versions | >=2.0.0,<3.0.0|>=3.0.0,<4.0.0|>=4.0.0,<5.0.0|>=5.0.0,<5.1.0|>=5.1.0,<5.2.0|>=5.2 |
+|                   | .0,<5.3.0|>=5.3.0,<5.4.0|>=5.4.0,<5.4.52|>=6.0.0,<6.1.0|>=6.1.0,<6.2.0|>=6.2.0,< |
+|                   | 6.3.0|>=6.3.0,<6.4.0|>=6.4.0,<6.4.40|>=7.0.0,<7.1.0|>=7.1.0,<7.2.0|>=7.2.0,<7.3. |
+|                   | 0|>=7.3.0,<7.4.0|>=7.4.0,<7.4.12|>=8.0.0,<8.0.12                                 |
+| Reported at       | 2026-05-20T08:00:00+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | symfony/polyfill-intl-idn                                                        |
+| Severity          | low                                                                              |
+| Advisory ID       | PKSA-dwsq-ppd2-mb1x                                                              |
+| CVE               | CVE-2026-46644                                                                   |
+| Title             | CVE-2026-46644: symfony/polyfill-intl-idn accepts xn-- labels whose Punycode     |
+|                   | payload decodes to ASCII-only: insecure equivalence                              |
+| URL               | https://symfony.com/cve-2026-46644                                               |
+| Affected versions | >=1.17.1,<1.38.1                                                                 |
+| Reported at       | 2026-05-26T08:00:00+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | symfony/yaml                                                                     |
+| Severity          |                                                                                  |
+| Advisory ID       | PKSA-nktx-f1n1-b4yd                                                              |
+| CVE               | CVE-2026-123792                                                                  |
+| Title             | Exponential and Quadratic Parse Times in the YAML Parser Let a Single Document   |
+|                   | Hold a Process                                                                   |
+| URL               | https://github.com/symfony/symfony/security/advisories/GHSA-hwfg-qwvh-2wfx       |
+| Affected versions | >=2.0.0,<3.0.0|>=3.0.0,<4.0.0|>=4.0.0,<5.0.0|>=5.0.0,<5.1.0|>=5.1.0,<5.2.0|>=5.2 |
+|                   | .0,<5.3.0|>=5.3.0,<5.4.0|>=5.4.0,<5.4.56|>=6.0.0,<6.1.0|>=6.1.0,<6.2.0|>=6.2.0,< |
+|                   | 6.3.0|>=6.3.0,<6.4.0|>=6.4.0,<6.4.50|>=7.0.0,<7.1.0|>=7.1.0,<7.2.0|>=7.2.0,<7.3. |
+|                   | 0|>=7.3.0,<7.4.0|>=7.4.0,<7.4.23|>=8.0.0,<8.1.0|>=8.1.0,<8.1.11                  |
+| Reported at       | 2026-11-04T10:45:07+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | symfony/yaml                                                                     |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-xz3r-9gp4-4m1z                                                              |
+| CVE               | CVE-2026-109413                                                                  |
+| Title             | CVE-2026-109413: Unbounded Recursion in the YAML Inline Lexer Lets a Single      |
+|                   | Document Crash the Process                                                       |
+| URL               | https://symfony.com/cve-2026-109413                                              |
+| Affected versions | >=2.0.0,<3.0.0|>=3.0.0,<4.0.0|>=4.0.0,<5.0.0|>=5.0.0,<5.1.0|>=5.1.0,<5.2.0|>=5.2 |
+|                   | .0,<5.3.0|>=5.3.0,<5.4.0|>=5.4.0,<5.4.54|>=6.0.0,<6.1.0|>=6.1.0,<6.2.0|>=6.2.0,< |
+|                   | 6.3.0|>=6.3.0,<6.4.0|>=6.4.0,<6.4.45|>=7.0.0,<7.1.0|>=7.1.0,<7.2.0|>=7.2.0,<7.3. |
+|                   | 0|>=7.3.0,<7.4.0|>=7.4.0,<7.4.18|>=8.0.0,<8.1.0|>=8.1.0,<8.1.6                   |
+| Reported at       | 2026-08-30T08:00:00+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | symfony/yaml                                                                     |
+| Severity          | low                                                                              |
+| Advisory ID       | PKSA-v5yj-8nmz-sk2q                                                              |
+| CVE               | CVE-2026-45304                                                                   |
+| Title             | CVE-2026-45304: YAML Parser Exponential Memory Allocation via Recursive          |
+|                   | Collection-Alias Expansion ("Billion Laughs")                                    |
+| URL               | https://symfony.com/cve-2026-45304                                               |
+| Affected versions | >=2.0.0,<3.0.0|>=3.0.0,<4.0.0|>=4.0.0,<5.0.0|>=5.0.0,<5.1.0|>=5.1.0,<5.2.0|>=5.2 |
+|                   | .0,<5.3.0|>=5.3.0,<5.4.0|>=5.4.0,<5.4.52|>=6.0.0,<6.1.0|>=6.1.0,<6.2.0|>=6.2.0,< |
+|                   | 6.3.0|>=6.3.0,<6.4.0|>=6.4.0,<6.4.40|>=7.0.0,<7.1.0|>=7.1.0,<7.2.0|>=7.2.0,<7.3. |
+|                   | 0|>=7.3.0,<7.4.0|>=7.4.0,<7.4.12|>=8.0.0,<8.0.12                                 |
+| Reported at       | 2026-05-20T08:00:00+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | symfony/yaml                                                                     |
+| Severity          | low                                                                              |
+| Advisory ID       | PKSA-ft77-7h5f-p3r6                                                              |
+| CVE               | CVE-2026-45305                                                                   |
+| Title             | CVE-2026-45305: YAML Parser ReDoS via Catastrophic Backtracking in               |
+|                   | Parser::cleanup() Regex                                                          |
+| URL               | https://symfony.com/cve-2026-45305                                               |
+| Affected versions | >=2.0.0,<3.0.0|>=3.0.0,<4.0.0|>=4.0.0,<5.0.0|>=5.0.0,<5.1.0|>=5.1.0,<5.2.0|>=5.2 |
+|                   | .0,<5.3.0|>=5.3.0,<5.4.0|>=5.4.0,<5.4.52|>=6.0.0,<6.1.0|>=6.1.0,<6.2.0|>=6.2.0,< |
+|                   | 6.3.0|>=6.3.0,<6.4.0|>=6.4.0,<6.4.40|>=7.0.0,<7.1.0|>=7.1.0,<7.2.0|>=7.2.0,<7.3. |
+|                   | 0|>=7.3.0,<7.4.0|>=7.4.0,<7.4.12|>=8.0.0,<8.0.12                                 |
+| Reported at       | 2026-05-20T08:00:00+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | symfony/yaml                                                                     |
+| Severity          | low                                                                              |
+| Advisory ID       | PKSA-b14r-zh1d-vdrc                                                              |
+| CVE               | CVE-2026-45133                                                                   |
+| Title             | CVE-2026-45133: YAML Parser Stack Exhaustion via Unbounded Recursion in Nested   |
+|                   | Blocks, Sequences, and Mappings                                                  |
+| URL               | https://symfony.com/cve-2026-45133                                               |
+| Affected versions | >=2.0.0,<3.0.0|>=3.0.0,<4.0.0|>=4.0.0,<5.0.0|>=5.0.0,<5.1.0|>=5.1.0,<5.2.0|>=5.2 |
+|                   | .0,<5.3.0|>=5.3.0,<5.4.0|>=5.4.0,<5.4.52|>=6.0.0,<6.1.0|>=6.1.0,<6.2.0|>=6.2.0,< |
+|                   | 6.3.0|>=6.3.0,<6.4.0|>=6.4.0,<6.4.40|>=7.0.0,<7.1.0|>=7.1.0,<7.2.0|>=7.2.0,<7.3. |
+|                   | 0|>=7.3.0,<7.4.0|>=7.4.0,<7.4.12|>=8.0.0,<8.0.12                                 |
+| Reported at       | 2026-05-20T08:00:00+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | yiisoft/yii2                                                                     |
+| Severity          | high                                                                             |
+| Advisory ID       | PKSA-mxtc-f5ct-dqqd                                                              |
+| CVE               | CVE-2026-39850                                                                   |
+| Title             | Yii 2: Local file inclusion via view parameter name collision                    |
+| URL               | https://github.com/advisories/GHSA-5vpg-rj7q-qpw2                                |
+| Affected versions | <2.0.55                                                                          |
+| Reported at       | 2026-05-11T19:34:28+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | yiisoft/yii2-gii                                                                 |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-bbgw-mkqz-n76v                                                              |
+| CVE               | CVE-2022-34297                                                                   |
+| Title             | Yii2 Gii Cross-site Scripting vulnerability                                      |
+| URL               | https://github.com/advisories/GHSA-x87m-36g7-6mpw                                |
+| Affected versions | <=2.2.4                                                                          |
+| Reported at       | 2022-12-10T00:30:17+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
++-------------------+----------------------------------------------------------------------------------+
+| Package           | yiisoft/yii2-redis                                                               |
+| Severity          | medium                                                                           |
+| Advisory ID       | PKSA-tv9g-g554-cxh4                                                              |
+| CVE               | CVE-2025-48493                                                                   |
+| Title             | Yii 2 Redis may expose AUTH parameters in logs in case of connection failure     |
+| URL               | https://github.com/advisories/GHSA-g3p6-82vc-43jh                                |
+| Affected versions | <2.0.20                                                                          |
+| Reported at       | 2025-06-05T16:53:23+00:00                                                        |
++-------------------+----------------------------------------------------------------------------------+
+Found 1 abandoned package:
++-------------------------+----------------------------------------------------------------------------------+
+| Abandoned Package       | Suggested Replacement                                                            |
++-------------------------+----------------------------------------------------------------------------------+
+| swiftmailer/swiftmailer | symfony/mailer                                                                   |
++-------------------------+----------------------------------------------------------------------------------+

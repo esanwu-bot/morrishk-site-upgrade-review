@@ -1,0 +1,7 @@
+all=70 runtime=61 dev=9
+critical all=3   runtime=3   dev=0
+high     all=28  runtime=26  dev=2
+medium   all=29  runtime=27  dev=2
+low      all=8   runtime=4   dev=4
+unknown  all=2   runtime=1   dev=1
+nodev_packages=9 nodev_total=61

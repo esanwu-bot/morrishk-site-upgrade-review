@@ -23,7 +23,11 @@
 - `05_MYSQL84_SCHEMA_ASSESSMENT.md`：表结构/索引/迁移评估（只读）
 - `06_FULL_REGRESSION.md`：无绕过回归矩阵
 - `07_REMAINING_RISKS.md`：残余风险与未覆盖项
-- `evidence/`：Composer、平台检查、测试、路由矩阵、Schema 评估、依赖差异
+- `08_COMPOSER_SECURITY_AUDIT.md`：70 条安全通告（runtime 61 / dev 9）及升级建议
+- `09_ERROR_REPORTING_AUDIT.md`：22527 位掩码、运行器/Web 进程配置、弃用统计
+- `10_MIGRATION_SCRIPT_VALIDATION.md`：迁移脚本幂等/部分迁移/权限拒绝验证
+- `11_SECURITY_REGRESSION.md`：登录、上传下载授权、路径穿越、Nginx（NOT_TESTED）
+- `evidence/`：Composer、平台检查、测试、路由矩阵、Schema 评估、依赖差异、审计与安全矩阵
 - `SHA256SUMS`
 
 ## 代码与提交

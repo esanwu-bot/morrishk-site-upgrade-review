@@ -1,0 +1,1055 @@
+{
+    "advisories": {
+        "firebase/php-jwt": [
+            {
+                "advisoryId": "PKSA-y2cr-5h3j-g3ys",
+                "packageName": "firebase/php-jwt",
+                "affectedVersions": "<7.0.0",
+                "title": "php-jwt contains weak encryption",
+                "cve": "CVE-2025-45769",
+                "link": "https://github.com/advisories/GHSA-2x45-7fc3-mxwq",
+                "reportedAt": "2025-07-31T21:31:53+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-2x45-7fc3-mxwq"
+                    }
+                ],
+                "severity": "low"
+            },
+            {
+                "advisoryId": "PKSA-2kqm-ps5x-s4f5",
+                "packageName": "firebase/php-jwt",
+                "affectedVersions": "<6.0.0",
+                "title": "Key/algorithm type confusion",
+                "cve": "CVE-2021-46743",
+                "link": "https://github.com/advisories/GHSA-8xf4-w7qw-pjjw",
+                "reportedAt": "2022-03-30T00:00:00+00:00",
+                "sources": [
+                    {
+                        "name": "FriendsOfPHP/security-advisories",
+                        "remoteId": "firebase/php-jwt/CVE-2021-46743.yaml"
+                    },
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-8xf4-w7qw-pjjw"
+                    }
+                ],
+                "severity": "critical"
+            }
+        ],
+        "guzzlehttp/guzzle": [
+            {
+                "advisoryId": "PKSA-gcrk-3vtt-1r14",
+                "packageName": "guzzlehttp/guzzle",
+                "affectedVersions": ">=8.0.0,<8.0.1|<7.15.2",
+                "title": "Guzzle: Noncanonical host can bypass host-based checks",
+                "cve": "CVE-2026-69246",
+                "link": "https://github.com/advisories/GHSA-v5mv-p594-2x33",
+                "reportedAt": "2026-08-03T21:07:26+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-v5mv-p594-2x33"
+                    }
+                ],
+                "severity": "high"
+            },
+            {
+                "advisoryId": "PKSA-cnw1-2ytm-cgr8",
+                "packageName": "guzzlehttp/guzzle",
+                "affectedVersions": ">=8.0.0,<8.0.1|<7.15.2",
+                "title": "Guzzle: Noncanonical cookie domain keeps subdomain scope",
+                "cve": "CVE-2026-69245",
+                "link": "https://github.com/advisories/GHSA-f7vp-7xgx-4w4r",
+                "reportedAt": "2026-08-03T21:05:26+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-f7vp-7xgx-4w4r"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-fy2t-3c5f-827y",
+                "packageName": "guzzlehttp/guzzle",
+                "affectedVersions": "<7.15.1",
+                "title": "Guzzle: URI fragments disclosed in redirect Referer headers",
+                "cve": "CVE-2026-67354",
+                "link": "https://github.com/advisories/GHSA-h95v-h523-3mw8",
+                "reportedAt": "2026-07-20T23:28:36+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-h95v-h523-3mw8"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-qxvb-2bpp-dnk6",
+                "packageName": "guzzlehttp/guzzle",
+                "affectedVersions": "<7.15.1",
+                "title": "Guzzle: Host-only cookie scope is not preserved",
+                "cve": "CVE-2026-67355",
+                "link": "https://github.com/advisories/GHSA-wm3w-8rrp-j577",
+                "reportedAt": "2026-07-20T23:27:49+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-wm3w-8rrp-j577"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-bbs6-q5q9-f3t4",
+                "packageName": "guzzlehttp/guzzle",
+                "affectedVersions": "<7.15.1",
+                "title": "Guzzle: Unbounded response cookies risk denial of service",
+                "cve": "CVE-2026-67353",
+                "link": "https://github.com/advisories/GHSA-f283-ghqc-fg79",
+                "reportedAt": "2026-07-20T23:27:02+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-f283-ghqc-fg79"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-bcdd-5xc7-gwfb",
+                "packageName": "guzzlehttp/guzzle",
+                "affectedVersions": "<7.12.3",
+                "title": "Guzzle: Cookie Disclosure and Injection via IP-Address Domains",
+                "cve": "CVE-2026-59883",
+                "link": "https://github.com/advisories/GHSA-g446-98w2-8p5w",
+                "reportedAt": "2026-07-20T22:00:09+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-g446-98w2-8p5w"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-pwsk-hy21-4gby",
+                "packageName": "guzzlehttp/guzzle",
+                "affectedVersions": "<7.14.2",
+                "title": "Guzzle: Proxy-Authorization headers can be sent to origin servers",
+                "cve": "CVE-2026-67339",
+                "link": "https://github.com/advisories/GHSA-94pj-82f3-465w",
+                "reportedAt": "2026-07-20T21:46:02+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-94pj-82f3-465w"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-93qv-9n9h-6k6p",
+                "packageName": "guzzlehttp/guzzle",
+                "affectedVersions": "<7.12.1",
+                "title": "Dot-only cookie domains match all hosts",
+                "cve": "CVE-2026-55767",
+                "link": "https://github.com/guzzle/guzzle/security/advisories/GHSA-cwxw-98qj-8qjx",
+                "reportedAt": "2026-06-18T14:12:49+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-cwxw-98qj-8qjx"
+                    },
+                    {
+                        "name": "FriendsOfPHP/security-advisories",
+                        "remoteId": "guzzlehttp/guzzle/CVE-2026-55767.yaml"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-k22t-f949-t9g6",
+                "packageName": "guzzlehttp/guzzle",
+                "affectedVersions": "<7.12.1",
+                "title": "Silent HTTPS proxy downgrade to cleartext",
+                "cve": "CVE-2026-55568",
+                "link": "https://github.com/guzzle/guzzle/security/advisories/GHSA-wpwq-4j6v-78m3",
+                "reportedAt": "2026-06-18T14:12:49+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-wpwq-4j6v-78m3"
+                    },
+                    {
+                        "name": "FriendsOfPHP/security-advisories",
+                        "remoteId": "guzzlehttp/guzzle/CVE-2026-55568.yaml"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-yfw5-9gnj-n2c7",
+                "packageName": "guzzlehttp/guzzle",
+                "affectedVersions": ">=7,<7.4.5|>=4,<6.5.8",
+                "title": "Change in port should be considered a change in origin",
+                "cve": "CVE-2022-31091",
+                "link": "https://github.com/guzzle/guzzle/security/advisories/GHSA-q559-8m2m-g699",
+                "reportedAt": "2022-06-20T22:16:07+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-q559-8m2m-g699"
+                    },
+                    {
+                        "name": "FriendsOfPHP/security-advisories",
+                        "remoteId": "guzzlehttp/guzzle/CVE-2022-31091.yaml"
+                    }
+                ],
+                "severity": "high"
+            },
+            {
+                "advisoryId": "PKSA-k1b4-kshy-xgbh",
+                "packageName": "guzzlehttp/guzzle",
+                "affectedVersions": ">=7,<7.4.5|>=4,<6.5.8",
+                "title": "CURLOPT_HTTPAUTH option not cleared on change of origin",
+                "cve": "CVE-2022-31090",
+                "link": "https://github.com/guzzle/guzzle/security/advisories/GHSA-25mq-v84q-4j7r",
+                "reportedAt": "2022-06-20T22:16:07+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-25mq-v84q-4j7r"
+                    },
+                    {
+                        "name": "FriendsOfPHP/security-advisories",
+                        "remoteId": "guzzlehttp/guzzle/CVE-2022-31090.yaml"
+                    }
+                ],
+                "severity": "high"
+            },
+            {
+                "advisoryId": "PKSA-2z36-j4q9-rsfy",
+                "packageName": "guzzlehttp/guzzle",
+                "affectedVersions": ">=7,<7.4.4|>=4,<6.5.7",
+                "title": "Fix failure to strip Authorization header on HTTP downgrade",
+                "cve": "CVE-2022-31043",
+                "link": "https://github.com/guzzle/guzzle/security/advisories/GHSA-w248-ffj2-4v5q",
+                "reportedAt": "2022-06-09T21:36:50+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-w248-ffj2-4v5q"
+                    },
+                    {
+                        "name": "FriendsOfPHP/security-advisories",
+                        "remoteId": "guzzlehttp/guzzle/CVE-2022-31043.yaml"
+                    }
+                ],
+                "severity": "high"
+            },
+            {
+                "advisoryId": "PKSA-fvw5-9t6n-nwvr",
+                "packageName": "guzzlehttp/guzzle",
+                "affectedVersions": ">=7,<7.4.4|>=4,<6.5.7",
+                "title": "Failure to strip the Cookie header on change in host or HTTP downgrade",
+                "cve": "CVE-2022-31042",
+                "link": "https://github.com/guzzle/guzzle/security/advisories/GHSA-f2wf-25xc-69c9",
+                "reportedAt": "2022-06-09T21:36:50+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-f2wf-25xc-69c9"
+                    },
+                    {
+                        "name": "FriendsOfPHP/security-advisories",
+                        "remoteId": "guzzlehttp/guzzle/CVE-2022-31042.yaml"
+                    }
+                ],
+                "severity": "high"
+            },
+            {
+                "advisoryId": "PKSA-6d8m-6kgw-18zr",
+                "packageName": "guzzlehttp/guzzle",
+                "affectedVersions": ">=7,<7.4.3|>=4,<6.5.6",
+                "title": "Cross-domain cookie leakage",
+                "cve": "CVE-2022-29248",
+                "link": "https://github.com/guzzle/guzzle/security/advisories/GHSA-cwmx-hcrq-mhc3",
+                "reportedAt": "2022-05-25T13:19:12+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-cwmx-hcrq-mhc3"
+                    },
+                    {
+                        "name": "FriendsOfPHP/security-advisories",
+                        "remoteId": "guzzlehttp/guzzle/CVE-2022-29248.yaml"
+                    }
+                ],
+                "severity": "high"
+            }
+        ],
+        "guzzlehttp/psr7": [
+            {
+                "advisoryId": "PKSA-vznr-tgp9-fd7d",
+                "packageName": "guzzlehttp/psr7",
+                "affectedVersions": "<2.12.3",
+                "title": "guzzlehttp/psr7: Host Confusion via Weak URI Host Validation",
+                "cve": "CVE-2026-59882",
+                "link": "https://github.com/advisories/GHSA-c2w2-prh8-qm98",
+                "reportedAt": "2026-07-21T18:35:25+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-c2w2-prh8-qm98"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-7qs6-zvnz-h66r",
+                "packageName": "guzzlehttp/psr7",
+                "affectedVersions": "<2.12.1",
+                "title": "CRLF injection in HTTP start-line serialization",
+                "cve": "CVE-2026-55766",
+                "link": "https://github.com/guzzle/psr7/security/advisories/GHSA-vm85-hxw5-5432",
+                "reportedAt": "2026-06-18T09:49:37+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-vm85-hxw5-5432"
+                    },
+                    {
+                        "name": "FriendsOfPHP/security-advisories",
+                        "remoteId": "guzzlehttp/psr7/CVE-2026-55766.yaml"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-gm5x-j3mz-71n9",
+                "packageName": "guzzlehttp/psr7",
+                "affectedVersions": "<2.10.2",
+                "title": "CRLF injection via URI host component",
+                "cve": "CVE-2026-49214",
+                "link": "https://github.com/guzzle/psr7/security/advisories/GHSA-hq7v-mx3g-29hw",
+                "reportedAt": "2026-05-25T22:58:15+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-hq7v-mx3g-29hw"
+                    },
+                    {
+                        "name": "FriendsOfPHP/security-advisories",
+                        "remoteId": "guzzlehttp/psr7/CVE-2026-49214.yaml"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-jj5t-2zs1-dcfm",
+                "packageName": "guzzlehttp/psr7",
+                "affectedVersions": "<2.10.2",
+                "title": "Host confusion via authority reinterpretation",
+                "cve": "CVE-2026-48998",
+                "link": "https://github.com/guzzle/psr7/security/advisories/GHSA-34xg-wgjx-8xph",
+                "reportedAt": "2026-05-25T22:58:15+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-34xg-wgjx-8xph"
+                    },
+                    {
+                        "name": "FriendsOfPHP/security-advisories",
+                        "remoteId": "guzzlehttp/psr7/CVE-2026-48998.yaml"
+                    }
+                ],
+                "severity": "medium"
+            }
+        ],
+        "league/flysystem": [
+            {
+                "advisoryId": "PKSA-w9tt-7782-78jx",
+                "packageName": "league/flysystem",
+                "affectedVersions": "<=3.35.2",
+                "title": "Flysystem: WhitespacePathNormalizer's control-character (CorruptedPathDetected) check is bypassed by malformed UTF-8 in the path, affecting every adapter",
+                "cve": "CVE-2026-102601",
+                "link": "https://github.com/advisories/GHSA-cxf4-7mrp-vvpr",
+                "reportedAt": "2026-09-29T18:10:14+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-cxf4-7mrp-vvpr"
+                    }
+                ],
+                "severity": "low"
+            }
+        ],
+        "phpoffice/phpspreadsheet": [
+            {
+                "advisoryId": "PKSA-r15m-kszr-8n8q",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": "<=1.30.6|>=2.0.0,<=2.1.18|>=2.2.0,<=2.4.7|>=3.3.0,<=3.10.7|>=4.0.0,<=5.9.0",
+                "title": "PhpSpreadsheet: SSRF whitelist bypass via unre-validated HTTP redirect in Drawing::setPath external image loading",
+                "cve": "CVE-2026-108360",
+                "link": "https://github.com/advisories/GHSA-2phh-27fw-q4gc",
+                "reportedAt": "2026-10-27T15:38:39+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-2phh-27fw-q4gc"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-dxd5-wy68-pq29",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": "<=1.30.6|>=2.0.0,<=2.1.18|>=2.2.0,<=2.4.7|>=3.3.0,<=3.10.7|>=4.0.0,<=5.9.0",
+                "title": "PhpSpreadsheet ODS Reader: Unbounded number-rows-repeated → CPU & Memory Exhaustion (DoS)",
+                "cve": "CVE-2026-108359",
+                "link": "https://github.com/advisories/GHSA-j2w7-387v-m2rq",
+                "reportedAt": "2026-10-27T15:38:33+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-j2w7-387v-m2rq"
+                    }
+                ],
+                "severity": "high"
+            },
+            {
+                "advisoryId": "PKSA-96jv-mtjg-g2v8",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": "<=1.30.6|>=2.0.0,<=2.1.18|>=2.2.0,<=2.4.7|>=3.3.0,<=3.10.7|>=4.0.0,<=5.9.0",
+                "title": "PhpSpreadsheet: XmlScanner Bypass via ISO-2022 Escape Sequences Allows XXE and Denial of Service",
+                "cve": "CVE-2026-108358",
+                "link": "https://github.com/advisories/GHSA-3x94-m842-937c",
+                "reportedAt": "2026-10-27T15:38:28+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-3x94-m842-937c"
+                    }
+                ],
+                "severity": "high"
+            },
+            {
+                "advisoryId": "PKSA-r22k-87hv-mfk4",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": "<=1.30.5|>=2.0.0,<=2.1.17|>=2.2.0,<=2.4.6|>=3.3.0,<=3.10.6|>=4.0.0,<=5.8.0",
+                "title": "PHPSpreadsheet: XLS/OLE sector-chain self-loop causes memory exhaustion",
+                "cve": "CVE-2026-59933",
+                "link": "https://github.com/advisories/GHSA-xh5m-36r6-47m3",
+                "reportedAt": "2026-07-23T15:01:50+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-xh5m-36r6-47m3"
+                    }
+                ],
+                "severity": "high"
+            },
+            {
+                "advisoryId": "PKSA-m9cr-9614-rsf7",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": "<=1.30.5|>=2.0.0,<=2.1.17|>=2.2.0,<=2.4.6|>=3.3.0,<=3.10.6|>=4.0.0,<=5.8.0",
+                "title": "PHPSpreadsheet: Gnumeric reader unbounded gzip expansion causes memory exhaustion",
+                "cve": "CVE-2026-59932",
+                "link": "https://github.com/advisories/GHSA-2mrg-gjxq-2gvr",
+                "reportedAt": "2026-07-23T15:00:17+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-2mrg-gjxq-2gvr"
+                    }
+                ],
+                "severity": "high"
+            },
+            {
+                "advisoryId": "PKSA-dqzt-yst9-1w9y",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": "<=1.30.5|>=2.0.0,<=2.1.17|>=2.2.0,<=2.4.6|>=3.3.0,<=3.10.6|>=4.0.0,<=5.8.0",
+                "title": "PHPSpreadsheet: SSRF bypass via HTTP redirect in WEBSERVICE() domain whitelist",
+                "cve": "CVE-2026-59931",
+                "link": "https://github.com/advisories/GHSA-6hq5-7373-42rg",
+                "reportedAt": "2026-07-23T14:55:48+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-6hq5-7373-42rg"
+                    }
+                ],
+                "severity": "high"
+            },
+            {
+                "advisoryId": "PKSA-x678-4z45-v3d5",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": "<=1.30.4",
+                "title": "PHPSpreadsheet has a patch bypass for CVE-2026-34084 ",
+                "cve": "CVE-2026-45034",
+                "link": "https://github.com/advisories/GHSA-87m4-826x-3crx",
+                "reportedAt": "2026-06-08T23:00:14+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-87m4-826x-3crx"
+                    }
+                ],
+                "severity": "critical"
+            },
+            {
+                "advisoryId": "PKSA-gz3f-3cz3-3wsw",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": "<=1.30.3|>=2.0.0,<=2.1.15|>=2.2.0,<=2.4.4|>=3.3.0,<=3.10.4|>=4.0.0,<=5.6.0",
+                "title": "PhpSpreadsheet has CPU Denial of Service via Unbounded Row Number in XLSX Row Dimensions",
+                "cve": "CVE-2026-40902",
+                "link": "https://github.com/advisories/GHSA-7c6m-4442-2x6m",
+                "reportedAt": "2026-04-29T20:24:13+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-7c6m-4442-2x6m"
+                    }
+                ],
+                "severity": "high"
+            },
+            {
+                "advisoryId": "PKSA-x13r-n4wc-4gcr",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": "<=1.30.5|>=2.0.0,<=2.1.15|>=2.2.0,<=2.4.4|>=3.3.0,<=3.10.4|>=4.0.0,<=5.6.0",
+                "title": "PhpSpreadsheet has CPU Denial of Service via Unbounded Row Index in SpreadsheetML XML Reader",
+                "cve": "CVE-2026-40863",
+                "link": "https://github.com/advisories/GHSA-84wq-86v6-x5j6",
+                "reportedAt": "2026-04-29T20:23:27+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-84wq-86v6-x5j6"
+                    }
+                ],
+                "severity": "high"
+            },
+            {
+                "advisoryId": "PKSA-8cfg-tzhf-fr83",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": "<=1.30.2|>=2.0.0,<=2.1.14|>=2.2.0,<=2.4.3|>=3.3.0,<=3.10.3|>=4.0.0,<=5.5.0",
+                "title": "PhpSpreadsheet has SSRF/RCE in IOFactory::load when $filename is user controlled",
+                "cve": "CVE-2026-34084",
+                "link": "https://github.com/advisories/GHSA-q4q6-r8wh-5cgh",
+                "reportedAt": "2026-04-29T20:22:30+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-q4q6-r8wh-5cgh"
+                    }
+                ],
+                "severity": "critical"
+            },
+            {
+                "advisoryId": "PKSA-hznc-gbby-6w16",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": "<=1.30.3|>=2.0.0,<=2.1.15|>=2.2.0,<=2.4.4|>=3.3.0,<=3.10.4|>=4.0.0,<=5.6.0",
+                "title": "PhpSpreadsheet has XSS via number format code with @ text placeholder bypasses htmlspecialchars in HTML writer",
+                "cve": "CVE-2026-40296",
+                "link": "https://github.com/advisories/GHSA-hrmw-qprp-wgmc",
+                "reportedAt": "2026-04-28T22:57:13+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-hrmw-qprp-wgmc"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-jtdk-dcr5-f11n",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": "<=1.30.3|>=2.0.0,<=2.1.15|>=2.2.0,<=2.4.4|>=3.3.0,<=3.10.4|>=4.0.0,<=5.6.0",
+                "title": "PhpSpreadsheet has XSS via NumberFormat @ Text Substitution in HTML Writer",
+                "cve": "CVE-2026-35453",
+                "link": "https://github.com/advisories/GHSA-6wpp-88cp-7q68",
+                "reportedAt": "2026-04-28T22:50:31+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-6wpp-88cp-7q68"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-64jn-3d9t-gncx",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": "<1.30.0|>=2.0.0,<2.1.0|>=2.1.0,<2.1.12|>=2.2.0,<2.3.0|>=2.3.0,<2.4.0|>=3.0.0,<3.10.0|>=4.0.0,<5.0.0",
+                "title": "PhpSpreadsheet vulnerable to SSRF when reading and displaying a processed HTML document in the browser",
+                "cve": "CVE-2025-54370",
+                "link": "https://github.com/PHPOffice/PhpSpreadsheet/security/advisories/GHSA-rx7m-68vc-ppxh",
+                "reportedAt": "2025-08-03T01:06:00+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-rx7m-68vc-ppxh"
+                    },
+                    {
+                        "name": "FriendsOfPHP/security-advisories",
+                        "remoteId": "phpoffice/phpspreadsheet/CVE-2025-54370.yaml"
+                    }
+                ],
+                "severity": "high"
+            },
+            {
+                "advisoryId": "PKSA-8b16-mcgz-h4cz",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": ">=2.0.0,<2.1.8|>=2.2.0,<2.3.7|<1.29.9|>=3.0.0,<3.9.0",
+                "title": "PhpSpreadsheet allows bypassing of XSS sanitizer using the javascript protocol and special characters",
+                "cve": "CVE-2025-23210",
+                "link": "https://github.com/advisories/GHSA-r57h-547h-w24f",
+                "reportedAt": "2025-02-03T15:39:31+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-r57h-547h-w24f"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-s99r-9yxm-hjvt",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": ">=2.2.0,<2.3.6|>=2.0.0,<2.1.7|<1.29.8|>=3.0.0,<3.8.0",
+                "title": "Cross-Site Scripting (XSS) vulnerability in generateNavigation() function in PhpSpreadsheet",
+                "cve": "CVE-2025-22131",
+                "link": "https://github.com/advisories/GHSA-79xx-vf93-p7cx",
+                "reportedAt": "2025-01-21T21:09:13+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-79xx-vf93-p7cx"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-7jd6-nb49-bz4v",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": ">=2.2.0,<=2.3.4|>=2.0.0,<=2.1.5|<=1.29.6|>=3.0.0,<3.7.0",
+                "title": "PhpSpreadsheet allows bypass XSS sanitizer using the javascript protocol and special characters",
+                "cve": "CVE-2024-56412",
+                "link": "https://github.com/advisories/GHSA-q9jv-mm3r-j47r",
+                "reportedAt": "2025-01-03T17:29:10+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-q9jv-mm3r-j47r"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-nm34-xhtz-ww9p",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": ">=2.2.0,<=2.3.4|>=2.0.0,<=2.1.5|<=1.29.6|>=3.0.0,<3.7.0",
+                "title": "PhpSpreadsheet has a Cross-Site Scripting (XSS) vulnerability of the hyperlink base in the HTML page header",
+                "cve": "CVE-2024-56411",
+                "link": "https://github.com/advisories/GHSA-hwcp-2h35-p66w",
+                "reportedAt": "2025-01-03T17:28:50+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-hwcp-2h35-p66w"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-4ckb-wpj6-c29d",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": ">=2.2.0,<=2.3.4|>=2.0.0,<=2.1.5|<=1.29.6|>=3.0.0,<3.7.0",
+                "title": "PhpSpreadsheet has a Cross-Site Scripting (XSS) vulnerability in custom properties",
+                "cve": "CVE-2024-56410",
+                "link": "https://github.com/advisories/GHSA-wv23-996v-q229",
+                "reportedAt": "2025-01-03T17:25:45+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-wv23-996v-q229"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-ybqb-vyrq-8pdt",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": ">=2.2.0,<=2.3.4|>=2.0.0,<=2.1.5|<=1.29.6|>=3.0.0,<3.7.0",
+                "title": "PhpSpreadsheet allows unauthorized Reflected XSS in Currency.php file",
+                "cve": "CVE-2024-56409",
+                "link": "https://github.com/advisories/GHSA-j2xg-cjcx-4677",
+                "reportedAt": "2025-01-03T17:06:51+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-j2xg-cjcx-4677"
+                    }
+                ],
+                "severity": "high"
+            },
+            {
+                "advisoryId": "PKSA-285y-y5bt-kvd9",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": ">=2.2.0,<=2.3.4|>=2.0.0,<=2.1.5|<=1.29.6|>=3.0.0,<3.7.0",
+                "title": "PhpSpreadsheet allows unauthorized Reflected XSS in the Accounting.php file",
+                "cve": "CVE-2024-56366",
+                "link": "https://github.com/advisories/GHSA-c6fv-7vh8-2rhr",
+                "reportedAt": "2025-01-03T17:06:23+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-c6fv-7vh8-2rhr"
+                    }
+                ],
+                "severity": "high"
+            },
+            {
+                "advisoryId": "PKSA-jw5c-q9nd-tzj9",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": ">=2.2.0,<=2.3.4|>=2.0.0,<=2.1.5|<=1.29.6|>=3.0.0,<3.7.0",
+                "title": "PhpSpreadsheet allows unauthorized Reflected XSS in the constructor of the Downloader class",
+                "cve": "CVE-2024-56365",
+                "link": "https://github.com/advisories/GHSA-jmpx-686v-c3wx",
+                "reportedAt": "2025-01-03T17:06:05+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-jmpx-686v-c3wx"
+                    }
+                ],
+                "severity": "high"
+            },
+            {
+                "advisoryId": "PKSA-bcnb-9tc9-bjb8",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": ">=2.2.0,<=2.3.4|>=2.0.0,<=2.1.5|<=1.29.6|>=3.0.0,<3.7.0",
+                "title": "PhpSpreadsheet allows unauthorized Reflected XSS in `Convert-Online.php` file",
+                "cve": "CVE-2024-56408",
+                "link": "https://github.com/advisories/GHSA-x88g-h956-m5xg",
+                "reportedAt": "2025-01-03T16:05:26+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-x88g-h956-m5xg"
+                    }
+                ],
+                "severity": "high"
+            },
+            {
+                "advisoryId": "PKSA-gst3-cdk3-bpqt",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": ">=3.3.0,<3.4.0|>=2.2.0,<2.3.2|>=2.0.0,<2.1.3|<1.29.4",
+                "title": "XXE in PHPSpreadsheet's XLSX reader",
+                "cve": "CVE-2024-48917",
+                "link": "https://github.com/advisories/GHSA-7cc9-j4mv-vcjp",
+                "reportedAt": "2024-11-18T20:01:46+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-7cc9-j4mv-vcjp"
+                    }
+                ],
+                "severity": "high"
+            },
+            {
+                "advisoryId": "PKSA-dbrb-pvhs-h3st",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": ">=3.3.0,<3.4.0|>=2.2.0,<2.3.2|>=2.0.0,<2.1.3|<1.29.4",
+                "title": "XmlScanner bypass leads to XXE",
+                "cve": "CVE-2024-47873",
+                "link": "https://github.com/advisories/GHSA-jw4x-v69f-hh5w",
+                "reportedAt": "2024-11-18T20:01:20+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-jw4x-v69f-hh5w"
+                    }
+                ],
+                "severity": "high"
+            },
+            {
+                "advisoryId": "PKSA-mkg2-1wyw-57y7",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": ">=2.0.0,<2.1.1|<1.29.1|>=2.2.0,<2.3.0",
+                "title": "XXE in PHPSpreadsheet's XLSX reader",
+                "cve": "CVE-2024-45293",
+                "link": "https://github.com/advisories/GHSA-6hwr-6v2f-3m88",
+                "reportedAt": "2024-10-07T15:58:52+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-6hwr-6v2f-3m88"
+                    }
+                ],
+                "severity": "high"
+            },
+            {
+                "advisoryId": "PKSA-p1pj-q951-6f1x",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": ">=2.0.0,<2.1.1|<1.29.2|>=2.2.0,<2.3.0",
+                "title": "PhpSpreadsheet HTML writer is vulnerable to Cross-Site Scripting via JavaScript hyperlinks",
+                "cve": "CVE-2024-45292",
+                "link": "https://github.com/advisories/GHSA-r8w8-74ww-j4wh",
+                "reportedAt": "2024-10-07T15:58:25+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-r8w8-74ww-j4wh"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-7f9v-sb8k-krfb",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": ">=2.0.0,<2.1.1|<1.29.2|>=2.2.0,<2.3.0",
+                "title": "PhpSpreadsheet allows absolute path traversal and Server-Side Request Forgery in HTML writer when embedding images is enabled",
+                "cve": "CVE-2024-45291",
+                "link": "https://github.com/advisories/GHSA-w9xv-qf98-ccq4",
+                "reportedAt": "2024-10-07T15:58:06+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-w9xv-qf98-ccq4"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-xk3k-rd1m-pxmg",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": ">=2.0.0,<2.1.1|<1.29.2|>=2.2.0,<2.3.0",
+                "title": "PhpSpreadsheet allows absolute path traversal and Server-Side Request Forgery when opening XLSX file",
+                "cve": "CVE-2024-45290",
+                "link": "https://github.com/advisories/GHSA-5gpr-w2p5-6m37",
+                "reportedAt": "2024-10-07T15:57:38+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-5gpr-w2p5-6m37"
+                    }
+                ],
+                "severity": "high"
+            },
+            {
+                "advisoryId": "PKSA-dvbq-8ft2-ngrw",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": ">=2.0.0,<2.1.1|<1.29.2|>=2.2.0,<2.3.0",
+                "title": "PhpSpreadsheet has an Unauthenticated Cross-Site-Scripting (XSS) in sample file",
+                "cve": "CVE-2024-45060",
+                "link": "https://github.com/advisories/GHSA-v66g-p9x6-v98p",
+                "reportedAt": "2024-10-07T14:43:30+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-v66g-p9x6-v98p"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-xp7t-fbrb-qjv4",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": ">=2.0.0,<2.1.1|>=2.2.0,<2.2.1|<1.29.1",
+                "title": "XXE in PHPSpreadsheet encoding is returned",
+                "cve": "CVE-2024-45048",
+                "link": "https://github.com/advisories/GHSA-ghg6-32f9-2jp7",
+                "reportedAt": "2024-08-29T17:58:27+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-ghg6-32f9-2jp7"
+                    }
+                ],
+                "severity": "high"
+            },
+            {
+                "advisoryId": "PKSA-m4hk-rk8p-4t5p",
+                "packageName": "phpoffice/phpspreadsheet",
+                "affectedVersions": "<1.29.1|>=2.0.0,<2.1.0",
+                "title": "PhpSpreadsheet HTML writer is vulnerable to Cross-Site Scripting via style information",
+                "cve": "CVE-2024-45046",
+                "link": "https://github.com/advisories/GHSA-wgmf-q9vr-vww6",
+                "reportedAt": "2024-08-29T17:56:56+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-wgmf-q9vr-vww6"
+                    }
+                ],
+                "severity": "medium"
+            }
+        ],
+        "phpseclib/phpseclib": [
+            {
+                "advisoryId": "PKSA-h7cz-q7zq-mdkt",
+                "packageName": "phpseclib/phpseclib",
+                "affectedVersions": ">=4.0.0,<4.0.3|>=3.0.0,<3.0.58|>=2.0.0,<2.0.56|>=1.0.0,<1.0.31",
+                "title": "phpseclib unbounded PBKDF iteration count in encrypted key/PFX/CMS parsing enables CPU-exhaustion DoS",
+                "cve": null,
+                "link": "https://github.com/phpseclib/phpseclib/security/advisories/GHSA-w3p9-g4p2-h3rr",
+                "reportedAt": "2026-11-02T00:00:00+00:00",
+                "sources": [
+                    {
+                        "name": "FriendsOfPHP/security-advisories",
+                        "remoteId": "phpseclib/phpseclib/2026-11-02-1.yaml"
+                    }
+                ],
+                "severity": null
+            },
+            {
+                "advisoryId": "PKSA-12sz-bcny-pk4m",
+                "packageName": "phpseclib/phpseclib",
+                "affectedVersions": ">=4.0.0,<4.0.1|<3.0.57",
+                "title": "phpseclib — non-constant-time X25519 scalar multiplication permits full private-key recovery",
+                "cve": "CVE-2026-84308",
+                "link": "https://github.com/advisories/GHSA-q97c-8qh3-fpc6",
+                "reportedAt": "2026-09-08T21:24:29+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-q97c-8qh3-fpc6"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-432p-hv1d-chf7",
+                "packageName": "phpseclib/phpseclib",
+                "affectedVersions": ">=3.0.0,<=3.0.53|>=2.0.0,<=2.0.54|>=0.1.1,<=1.0.29",
+                "title": "phpseclib: X.509 certificate validation sends attacker-controlled outbound requests (server-side request forgery) via Authority Information Access",
+                "cve": "CVE-2026-55599",
+                "link": "https://github.com/advisories/GHSA-m557-wrgg-6rp4",
+                "reportedAt": "2026-06-16T15:03:58+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-m557-wrgg-6rp4"
+                    }
+                ],
+                "severity": "medium"
+            },
+            {
+                "advisoryId": "PKSA-smrh-yx37-92ws",
+                "packageName": "phpseclib/phpseclib",
+                "affectedVersions": ">=0.1.1,<=1.0.28|>=3.0.0,<=3.0.51|>=2.0.0,<=2.0.53",
+                "title": "phpseclib has a CVE-2024-27355 mitigation bypass — OID amplification DoS in ASN1::decodeOID()",
+                "cve": "CVE-2026-44167",
+                "link": "https://github.com/advisories/GHSA-3qpq-r242-jqj7",
+                "reportedAt": "2026-05-05T21:17:57+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-3qpq-r242-jqj7"
+                    }
+                ],
+                "severity": "high"
+            },
+            {
+                "advisoryId": "PKSA-zh4j-by9m-7mz8",
+                "packageName": "phpseclib/phpseclib",
+                "affectedVersions": ">=0.1.1,<1.0.28|>=3.0.0,<3.0.51|>=2.0.0,<2.0.53",
+                "title": "phpseclib has a variable-time HMAC comparison in SSH2::get_binary_packet() using != instead of hash_equals()",
+                "cve": "CVE-2026-40194",
+                "link": "https://github.com/advisories/GHSA-r854-jrxh-36qx",
+                "reportedAt": "2026-04-10T20:58:10+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-r854-jrxh-36qx"
+                    }
+                ],
+                "severity": "low"
+            },
+            {
+                "advisoryId": "PKSA-km2b-zc3b-mjm3",
+                "packageName": "phpseclib/phpseclib",
+                "affectedVersions": ">=0.1.1,<=1.0.26|>=2.0.0,<=2.0.51|>=3.0.0,<=3.0.49",
+                "title": "phpseclib's AES-CBC unpadding susceptible to padding oracle timing attack",
+                "cve": "CVE-2026-32935",
+                "link": "https://github.com/advisories/GHSA-94g3-g5v7-q4jg",
+                "reportedAt": "2026-03-19T16:42:18+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-94g3-g5v7-q4jg"
+                    }
+                ],
+                "severity": "high"
+            }
+        ],
+        "symfony/polyfill-intl-idn": [
+            {
+                "advisoryId": "PKSA-dwsq-ppd2-mb1x",
+                "packageName": "symfony/polyfill-intl-idn",
+                "affectedVersions": ">=1.17.1,<1.38.1",
+                "title": "CVE-2026-46644: symfony/polyfill-intl-idn accepts xn-- labels whose Punycode payload decodes to ASCII-only: insecure equivalence",
+                "cve": "CVE-2026-46644",
+                "link": "https://symfony.com/cve-2026-46644",
+                "reportedAt": "2026-05-26T08:00:00+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-2xf4-cg6j-vhgq"
+                    },
+                    {
+                        "name": "FriendsOfPHP/security-advisories",
+                        "remoteId": "symfony/polyfill-intl-idn/CVE-2026-46644.yaml"
+                    }
+                ],
+                "severity": "low"
+            }
+        ],
+        "yiisoft/yii2": [
+            {
+                "advisoryId": "PKSA-mxtc-f5ct-dqqd",
+                "packageName": "yiisoft/yii2",
+                "affectedVersions": "<2.0.55",
+                "title": "Yii 2: Local file inclusion via view parameter name collision",
+                "cve": "CVE-2026-39850",
+                "link": "https://github.com/advisories/GHSA-5vpg-rj7q-qpw2",
+                "reportedAt": "2026-05-11T19:34:28+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-5vpg-rj7q-qpw2"
+                    }
+                ],
+                "severity": "high"
+            }
+        ],
+        "yiisoft/yii2-redis": [
+            {
+                "advisoryId": "PKSA-tv9g-g554-cxh4",
+                "packageName": "yiisoft/yii2-redis",
+                "affectedVersions": "<2.0.20",
+                "title": "Yii 2 Redis may expose AUTH parameters in logs in case of connection failure",
+                "cve": "CVE-2025-48493",
+                "link": "https://github.com/advisories/GHSA-g3p6-82vc-43jh",
+                "reportedAt": "2025-06-05T16:53:23+00:00",
+                "sources": [
+                    {
+                        "name": "GitHub",
+                        "remoteId": "GHSA-g3p6-82vc-43jh"
+                    }
+                ],
+                "severity": "medium"
+            }
+        ]
+    },
+    "abandoned": {
+        "swiftmailer/swiftmailer": "symfony/mailer"
+    },
+    "filter": [],
+    "cooldown": []
+}

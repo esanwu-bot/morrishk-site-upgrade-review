@@ -1,0 +1,5 @@
+display_errors => STDOUT => STDOUT
+error_log => D:/dev/php/php-8.5.13/logs/php_errors.log => D:/dev/php/php-8.5.13/logs/php_errors.log
+error_log_mode => 0644 => 0644
+error_reporting => 30719 => 30719
+log_errors => On => On

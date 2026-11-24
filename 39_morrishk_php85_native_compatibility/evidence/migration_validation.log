@@ -1,0 +1,34 @@
+== F-06 migration validation ==
+== before ==
+== run 1 (fresh) ==
+COLUMN_NAME	COLUMN_TYPE	IS_NULLABLE	COLUMN_DEFAULT
+OwnerUserId	int	NO	0
+INDEX_NAME	COLUMN_NAME	SEQ_IN_INDEX
+idx_owner	OwnerUserId	1
+exit1=0
+== run 2 (idempotent) ==
+COLUMN_NAME	COLUMN_TYPE	IS_NULLABLE	COLUMN_DEFAULT
+OwnerUserId	int	NO	0
+INDEX_NAME	COLUMN_NAME	SEQ_IN_INDEX
+idx_owner	OwnerUserId	1
+exit2=0
+== partial: drop index only, rerun ==
+COLUMN_NAME	COLUMN_TYPE	IS_NULLABLE	COLUMN_DEFAULT
+OwnerUserId	int	NO	0
+INDEX_NAME	COLUMN_NAME	SEQ_IN_INDEX
+idx_owner	OwnerUserId	1
+exit3=0
+== insufficient privilege (app account) ==
+ERROR 1142 (42000) at line 1: ALTER command denied to user 'morrishk_app'@'localhost' for table 'snsii_cart'
+app_ddl_exit=1
+== after ==
++-------------+------+------+-----+---------+-------+
+| Field       | Type | Null | Key | Default | Extra |
++-------------+------+------+-----+---------+-------+
+| OwnerUserId | int  | NO   | MUL | 0       |       |
++-------------+------+------+-----+---------+-------+
++------------+------------+-----------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| Table      | Non_unique | Key_name  | Seq_in_index | Column_name | Collation | Cardinality | Sub_part | Packed | Null | Index_type | Comment | Index_comment | Visible | Expression |
++------------+------------+-----------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| snsii_cart |          1 | idx_owner |            1 | OwnerUserId | A         |        NULL |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
++------------+------------+-----------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+

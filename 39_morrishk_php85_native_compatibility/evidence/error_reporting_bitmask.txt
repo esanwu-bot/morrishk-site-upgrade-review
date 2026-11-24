@@ -1,0 +1,5 @@
+E_ALL (PHP 8.5)           = 30719
+E_DEPRECATED              = 8192
+22527 = E_ALL & ~E_DEPRECATED
+22527 binary = 101011111111111
+E_STRICT (removed in 8.4) = 2048 ; not part of E_ALL in 8.5

@@ -1,0 +1,14 @@
+login[qa_r39_a]                                http=200 location=
+login[qa_r39_b]                                http=200 location=
+login[qa_r39_admin]                            http=200 location=
+upload_as_user_a                               http=200 success=yes
+stored_attachment                              RPfI0RHnhZ7Pgc0z96AELn0w.pdf
+download[guest]                                http=403 disposition=- nosniff=no
+download[owner_a]                              http=403 disposition=- nosniff=no
+download[other_b]                              http=403 disposition=- nosniff=no
+download[admin]                                http=403 disposition=- nosniff=no
+traversal_1                                    404
+traversal_2                                    404
+direct_runtime_uploads                         404
+direct_uploads_path                            404
+direct_config_path                             404
