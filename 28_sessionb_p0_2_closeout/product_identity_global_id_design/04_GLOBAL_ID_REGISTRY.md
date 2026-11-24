@@ -3,10 +3,10 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-004 |
-| 版本 | v2.4-R2.2.2 |
+| 版本 | v2.5-R2.2.3 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | 无全局产品 ID/注册表；`product_id=prod-doc`；lake 仅 3 表 |
-| 相关决策 | D-05、D-06、D-10、D-21、D-22、D-23、D-31…D-34、D-41…D-48（见 `08_DECISION_REGISTER.md`） |
+| 相关决策 | D-05、D-06、D-10、D-21、D-22、D-23、D-31…D-34、D-41…D-49（见 `08_DECISION_REGISTER.md`） |
 | 收敛模型 | **仅 CONFIRMED 进入 `global_product`**；PENDING/CONFLICT 独立队列；Morrishk 首期单 Tenant；全局/租户数据归属分离 |
 
 ## 1. 目标
@@ -256,13 +256,37 @@ client_subject_binding -- OAuth (client_id, subject) -> principal 映射
   -- UNIQUE (client_id, subject) WHERE is_current
   -- 同一自然人可通过不同 client 得到不同 subject，但必须映射到同一 principal_id
 
-principal_role         -- 角色授权来源；含域标记
+principal_domain_binding   -- 每个 principal 同一时刻只允许一个有效角色域（R2.2.3）
+  binding_id           PK
   principal_id         FK -> principal
-  role                 tenant.editor / tenant.admin / identity.admin / identity.approver
-  role_domain          TENANT / GLOBAL（由角色目录决定）
+  role_domain          TENANT / GLOBAL
   tenant_id            TENANT 域必填；GLOBAL 域必须 NULL
-  granted_by / granted_at / revoked_at
-  -- 互斥：同一 principal_id 不得同时存在 TENANT 域与 GLOBAL 域的有效角色
+  status               ACTIVE / REVOKED
+  effective_from / effective_to
+  granted_by / granted_at
+  revoked_by / revoked_at / revoke_reason
+  -- CHECK：(role_domain='TENANT' AND tenant_id IS NOT NULL) OR (role_domain='GLOBAL' AND tenant_id IS NULL)
+  -- UNIQUE (principal_id) WHERE status='ACTIVE'   -- 同一 principal 仅一个有效域
+  -- UNIQUE (principal_id, role_domain)             -- 供 principal_role 复合外键
+  -- 撤销只置 REVOKED，不删除历史行
+
+role_catalog               -- 角色目录；固定角色域
+  role                 PK（tenant.editor / tenant.admin / identity.admin / identity.approver）
+  role_domain          TENANT / GLOBAL
+  -- 由目录决定，不由调用方指定
+
+principal_role         -- 角色授予；域由 binding 决定，不能自行声明
+  binding_id           FK -> principal_domain_binding
+  principal_id         FK -> principal
+  role                 FK -> role_catalog(role)
+  role_domain          FK -> role_catalog(role, role_domain)
+  revoked_at / revoked_by
+  granted_at / granted_by
+  -- FK (binding_id, role_domain) -> principal_domain_binding(binding_id, role_domain)
+  -- FK (principal_id, binding_id) -> principal_domain_binding(principal_id, binding_id)
+  -- UNIQUE (binding_id, role) WHERE revoked_at IS NULL
+  -- 互斥由 principal_domain_binding 的“单有效域”保证：
+  --   同一 principal 不能同时存在 TENANT 与 GLOBAL 的有效 binding
   -- 禁止组合：{tenant.editor, tenant.admin} × {identity.admin, identity.approver}
 ```
 
@@ -352,6 +376,18 @@ CHECK ((is_current AND valid_to IS NULL) OR (NOT is_current AND valid_to IS NOT 
 - **并发切换（已存在）**：唯一键级互斥后再锁定记录行；同一事务内完成区间校验、关闭旧行、插入新行与审计；必要时 `SERIALIZABLE` + 重试。
 - 冲突统一返回 `409 ALIAS_CONFLICT`/`PENDING_CONFLICT`；幂等键防重复提交；时间由服务端时钟或审批生效时间生成。
 
+**数据库约束实现（R2.2.3 / A-1，与 `01`/`02` 一致）：**
+
+| 注册表 | GLOBAL 排斥约束（`WHERE scope='GLOBAL'`） | TENANT 排斥约束（`WHERE scope='TENANT'`） |
+|---|---|---|
+| `brand_alias` | `EXCLUDE USING gist (alias_norm WITH =, tstzrange(valid_from, valid_to, '[)') WITH &&)` | `EXCLUDE USING gist (tenant_id WITH =, alias_norm WITH =, tstzrange(...) WITH &&)` |
+| `mpn_alias` | `EXCLUDE USING gist (brand_id WITH =, alias_norm WITH =, tstzrange(...) WITH &&)` | `EXCLUDE USING gist (tenant_id WITH =, brand_id WITH =, alias_norm WITH =, tstzrange(...) WITH &&)` |
+
+- 需要 `CREATE EXTENSION IF NOT EXISTS btree_gist` 提供 text/UUID 的 GiST 相等 operator class；不得只写 `EXCLUDE USING gist`。
+- `tstzrange(valid_from, valid_to, '[)')` 在 `valid_to IS NULL` 时上界为无穷；首尾相接不重叠，其余交叠拒绝。
+- 首期禁止未来生效行：用 `BEFORE INSERT/UPDATE` 触发器或事务写入校验，不能写成普通 `CHECK (valid_from <= now())`。
+- advisory lock 键基于完整唯一键（含 scope/tenant/brand/alias），碰撞只增加串行；数据库约束仍是最终防线。
+
 #### 3.3.2 三类资源的复合外键与 CHECK（R2.2.1 / R2.2.2）
 
 前置唯一键：`tenant(tenant_id)` 主键；`site` 增加 `UNIQUE (tenant_id, site_id)`，供 Site-level 复合外键使用；`identity_pending` 增加 `UNIQUE (tenant_id, site_id, pending_id)`，供 `identity_conflict` 复合外键使用。
@@ -404,6 +440,23 @@ CHECK (scope='GLOBAL' AND tenant_id IS NULL AND site_id IS NULL)
 - 复合外键要求 `site(tenant_id, site_id)` 唯一；仅用 `site_id` 单列外键不足以表达“Site 属于该 Tenant”，不采用。
 - 以上约束与 `06` §8.12、`10` §2/§4 必须保持一致，不得出现不同口径。
 
+#### 3.3.3 principal 角色域互斥的数据库强制（R2.2.3）
+
+| 约束对象 | 键/约束 |
+|---|---|
+| `principal_domain_binding` | PK `binding_id`；`UNIQUE (principal_id) WHERE status='ACTIVE'`（单有效域）；`UNIQUE (principal_id, role_domain)`（供复合外键） |
+| `principal_role` | `UNIQUE (binding_id, role) WHERE revoked_at IS NULL`；`FK (binding_id, role_domain) → principal_domain_binding(binding_id, role_domain)`；`FK (principal_id, binding_id) → principal_domain_binding(principal_id, binding_id)` |
+| `role_catalog` | PK `role`；`UNIQUE (role, role_domain)`；角色域固定：`tenant.editor`/`tenant.admin` = TENANT，`identity.admin`/`identity.approver` = GLOBAL |
+| 域一致性 | `CHECK ((role_domain='TENANT' AND tenant_id IS NOT NULL) OR (role_domain='GLOBAL' AND tenant_id IS NULL))` |
+
+1. **单一有效域**：`UNIQUE (principal_id) WHERE status='ACTIVE'` 是最终防线；同一 principal 不可能同时拥有 TENANT 与 GLOBAL 的有效 binding。
+2. **角色不能自选域**：`principal_role.role_domain` 必须等于其 binding 的域（复合外键），角色自身域再由 `role_catalog` 固定，三层一致。
+3. **并发授予**：先 `SELECT ... FROM principal FOR UPDATE` 锁定主体，再插入 ACTIVE binding；两个并发不同域授予由部分唯一索引裁决，仅一个成功，另一个收到唯一冲突并返回 `409 ROLE_DOMAIN_CONFLICT`。不得双写成功。
+4. **撤销与换域**：撤销 = `binding.status='REVOKED'` + `effective_to` + 同事务撤销该 binding 下所有 `principal_role`（写 `revoked_at`）；历史行保留。换域需新建 binding 行，旧 binding/角色保留为历史，审计可追溯。
+5. **同域多角色**：同一 ACTIVE binding 下允许 `tenant.editor` + `tenant.admin`（或 `identity.admin` + `identity.approver`）并存，但具体授予仍受业务策略限制。
+6. **职责分工**：数据库负责“单有效域、域与角色匹配、无重复有效授予”；应用层负责“谁有权授予、审批流程、撤销原因与审计”。应用层校验不得替代上述数据库约束。
+7. **审计**：binding 授予/撤销、角色授予/撤销均写 `audit_log`（TENANT 或 GLOBAL scope），记录 actor principal、目标 principal、域、角色、原因。
+
 ### 3.4 MPN Profile 选择（R2-4）
 
 ```text
@@ -427,15 +480,29 @@ raw MPN/Brand (tenant_id, site_id)
      ├─ UNKNOWN -> identity_pending(PENDING_VARIANT)
      └─ KNOWN / NOT_APPLICABLE -> natural key candidate
   -> lookup global_product (ACTIVE)
-     ├─ exact unique match -> reuse product_uid (MATCHED)
+     ├─ exact unique match -> 关联已有 product_uid（MATCHED；不创建/不改身份）
      ├─ no match + brand missing/low-confidence -> identity_pending(PENDING_BRAND)
-     ├─ no match -> create global_product + audit (CREATED)
+     ├─ no match（普通导入）-> identity_pending(PENDING_NEW_IDENTITY)；**禁止创建 global_product**
      └─ multiple/candidate conflict -> identity_conflict + identity_pending(PENDING_CONFLICT)
   -> link tenant_document (never writes private data into global_product)
   -> write product_import_event (idempotency)
 ```
 
-- 单次导入的所有写入（`global_product` / `identity_pending` / `tenant_document` / `product_import_event` / `audit_log`）在同一事务内提交或回滚。
+**Global Product 写入唯一入口（R2.2.3 / C-1）：**
+
+1. 普通导入、重解析、批量导入、后台任务、管理员操作遇到“无匹配产品”时，**只能创建 `identity_pending`**，不得直接创建 `global_product`。
+2. Tenant Assertion 必须先由 Tenant 审批者完成审批，**独立提交** `TENANT_APPROVED`。
+3. Global 决策者只能创建 `decision_status='PROPOSED'` 的裁决。
+4. 只有 Global Approver 批准且 `decision_status='APPROVED'` 后，才允许创建/更新 `global_product`。
+5. Global 最终事务必须重新锁定并验证关联 Tenant Assertion 的状态为 `TENANT_APPROVED`。
+6. `global_product`、alias、lineage、pending 状态、`global_adjudication`、GLOBAL `audit_log` 必须在同一最终事务中提交或回滚。
+7. 不存在绕过路径：直接导入、重解析、批量导入、后台任务、管理员操作一律走同一门槛；管理员不得以“修复数据”为由直接写 `global_product`。
+8. 三类动作必须分开：
+   - **匹配与关联**：已存在 CONFIRMED 产品 → 复用 `product_uid`，只建立 `tenant_document` 关联；
+   - **候选创建**：无匹配 → 写 `identity_pending`（不占正式键）；
+   - **正式注册**：Global Adjudication `APPROVED` 后 → 创建/更新 `global_product`。
+
+- 单次导入的所有写入（`identity_pending` / `tenant_document` / `product_import_event` / `audit_log`）在同一事务内提交或回滚；该事务**不含** `global_product` 写入。
 - 私有 PDF/解析/证据只写 `tenant_document`/`tenant_evidence`，不回填 `global_product` 的公共字段，除非有明确授权。
 
 ## 5. 幂等、重解析、更新
@@ -444,6 +511,9 @@ raw MPN/Brand (tenant_id, site_id)
 |---|---|
 | 同一 PDF 重复导入 | 同 document_id；同 product_uid（若身份一致）；import_event 幂等键去重 |
 | 重解析同一 PDF | 新 run_id；document_id 不变；product_uid 不变（除非规则变化，需审计） |
+| 导入无匹配产品 | 只写 `identity_pending`；**不得创建 `global_product`**；等待 Tenant 审批与 Global 裁决 |
+| 批量/后台导入 | 与普通导入同一门槛；无匹配只写 pending；不得批量直建 `global_product` |
+| 管理员“修复数据” | 只能修正 pending/别名/证据；不得绕过 Global Adjudication 直写 `global_product` |
 | 更新 Brand/MPN 规则 | 旧 product_uid 保留；自然键变化 → 别名/迁移；不静默重写 |
 | normalizer_version 升级 | 旧 `mpn_norm` 进 `mpn_alias`/历史；新 norm 重算；冲突转 `PENDING_CONFLICT`；写审计 |
 | normalizer_version 回退 | 不删除新结果；通过 alias/lineage 记录；必要时人工重映射 |
@@ -459,8 +529,23 @@ raw MPN/Brand (tenant_id, site_id)
 - `PENDING_CONFLICT` 场景：同 Brand 多个候选 norm、同 MPN 多 Brand 但客户认为同产品、Brand/MPN alias 冲突、profile 冲突、变体冲突；
 - 裁决必须记录：决策人、时间、证据、影响范围、是否跨租户（首期必为否）；
 - 未经签署的自动合并禁止；不得“先建 CONFIRMED 再改”；
-- 裁决事务：写 `global_product`（若成立）→ `identity_pending.status=ADJUDICATED` → alias/lineage → `audit_log`；任一步失败整体回滚；
-- 裁决为“非同一产品”时：各自独立 CONFIRMED 或保持 PENDING/REJECTED，并记录理由。
+- **裁决状态门槛（R2.2.3）**：`global_adjudication.decision_status` 必须为 `APPROVED` 才允许写 `global_product`；`PROPOSED`/`REJECTED` 一律不得写入；
+- **最终事务**（仅在 `APPROVED` 后执行）：
+
+```text
+BEGIN
+  SELECT ... FROM tenant_assertion WHERE ... FOR UPDATE;
+  -- 重新验证 status = 'TENANT_APPROVED'
+  UPDATE global_adjudication SET decision_status='APPROVED', approved_at=...;
+  INSERT/UPDATE global_product;
+  INSERT product_lineage / alias;
+  UPDATE identity_pending SET status='ADJUDICATED';
+  INSERT audit_log(scope='GLOBAL');
+COMMIT   -- 任一步失败整体回滚
+```
+
+- 裁决为“非同一产品”时：各自保持 PENDING/REJECTED 或分别走独立审批，不得直接建 CONFIRMED，并记录理由。
+- 任何路径（导入/重解析/批量/后台/管理员）都不得跳过上述门槛直接写 `global_product`。
 
 ## 7. 审计与变更历史
 
@@ -473,7 +558,7 @@ raw MPN/Brand (tenant_id, site_id)
 
 - 幂等键：`(tenant_id, site_id, document_sha256, requested_mpn, brand_norm, normalizer_version, operation)` 或客户端请求 ID；
 - 唯一约束：`(brand_id, mpn_norm, variant_state, variant_key) WHERE lifecycle_state='ACTIVE'`；
-- 事务：resolve/match/create/link/audit 原子化；
+- 事务：普通导入的 resolve/match/pending/link/audit 原子化，但**不含** `global_product` 写入；该写入只在 Global 最终审批事务中发生；
 - 冲突：返回明确错误码（`PENDING_CONFLICT`/`CONFLICTING_IDENTITY`），不静默创建重复产品；
 - 合并/拆分：对涉及 `product_uid` 加行锁/乐观版本，谱系与别名同事务；
 - 重试：幂等键命中返回同一结果。

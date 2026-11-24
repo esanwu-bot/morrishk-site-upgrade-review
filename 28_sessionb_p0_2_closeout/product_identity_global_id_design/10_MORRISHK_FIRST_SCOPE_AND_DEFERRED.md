@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-010 |
-| 版本 | v1.4-R2.2.2 |
+| 版本 | v1.5-R2.2.3 |
 | 日期 | 2026-11-23 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 性质 | 范围说明；不是架构批准、不是实现、不是工期承诺 |
@@ -84,8 +84,10 @@
 | B-15 | 审批身份必须来自 token 绑定的服务端稳定 `principal_id`，不采信请求体自报 actor；`client_id + subject` 通过 `client_subject_binding` 映射到同一 principal |
 | B-16 | 两阶段事务：Tenant 审批独立提交 `TENANT_APPROVED`；Global 最终阶段在新事务内锁定并重新校验该状态，再原子完成裁决批准、`global_product`、alias/lineage 与 GLOBAL audit；任一步失败整体回滚 |
 | B-17 | Alias 变更使用 UTC 半开区间；同唯一键历史区间不得重叠（含同目标）；当前映射唯一；并发首次插入必须用唯一键级 advisory lock，不能依赖空结果行锁 |
-| B-18 | 角色域互斥：同一 principal 不得同时持有 TENANT 域角色（`tenant.editor`/`tenant.admin`）与 GLOBAL 域角色（`identity.admin`/`identity.approver`） |
+| B-18 | 角色域互斥：同一 principal 不得同时持有 TENANT 域角色（`tenant.editor`/`tenant.admin`）与 GLOBAL 域角色（`identity.admin`/`identity.approver`）；由 `principal_domain_binding` 单有效域唯一约束 + `principal_role` 复合外键强制 |
 | B-19 | 审批状态与批准字段强一致：`PROPOSED`/`REJECTED` 批准字段为空，`APPROVED` 必填；Tenant Assertion 同理 |
+| B-20 | `global_product` 唯一写入入口是 Global Adjudication `APPROVED` 后的最终事务；普通导入、重解析、批量、后台、管理员无匹配时只能写 `identity_pending` |
+| B-21 | 角色撤销/换域只置 `REVOKED` 并保留历史行；换域需新建 binding，旧 binding 与角色记录可追溯 |
 
 ## 5. 四因子授权
 

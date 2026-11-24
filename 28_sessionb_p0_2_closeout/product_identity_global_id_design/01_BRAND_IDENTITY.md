@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-001 |
-| 版本 | v2.4-R2.2.2 |
+| 版本 | v2.5-R2.2.3 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | Ds Bit `600439a5`；当前 `Product` 无 Brand |
 | 相关决策 | D-01、D-02、D-16、D-17、D-18、D-44（见 `08_DECISION_REGISTER.md`） |
@@ -224,6 +224,20 @@ COMMIT
 6. 时间来源：`valid_from`/`valid_to` 由服务端时钟生成或经审批的生效时间，不接受客户端任意指定历史区间。
 
 **实现说明（非 DDL）：** 部分唯一索引 + 数据库区间排斥约束 + 唯一键级事务锁；应用层校验为补充。本轮不建索引、不迁移。
+
+**数据库约束实现细节（R2.2.3 / A-1）：**
+
+1. **Brand Alias 唯一键（独立于 MPN Alias）**：GLOBAL `UNIQUE (alias_norm) WHERE scope='GLOBAL' AND is_current`；TENANT `UNIQUE (tenant_id, alias_norm) WHERE scope='TENANT' AND is_current`。
+2. **GLOBAL 排斥约束（完整键）**：
+   `EXCLUDE USING gist (alias_norm WITH =, tstzrange(valid_from, valid_to, '[)') WITH &&) WHERE (scope='GLOBAL')`
+3. **TENANT 排斥约束（完整键，必须含 tenant_id）**：
+   `EXCLUDE USING gist (tenant_id WITH =, alias_norm WITH =, tstzrange(valid_from, valid_to, '[)') WITH &&) WHERE (scope='TENANT')`
+4. **扩展与 operator class**：`tenant_id`/UUID 与 text 的 `=` 在 GiST 中需要 `btree_gist` 扩展；即 `CREATE EXTENSION IF NOT EXISTS btree_gist`，`alias_norm`/`tenant_id` 使用 btree_gist 的相等 operator class。不得只写 `EXCLUDE USING gist` 而不说明扩展。
+5. **NULL 上界语义**：`tstzrange(valid_from, valid_to, '[)')` 在 `valid_to IS NULL` 时表示上界无穷（开放至今），与 `is_current=true` 一致；首尾相接按 `old.valid_to = new.valid_from` 判定不重叠；任意其他交叠均视为重叠。
+6. **禁止未来生效行**：`valid_from <= now()` 不能写成普通 PostgreSQL `CHECK`（`now()` 非 immutable）。必须由 `BEFORE INSERT/UPDATE` 触发器或事务写入校验执行；违反则拒绝写入。
+7. **advisory lock 键**：必须基于完整规范化唯一键（如 scope + tenant_id? + alias_norm 的稳定哈希），不得只用裸 alias 字符串。哈希碰撞只允许造成额外串行（性能影响），不得造成不同键互相覆盖；最终仍由唯一索引/排斥约束兜底。
+8. **职责分工**：部分唯一索引 → 当前映射唯一；数据库排斥约束 → 历史区间不重叠；advisory lock → 首次插入/并发切换串行化；应用层 → 业务规则、错误映射、审计与重试。数据库约束是最终防线，应用层不能替代。
+9. **一致性**：Brand Alias 与 MPN Alias 使用完全相同的时间语义（UTC、半开区间、无重叠、当且仅当、禁止未来行）与并发语义。
 
 ## 7. 数据来源与证据要求
 

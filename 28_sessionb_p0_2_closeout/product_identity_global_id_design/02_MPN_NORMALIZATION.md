@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-002 |
-| 版本 | v2.4-R2.2.2 |
+| 版本 | v2.5-R2.2.3 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | 当前 `normalized_mpn` 恒等于 `requested_mpn`（`pipeline.py:154-155`）；`normalizer_version` 未实现 |
 | 相关决策 | D-03、D-04、D-19、D-20、D-44（见 `08_DECISION_REGISTER.md`） |
@@ -192,6 +192,17 @@ CHECK (scope = 'GLOBAL' AND tenant_id IS NULL)
 - `valid_from`/`valid_to` 由服务端时钟或经审批的生效时间生成，不接受客户端任意指定历史区间。
 
 **实现说明：** 部分唯一索引 + 数据库区间排斥约束 + 唯一键级事务锁；应用层为补充。本轮不建索引、不迁移。
+
+**数据库约束实现细节（R2.2.3 / A-1，与 Brand Alias 完全一致）：**
+
+1. **MPN Alias 唯一键（独立于 Brand Alias）**：GLOBAL `UNIQUE (brand_id, alias_norm) WHERE scope='GLOBAL' AND is_current`；TENANT `UNIQUE (tenant_id, brand_id, alias_norm) WHERE scope='TENANT' AND is_current`。
+2. **GLOBAL 排斥约束**：`EXCLUDE USING gist (brand_id WITH =, alias_norm WITH =, tstzrange(valid_from, valid_to, '[)') WITH &&) WHERE (scope='GLOBAL')`。
+3. **TENANT 排斥约束（含 tenant_id）**：`EXCLUDE USING gist (tenant_id WITH =, brand_id WITH =, alias_norm WITH =, tstzrange(valid_from, valid_to, '[)') WITH &&) WHERE (scope='TENANT')`。
+4. **扩展**：text/UUID 的 GiST 相等匹配需 `CREATE EXTENSION IF NOT EXISTS btree_gist`；不得只写 `EXCLUDE USING gist`。
+5. **NULL 上界**：`valid_to IS NULL` → 上界无穷；`is_current=true` 与之一致；仅 `old.valid_to = new.valid_from` 的首尾相接不视为重叠。
+6. **禁止未来生效行**：`valid_from <= now()` 不是 immutable，不能写普通 CHECK；用触发器或事务写入校验。
+7. **advisory lock 键**：基于完整唯一键（scope + tenant_id? + brand_id + alias_norm）的稳定哈希；碰撞只增加串行，不影响正确性。
+8. **职责**：部分唯一索引（当前唯一）、排斥约束（历史不重叠）、advisory lock（并发串行）、应用层（业务/错误/审计）分层负责；数据库是最终防线。
 
 ## 5. 归一化与证据追溯
 
