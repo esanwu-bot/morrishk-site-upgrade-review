@@ -42,8 +42,8 @@ defined('YII_ENV')   or define('YII_ENV', getenv('YII_ENV') ?: 'prod');
 | `/sitemap.xml` | 200 | 478 |
 | `/robots.txt` | 200 | 596 |
 
-- `runtime/logs/app.log` 在原生（prod）模式下**未出现** `ErrorException:8192`（弃用升级为异常）。
-- `evidence/route_matrix.txt`、`evidence/php85_deprecation_web.txt`。
+- `runtime/logs/app.log` 中，修复完成后的窗口（07:25 UTC 之后）**0 条** `ErrorException:8192`；更早的 6 条为修复前/测试引导期的历史记录，已在 `evidence/php85_deprecation_web.txt` 中区分统计。
+- `evidence/route_matrix.txt`。
 
 ## 4. 仍存在的第三方弃用（不影响已测 Web 路径）
 

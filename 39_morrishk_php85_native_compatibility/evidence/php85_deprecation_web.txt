@@ -1,1 +1,3 @@
-native_web_deprecation_exceptions=6
+# native web deprecation escalation (app.log, Yii ErrorException:8192)
+total_in_log=6   # includes pre-fix harness-era entries
+since_0725_utc=0
