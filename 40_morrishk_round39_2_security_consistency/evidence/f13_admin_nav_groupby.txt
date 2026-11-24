@@ -1,0 +1,1 @@
+    [2] => Expression #1 of ORDER BY clause is not in GROUP BY clause and contains nonaggregated column 'morrishk_r39.snsii_nav.id' which is not functionally dependent on columns in GROUP BY clause; this is incompatible with sql_mode=only_full_group_by

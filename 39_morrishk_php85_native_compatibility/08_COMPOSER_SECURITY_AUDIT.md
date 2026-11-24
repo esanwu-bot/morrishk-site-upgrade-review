@@ -7,8 +7,8 @@
 | 视图 | 受影响包 | 通告数 | critical | high | medium | low | unknown |
 |---|---|---|---|---|---|---|---|
 | 全部依赖（含 dev） | 14 | **70** | 3 | 28 | 29 | 8 | 2 |
-| 运行依赖（runtime） | 11 | **61** | 3 | 26 | 27 | 4 | 1 |
-| dev-only | 3 | **9** | 0 | 2 | 2 | 4 | 1 |
+| 运行依赖（runtime） | 9 | **61** | 3 | 26 | 27 | 4 | 1 |
+| dev-only | 5 | **9** | 0 | 2 | 2 | 4 | 1 |
 | `--no-dev` 视图 | 9 | 61 | — | — | — | — | — |
 
 原始材料：`evidence/composer_audit_all.json`、`composer_audit_all.txt`、`composer_audit_nodev.json`、`composer_audit_nodev.txt`、`composer_audit_totals.txt`、`composer_audit_summary.md`（逐条明细）。

@@ -1,5 +1,7 @@
 # 11 新环境安全回归（PHP 8.5.13 / MySQL 8.4.13）
 
+> Round 39.2 已补齐本文件中的 BLOCKED/NOT_TESTED 项：F-12 登录缺陷已修复，下载授权矩阵与 Nginx 验证见 `40_morrishk_round39_2_security_consistency/`。本文保留 Round 39.1 的历史结论。
+
 环境：PHP 8.5.13 内置服务器 `127.0.0.1:8099`，测试库 `morrishk_r39`，合成账号与附件。**Round 37 的 PASS 不作为本轮结论。**
 
 ## 1. 结果矩阵

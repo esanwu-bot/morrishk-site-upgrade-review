@@ -1,0 +1,17 @@
+# nginx security probe (nginx 1.15.11, php-cgi 8.5.13, 127.0.0.1:8100)
+/                                        200
+/products.html                           200
+/sitemap.xml                             200
+/robots.txt                              200
+/config/db.php                           404
+/runtime/uploads/                        404
+/vendor/autoload.php                     404
+/uploads/                                403
+/web/uploads/                            404
+/composer.json                           404
+/config/params.php                       404
+/runtime/logs/app.log                    404
+/README.md                               404
+/.gitignore                              404
+/.env                                    404
+/download/AAAAAAAAAAAAAAAA.pdf           404

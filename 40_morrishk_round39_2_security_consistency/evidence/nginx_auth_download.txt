@@ -1,0 +1,4 @@
+login GET=200 POST=302
+owner_file=OnumG9L4EM3yHuBzSaQ0ipfw.pdf
+download_owner http=200 disposition=attachment; filename="OnumG9L4EM3yHuBzSaQ0ipfw.pdf" nosniff=nosniff
+download_guest http=403

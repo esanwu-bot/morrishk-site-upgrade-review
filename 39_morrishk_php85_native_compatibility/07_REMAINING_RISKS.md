@@ -9,7 +9,7 @@
 | MyISAM 无事务 | 30/31 表 | 询价等写入无原子性；迁移中断只能整表重做 | 见 05 文档；分批转 InnoDB 前先在副本演练 |
 | `utf8mb3` 限制 | Emoji 写入报 1366（Round 38 实测） | 客户输入 4 字节字符会失败 | 连接串 + 表字符集同步迁移，需回归排序 |
 | 严格 SQL 模式 | `STRICT_TRANS_TABLES`、`ONLY_FULL_GROUP_BY`、`NO_ZERO_DATE` | 旧代码省略 NOT NULL 列会 1364；零日期导入失败 | 发布前全表扫描与写入代码核对 |
-| Composer 安全通告 | 26 条 advisories / 4 包 | 可能在后续被利用 | 单独做依赖安全升级评估 |
+| Composer 安全通告 | 70 条 / 14 个受影响包（runtime 9 包 61 条，dev 5 包 9 条；critical 3 / high 28 / medium 29 / low 8 / unknown 2） | 可能在后续被利用 | 单独做依赖安全升级评估，见 `08_COMPOSER_SECURITY_AUDIT.md` |
 | Codeception 运行器弃用 | 5.3.1 终端宽度探测使用反引号 | 测试运行需 `-d error_reporting=22527` | 属于工具链，不影响应用；升级 Codeception 后移除 |
 
 ## 2. 未覆盖 / 未验证

@@ -46,7 +46,7 @@ php composer.phar update yiisoft/yii2 egulias/email-validator \
 |---|---|
 | `composer install`（含 dev） | exit=0，`Nothing to install, update or remove`（lock 完整可复现） |
 | `composer check-platform-reqs`（含 dev） | 全部 success，exit=0（php 8.5.13、ext-*、lib-pcre 10.44） |
-| Composer 安全审计 | 26 条 advisories / 4 个包（多为 dev 或旧运行时包），未在本轮升级，记录于风险文档 |
+| Composer 安全审计 | 70 条 advisories / 14 个受影响包（runtime 9 包 61 条、dev 5 包 9 条），未在本轮升级，详见 `08_COMPOSER_SECURITY_AUDIT.md` |
 | `php -l` | 改动的 11 个 PHP 文件全部 No syntax errors |
 | Codeception | 2 tests / 6 assertions 全通过 |
 

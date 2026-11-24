@@ -1,0 +1,20 @@
+packages_total=14 runtime=9 dev=5
+advisories_total=70
+severity: critical=3 high=28 medium=29 low=8 unknown=2
+runtime_adv=61 ({"critical":3,"high":26,"medium":27,"low":4,"unknown":1})
+nodev_packages=9 nodev_advisories=61
+--- per package ---
+phpoffice/phpspreadsheet     1.19.0     runtime  transitive n=31  {"critical":2,"high":17,"medium":12,"low":0,"unknown":0}
+guzzlehttp/guzzle            7.4.1      runtime  transitive n=14  {"critical":0,"high":6,"medium":8,"low":0,"unknown":0}
+phpseclib/phpseclib          3.0.37     runtime  transitive n=6   {"critical":0,"high":2,"medium":2,"low":1,"unknown":1}
+symfony/yaml                 v7.4.1     dev      transitive n=5   {"critical":0,"high":1,"medium":0,"low":3,"unknown":1}
+guzzlehttp/psr7              2.8.0      runtime  transitive n=4   {"critical":0,"high":0,"medium":4,"low":0,"unknown":0}
+firebase/php-jwt             v5.5.1     runtime  transitive n=2   {"critical":1,"high":0,"medium":0,"low":1,"unknown":0}
+league/flysystem             1.1.9      runtime  transitive n=1   {"critical":0,"high":0,"medium":0,"low":1,"unknown":0}
+phpunit/phpunit              11.2.6     dev      transitive n=1   {"critical":0,"high":1,"medium":0,"low":0,"unknown":0}
+psy/psysh                    v0.12.15   dev      transitive n=1   {"critical":0,"high":0,"medium":1,"low":0,"unknown":0}
+symfony/dom-crawler          v7.4.1     dev      transitive n=1   {"critical":0,"high":0,"medium":0,"low":1,"unknown":0}
+symfony/polyfill-intl-idn    v1.32.0    runtime  transitive n=1   {"critical":0,"high":0,"medium":0,"low":1,"unknown":0}
+yiisoft/yii2                 2.0.53     runtime  direct     n=1   {"critical":0,"high":1,"medium":0,"low":0,"unknown":0}
+yiisoft/yii2-gii             2.2.4      dev      direct     n=1   {"critical":0,"high":0,"medium":1,"low":0,"unknown":0}
+yiisoft/yii2-redis           2.0.17     runtime  direct     n=1   {"critical":0,"high":0,"medium":1,"low":0,"unknown":0}

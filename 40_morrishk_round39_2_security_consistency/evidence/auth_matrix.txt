@@ -1,0 +1,25 @@
+login[qa_r39_a]                              GET=200 POST=302 location=http://127.0.0.1:8099/ejadmin-index.html body=no_error
+login[qa_r39_b]                              GET=200 POST=302 location=http://127.0.0.1:8099/ejadmin-index.html body=no_error
+login[qa_r39_admin]                          GET=200 POST=302 location=http://127.0.0.1:8099/ejadmin-index.html body=no_error
+login[qa_r39_a]                              GET=200 POST=200 location=- body=form_error
+login[no_such_user_r392]                     GET=200 POST=200 location=- body=form_error
+session_keep_admin_page                      http=500 location=-
+admin_page_without_login                     http=302 location=http://127.0.0.1:8099/site/login.html
+upload[ownerA]                               http=200 success=yes
+upload[otherB]                               http=200 success=yes
+upload[guest]                                http=200 success=yes
+download[owner_a]                            http=200 disposition=attachment; filename="_Z_w6WmMXuTXo0EGl47343r1.pdf" nosniff=nosniff
+download[other_b]                            http=403 disposition=- nosniff=-
+download[admin]                              http=200 disposition=attachment; filename="_Z_w6WmMXuTXo0EGl47343r1.pdf" nosniff=nosniff
+download[guest]                              http=403 disposition=- nosniff=-
+download[owner_a_tampered_query]             http=200 disposition=attachment; filename="_Z_w6WmMXuTXo0EGl47343r1.pdf" nosniff=nosniff
+download[other_b_tampered_query]             http=403 disposition=- nosniff=-
+download[file_deleted]                       http=404 disposition=- nosniff=-
+download[file_restored]                      http=200 disposition=attachment; filename="_Z_w6WmMXuTXo0EGl47343r1.pdf" nosniff=nosniff
+download[guest_owned_by_staff]               http=403 disposition=- nosniff=-
+download[guest_owned_by_admin]               http=200 disposition=attachment; filename="poTbCRQGDCsS7dy-axtBMb4H.pdf" nosniff=nosniff
+download[not_found]                          http=404 disposition=- nosniff=-
+download[traversal_1]                        http=404 disposition=- nosniff=-
+download[traversal_2]                        http=404 disposition=- nosniff=-
+logout                                       http=302 location=http://127.0.0.1:8099/
+protected_after_logout                       http=403 location=-
