@@ -1,0 +1,19 @@
+﻿server.version                                 8.4.13 
+server.isolation                               REPEATABLE-READ 
+server.charset                                 utf8mb4/utf8mb4_0900_ai_ci 
+server.sql_mode                                ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION 
+server.system_time_zone                        ?й???׼ʱ? 
+crud.insert                                    PASS id=2404
+crud.update                                    PASS CRUD Updated
+crud.delete                                    PASS 
+tx.rollback.myisam                             NOT_ROLLED_BACK rows=1
+engine.innodb_tables                           snsii_product_so 
+engine.myisam_tables                           30 
+charset.emoji_utf8mb3                          REJECTED SQLSTATE[HY000]: General error: 1366 Incorrect string value: '\xF0\x9F\x98\x80' for column 'Company' at row 1
+strict.notnull_insert                          REJECTED SQLSTATE[HY000]: General error: 1364 Field 'AddDate' doesn't have a default valu
+unique.partnumber                              REJECTED SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry 
+reserved_words.columns                         PASS {"Number":101,"Sort":1,"Pid":0}
+implicit_cast.string_vs_int                    rows=0 
+isolation.set.READ_COMMITTED                   READ-COMMITTED 
+isolation.set.REPEATABLE_READ                  REPEATABLE-READ 
+isolation.set.SERIALIZABLE                     SERIALIZABLE 

@@ -1,0 +1,19 @@
+﻿# Round 38 route matrix (PHP 8.5.13 + MySQL 8.4.13, built-in server 8098)
+# captured 
+2026-11-24 14:40:33
+/                                                    200 38022
+/products.html                                       200 30567
+/products/38000001/r38-test-part.html                200 55524
+/big-categories/c-3801-3802/r38-test-big.html        200 33027
+/search.html?keyword=R38                             302 0
+/about.html                                          404 1192
+/sitemap.xml                                         200 478
+/robots.txt                                          200 596
+/nonexistent-page.html                               404 1192
+/download/VFthKF28Q7H6op8J2F0xRWsk.pdf               403 1192
+/download/AAAAAAAAAAAAAAAA.pdf                       404 1192
+/download/..%2F..%2Fconfig%2Fdb.php                  404 1192
+/download/short.pdf                                  404 1192
+# CSRF: POST without _csrf -> 400 (BadRequestHttpException, see app.log)
+# PDP inquiry POST -> 302 Location /cart/success.html?Oid=2397; snsii_cart row 2397; mock log written
+# upload ok.pdf -> 200 + runtime/uploads/<24>char.pdf ; bad.exe -> validation error ; 6MB pdf -> maxSize error

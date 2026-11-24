@@ -1,0 +1,32 @@
+﻿php.exe : Installing dependencies from lock file (including require-dev)
+所在位置 行:17 字符: 1
++ & $php 'D:\dev\tools\composer.phar' install --no-interaction --prefer ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Installing depe...ng require-dev):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Verifying lock file contents can be installed on current platform.
+Your lock file does not contain a compatible set of packages. Please run composer update.
+
+  Problem 1
+    - codeception/module-yii2 is locked to version 1.1.5 and an update of this package was not requested.
+    - codeception/module-yii2 1.1.5 requires php >=5.6.0 <=8.1 | ~8.1.0 -> your php version (8.5.13) does not satisfy t
+hat requirement.
+  Problem 2
+    - phpspec/prophecy is locked to version v1.15.0 and an update of this package was not requested.
+    - phpspec/prophecy v1.15.0 requires php ^7.2 || ~8.0, <8.2 -> your php version (8.5.13) does not satisfy that requi
+rement.
+  Problem 3
+    - symfony/browser-kit is locked to version v4.2.4 and an update of this package was not requested.
+    - symfony/browser-kit v4.2.4 requires php ^7.1.3 -> your php version (8.5.13) does not satisfy that requirement.
+  Problem 4
+    - symfony/service-contracts is locked to version v1.1.2 and an update of this package was not requested.
+    - symfony/service-contracts v1.1.2 requires php ^7.1.3 -> your php version (8.5.13) does not satisfy that requireme
+nt.
+  Problem 5
+    - symfony/console is locked to version v5.4.3 and an update of this package was not requested.
+    - symfony/console v5.4.3 requires symfony/service-contracts ^1.1|^2|^3 -> satisfiable by symfony/service-contracts[
+v1.1.2].
+    - symfony/service-contracts v1.1.2 requires php ^7.1.3 -> your php version (8.5.13) does not satisfy that requireme
+nt.
+
