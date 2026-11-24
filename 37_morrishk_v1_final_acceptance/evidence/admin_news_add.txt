@@ -1,5 +1,5 @@
-﻿GET /ejadmin/news/add.html => 200 (size 12102 bytes)
+GET /ejadmin/news/add.html => 200 (size 12102 bytes)
 CKEditor alias marker present (mihaildev): True
 CSRF token length=88
 POST /ejadmin/news/add.html (valid CSRF) => HTTP 200
-POST body contains 500 marker: 
+POST body contains 500 marker: False

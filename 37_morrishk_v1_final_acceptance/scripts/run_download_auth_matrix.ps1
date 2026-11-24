@@ -1,4 +1,4 @@
-﻿<#
+<#
 Round 37 - Attachment download authorization matrix.
 Runs against the Nginx + php-cgi test instance and records raw HTTP results.
 
@@ -140,4 +140,3 @@ if (Test-Path $probePath) { Remove-Item $probePath -Force }
 foreach ($j in @($jarOwner,$jarOther,$jarAdmin)) { if ($j -and (Test-Path $j)) { Remove-Item $j -Force } }
 Write-Output "fixture row removed, probe file removed"
 Write-Output "DONE"
-

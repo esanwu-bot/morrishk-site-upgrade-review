@@ -1,4 +1,4 @@
-﻿<#
+<#
 Round 37 - Nginx routing / protection matrix.
 Records status codes and key response headers for the Nginx test instance.
 
@@ -57,4 +57,3 @@ curl.exe -s -D - -o NUL "$BaseUrl/download/24ggpujdNQulsi0_rNo5A4XM.txt" | Where
 
 Write-Output ''
 Write-Output 'DONE'
-

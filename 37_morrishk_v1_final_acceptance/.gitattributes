@@ -1,0 +1,5 @@
+# Captured command output is committed verbatim (LF, no CRLF rewriting),
+# so SHA256SUMS can be verified against the working tree as well as blobs.
+* -text
+# Raw evidence keeps the original trailing spaces produced by the tools.
+*.txt -whitespace
