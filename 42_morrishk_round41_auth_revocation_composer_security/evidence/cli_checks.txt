@@ -1,0 +1,4 @@
+bump_invalid_user                            fail_closed: yii\base\InvalidConfigException
+authkey_length                               64
+authkey_version_field                        1
+missing_column_check                         fail_closed: yii\base\InvalidConfigException

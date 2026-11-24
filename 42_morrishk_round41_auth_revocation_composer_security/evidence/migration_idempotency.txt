@@ -1,0 +1,7 @@
+# migration idempotency (morrishk_r39)
+COLUMN_NAME	COLUMN_TYPE	IS_NULLABLE	COLUMN_DEFAULT
+AuthKeyVersion	int	NO	0
+exit=0 (run 1)
+COLUMN_NAME	COLUMN_TYPE	IS_NULLABLE	COLUMN_DEFAULT
+AuthKeyVersion	int	NO	0
+exit=0 (run 2)

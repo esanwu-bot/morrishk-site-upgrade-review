@@ -1,0 +1,23 @@
+php.exe : ./composer.json has been updated
+所在位置 行:22 字符: 1
++ & $php $c require 'yiisoft/yii2-redis:2.0.20' --dry-run --no-interact ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (./composer.json has been updated:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+Running composer update yiisoft/yii2-redis
+Loading composer repositories with package information
+https://asset-packagist.org could not be fully loaded (curl error 28 while downloading https://asset-packagist.org/pack
+ages.json: Connection timed out after 10013 milliseconds), package information was loaded from the local cache and may
+be out of date
+Updating dependencies
+Your requirements could not be resolved to an installable set of packages.
+
+  Problem 1
+    - Root composer.json requires yiisoft/yii2-redis 2.0.20 (exact version match: 2.0.20 or 2.0.20.0), found yiisoft/yi
+i2-redis[dev-master, 2.0.0-alpha, ..., 2.0.x-dev (alias of dev-master), 22.x-dev] but it does not match the constraint.
+
+Use the option --with-all-dependencies (-W) to allow upgrades, downgrades and removals for packages currently locked to
+ specific versions.
+
+Installation failed, reverting ./composer.json and ./composer.lock to their original content.

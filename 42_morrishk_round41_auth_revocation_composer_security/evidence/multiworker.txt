@@ -1,0 +1,4 @@
+# multi-worker: identity-only cookie issued by 8099
+8099_identity_only=200
+8101_identity_only=200
+# session cookie also works on both workers

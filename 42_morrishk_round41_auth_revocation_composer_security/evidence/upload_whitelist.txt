@@ -1,0 +1,3 @@
+# upload whitelist after removing xls/xlsx
+r41.xlsx http=200 success=no validation_error=yes
+r41.pdf  http=200 success=yes

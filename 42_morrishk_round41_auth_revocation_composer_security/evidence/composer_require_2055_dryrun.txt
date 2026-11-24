@@ -1,0 +1,67 @@
+php.exe : ./composer.json has been updated
+所在位置 行:19 字符: 1
++ & 'D:\dev\php\php-8.5.13\php.exe' $c require 'yiisoft/yii2:2.0.55' -- ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (./composer.json has been updated:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+Running composer update yiisoft/yii2
+Loading composer repositories with package information
+https://asset-packagist.org could not be fully loaded (curl error 28 while downloading https://asset-packagist.org/pack
+ages.json: Connection timed out after 10010 milliseconds), package information was loaded from the local cache and may
+be out of date
+Updating dependencies
+Your requirements could not be resolved to an installable set of packages.
+
+  Problem 1
+    - Root composer.json requires yiisoft/yii2 2.0.55 (exact version match: 2.0.55 or 2.0.55.0), found yiisoft/yii2[dev
+-master, 2.0.0-alpha, ..., 2.2.x-dev, 3.0.x-dev, 22.0.x-dev] but it does not match the constraint.
+  Problem 2
+    - yiisoft/yii2-bootstrap is locked to version 2.0.11 and an update of this package was not requested.
+    - yiisoft/yii2-bootstrap 2.0.11 requires yiisoft/yii2 ~2.0.6 -> found yiisoft/yii2[2.0.6, ..., 2.0.53] but it confl
+icts with your root composer.json require (2.0.55).
+  Problem 3
+    - yiisoft/yii2-bootstrap4 is locked to version 2.0.10 and an update of this package was not requested.
+    - yiisoft/yii2-bootstrap4 2.0.10 requires yiisoft/yii2 ~2.0 -> found yiisoft/yii2[2.0.0, ..., 2.0.53] but it confli
+cts with your root composer.json require (2.0.55).
+  Problem 4
+    - yiisoft/yii2-swiftmailer is locked to version 2.1.3 and an update of this package was not requested.
+    - yiisoft/yii2-swiftmailer 2.1.3 requires yiisoft/yii2 >=2.0.4 -> found yiisoft/yii2[2.0.4, ..., 2.0.53] but it con
+flicts with your root composer.json require (2.0.55).
+  Problem 5
+    - yiisoft/yii2-redis is locked to version 2.0.17 and an update of this package was not requested.
+    - yiisoft/yii2-redis 2.0.17 requires yiisoft/yii2 ~2.0.39 -> found yiisoft/yii2[2.0.39, ..., 2.0.53] but it conflic
+ts with your root composer.json require (2.0.55).
+  Problem 6
+    - mihaildev/yii2-ckeditor is locked to version 1.0.1 and an update of this package was not requested.
+    - mihaildev/yii2-ckeditor 1.0.1 requires yiisoft/yii2 * -> found yiisoft/yii2[2.0.0, ..., 2.0.53] but it conflicts
+with your root composer.json require (2.0.55).
+  Problem 7
+    - yiisoft/yii2-imagine is locked to version 2.3.0 and an update of this package was not requested.
+    - yiisoft/yii2-imagine 2.3.0 requires yiisoft/yii2 ~2.0.0 -> found yiisoft/yii2[2.0.0, ..., 2.0.53] but it conflict
+s with your root composer.json require (2.0.55).
+  Problem 8
+    - yiisoft/yii2-elasticsearch is locked to version 2.0.7 and an update of this package was not requested.
+    - yiisoft/yii2-elasticsearch 2.0.7 requires yiisoft/yii2 ~2.0.14 -> found yiisoft/yii2[2.0.14, ..., 2.0.53] but it
+conflicts with your root composer.json require (2.0.55).
+  Problem 9
+    - moonlandsoft/yii2-phpexcel is locked to version 2.0.0 and an update of this package was not requested.
+    - moonlandsoft/yii2-phpexcel 2.0.0 requires yiisoft/yii2 * -> found yiisoft/yii2[2.0.0, ..., 2.0.53] but it conflic
+ts with your root composer.json require (2.0.55).
+  Problem 10
+    - yiisoft/yii2-debug is locked to version 2.1.18 and an update of this package was not requested.
+    - yiisoft/yii2-debug 2.1.18 requires yiisoft/yii2 ~2.0.13 -> found yiisoft/yii2[2.0.13, ..., 2.0.53] but it conflic
+ts with your root composer.json require (2.0.55).
+  Problem 11
+    - yiisoft/yii2-gii is locked to version 2.2.4 and an update of this package was not requested.
+    - yiisoft/yii2-gii 2.2.4 requires yiisoft/yii2 ~2.0.14 -> found yiisoft/yii2[2.0.14, ..., 2.0.53] but it conflicts
+with your root composer.json require (2.0.55).
+  Problem 12
+    - yiisoft/yii2-faker is locked to version 2.0.5 and an update of this package was not requested.
+    - yiisoft/yii2-faker 2.0.5 requires yiisoft/yii2 ~2.0.0 -> found yiisoft/yii2[2.0.0, ..., 2.0.53] but it conflicts
+with your root composer.json require (2.0.55).
+
+Use the option --with-all-dependencies (-W) to allow upgrades, downgrades and removals for packages currently locked to
+ specific versions.
+
+Installation failed, reverting ./composer.json and ./composer.lock to their original content.
