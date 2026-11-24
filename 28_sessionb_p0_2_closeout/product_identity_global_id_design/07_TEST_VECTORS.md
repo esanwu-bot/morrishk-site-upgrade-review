@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-007 |
-| 版本 | v2.9-R2.2.7 |
+| 版本 | v2.11-R2.2.8 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 性质 | 未来实现期测试设计；**本轮未执行**，不替代现有 83 项 Parser 测试 |
 | 关联 | `03_PRODUCT_IDENTITY_MODEL.md`、`04_GLOBAL_ID_REGISTRY.md`、`05_BACKWARD_COMPATIBILITY.md`、`06_API_AND_DATABASE_IMPACT.md`、`10_MORRISHK_FIRST_SCOPE_AND_DEFERRED.md` |
@@ -92,6 +92,7 @@
 | Alias 作用域并存与重叠（R2.2.3） | V-99/V-100 |
 | 旧两作用域审计拒绝（R2.2.3） | V-101 |
 | 无匹配导入结果语义（R2.2.4） | V-102 |
+| same key 指纹一致/冲突与原子回滚（R2.2.8） | V-103/V-104/V-105 |
 
 > **V-11 说明（R2.2.5）**：不再使用 `CREATED` 作为导入结果。已存在 CONFIRMED 产品时并发只允许 `MATCHED` 复用；无匹配时只允许写 `identity_pending`，结果使用 `PENDING_CREATED`/`PENDING_UPDATED`。不同 document/import 请求之间的 pending 去重规则尚未定义，标记为**待决**，不得假定并发请求必然合并为单条 pending。
 
@@ -104,6 +105,8 @@
 > 4. 同 Tenant、同 Site、不同 key、相同身份 → 不得自动合并；
 > 5. 同 key 重试 → 返回原 event/result/`pending_id` 或 `conflict_id`；
 > 6. 数据库唯一约束实际拒绝重复 `(tenant_id, site_id, idempotency_key)`。
+>
+> **same key 内容指纹（R2.2.8）**：首次请求保存 `request_fingerprint`（覆盖 `document_sha256`/`requested_mpn`/`brand_norm`/`normalizer_version`/`operation`）。同 key 指纹相同 → 返回原 event 结果；指纹不同 → `IDEMPOTENCY_CONFLICT`，原事件不变；不同 tenant/site 不冲突。
 
 ### 2.2 本轮 R2（Morrishk-first）新增向量 V-29…V-50
 
@@ -220,6 +223,16 @@
 | V-102 | 无匹配导入结果语义 | 普通导入无匹配产品 | 创建 `identity_pending(reason=PENDING_NEW_IDENTITY)`；`product_import_event.result='PENDING_CREATED'`；`global_product` 行数不变 | Repository + DB 断言 | 结果被误解为创建正式产品 |
 
 > V-95…V-102 共 8 个 R2.2.3/R2.2.4 向量，全部**未执行**，与 `01` §6.5.1、`02` §4.6、`03` §4.4、`04` §3/§3.3.1/§3.3.2/§3.3.3、`06` §8.1/§8.11/§8.12、`08` D-42/D-43/D-44/D-47/D-49、`10` §4（B-18…B-21）一致。
+
+### 2.8 R2.2.8 定点修订新增向量 V-103…V-105
+
+| # | 场景 | 输入 | 预期结果 | 校验方法 | 风险 |
+|---|---|---|---|---|---|
+| V-103 | same key、指纹相同 | 同 Tenant/Site/key，`request_fingerprint` 与首次一致 | 返回原 event `result`/`pending_id`/`conflict_id`；不新增 event/pending/conflict；不写 `global_product` | Repository + DB 断言 | 重复写入或返回不同结果 |
+| V-104 | same key、指纹不同 | 同 Tenant/Site/key，`request_fingerprint` 与首次不同 | 返回 `IDEMPOTENCY_CONFLICT`；原 event 不变；不新建 pending/conflict/`global_product` | Repository + DB 断言 | 覆盖原事件或二次业务写入 |
+| V-105 | 首次请求 pending/conflict 阶段故障 | 创建 pending/conflict 时人为失败 | 整个事务回滚；无半成品 event/pending/conflict；同 key 重试可正常完成 | 故障注入 + DB 断言 | 半成品记录或重试永久失败 |
+
+> V-103…V-105 共 3 个 R2.2.8 向量，全部**未执行**，与 `04` §3/§8、`06` §4/§6、`07` V-26 一致。
 
 ## 3. 测试分层（未来）
 

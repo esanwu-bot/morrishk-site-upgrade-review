@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-004 |
-| 版本 | v2.8-R2.2.7 |
+| 版本 | v2.9-R2.2.8 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | 无全局产品 ID/注册表；`product_id=prod-doc`；lake 仅 3 表 |
 | 相关决策 | D-05、D-06、D-10、D-21、D-22、D-23、D-31…D-34、D-41…D-49（见 `08_DECISION_REGISTER.md`） |
@@ -233,6 +233,8 @@ product_import_event   -- TENANT-scoped 导入事件
   site_id              NOT NULL
   document_id / run_id
   requested_by
+  request_fingerprint  首次请求内容指纹（canonical hash）
+  request_fields       指纹覆盖字段快照：document_sha256 / requested_mpn / brand_norm / normalizer_version / operation
   result               MATCHED / PENDING_CREATED / PENDING_UPDATED / CONFLICT / REJECTED
   -- MATCHED：命中已有 CONFIRMED 产品，仅建立关联
   -- PENDING_CREATED：无匹配，创建 identity_pending（不代表创建 global_product）
@@ -246,7 +248,8 @@ product_import_event   -- TENANT-scoped 导入事件
   created_at
   -- 请求幂等性权威：UNIQUE (tenant_id, site_id, idempotency_key)
   -- 不接受客户端自报 tenant_id/site_id；二者来自可信认证上下文
-  -- 内容指纹（document_sha256/requested_mpn/brand_norm/normalizer_version/operation）与幂等键是不同概念
+  -- same key 重试：request_fingerprint 相同返回原结果；不同返回 IDEMPOTENCY_CONFLICT，不覆盖原事件
+  -- 内容指纹与幂等键是不同概念，不得互相替代或用于自动合并不同 key
 
 audit_log              -- 三作用域审计：GLOBAL / TENANT / SITE
   audit_id
@@ -595,15 +598,48 @@ COMMIT   -- 任一步失败整体回滚
 
 ## 8. 并发与重复请求
 
-**请求幂等键（R2.2.7）：**
+**请求幂等键（R2.2.7 / R2.2.8）：**
 
 - `idempotency_key` 是**请求级不透明标识**，不是内容指纹；
 - 唯一作用域：`UNIQUE (tenant_id, site_id, idempotency_key)`；
 - `tenant_id`/`site_id` 来自可信服务端认证上下文，不接受客户端自报；
-- 内容指纹（`document_sha256`、`requested_mpn`、`brand_norm`、`normalizer_version`、`operation`）用于业务去重/审计，**不得**替代或混同请求幂等键；
-- 权威记录：`product_import_event`（`tenant_id, site_id, idempotency_key` 唯一）；`identity_pending`/`identity_conflict` 通过 `created_by_import_event_id`/`pending_id` 关联，不各自维护幂等键；
-- same key 重复/并发请求：唯一约束竞争，失败方读取已提交的权威 event，返回同一 `result`/`pending_id`/`conflict_id`；不得重复建 pending/conflict，不得创建 `global_product`；
+- 首次请求必须保存 `request_fingerprint`（canonical hash）与 `request_fields` 快照，至少覆盖 `document_sha256`、`requested_mpn`、`brand_norm`、`normalizer_version`、`operation`；
+- **same `(tenant, site, key)`**：
+  - `request_fingerprint` 相同 → 返回原 `product_import_event` 的 `result`/`pending_id`/`conflict_id`；不执行第二次业务写入；
+  - `request_fingerprint` 不同 → 返回 `IDEMPOTENCY_CONFLICT`；不覆盖原事件，不新建 pending/conflict/`global_product`；
+- **不同 Tenant 或不同 Site**：即使 key 与内容相同，也不构成幂等冲突；
+- 内容指纹只用于校验“同 key 重试是否为同一请求”，**不得**替代幂等键，也**不得**据此自动合并不同 key 的身份记录；
+- 权威记录：`product_import_event`；`identity_pending`/`identity_conflict` 通过 `created_by_import_event_id`/`pending_id` 关联，不各自维护幂等键；
 - different key：不得自动合并；跨 document/import 身份级去重**待决**；均不创建 `global_product`。
+
+**普通导入原子流程（R2.2.8）：**
+
+```text
+BEGIN
+  1. 从已验证认证上下文取得 tenant_id、site_id
+  2. INSERT product_import_event(idempotency_key, request_fingerprint, ...)
+     -- 依赖 UNIQUE (tenant_id, site_id, idempotency_key)
+  3. 若唯一冲突：
+       读取已提交 event（或等待并发事务提交）
+       比较 request_fingerprint
+         相同 -> COMMIT/返回原 result、pending_id、conflict_id
+         不同 -> 回滚并返回 IDEMPOTENCY_CONFLICT
+  4. 首次请求继续身份解析：
+       MATCHED  -> 回写 event.product_uid
+       PENDING  -> INSERT identity_pending(created_by_import_event_id=event.id)
+                   -> 回写 event.pending_id
+       CONFLICT -> 创建 pending/conflict，关联 event
+                   -> 回写 event.pending_id / conflict_id
+       REJECTED -> 记录拒绝结果
+  5. event、pending、conflict、关联与审计同一事务 COMMIT
+  6. 任一步失败 -> 整体 ROLLBACK，不留半成品 event/pending/conflict
+  7. 普通导入事务不得 INSERT/UPDATE global_product
+COMMIT
+```
+
+- 若实现采用延迟约束/独立事务表等不同机制，必须提供等价原子性保证（event 与 pending/conflict 要么同时可见，要么都不可见），不得只描述理想结果。
+- 并发 same key：唯一约束竞争；失败方等待/读取已提交权威 event 后按指纹分支返回；不得重复写入。
+- 重试：事务失败后可用同一 key 重试；若首次已提交则返回原结果，若首次回滚则可正常完成首次请求。
 
 **其他并发规则：**
 

@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-006 |
-| 版本 | v2.7-R2.2.7 |
+| 版本 | v2.8-R2.2.8 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 性质 | 影响分析；**不修改** OpenAPI、75 矩阵正式状态或数据库 |
 | 事实基线 | 契约候选 `CANDIDATE_NOT_FROZEN`；75 项 0/75 可执行；无 Business API 实现 |
@@ -87,7 +87,7 @@ get_lineage(product_uid)
 | `mpn_alias` / `mpn_profile` | alias_norm, brand_id, mpn_norm, scope, tenant_id?, is_current / profile_scope, status | `mpn_alias` 当前映射部分唯一：GLOBAL(`brand_id, alias_norm WHERE is_current`)、TENANT(`tenant_id, brand_id, alias_norm WHERE is_current`)；`brand_id NOT NULL`；历史行可多行；`mpn_profile` GLOBAL 无 tenant_id | 支撑身份 |
 | `tenant_assertion` / `global_adjudication` | submitted_by, tenant_approved_by, status / decided_by, approved_by, decision_status | `tenant_assertion` 仅 TENANT（Site-level）；`global_adjudication` 仅 GLOBAL 且无 tenant_id；决策与批准必须不同人 | 支撑治理 |
 | `global_product_alias` | alias_type, alias_value, product_uid | unique(alias_type, alias_value) | 兼容 |
-| `product_lineage` / `product_import_event` | event_id, from/to, type / tenant_id, site_id, idempotency_key, result | index(from/to); `UNIQUE (tenant_id, site_id, idempotency_key)`（请求幂等权威） | 审计/幂等 |
+| `product_lineage` / `product_import_event` | event_id, from/to, type / tenant_id, site_id, idempotency_key, request_fingerprint, result | index(from/to); `UNIQUE (tenant_id, site_id, idempotency_key)`（请求幂等权威）；同 key 指纹不同返回 `IDEMPOTENCY_CONFLICT` | 审计/幂等 |
 | `legacy_map` | legacy_product_id, product_uid, tenant_id, site_id | unique(legacy_product_id) | 兼容 |
 
 - 八类首期实体为 `tenant`、`site`、`oauth_client`、`global_product`、`tenant_product_access`、`tenant_document`、`tenant_evidence`、`audit_log`；其余为身份/兼容支撑表，见 `10` §3。
@@ -134,8 +134,9 @@ tenant_id / site_id (由 token 上下文注入，不信任客户端自报)
 ## 6. 审计、幂等与并发
 
 - 审计：身份创建/匹配/冲突/合并/拆分/别名/迁移/授权拒绝全部记录 actor/approved_by/time/tenant/site/evidence。
-- 幂等：`product_import_event` 为请求幂等权威，`UNIQUE (tenant_id, site_id, idempotency_key)`；同 key 重复/并发返回同一 event 结果（`result`/`pending_id`/`conflict_id`）。`identity_pending`/`identity_conflict` 不单独维护幂等键。
-- 并发：自然键部分唯一约束 + 事务 + 乐观锁；同 key 唯一约束竞争，失败方读取已提交权威结果；不创建重复 pending/conflict，不创建 `global_product`。
+- 幂等：`product_import_event` 为请求幂等权威，`UNIQUE (tenant_id, site_id, idempotency_key)`；首次请求保存 `request_fingerprint`（覆盖 `document_sha256`/`requested_mpn`/`brand_norm`/`normalizer_version`/`operation`）。同 key 指纹相同返回原 event 结果；指纹不同返回 `IDEMPOTENCY_CONFLICT`；不同 tenant/site 不构成冲突。`identity_pending`/`identity_conflict` 不单独维护幂等键。
+- 并发：自然键部分唯一约束 + 事务 + 乐观锁；同 key 唯一约束竞争，失败方读取已提交权威结果并按指纹分支；不创建重复 pending/conflict，不创建 `global_product`。
+- 原子性：event、pending/conflict、关联与审计在同一业务事务提交（或等价的延迟约束机制），失败整体回滚；普通导入事务不含 `global_product` 写入。详见 `04` §8。
 - 审计日志不得含 token/secret；只记录 ID/原因/证据引用。
 - 拒绝访问也必须审计（防止枚举探测）。
 
