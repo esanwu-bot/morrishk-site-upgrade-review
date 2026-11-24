@@ -1,0 +1,369 @@
+﻿php.exe : Loading composer repositories with package information
+所在位置 行:17 字符: 1
++ & $php $c update yiisoft/yii2 egulias/email-validator codeception/cod ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Loading compose...age information:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Updating dependencies
+Lock file operations: 10 installs, 58 updates, 13 removals
+  - Removing codeception/phpunit-wrapper (8.1.4)
+  - Removing codeception/specify (0.4.6)
+  - Removing doctrine/instantiator (1.4.0)
+  - Removing phpdocumentor/reflection-common (2.2.0)
+  - Removing phpdocumentor/reflection-docblock (5.3.0)
+  - Removing phpdocumentor/type-resolver (1.6.0)
+  - Removing phpspec/prophecy (v1.15.0)
+  - Removing phpunit/php-token-stream (3.1.3)
+  - Removing sebastian/resource-operations (2.0.2)
+  - Removing symfony/polyfill-php72 (v1.24.0)
+  - Removing symfony/polyfill-php73 (v1.24.0)
+  - Removing symfony/polyfill-php80 (v1.24.0)
+  - Removing webmozart/assert (1.10.0)
+  - Upgrading behat/gherkin (v4.9.0 => v4.16.0)
+  - Upgrading bower-asset/inputmask (3.3.11 => 5.0.10)
+  - Upgrading bower-asset/jquery (3.6.0 => 3.7.1)
+  - Upgrading bower-asset/punycode (v1.3.2 => v1.4.1)
+  - Upgrading bower-asset/yii2-pjax (2.0.7.1 => 2.0.9)
+  - Upgrading codeception/codeception (4.1.29 => 5.3.1)
+  - Upgrading codeception/lib-asserts (1.13.2 => 2.2.0)
+  - Upgrading codeception/lib-innerbrowser (1.5.1 => 4.0.7)
+  - Locking codeception/lib-web (1.0.7)
+  - Upgrading codeception/module-asserts (1.3.1 => 3.2.1)
+  - Upgrading codeception/module-filesystem (1.0.3 => 3.0.2)
+  - Upgrading codeception/module-yii2 (1.1.5 => v2.0.3)
+  - Upgrading codeception/stub (3.7.0 => 4.2.1)
+  - Upgrading codeception/verify (1.1.0 => 3.2.0)
+  - Locking doctrine/deprecations (1.1.4)
+  - Upgrading doctrine/lexer (1.2.2 => 2.1.1)
+  - Upgrading egulias/email-validator (3.1.2 => 3.2.6)
+  - Upgrading ezyang/htmlpurifier (v4.14.0 => v4.19.0)
+  - Upgrading guzzlehttp/psr7 (2.1.0 => 2.8.0)
+  - Locking masterminds/html5 (2.8.1)
+  - Upgrading myclabs/deep-copy (1.10.2 => 1.13.3)
+  - Locking nikic/php-parser (v5.7.0)
+  - Upgrading phar-io/version (3.1.1 => 3.2.1)
+  - Upgrading phpunit/php-code-coverage (7.0.15 => 11.0.5)
+  - Upgrading phpunit/php-file-iterator (2.0.5 => 5.1.0)
+  - Locking phpunit/php-invoker (5.0.0)
+  - Upgrading phpunit/php-text-template (1.2.1 => 4.0.1)
+  - Upgrading phpunit/php-timer (2.1.3 => 7.0.1)
+  - Upgrading phpunit/phpunit (8.5.23 => 11.2.6)
+  - Upgrading psr/container (2.0.1 => 2.0.2)
+  - Upgrading psr/http-factory (1.0.1 => 1.0.2)
+  - Upgrading psr/http-message (1.0.1 => 1.1)
+  - Locking psy/psysh (v0.12.15)
+  - Locking sebastian/cli-parser (3.0.2)
+  - Locking sebastian/code-unit (3.0.3)
+  - Upgrading sebastian/code-unit-reverse-lookup (1.0.2 => 4.0.1)
+  - Upgrading sebastian/comparator (3.0.3 => 6.3.1)
+  - Locking sebastian/complexity (4.0.1)
+  - Upgrading sebastian/diff (3.0.3 => 6.0.2)
+  - Upgrading sebastian/environment (4.2.4 => 7.2.1)
+  - Upgrading sebastian/exporter (3.1.4 => 6.3.2)
+  - Upgrading sebastian/global-state (3.0.2 => 7.0.2)
+  - Locking sebastian/lines-of-code (3.0.0)
+  - Upgrading sebastian/object-enumerator (3.0.4 => 6.0.1)
+  - Upgrading sebastian/object-reflector (1.1.2 => 4.0.1)
+  - Upgrading sebastian/recursion-context (3.0.1 => 6.0.2)
+  - Upgrading sebastian/type (1.1.4 => 5.1.2)
+  - Upgrading sebastian/version (2.0.1 => 5.0.2)
+  - Upgrading symfony/browser-kit (v4.2.4 => v7.4.0)
+  - Upgrading symfony/console (v5.4.3 => v7.4.1)
+  - Upgrading symfony/css-selector (v5.4.3 => v7.4.0)
+  - Upgrading symfony/deprecation-contracts (v2.5.0 => v3.6.0)
+  - Upgrading symfony/dom-crawler (v4.4.37 => v7.4.1)
+  - Upgrading symfony/event-dispatcher (v5.4.3 => v7.4.0)
+  - Upgrading symfony/event-dispatcher-contracts (v2.5.0 => v3.6.0)
+  - Upgrading symfony/finder (v5.4.3 => v7.4.0)
+  - Upgrading symfony/polyfill-ctype (v1.24.0 => v1.32.0)
+  - Upgrading symfony/polyfill-intl-grapheme (v1.24.0 => v1.33.0)
+  - Upgrading symfony/polyfill-intl-idn (v1.24.0 => v1.32.0)
+  - Upgrading symfony/polyfill-intl-normalizer (v1.24.0 => v1.32.0)
+  - Upgrading symfony/polyfill-mbstring (v1.24.0 => v1.32.0)
+  - Upgrading symfony/service-contracts (v1.1.2 => v3.6.1)
+  - Upgrading symfony/string (v5.4.3 => v8.0.1)
+  - Upgrading symfony/var-dumper (v5.4.3 => v6.4.21)
+  - Upgrading symfony/yaml (v5.4.3 => v7.4.1)
+  - Upgrading theseer/tokenizer (1.2.1 => 1.3.1)
+  - Upgrading yiisoft/yii2 (2.0.44 => 2.0.53)
+  - Upgrading yiisoft/yii2-composer (2.0.10 => 2.0.11)
+Writing lock file
+Installing dependencies from lock file (including require-dev)
+Package operations: 128 installs, 0 updates, 0 removals
+  - Downloading yiisoft/yii2-composer (2.0.11)
+  - Downloading behat/gherkin (v4.16.0)
+  - Downloading bower-asset/jquery (3.7.1)
+  - Downloading bower-asset/inputmask (5.0.10)
+  - Downloading bower-asset/punycode (v1.4.1)
+  - Downloading bower-asset/yii2-pjax (2.0.9)
+  - Downloading cebe/markdown (1.2.1)
+  - Downloading symfony/css-selector (v7.4.0)
+  - Downloading sebastian/version (5.0.2)
+  - Downloading sebastian/type (5.1.2)
+  - Downloading sebastian/recursion-context (6.0.2)
+  - Downloading sebastian/object-reflector (4.0.1)
+  - Downloading sebastian/object-enumerator (6.0.1)
+  - Downloading sebastian/global-state (7.0.2)
+  - Downloading sebastian/exporter (6.3.2)
+  - Downloading sebastian/environment (7.2.1)
+  - Downloading sebastian/diff (6.0.2)
+  - Downloading sebastian/comparator (6.3.1)
+  - Downloading sebastian/code-unit (3.0.3)
+  - Downloading sebastian/cli-parser (3.0.2)
+  - Downloading phpunit/php-timer (7.0.1)
+  - Downloading phpunit/php-text-template (4.0.1)
+  - Downloading phpunit/php-invoker (5.0.0)
+  - Downloading phpunit/php-file-iterator (5.1.0)
+  - Downloading theseer/tokenizer (1.3.1)
+  - Downloading symfony/polyfill-ctype (v1.32.0)
+  - Downloading nikic/php-parser (v5.7.0)
+  - Downloading sebastian/lines-of-code (3.0.0)
+  - Downloading sebastian/complexity (4.0.1)
+  - Downloading sebastian/code-unit-reverse-lookup (4.0.1)
+  - Downloading phpunit/php-code-coverage (11.0.5)
+  - Downloading phar-io/version (3.2.1)
+  - Downloading phar-io/manifest (2.0.3)
+  - Downloading myclabs/deep-copy (1.13.3)
+  - Downloading phpunit/phpunit (11.2.6)
+  - Downloading codeception/lib-web (1.0.7)
+  - Downloading symfony/deprecation-contracts (v3.6.0)
+  - Downloading symfony/yaml (v7.4.1)
+  - Downloading symfony/var-dumper (v6.4.21)
+  - Downloading symfony/finder (v7.4.0)
+  - Downloading symfony/event-dispatcher-contracts (v3.6.0)
+  - Downloading symfony/event-dispatcher (v7.4.0)
+  - Downloading symfony/polyfill-intl-normalizer (v1.32.0)
+  - Downloading symfony/polyfill-intl-grapheme (v1.33.0)
+  - Downloading symfony/string (v8.0.1)
+  - Downloading psr/container (2.0.2)
+  - Downloading symfony/service-contracts (v3.6.1)
+  - Downloading symfony/console (v7.4.1)
+  - Downloading psy/psysh (v0.12.15)
+  - Downloading codeception/stub (4.2.1)
+  - Downloading codeception/lib-asserts (2.2.0)
+  - Downloading codeception/codeception (5.3.1)
+  - Downloading codeception/module-asserts (3.2.1)
+  - Downloading codeception/module-filesystem (3.0.2)
+  - Downloading masterminds/html5 (2.8.1)
+  - Downloading symfony/dom-crawler (v7.4.1)
+  - Downloading symfony/browser-kit (v7.4.0)
+  - Downloading codeception/lib-innerbrowser (4.0.7)
+  - Downloading codeception/module-yii2 (v2.0.3)
+  - Downloading codeception/verify (3.2.0)
+  - Downloading doctrine/deprecations (1.1.4)
+  - Downloading symfony/polyfill-intl-idn (v1.32.0)
+  - Downloading doctrine/lexer (2.1.1)
+  - Downloading egulias/email-validator (3.2.6)
+  - Downloading paragonie/random_compat (v9.99.100)
+  - Downloading ezyang/htmlpurifier (v4.19.0)
+  - Downloading yiisoft/yii2 (2.0.53)
+  - Downloading opis/closure (3.6.3)
+  - Downloading yiisoft/yii2-debug (2.1.18)
+  - Downloading fakerphp/faker (v1.19.0)
+  - Downloading yiisoft/yii2-faker (2.0.5)
+  - Downloading phpspec/php-diff (v1.1.3)
+  - Downloading yiisoft/yii2-gii (2.2.4)
+    Failed downloading yiisoft/yii2-composer, trying the next URL (404: The "https://mirrors.aliyun.com/composer/dists/
+yiisoft/yii2-composer/b684b01ecb119c8287721def726a0e24fec2fef2.zip" file could not be downloaded (HTTP/2 404 ))
+  - Downloading yiisoft/yii2-composer (2.0.11)
+    Failed downloading behat/gherkin, trying the next URL (404: The "https://mirrors.aliyun.com/composer/dists/behat/gh
+erkin/78e7755170981231012414a4ff58ebbbc3c62305.zip" file could not be downloaded (HTTP/2 404 ))
+  - Downloading behat/gherkin (v4.16.0)
+    Failed downloading sebastian/type, trying the next URL (404: The "https://mirrors.aliyun.com/composer/dists/sebasti
+an/type/a8a7e30534b0eb0c77cd9d07e82de1a114389f5e.zip" file could not be downloaded (HTTP/2 404 ))
+  - Downloading sebastian/type (5.1.2)
+    Failed downloading sebastian/exporter, trying the next URL (404: The "https://mirrors.aliyun.com/composer/dists/seb
+astian/exporter/70a298763b40b213ec087c51c739efcaa90bcd74.zip" file could not be downloaded (HTTP/2 404 ))
+  - Downloading sebastian/exporter (6.3.2)
+    Failed downloading sebastian/environment, trying the next URL (404: The "https://mirrors.aliyun.com/composer/dists/
+sebastian/environment/a5c75038693ad2e8d4b6c15ba2403532647830c4.zip" file could not be downloaded (HTTP/2 404 ))
+  - Downloading sebastian/environment (7.2.1)
+    Failed downloading sebastian/comparator, trying the next URL (404: The "https://mirrors.aliyun.com/composer/dists/s
+ebastian/comparator/24b8fbc2c8e201bb1308e7b05148d6ab393b6959.zip" file could not be downloaded (HTTP/2 404 ))
+  - Downloading sebastian/comparator (6.3.1)
+    Failed downloading sebastian/code-unit, trying the next URL (404: The "https://mirrors.aliyun.com/composer/dists/se
+bastian/code-unit/54391c61e4af8078e5b276ab082b6d3c54c9ad64.zip" file could not be downloaded (HTTP/2 404 ))
+  - Downloading sebastian/code-unit (3.0.3)
+    Failed downloading theseer/tokenizer, trying the next URL (404: The "https://mirrors.aliyun.com/composer/dists/thes
+eer/tokenizer/b7489ce515e168639d17feec34b8847c326b0b3c.zip" file could not be downloaded (HTTP/2 404 ))
+    Failed downloading myclabs/deep-copy, trying the next URL (404: The "https://mirrors.aliyun.com/composer/dists/mycl
+abs/deep-copy/faed855a7b5f4d4637717c2b3863e277116beb36.zip" file could not be downloaded (HTTP/2 404 ))
+  - Downloading myclabs/deep-copy (1.13.3)
+    Failed downloading codeception/lib-web, trying the next URL (404: The "https://mirrors.aliyun.com/composer/dists/co
+deception/lib-web/1444ccc9b1d6721f3ced8703c8f4a9041b80df93.zip" file could not be downloaded (HTTP/2 404 ))
+  - Downloading codeception/lib-web (1.0.7)
+    Failed downloading symfony/yaml, trying the next URL (404: The "https://mirrors.aliyun.com/composer/dists/symfony/y
+aml/24dd4de28d2e3988b311751ac49e684d783e2345.zip" file could not be downloaded (HTTP/2 404 ))
+  - Downloading symfony/yaml (v7.4.1)
+    Failed downloading symfony/var-dumper, trying the next URL (404: The "https://mirrors.aliyun.com/composer/dists/sym
+fony/var-dumper/22560f80c0c5cd58cc0bcaf73455ffd81eb380d5.zip" file could not be downloaded (HTTP/2 404 ))
+  - Downloading symfony/var-dumper (v6.4.21)
+    Failed downloading psy/psysh, trying the next URL (404: The "https://mirrors.aliyun.com/composer/dists/psy/psysh/38
+953bc71491c838fcb6ebcbdc41ab7483cd549c.zip" file could not be downloaded (HTTP/2 404 ))
+  - Downloading psy/psysh (v0.12.15)
+    Failed downloading codeception/stub, trying the next URL (404: The "https://mirrors.aliyun.com/composer/dists/codec
+eption/stub/0c573cd5c62a828dadadc41bc56f8434860bb7bb.zip" file could not be downloaded (HTTP/2 404 ))
+  - Downloading codeception/stub (4.2.1)
+    Failed downloading codeception/lib-asserts, trying the next URL (404: The "https://mirrors.aliyun.com/composer/dist
+s/codeception/lib-asserts/06750a60af3ebc66faab4313981accec1be4eefc.zip" file could not be downloaded (HTTP/2 404 ))
+  - Downloading codeception/lib-asserts (2.2.0)
+    Failed downloading codeception/codeception, trying the next URL (404: The "https://mirrors.aliyun.com/composer/dist
+s/codeception/codeception/4ac6b4fb10db02c5a43b4afbeb665a0e33fbcfde.zip" file could not be downloaded (HTTP/2 404 ))
+  - Downloading codeception/codeception (5.3.1)
+    Failed downloading codeception/module-filesystem, trying the next URL (404: The "https://mirrors.aliyun.com/compose
+r/dists/codeception/module-filesystem/2a81b5534a6679b4f17256f8275ca0048add6ef8.zip" file could not be downloaded (HTTP/
+2 404 ))
+  - Downloading codeception/module-filesystem (3.0.2)
+    Failed downloading codeception/module-asserts, trying the next URL (404: The "https://mirrors.aliyun.com/composer/d
+ists/codeception/module-asserts/8acceb7915a9645230bde14c305c5652d5b229db.zip" file could not be downloaded (HTTP/2 404 
+))
+  - Downloading codeception/module-asserts (3.2.1)
+    Failed downloading codeception/lib-innerbrowser, trying the next URL (404: The "https://mirrors.aliyun.com/composer
+/dists/codeception/lib-innerbrowser/cf2ddaae5e07eb3cceb504d93bd95f4a2d892dab.zip" file could not be downloaded (HTTP/2 
+404 ))
+  - Downloading codeception/lib-innerbrowser (4.0.7)
+    Failed downloading codeception/module-yii2, trying the next URL (404: The "https://mirrors.aliyun.com/composer/dist
+s/codeception/module-yii2/956c3bb9099dfc4372dd561867e77d8532b2a2ff.zip" file could not be downloaded (HTTP/2 404 ))
+  - Downloading codeception/module-yii2 (v2.0.3)
+    Failed downloading ezyang/htmlpurifier, trying the next URL (404: The "https://mirrors.aliyun.com/composer/dists/ez
+yang/htmlpurifier/b287d2a16aceffbf6e0295559b39662612b77fcf.zip" file could not be downloaded (HTTP/2 404 ))
+  - Downloading ezyang/htmlpurifier (v4.19.0)
+    Failed downloading yiisoft/yii2, trying the next URL (404: The "https://mirrors.aliyun.com/composer/dists/yiisoft/y
+ii2/6c622fb8243181d7912b62ad80821cc0e1c745db.zip" file could not be downloaded (HTTP/2 404 ))
+  - Downloading yiisoft/yii2 (2.0.53)
+  - Installing yiisoft/yii2-composer (2.0.11): Extracting archive
+  - Installing behat/gherkin (v4.16.0): Extracting archive
+  - Installing bower-asset/jquery (3.7.1): Extracting archive
+  - Installing bower-asset/inputmask (5.0.10): Extracting archive
+  - Installing bower-asset/punycode (v1.4.1): Extracting archive
+  - Installing bower-asset/yii2-pjax (2.0.9): Extracting archive
+  - Installing psr/simple-cache (1.0.1): Extracting archive
+  - Installing psr/cache (1.0.1): Extracting archive
+  - Installing league/mime-type-detection (1.9.0): Extracting archive
+  - Installing league/flysystem (1.1.9): Extracting archive
+  - Installing psr/log (1.1.4): Extracting archive
+  - Installing cache/tag-interop (1.1.0): Extracting archive
+  - Installing cache/adapter-common (1.2.0): Extracting archive
+  - Installing cache/filesystem-adapter (1.1.0): Extracting archive
+  - Installing cebe/markdown (1.2.1): Extracting archive
+  - Installing symfony/css-selector (v7.4.0): Extracting archive
+  - Installing sebastian/version (5.0.2): Extracting archive
+  - Installing sebastian/type (5.1.2): Extracting archive
+  - Installing sebastian/recursion-context (6.0.2): Extracting archive
+  - Installing sebastian/object-reflector (4.0.1): Extracting archive
+  - Installing sebastian/object-enumerator (6.0.1): Extracting archive
+  - Installing sebastian/global-state (7.0.2): Extracting archive
+  - Installing symfony/polyfill-iconv (v1.24.0): Extracting archive
+  - Installing symfony/polyfill-mbstring (v1.32.0): Extracting archive
+  - Installing sebastian/exporter (6.3.2): Extracting archive
+  - Installing sebastian/environment (7.2.1): Extracting archive
+  - Installing sebastian/diff (6.0.2): Extracting archive
+  - Installing sebastian/comparator (6.3.1): Extracting archive
+  - Installing sebastian/code-unit (3.0.3): Extracting archive
+  - Installing sebastian/cli-parser (3.0.2): Extracting archive
+  - Installing phpunit/php-timer (7.0.1): Extracting archive
+  - Installing phpunit/php-text-template (4.0.1): Extracting archive
+  - Installing phpunit/php-invoker (5.0.0): Extracting archive
+  - Installing phpunit/php-file-iterator (5.1.0): Extracting archive
+  - Installing theseer/tokenizer (1.3.1): Extracting archive
+  - Installing symfony/polyfill-ctype (v1.32.0): Extracting archive
+  - Installing nikic/php-parser (v5.7.0): Extracting archive
+  - Installing sebastian/lines-of-code (3.0.0): Extracting archive
+  - Installing sebastian/complexity (4.0.1): Extracting archive
+  - Installing sebastian/code-unit-reverse-lookup (4.0.1): Extracting archive
+  - Installing phpunit/php-code-coverage (11.0.5): Extracting archive
+  - Installing phar-io/version (3.2.1): Extracting archive
+  - Installing phar-io/manifest (2.0.3): Extracting archive
+  - Installing myclabs/deep-copy (1.13.3): Extracting archive
+  - Installing phpunit/phpunit (11.2.6): Extracting archive
+  - Installing ralouphie/getallheaders (3.0.3): Extracting archive
+  - Installing psr/http-message (1.1): Extracting archive
+  - Installing psr/http-factory (1.0.2): Extracting archive
+  - Installing guzzlehttp/psr7 (2.8.0): Extracting archive
+  - Installing codeception/lib-web (1.0.7): Extracting archive
+  - Installing symfony/deprecation-contracts (v3.6.0): Extracting archive
+  - Installing symfony/yaml (v7.4.1): Extracting archive
+  - Installing symfony/var-dumper (v6.4.21): Extracting archive
+  - Installing symfony/finder (v7.4.0): Extracting archive
+  - Installing psr/event-dispatcher (1.0.0): Extracting archive
+  - Installing symfony/event-dispatcher-contracts (v3.6.0): Extracting archive
+  - Installing symfony/event-dispatcher (v7.4.0): Extracting archive
+  - Installing symfony/polyfill-intl-normalizer (v1.32.0): Extracting archive
+  - Installing symfony/polyfill-intl-grapheme (v1.33.0): Extracting archive
+  - Installing symfony/string (v8.0.1): Extracting archive
+  - Installing psr/container (2.0.2): Extracting archive
+  - Installing symfony/service-contracts (v3.6.1): Extracting archive
+  - Installing symfony/console (v7.4.1): Extracting archive
+  - Installing psy/psysh (v0.12.15): Extracting archive
+  - Installing codeception/stub (4.2.1): Extracting archive
+  - Installing codeception/lib-asserts (2.2.0): Extracting archive
+  - Installing codeception/codeception (5.3.1): Extracting archive
+  - Installing codeception/module-asserts (3.2.1): Extracting archive
+  - Installing codeception/module-filesystem (3.0.2): Extracting archive
+  - Installing masterminds/html5 (2.8.1): Extracting archive
+  - Installing symfony/dom-crawler (v7.4.1): Extracting archive
+  - Installing symfony/browser-kit (v7.4.0): Extracting archive
+  - Installing codeception/lib-innerbrowser (4.0.7): Extracting archive
+  - Installing codeception/module-yii2 (v2.0.3): Extracting archive
+  - Installing codeception/verify (3.2.0): Extracting archive
+  - Installing doctrine/deprecations (1.1.4): Extracting archive
+  - Installing symfony/polyfill-intl-idn (v1.32.0): Extracting archive
+  - Installing doctrine/lexer (2.1.1): Extracting archive
+  - Installing egulias/email-validator (3.2.6): Extracting archive
+  - Installing paragonie/random_compat (v9.99.100): Extracting archive
+  - Installing paragonie/constant_time_encoding (v2.7.0): Extracting archive
+  - Installing phpseclib/phpseclib (3.0.37): Extracting archive
+  - Installing monolog/monolog (2.9.3): Extracting archive
+  - Installing psr/http-client (1.0.1): Extracting archive
+  - Installing guzzlehttp/promises (1.5.1): Extracting archive
+  - Installing guzzlehttp/guzzle (7.4.1): Extracting archive
+  - Installing firebase/php-jwt (v5.5.1): Extracting archive
+  - Installing google/auth (v1.26.0): Extracting archive
+  - Installing google/apiclient-services (v0.355.0): Extracting archive
+  - Installing google/apiclient (v2.12.1): Extracting archive
+  - Installing tightenco/collect (8.78.0): Extracting archive
+  - Installing jaeger/phpquery-single (1.0.1): Extracting archive
+  - Installing jaeger/g-http (V1.7.2): Extracting archive
+  - Installing jaeger/querylist (V4.2.8): Extracting archive
+  - Installing jaeger/querylist-rule-google (4.0.0): Extracting archive
+  - Installing kartik-v/yii2-krajee-base (v3.0.2): Extracting archive
+  - Installing kartik-v/yii2-bootstrap4-dropdown (dev-master b65783f): Extracting archive
+  - Installing kartik-v/yii2-widget-activeform (v1.6.0): Extracting archive
+  - Installing kartik-v/bootstrap-popover-x (v1.5.1): Extracting archive
+  - Installing kartik-v/yii2-popover-x (v1.3.5): Extracting archive
+  - Installing kartik-v/yii2-editable (v1.7.9): Extracting archive
+  - Installing kartik-v/yii2-dialog (v1.0.6): Extracting archive
+  - Installing kartik-v/yii2-grid (dev-master 09f8e76): Extracting archive
+  - Installing ezyang/htmlpurifier (v4.19.0): Extracting archive
+  - Installing yiisoft/yii2 (2.0.53): Extracting archive
+  - Installing mihaildev/yii2-ckeditor (1.0.1): Extracting archive
+  - Installing markbaker/matrix (3.0.0): Extracting archive
+  - Installing markbaker/complex (3.0.1): Extracting archive
+  - Installing myclabs/php-enum (1.7.7): Extracting archive
+  - Installing maennchen/zipstream-php (2.1.0): Extracting archive
+  - Installing phpoffice/phpspreadsheet (1.19.0): Extracting archive
+  - Installing moonlandsoft/yii2-phpexcel (2.0.0): Extracting archive
+  - Installing bower-asset/bootstrap (v3.4.1): Extracting archive
+  - Installing yiisoft/yii2-bootstrap (2.0.11): Extracting archive
+  - Installing npm-asset/bootstrap (4.6.0): Extracting archive
+  - Installing yiisoft/yii2-bootstrap4 (2.0.10): Extracting archive
+  - Installing opis/closure (3.6.3): Extracting archive
+  - Installing yiisoft/yii2-debug (2.1.18): Extracting archive
+  - Installing yiisoft/yii2-elasticsearch (2.0.7): Extracting archive
+  - Installing fakerphp/faker (v1.19.0): Extracting archive
+  - Installing yiisoft/yii2-faker (2.0.5): Extracting archive
+  - Installing phpspec/php-diff (v1.1.3): Extracting archive
+  - Installing yiisoft/yii2-gii (2.2.4): Extracting archive
+  - Installing imagine/imagine (1.2.4): Extracting archive
+  - Installing yiisoft/yii2-imagine (2.3.0): Extracting archive
+  - Installing yiisoft/yii2-redis (2.0.17): Extracting archive
+  - Installing swiftmailer/swiftmailer (v6.3.0): Extracting archive
+  - Installing yiisoft/yii2-swiftmailer (2.1.3): Extracting archive
+4 package suggestions were added by new dependencies, use `composer suggest` to see details.
+Package swiftmailer/swiftmailer is abandoned, you should avoid using it. Use symfony/mailer instead.
+Generating autoload files
+70 packages you are using are looking for funding.
+Use the `composer fund` command to find out more!
+Found 26 security vulnerability advisories affecting 4 packages.
+Run "composer audit" for a full list of advisories.

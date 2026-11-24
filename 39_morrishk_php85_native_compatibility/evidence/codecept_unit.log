@@ -1,0 +1,11 @@
+﻿Codeception PHP Testing Framework v5.3.1 https://stand-with-ukraine.pp.ua
+
+Tests.Unit Tests (2) ---------------------------------------------------------------------------------------------------
+- MockInquirySenderTest: Send writes local files only
++ MockInquirySenderTest: Send writes local files only (1.57s)
+- MockInquirySenderTest: Send does not instantiate mailer
++ MockInquirySenderTest: Send does not instantiate mailer (0.01s)
+------------------------------------------------------------------------------------------------------------------------
+Time: 00:09.628, Memory: 6.00 MB
+
+OK (2 tests, 6 assertions)

@@ -1,0 +1,14 @@
+﻿# Round 39 native route matrix (env-only entry, no overrides)
+/                                                    200 38032
+/products.html                                       200 30577
+/products/39000001/r39-test-part.html                200 55534
+/big-categories/c-3901-3902/r39-test-big.html        200 33039
+/shopping-cart.html                                  200 50920
+/search.html?keyword=R39                             302 0
+/sitemap.xml                                         200 478
+/robots.txt                                          200 596
+/nonexistent-page.html                               404 754
+/download/7Zvlakqg2a0_ZZ_lNcoBUV8A.pdf               403 754
+/download/AAAAAAAAAAAAAAAA.pdf                       404 754
+/download/..%2F..%2Fconfig%2Fdb.php                  404 754
+# CSRF missing -> 400; PDP inquiry -> 302/200 + snsii_cart row; upload pdf ok; exe/6MB rejected; 403/404/500 pages checked

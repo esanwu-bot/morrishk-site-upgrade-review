@@ -1,0 +1,223 @@
+﻿== tables ==
++---------------------------+--------+--------------------+------------+---------+--------+
+| TABLE_NAME                | ENGINE | TABLE_COLLATION    | TABLE_ROWS | data_mb | idx_mb |
++---------------------------+--------+--------------------+------------+---------+--------+
+| snsii_ad                  | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_attr_name           | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_attr_name_lang      | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_cart                | MyISAM | utf8mb3_general_ci |          2 |    0.00 |   0.00 |
+| snsii_cf_dns              | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_cf_domain           | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_cf_logs             | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_contact             | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_info                | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_info_category       | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_language            | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_manage              | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_map                 | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_nav                 | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_news                | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_news_category       | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_news_tags           | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_news_tags_ids       | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_product             | MyISAM | utf8mb3_general_ci |          1 |    0.00 |   0.01 |
+| snsii_product_cache       | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_product_cache_copy1 | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_product_category    | MyISAM | utf8mb3_general_ci |          2 |    0.00 |   0.01 |
+| snsii_product_hot         | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_product_search      | MyISAM | utf8mb3_general_ci |          1 |    0.00 |   0.01 |
+| snsii_product_so          | InnoDB | utf8mb3_general_ci |          0 |    0.02 |   0.02 |
+| snsii_product_stock       | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_product_time        | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_product_time_list   | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_product_time_temp   | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
+| snsii_supplier            | MyISAM | utf8mb3_general_ci |          1 |    0.00 |   0.00 |
+| snsii_track_order         | MyISAM | utf8mb3_general_ci |          0 |    0.00 |   0.00 |
++---------------------------+--------+--------------------+------------+---------+--------+
+== not null without default ==
++-------------------------+-------------+---------------+
+| TABLE_NAME              | COLUMN_NAME | COLUMN_TYPE   |
++-------------------------+-------------+---------------+
+| snsii_ad                | Name        | varchar(200)  |
+| snsii_ad                | Image       | varchar(200)  |
+| snsii_ad                | Links       | varchar(200)  |
+| snsii_ad                | OrderBy     | int           |
+| snsii_ad                | Status      | tinyint(1)    |
+| snsii_attr_name         | Name        | varchar(100)  |
+| snsii_attr_name         | EName       | varchar(100)  |
+| snsii_attr_name         | Value       | varchar(50)   |
+| snsii_attr_name         | Md5         | char(32)      |
+| snsii_attr_name_lang    | Name        | varchar(100)  |
+| snsii_attr_name_lang    | Md5         | char(32)      |
+| snsii_attr_name_lang    | Lang        | char(5)       |
+| snsii_cart              | AddDate     | date          |
+| snsii_cart              | Contact     | varchar(50)   |
+| snsii_cart              | Phone       | varchar(20)   |
+| snsii_cart              | Email       | varchar(50)   |
+| snsii_cart              | Files       | varchar(200)  |
+| snsii_cart              | IP          | varchar(20)   |
+| snsii_cart              | Url         | varchar(200)  |
+| snsii_cf_dns            | DnsId       | char(50)      |
+| snsii_cf_dns            | Did         | char(50)      |
+| snsii_cf_dns            | Name        | varchar(100)  |
+| snsii_cf_dns            | Type        | char(50)      |
+| snsii_cf_dns            | Content     | varchar(500)  |
+| snsii_cf_dns            | View        | int           |
+| snsii_cf_dns            | UserName    | char(20)      |
+| snsii_cf_domain         | Did         | char(50)      |
+| snsii_cf_domain         | Name        | varchar(100)  |
+| snsii_cf_domain         | Status      | char(20)      |
+| snsii_cf_domain         | View        | int           |
+| snsii_cf_domain         | UserName    | char(20)      |
+| snsii_cf_domain         | NameServers | varchar(100)  |
+| snsii_cf_logs           | Name        | varchar(50)   |
+| snsii_cf_logs           | Number      | int           |
+| snsii_cf_logs           | AddTime     | date          |
+| snsii_contact           | UserName    | varchar(50)   |
+| snsii_contact           | Phone       | varchar(20)   |
+| snsii_contact           | Message     | text          |
+| snsii_contact           | Url         | varchar(100)  |
+| snsii_contact           | AddTime     | int           |
+| snsii_contact           | Status      | tinyint(1)    |
+| snsii_info              | Title       | varchar(200)  |
+| snsii_info              | Links       | varchar(120)  |
+| snsii_info_category     | Name        | varchar(100)  |
+| snsii_info_category     | Links       | char(100)     |
+| snsii_language          | Name        | varchar(200)  |
+| snsii_language          | EName       | varchar(200)  |
+| snsii_language          | Domain      | varchar(10)   |
+| snsii_language          | CCode       | varchar(20)   |
+| snsii_language          | Language    | varchar(100)  |
+| snsii_language          | LangCode    | varchar(11)   |
+| snsii_language          | UrlA        | varchar(50)   |
+| snsii_language          | Pid         | int           |
+| snsii_manage            | UserName    | varchar(20)   |
+| snsii_manage            | PassWord    | varchar(100)  |
+| snsii_manage            | Email       | varchar(50)   |
+| snsii_manage            | NickName    | varchar(20)   |
+| snsii_map               | Url         | varchar(200)  |
+| snsii_map               | Cat         | char(50)      |
+| snsii_nav               | Name        | varchar(20)   |
+| snsii_nav               | Icon        | varchar(50)   |
+| snsii_nav               | Links       | varchar(50)   |
+| snsii_nav               | Pid         | int           |
+| snsii_nav               | Sort        | int           |
+| snsii_news              | Title       | varchar(200)  |
+| snsii_news              | Links       | char(100)     |
+| snsii_news              | Keywords    | varchar(100)  |
+| snsii_news              | Description | varchar(200)  |
+| snsii_news              | Image       | varchar(200)  |
+| snsii_news              | Content     | longtext      |
+| snsii_news              | Views       | int           |
+| snsii_news              | AddTime     | int           |
+| snsii_news_category     | Name        | varchar(100)  |
+| snsii_news_category     | Links       | char(100)     |
+| snsii_news_tags         | Name        | varchar(50)   |
+| snsii_news_tags         | Links       | varchar(50)   |
+| snsii_news_tags         | Number      | int           |
+| snsii_news_tags_ids     | Tid         | int           |
+| snsii_news_tags_ids     | Aid         | int           |
+| snsii_product           | PartNumber  | varchar(50)   |
+| snsii_product           | PartUrl     | varchar(50)   |
+| snsii_product           | BigCat      | smallint      |
+| snsii_product           | SmallCat    | smallint      |
+| snsii_product           | Mid         | int           |
+| snsii_product           | Description | varchar(100)  |
+| snsii_product           | Quantity    | int           |
+| snsii_product           | InStock     | int           |
+| snsii_product           | UnitPrice   | decimal(10,5) |
+| snsii_product           | ImgId       | int           |
+| snsii_product           | Md5         | char(32)      |
+| snsii_product           | IsPut       | tinyint(1)    |
+| snsii_product_category  | Name        | char(100)     |
+| snsii_product_category  | Links       | char(100)     |
+| snsii_product_category  | Number      | int           |
+| snsii_product_category  | Pid         | int           |
+| snsii_product_category  | Sort        | int           |
+| snsii_product_hot       | ProId       | int           |
+| snsii_product_hot       | PartNumber  | varchar(100)  |
+| snsii_product_hot       | Quantity    | int           |
+| snsii_product_hot       | UnitPrice   | decimal(10,5) |
+| snsii_product_hot       | Description | varchar(200)  |
+| snsii_product_hot       | AddDate     | datetime      |
+| snsii_product_search    | PartNumber  | varchar(50)   |
+| snsii_product_search    | BigCat      | smallint      |
+| snsii_product_search    | SmallCat    | smallint      |
+| snsii_product_search    | Mid         | int           |
+| snsii_product_so        | SmallCat    | smallint      |
+| snsii_product_stock     | AddDate     | datetime      |
+| snsii_product_time      | Year        | varchar(4)    |
+| snsii_product_time      | Month       | varchar(2)    |
+| snsii_product_time      | Day         | varchar(2)    |
+| snsii_product_time      | Date        | date          |
+| snsii_product_time_list | PartUrl     | varchar(50)   |
+| snsii_product_time_list | PartNumber  | varchar(50)   |
+| snsii_product_time_list | AddTime     | int           |
+| snsii_product_time_temp | PartUrl     | varchar(50)   |
+| snsii_product_time_temp | BigCat      | smallint      |
+| snsii_product_time_temp | SmallCat    | smallint      |
+| snsii_product_time_temp | Mid         | smallint      |
+| snsii_supplier          | Name        | char(100)     |
+| snsii_supplier          | Links       | char(50)      |
+| snsii_track_order       | id          | int           |
+| snsii_track_order       | Email       | varchar(100)  |
+| snsii_track_order       | Number      | varchar(20)   |
+| snsii_track_order       | Content     | longtext      |
+| snsii_track_order       | ProList     | longtext      |
+| snsii_track_order       | Status      | tinyint(1)    |
+| snsii_track_order       | AddTime     | int           |
++-------------------------+-------------+---------------+
+== max index byte length (approx) ==
+== zero/invalid dates ==
++---------------------+-------------+-----------+
+| TABLE_NAME          | COLUMN_NAME | DATA_TYPE |
++---------------------+-------------+-----------+
+| snsii_cart          | AddDate     | date      |
+| snsii_cf_logs       | AddTime     | date      |
+| snsii_product_hot   | AddDate     | datetime  |
+| snsii_product_stock | AddDate     | datetime  |
+| snsii_product_time  | Date        | date      |
++---------------------+-------------+-----------+
+== group by usage in code ==
+4
+== max index byte length (approx) ==
++------------------------+------------+---------------+
+| TABLE_NAME             | INDEX_NAME | max_col_bytes |
++------------------------+------------+---------------+
+| snsii_map              | Url        |           600 |
+| snsii_info             | Links      |           360 |
+| snsii_contact          | Url        |           300 |
+| snsii_news             | Links      |           300 |
+| snsii_product_category | Links      |           300 |
+| snsii_info_category    | Links      |           300 |
+| snsii_news_category    | Links      |           300 |
+| snsii_track_order      | Email      |           300 |
+| snsii_cf_domain        | Did        |           150 |
+| snsii_cf_dns           | DnsId      |           150 |
++------------------------+------------+---------------+
+== not null count per table ==
++-------------------+--------------------+
+| TABLE_NAME        | notnull_no_default |
++-------------------+--------------------+
+| snsii_product     |                 12 |
+| snsii_news        |                  8 |
+| snsii_language    |                  8 |
+| snsii_track_order |                  7 |
+| snsii_cart        |                  7 |
+| snsii_cf_dns      |                  7 |
+| snsii_product_hot |                  6 |
+| snsii_cf_domain   |                  6 |
++-------------------+--------------------+
+== zero date columns (schema) ==
++---------------------+-------------+-----------+----------------+
+| TABLE_NAME          | COLUMN_NAME | DATA_TYPE | COLUMN_DEFAULT |
++---------------------+-------------+-----------+----------------+
+| snsii_cart          | AddDate     | date      | NULL           |
+| snsii_cf_logs       | AddTime     | date      | NULL           |
+| snsii_product_hot   | AddDate     | datetime  | NULL           |
+| snsii_product_stock | AddDate     | datetime  | NULL           |
+| snsii_product_time  | Date        | date      | NULL           |
++---------------------+-------------+-----------+----------------+
+== groupby occurrences ==
+total=1
+MfrController.php:67: $CatIds = (new Query())->from('{{%product_search}}')->select('SmallCat')->where(['Mid' => $MRow['id']])->groupBy('SmallCat')->column();
