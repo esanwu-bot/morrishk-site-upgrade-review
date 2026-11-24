@@ -1,0 +1,38 @@
+Round 42 F-17 migration verification
+MYSQL_CLIENT: D:\dev\mysql\mysql-8.4.13-winx64\bin\mysql.exe
+MYSQL_HOST: 127.0.0.1:3307 (local test instance, non-production)
+TEST_DATABASE: morrishk_r42_mig (scratch, created for this verification)
+MIGRATION_ACCOUNT: morrishk_migrator (credentials via option file, not printed)
+
+== BEFORE: SHOW COLUMNS FROM snsii_manage ==
+Field	Type	Null	Key	Default	Extra
+id	int	NO	PRI	NULL	auto_increment
+UserName	varchar(50)	YES		NULL
+PassWord	varchar(255)	YES		NULL
+Status	int	NO		1
+
+== COMMAND: mysql --defaults-file=<migrator.cnf> morrishk_r42_mig --execute="source D:/dev/tmp/r42_mig.sql" ==
+COLUMN_NAME	COLUMN_TYPE	IS_NULLABLE	COLUMN_DEFAULT
+AuthKeyVersion	int	NO	0
+exit_code=0
+
+== COMMAND: same migration executed a second time (idempotency) ==
+COLUMN_NAME	COLUMN_TYPE	IS_NULLABLE	COLUMN_DEFAULT
+AuthKeyVersion	int	NO	0
+exit_code=0
+
+== RESULT: AuthKeyVersion column definition after migration ==
+`AuthKeyVersion` int NOT NULL DEFAULT '0' COMMENT 'persistent login revocation version'
+
+== COMMAND: rollback ==
+
+exit_code=0
+
+== RESULT after rollback: SHOW COLUMNS FROM snsii_manage ==
+Field	Type	Null	Key	Default	Extra
+id	int	NO	PRI	NULL	auto_increment
+UserName	varchar(50)	YES		NULL
+PassWord	varchar(255)	YES		NULL
+Status	int	NO		1
+
+NOTE: Rollback was executed only on the scratch database. It was NOT executed against any other database.

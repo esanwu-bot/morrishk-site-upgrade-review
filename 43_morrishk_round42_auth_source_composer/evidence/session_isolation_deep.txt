@@ -1,0 +1,14 @@
+Round 42 F-18 deep trace (credential values redacted for delivery)
+session IDs and __authKey MACs are replaced with placeholders; byte counts and timings are actual.
+sidA=<SID-A-REDACTED>
+sidB=<SID-B-REDACTED>
+A_file: C:\Users\ADMINI~1\AppData\Local\Temp\sess_<SID-A-REDACTED> bytes=107 mtime=17:09:57 data=__flash|a:0:{}__id|i:195;__authKey|s:64:"<AUTHKEY-REDACTED>";
+B_file_after_login: C:\Users\ADMINI~1\AppData\Local\Temp\sess_<SID-B-REDACTED> bytes=107 mtime=17:09:57 data=__flash|a:0:{}__id|i:195;__authKey|s:64:"<AUTHKEY-REDACTED>";
+B_session_only_before: http=200 location=
+logout_A: http=302 location=http://127.0.0.1:8099/
+A_file_after_logout: C:\Users\ADMINI~1\AppData\Local\Temp\sess_<SID-A-REDACTED> MISSING
+B_file_after_A_logout: C:\Users\ADMINI~1\AppData\Local\Temp\sess_<SID-B-REDACTED> bytes=107 mtime=17:09:57 data=__flash|a:0:{}__id|i:195;__authKey|s:64:"<AUTHKEY-REDACTED>";
+B_session_only_after: http=302 location=http://127.0.0.1:8099/site/login.html
+B_body_head:
+B_file_after_request: C:\Users\ADMINI~1\AppData\Local\Temp\sess_<SID-B-REDACTED> bytes=107 mtime=17:09:57 data=__flash|a:0:{}__id|i:195;__authKey|s:64:"<AUTHKEY-REDACTED>";__returnUrl|s:40:"http://127.0.0.1:8099/ejadmin-index.html";
+B_identity_only_after: http=302 location=http://127.0.0.1:8099/site/login.html

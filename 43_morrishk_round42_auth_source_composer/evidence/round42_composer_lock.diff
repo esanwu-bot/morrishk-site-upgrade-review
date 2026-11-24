@@ -1,0 +1,241 @@
+diff --git a/composer.lock b/composer.lock
+index 5ff84a6..65172b5 100644
+--- a/composer.lock
++++ b/composer.lock
+@@ -68,16 +68,16 @@
+         },
+         {
+             "name": "bower-asset/punycode",
+-            "version": "v1.4.1",
++            "version": "v2.3.1",
+             "source": {
+                 "type": "git",
+                 "url": "https://github.com/mathiasbynens/punycode.js.git",
+-                "reference": "0fbadd6e81f3a0ce06c38998040d6db6bdfbc5c9"
++                "reference": "9e1b2cda98d215d3a73fcbfe93c62e021f4ba768"
+             },
+             "dist": {
+                 "type": "zip",
+-                "url": "https://api.github.com/repos/mathiasbynens/punycode.js/zipball/0fbadd6e81f3a0ce06c38998040d6db6bdfbc5c9",
+-                "reference": "0fbadd6e81f3a0ce06c38998040d6db6bdfbc5c9"
++                "url": "https://api.github.com/repos/mathiasbynens/punycode.js/zipball/9e1b2cda98d215d3a73fcbfe93c62e021f4ba768",
++                "reference": "9e1b2cda98d215d3a73fcbfe93c62e021f4ba768"
+             },
+             "type": "bower-asset"
+         },
+@@ -309,13 +309,7 @@
+                 "type": "zip",
+                 "url": "https://api.github.com/repos/cebe/markdown/zipball/9bac5e971dd391e2802dca5400bbeacbaea9eb86",
+                 "reference": "9bac5e971dd391e2802dca5400bbeacbaea9eb86",
+-                "shasum": "",
+-                "mirrors": [
+-                    {
+-                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+-                        "preferred": true
+-                    }
+-                ]
++                "shasum": ""
+             },
+             "require": {
+                 "lib-pcre": "*",
+@@ -365,7 +359,8 @@
+                 "issues": "https://github.com/cebe/markdown/issues",
+                 "source": "https://github.com/cebe/markdown"
+             },
+-            "time": "2018-03-26T11:24:36+00:00"
++            "time": "2018-03-26T11:24:36+00:00",
++            "published-time": "2018-03-26T11:25:44+00:00"
+         },
+         {
+             "name": "doctrine/deprecations",
+@@ -577,23 +572,17 @@
+         },
+         {
+             "name": "ezyang/htmlpurifier",
+-            "version": "v4.19.0",
++            "version": "v4.19.1",
+             "source": {
+                 "type": "git",
+                 "url": "https://github.com/ezyang/htmlpurifier.git",
+-                "reference": "b287d2a16aceffbf6e0295559b39662612b77fcf"
++                "reference": "5e0539132d934f936fbae2c88b55d58f9438623f"
+             },
+             "dist": {
+                 "type": "zip",
+-                "url": "https://api.github.com/repos/ezyang/htmlpurifier/zipball/b287d2a16aceffbf6e0295559b39662612b77fcf",
+-                "reference": "b287d2a16aceffbf6e0295559b39662612b77fcf",
+-                "shasum": "",
+-                "mirrors": [
+-                    {
+-                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+-                        "preferred": true
+-                    }
+-                ]
++                "url": "https://api.github.com/repos/ezyang/htmlpurifier/zipball/5e0539132d934f936fbae2c88b55d58f9438623f",
++                "reference": "5e0539132d934f936fbae2c88b55d58f9438623f",
++                "shasum": ""
+             },
+             "require": {
+                 "php": "~5.6.0 || ~7.0.0 || ~7.1.0 || ~7.2.0 || ~7.3.0 || ~7.4.0 || ~8.0.0 || ~8.1.0 || ~8.2.0 || ~8.3.0 || ~8.4.0 || ~8.5.0"
+@@ -638,9 +627,10 @@
+             ],
+             "support": {
+                 "issues": "https://github.com/ezyang/htmlpurifier/issues",
+-                "source": "https://github.com/ezyang/htmlpurifier/tree/v4.19.0"
++                "source": "https://github.com/ezyang/htmlpurifier/tree/v4.19.1"
+             },
+-            "time": "2025-10-17T16:34:55+00:00"
++            "time": "2026-09-15T15:42:51+00:00",
++            "published-time": "2026-09-15T15:42:56+00:00"
+         },
+         {
+             "name": "firebase/php-jwt",
+@@ -2611,13 +2601,7 @@
+                 "type": "zip",
+                 "url": "https://api.github.com/repos/paragonie/random_compat/zipball/996434e5492cb4c3edcb9168db6fbb1359ef965a",
+                 "reference": "996434e5492cb4c3edcb9168db6fbb1359ef965a",
+-                "shasum": "",
+-                "mirrors": [
+-                    {
+-                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+-                        "preferred": true
+-                    }
+-                ]
++                "shasum": ""
+             },
+             "require": {
+                 "php": ">= 7"
+@@ -2653,7 +2637,8 @@
+                 "issues": "https://github.com/paragonie/random_compat/issues",
+                 "source": "https://github.com/paragonie/random_compat"
+             },
+-            "time": "2020-10-15T08:29:30+00:00"
++            "time": "2020-10-15T08:29:30+00:00",
++            "published-time": "2020-10-15T08:34:16+00:00"
+         },
+         {
+             "name": "phpoffice/phpspreadsheet",
+@@ -3895,35 +3880,29 @@
+         },
+         {
+             "name": "yiisoft/yii2",
+-            "version": "2.0.53",
++            "version": "2.0.55",
+             "source": {
+                 "type": "git",
+                 "url": "https://github.com/yiisoft/yii2-framework.git",
+-                "reference": "6c622fb8243181d7912b62ad80821cc0e1c745db"
++                "reference": "b900eecdb225041a4c4e0f5e0e5336f606a23bdb"
+             },
+             "dist": {
+                 "type": "zip",
+-                "url": "https://api.github.com/repos/yiisoft/yii2-framework/zipball/6c622fb8243181d7912b62ad80821cc0e1c745db",
+-                "reference": "6c622fb8243181d7912b62ad80821cc0e1c745db",
+-                "shasum": "",
+-                "mirrors": [
+-                    {
+-                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+-                        "preferred": true
+-                    }
+-                ]
++                "url": "https://api.github.com/repos/yiisoft/yii2-framework/zipball/b900eecdb225041a4c4e0f5e0e5336f606a23bdb",
++                "reference": "b900eecdb225041a4c4e0f5e0e5336f606a23bdb",
++                "shasum": ""
+             },
+             "require": {
+                 "bower-asset/inputmask": "^5.0.8 ",
+                 "bower-asset/jquery": "3.7.*@stable | 3.6.*@stable | 3.5.*@stable | 3.4.*@stable | 3.3.*@stable | 3.2.*@stable | 3.1.*@stable | 2.2.*@stable | 2.1.*@stable | 1.11.*@stable | 1.12.*@stable",
+-                "bower-asset/punycode": "^1.4",
++                "bower-asset/punycode": "^2.2",
+                 "bower-asset/yii2-pjax": "~2.0.1",
+                 "cebe/markdown": "~1.0.0 | ~1.1.0 | ~1.2.0",
+                 "ext-ctype": "*",
+                 "ext-mbstring": "*",
+                 "ezyang/htmlpurifier": "^4.17",
+                 "lib-pcre": "*",
+-                "php": ">=7.3.0",
++                "php": ">=7.4.0",
+                 "yiisoft/yii2-composer": "~2.0.4"
+             },
+             "bin": [
+@@ -4018,7 +3997,8 @@
+                     "type": "tidelift"
+                 }
+             ],
+-            "time": "2025-06-27T07:42:53+00:00"
++            "time": "2026-05-09T14:50:57+00:00",
++            "published-time": "2026-05-09T15:00:45+00:00"
+         },
+         {
+             "name": "yiisoft/yii2-bootstrap",
+@@ -4226,13 +4206,7 @@
+                 "type": "zip",
+                 "url": "https://api.github.com/repos/yiisoft/yii2-composer/zipball/b684b01ecb119c8287721def726a0e24fec2fef2",
+                 "reference": "b684b01ecb119c8287721def726a0e24fec2fef2",
+-                "shasum": "",
+-                "mirrors": [
+-                    {
+-                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+-                        "preferred": true
+-                    }
+-                ]
++                "shasum": ""
+             },
+             "require": {
+                 "composer-plugin-api": "^1.0 | ^2.0"
+@@ -4294,7 +4268,8 @@
+                     "type": "tidelift"
+                 }
+             ],
+-            "time": "2025-02-13T20:59:36+00:00"
++            "time": "2025-02-13T20:59:36+00:00",
++            "published-time": "2025-02-13T20:59:50+00:00"
+         },
+         {
+             "name": "yiisoft/yii2-elasticsearch",
+@@ -4446,16 +4421,16 @@
+         },
+         {
+             "name": "yiisoft/yii2-redis",
+-            "version": "2.0.17",
++            "version": "2.0.20",
+             "source": {
+                 "type": "git",
+                 "url": "https://github.com/yiisoft/yii2-redis.git",
+-                "reference": "222c6a4340fdf5124f7fb101d026d98e48bf940e"
++                "reference": "d5b89cb4977b73bc813d3b85a1017337ac64267c"
+             },
+             "dist": {
+                 "type": "zip",
+-                "url": "https://api.github.com/repos/yiisoft/yii2-redis/zipball/222c6a4340fdf5124f7fb101d026d98e48bf940e",
+-                "reference": "222c6a4340fdf5124f7fb101d026d98e48bf940e",
++                "url": "https://api.github.com/repos/yiisoft/yii2-redis/zipball/d5b89cb4977b73bc813d3b85a1017337ac64267c",
++                "reference": "d5b89cb4977b73bc813d3b85a1017337ac64267c",
+                 "shasum": ""
+             },
+             "require": {
+@@ -4496,11 +4471,11 @@
+                 "yii2"
+             ],
+             "support": {
+-                "forum": "http://www.yiiframework.com/forum/",
+-                "irc": "irc://irc.freenode.net/yii",
++                "forum": "https://www.yiiframework.com/forum/",
++                "irc": "ircs://irc.libera.chat:6697/yii",
+                 "issues": "https://github.com/yiisoft/yii2-redis/issues",
+                 "source": "https://github.com/yiisoft/yii2-redis",
+-                "wiki": "http://www.yiiframework.com/wiki/"
++                "wiki": "https://www.yiiframework.com/wiki/"
+             },
+             "funding": [
+                 {
+@@ -4516,7 +4491,8 @@
+                     "type": "tidelift"
+                 }
+             ],
+-            "time": "2022-01-11T12:50:32+00:00"
++            "time": "2025-06-05T04:02:45+00:00",
++            "published-time": "2025-06-05T04:02:59+00:00"
+         },
+         {
+             "name": "yiisoft/yii2-swiftmailer",

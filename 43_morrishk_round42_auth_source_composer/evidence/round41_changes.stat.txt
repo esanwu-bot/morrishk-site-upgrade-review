@@ -1,0 +1,6 @@
+ controllers/SiteController.php         | 10 ++++++
+ db/2026-11-25_auth_key_version.sql     | 23 ++++++++++++++
+ db/rollback_auth_key_version.sql       |  3 ++
+ models/SnSiiCart.php                   |  2 +-
+ modules/ejadmin/models/SnSiiManage.php | 56 +++++++++++++++++++++++++++++++---
+ 5 files changed, 88 insertions(+), 6 deletions(-)

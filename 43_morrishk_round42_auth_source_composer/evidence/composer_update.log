@@ -1,0 +1,79 @@
+php.exe : Loading composer repositories with package information
+所在位置 行:18 字符: 1
++ & $php $c update yiisoft/yii2 yiisoft/yii2-redis -W --no-interaction  ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Loading compose...age information:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+Updating dependencies
+Lock file operations: 0 installs, 4 updates, 0 removals
+  - Upgrading bower-asset/punycode (v1.4.1 => v2.3.1)
+  - Upgrading ezyang/htmlpurifier (v4.19.0 => v4.19.1)
+  - Upgrading yiisoft/yii2 (2.0.53 => 2.0.55)
+  - Upgrading yiisoft/yii2-redis (2.0.17 => 2.0.20)
+Writing lock file
+Installing dependencies from lock file (including require-dev)
+Package operations: 0 installs, 4 updates, 0 removals
+  - Downloading bower-asset/punycode (v2.3.1)
+  - Downloading ezyang/htmlpurifier (v4.19.1)
+  - Downloading yiisoft/yii2 (2.0.55)
+  - Downloading yiisoft/yii2-redis (2.0.20)
+  - Upgrading bower-asset/punycode (v1.4.1 => v2.3.1): Extracting archive
+  - Upgrading ezyang/htmlpurifier (v4.19.0 => v4.19.1): Extracting archive
+  - Upgrading yiisoft/yii2 (2.0.53 => 2.0.55): Extracting archive
+  - Upgrading yiisoft/yii2-redis (2.0.17 => 2.0.20): Extracting archive
+Package swiftmailer/swiftmailer is abandoned, you should avoid using it. Use symfony/mailer instead.
+Generating autoload files
+70 packages you are using are looking for funding.
+Use the `composer fund` command to find out more!
+
+  Seems you have upgraded Yii Framework from version 2.0.53 to 2.0.55.
+
+  Please check the upgrade notes for possible incompatible changes
+  and adjust your application code accordingly.
+
+  Upgrade from Yii 2.0.53
+  -----------------------
+
+  * Raised minimum supported PHP version to `7.4`.
+  * Deprecated caching components: `XCache` and `ZendDataCache` have been removed. If you were using these components, you
+  will need to replace them with alternative caching solutions.
+
+  * Extensive static analysis template annotations (generics) have been added throughout the framework to improve type inference
+    with PHPStan and Psalm. These include:
+
+    - **Actions**: `Action`, `InlineAction`, and all action classes now have generic type parameters for their controller type
+    - **Controllers**: `Controller` classes now have generic type parameters for their module type
+    - **Filters**: All filter classes (including `ActionFilter` and authentication filters) now have generic type parameters
+    - **Database**: `ActiveQuery` has generic type parameter for the model type, `ActiveRecord` has template methods for fluent interfaces, `Schema` classes have generic type parameters for column schema types
+    - **Dependency Injection**: `Container` and `Instance` classes have generic type parameters for object types
+    - **Applications**: `Application` and `BaseYii` have generic type parameters for user identity types
+    - **Behaviors**: Comprehensive generic annotations for all behavior classes (see the 2.0.52 upgrade notes for details on `Behavior` usage)
+
+    If you are using static analysis tools like PHPStan or Psalm in your application and extend any of these framework classes,
+    you may need to add appropriate template annotations to maintain proper type inference. In most cases, the framework will
+    infer the types automatically, but for complex inheritance hierarchies you may need to explicitly declare template parameters.
+
+    For example, when creating a custom action:
+
+    ```php
+    use yii\base\Action;
+    use app\controllers\SiteController;
+
+    /**
+     * @extends Action<SiteController>
+     */
+    class CustomAction extends Action
+    {
+        public function run()
+        {
+            // $this->controller is now properly typed as SiteController
+        }
+    }
+    ```
+
+  You can find the upgrade notes for all versions online at:
+  https://github.com/yiisoft/yii2/blob/2.0.55/framework/UPGRADE.md
+
+Found 68 security vulnerability advisories affecting 12 packages.
+Run "composer audit" for a full list of advisories.

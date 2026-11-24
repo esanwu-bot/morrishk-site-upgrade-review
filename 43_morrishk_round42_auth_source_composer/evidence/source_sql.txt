@@ -1,0 +1,29 @@
+FILE: db/2026-11-25_auth_key_version.sql
+   1| -- Round 41: 持久登录吊销版本（账号级全部设备）
+   2| -- 可重复执行：列已存在时跳过。
+   3| DROP PROCEDURE IF EXISTS r41_ensure_auth_key_version;
+   4|
+   5| DELIMITER //
+   6| CREATE PROCEDURE r41_ensure_auth_key_version()
+   7| BEGIN
+   8|     IF NOT EXISTS (
+   9|         SELECT 1 FROM information_schema.columns
+  10|         WHERE table_schema = DATABASE() AND table_name = 'snsii_manage' AND column_name = 'AuthKeyVersion'
+  11|     ) THEN
+  12|         ALTER TABLE `snsii_manage`
+  13|             ADD COLUMN `AuthKeyVersion` int NOT NULL DEFAULT 0 COMMENT 'persistent login revocation version';
+  14|     END IF;
+  15| END //
+  16| DELIMITER ;
+  17|
+  18| CALL r41_ensure_auth_key_version();
+  19| DROP PROCEDURE IF EXISTS r41_ensure_auth_key_version;
+  20|
+  21| SELECT column_name, column_type, is_nullable, column_default
+  22| FROM information_schema.columns
+  23| WHERE table_schema = DATABASE() AND table_name = 'snsii_manage' AND column_name = 'AuthKeyVersion';
+
+FILE: db/rollback_auth_key_version.sql
+   1| -- Round 41 回滚：移除 AuthKeyVersion（仅在确认无需吊销能力时执行）
+   2| -- 执行后旧版应用可用，但持久 Cookie 吊销能力同时失效。
+   3| ALTER TABLE `snsii_manage` DROP COLUMN `AuthKeyVersion`;

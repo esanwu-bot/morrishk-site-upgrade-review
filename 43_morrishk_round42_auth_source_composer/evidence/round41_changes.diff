@@ -1,0 +1,159 @@
+diff --git a/controllers/SiteController.php b/controllers/SiteController.php
+index 9535324..c450ab6 100644
+--- a/controllers/SiteController.php
++++ b/controllers/SiteController.php
+@@ -222,6 +222,16 @@ class SiteController extends SnSiiController
+     //Logout
+     public function actionLogout()
+     {
++        $identity = Yii::$app->user->identity;
++        if ($identity !== null) {
++            try {
++                \app\modules\ejadmin\models\SnSiiManage::bumpAuthKeyVersion((int)$identity->getId());
++            } catch (\Throwable $e) {
++                Yii::error('Logout revocation failed: ' . $e->getMessage(), __METHOD__);
++                Yii::$app->response->statusCode = 503;
++                return 'Logout is temporarily unavailable. Please retry.';
++            }
++        }
+         Yii::$app->user->logout();
+
+         return $this->goHome();
+diff --git a/db/2026-11-25_auth_key_version.sql b/db/2026-11-25_auth_key_version.sql
+new file mode 100644
+index 0000000..1c7871f
+--- /dev/null
++++ b/db/2026-11-25_auth_key_version.sql
+@@ -0,0 +1,23 @@
++-- Round 41: 持久登录吊销版本（账号级全部设备）
++-- 可重复执行：列已存在时跳过。
++DROP PROCEDURE IF EXISTS r41_ensure_auth_key_version;
++
++DELIMITER //
++CREATE PROCEDURE r41_ensure_auth_key_version()
++BEGIN
++    IF NOT EXISTS (
++        SELECT 1 FROM information_schema.columns
++        WHERE table_schema = DATABASE() AND table_name = 'snsii_manage' AND column_name = 'AuthKeyVersion'
++    ) THEN
++        ALTER TABLE `snsii_manage`
++            ADD COLUMN `AuthKeyVersion` int NOT NULL DEFAULT 0 COMMENT 'persistent login revocation version';
++    END IF;
++END //
++DELIMITER ;
++
++CALL r41_ensure_auth_key_version();
++DROP PROCEDURE IF EXISTS r41_ensure_auth_key_version;
++
++SELECT column_name, column_type, is_nullable, column_default
++FROM information_schema.columns
++WHERE table_schema = DATABASE() AND table_name = 'snsii_manage' AND column_name = 'AuthKeyVersion';
+diff --git a/db/rollback_auth_key_version.sql b/db/rollback_auth_key_version.sql
+new file mode 100644
+index 0000000..0bc20a6
+--- /dev/null
++++ b/db/rollback_auth_key_version.sql
+@@ -0,0 +1,3 @@
++-- Round 41 回滚：移除 AuthKeyVersion（仅在确认无需吊销能力时执行）
++-- 执行后旧版应用可用，但持久 Cookie 吊销能力同时失效。
++ALTER TABLE `snsii_manage` DROP COLUMN `AuthKeyVersion`;
+diff --git a/models/SnSiiCart.php b/models/SnSiiCart.php
+index 6491e1f..2a402c9 100644
+--- a/models/SnSiiCart.php
++++ b/models/SnSiiCart.php
+@@ -70,7 +70,7 @@ class SnSiiCart extends \yii\db\ActiveRecord
+             [['Address', 'Files'], 'string', 'max' => 200],
+             [['GoodsList'], 'validateGoods'],
+             [['Product', 'AddTime', 'Uid', 'UName', 'Star','Files'], 'safe'],
+-            [['imageFile'], \app\validators\FileUploadValidator::class, 'skipOnEmpty' => true, 'extensions' => 'xls,xlsx,csv,doc,docx,pdf,txt',
++            [['imageFile'], \app\validators\FileUploadValidator::class, 'skipOnEmpty' => true, 'extensions' => 'csv,doc,docx,pdf,txt',
+                 'maxSize' => 5 * 1024 * 1024, 'checkExtensionByMimeType' => true],
+         ];
+     }
+diff --git a/modules/ejadmin/models/SnSiiManage.php b/modules/ejadmin/models/SnSiiManage.php
+index 9ff80a5..f5a88ba 100644
+--- a/modules/ejadmin/models/SnSiiManage.php
++++ b/modules/ejadmin/models/SnSiiManage.php
+@@ -126,14 +126,20 @@ class SnSiiManage extends ActiveRecord implements \yii\web\IdentityInterface
+     public static function hasAuthKeySecret()
+     {
+         $secret = (string)(Yii::$app->params['AuthKeySecret'] ?? '');
+-        return strlen($secret) >= 32;
++        if (strlen($secret) < 32) { return false; }
++        if (preg_match('/^(.)\1+$/', $secret)) { return false; }
++        $lower = strtolower($secret);
++        foreach (['changeme', 'change-me', 'secret', 'password', 'example', 'default'] as $w) {
++            if (strpos($lower, $w) !== false) { return false; }
++        }
++        return true;
+     }
+
+     private static function authKeySecret()
+     {
+         $secret = (string)(Yii::$app->params['AuthKeySecret'] ?? '');
+-        if (strlen($secret) < 32) {
+-            Yii::error('MORRISHK_AUTH_KEY_SECRET missing or shorter than 32 chars', __METHOD__);
++        if (!self::hasAuthKeySecret()) {
++            Yii::error('MORRISHK_AUTH_KEY_SECRET missing, too short or weak', __METHOD__);
+             throw new \yii\base\InvalidConfigException('Persistent login secret is not configured.');
+         }
+         return $secret;
+@@ -144,10 +150,45 @@ class SnSiiManage extends ActiveRecord implements \yii\web\IdentityInterface
+      * HMAC 密钥只来自环境变量 Secret；密码哈希仅作为消息摘要的一部分，
+      * 数据库泄露不足以推导 AuthKey；Secret 或密码变更后旧 Cookie 失效。
+      */
++    /**
++     * AuthKeyVersion 列自检：缺失时 fail closed，禁止降级为无吊销验证。
++     */
++    public static function assertAuthKeyVersionColumn()
++    {
++        $schema = static::getDb()->getTableSchema(static::tableName(), true);
++        if ($schema === null || $schema->getColumn('AuthKeyVersion') === null) {
++            Yii::error('snsii_manage.AuthKeyVersion is missing', __METHOD__);
++            throw new \yii\base\InvalidConfigException('AuthKeyVersion column is required.');
++        }
++    }
++
++    /**
++     * 账号级吊销：版本 +1，使该账号全部已签发的持久 Cookie 失效。
++     */
++    public static function bumpAuthKeyVersion($id)
++    {
++        self::assertAuthKeyVersionColumn();
++        $affected = static::updateAll(
++            ['AuthKeyVersion' => new \yii\db\Expression('AuthKeyVersion + 1')],
++            ['id' => (int)$id]
++        );
++        if ($affected !== 1) {
++            Yii::error('AuthKeyVersion bump affected ' . $affected . ' rows for user ' . (int)$id, __METHOD__);
++            throw new \yii\base\InvalidConfigException('AuthKeyVersion update failed.');
++        }
++        return $affected;
++    }
++
+     public function getAuthKey()
+     {
+-        $payload = (string)$this->getId() . '|' . (string)$this->UserName . '|' . (int)$this->Status
+-            . '|' . substr(hash('sha256', (string)$this->PassWord), 0, 16);
++        self::assertAuthKeyVersionColumn();
++        $payload = json_encode([
++            'id' => (int)$this->getId(),
++            'u'  => (string)$this->UserName,
++            's'  => (int)$this->Status,
++            'p'  => hash('sha256', (string)$this->PassWord),
++            'v'  => (int)$this->AuthKeyVersion,
++        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+         return hash_hmac('sha256', $payload, self::authKeySecret());
+     }
+
+@@ -159,6 +200,11 @@ class SnSiiManage extends ActiveRecord implements \yii\web\IdentityInterface
+         if (!self::hasAuthKeySecret()) {
+             return false;
+         }
++        try {
++            self::assertAuthKeyVersionColumn();
++        } catch (\Throwable $e) {
++            return false;
++        }
+         return hash_equals($this->getAuthKey(), (string)$authKey);
+     }

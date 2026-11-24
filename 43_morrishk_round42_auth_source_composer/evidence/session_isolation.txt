@@ -1,0 +1,14 @@
+login_A                                        http=302
+login_B                                        http=302
+A_session_cookie                               present
+B_session_cookie                               present
+session_ids_differ                             yes
+identity_cookies_differ                        yes(same account, different sessions)
+B_full_jar_before_logout_A                     http=200
+B_session_only_before                          http=200
+logout_A                                       http=302
+A_after_logout                                 http=302
+B_session_only_after_A_logout                  http=302
+B_identity_only_after_A_logout                 http=302
+session_save_path                              (php.ini default)
+session_handler                                files

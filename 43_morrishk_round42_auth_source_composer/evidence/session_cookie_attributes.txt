@@ -1,0 +1,22 @@
+== PHP SESSION RUNTIME ==
+session.save_handler         = files
+session.save_path            = (empty)
+session.name                 = PHPSESSID
+session.use_strict_mode      = 0
+session.use_cookies          = 1
+session.cookie_lifetime      = 0
+session.cookie_path          = /
+session.cookie_domain        = (empty)
+session.cookie_secure        = 0
+session.cookie_httponly      = 0
+session.cookie_samesite      = (empty)
+session.gc_maxlifetime       = 1440
+effective_save_path     = C:\Users\ADMINI~1\AppData\Local\Temp (PHP default)
+
+== HTTP ==
+login_http=302
+Set-Cookie PHPSESSID    value_len=32  attributes=path=/; HttpOnly
+Set-Cookie _identity    value_len=230 attributes=expires=Thu, 24 Dec 2026 09:14:34 GMT; Max-Age=2592000; path=/; HttpOnly; SameSite=Lax
+Set-Cookie _csrf        value_len=166 attributes=path=/; HttpOnly; SameSite=Lax
+protected_with_session_http=200
+protected_anonymous_http=302

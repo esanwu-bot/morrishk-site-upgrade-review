@@ -1,0 +1,81 @@
+== composer --version ==
+Composer version 2.11.2 2026-11-10 10:09:37
+php.exe : PHP version 8.5.13 (D:\dev\php\php-8.5.13\php.exe)
+所在位置 行:15 字符: 2129
++ ... ==" | Out-File $out -Encoding utf8; (& $php $c --version 2>&1) | Out- ...
++                                          ~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (PHP version 8.5...8.5.13\php.exe):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+Run the "diagnose" command to get more detailed diagnostics output.
+
+== composer show yiisoft/yii2 ==
+name     : yiisoft/yii2
+descrip. : Yii PHP Framework Version 2
+keywords : framework, yii2
+versions : * 2.0.55
+released : 2026-05-09, 6 months ago
+type     : library
+license  : BSD 3-Clause "New" or "Revised" License (BSD-3-Clause) (OSI approved) https://spdx.org/licenses/BSD-3-Clause.html#licenseText
+homepage : https://www.yiiframework.com/
+source   : [git] https://github.com/yiisoft/yii2-framework.git b900eecdb225041a4c4e0f5e0e5336f606a23bdb
+dist     : [zip] https://api.github.com/repos/yiisoft/yii2-framework/zipball/b900eecdb225041a4c4e0f5e0e5336f606a23bdb b900eecdb225041a4c4e0f5e0e5336f606a23bdb
+path     : E:\workspace\独立站\morrishk-site-r39-wt\vendor\yiisoft\yii2
+names    : yiisoft/yii2
+
+support
+forum : https://forum.yiiframework.com/
+irc : ircs://irc.libera.chat:6697/yii
+issues : https://github.com/yiisoft/yii2/issues?state=open
+source : https://github.com/yiisoft/yii2
+wiki : https://www.yiiframework.com/wiki
+
+autoload
+psr-4
+yii\ => .
+
+requires
+bower-asset/inputmask ^5.0.8
+bower-asset/jquery 3.7.*@stable | 3.6.*@stable | 3.5.*@stable | 3.4.*@stable | 3.3.*@stable | 3.2.*@stable | 3.1.*@stable | 2.2.*@stable | 2.1.*@stable | 1.11.*@stable | 1.12.*@stable
+bower-asset/punycode ^2.2
+bower-asset/yii2-pjax ~2.0.1
+cebe/markdown ~1.0.0 | ~1.1.0 | ~1.2.0
+ext-ctype *
+ext-mbstring *
+ezyang/htmlpurifier ^4.17
+lib-pcre *
+php >=7.4.0
+yiisoft/yii2-composer ~2.0.4
+
+== composer show yiisoft/yii2-redis ==
+name     : yiisoft/yii2-redis
+descrip. : Redis Cache, Session and ActiveRecord for the Yii framework
+keywords : active-record, cache, redis, session, yii2
+versions : * 2.0.20
+released : 2025-06-05, 1 year ago
+type     : yii2-extension
+license  : BSD 3-Clause "New" or "Revised" License (BSD-3-Clause) (OSI approved) https://spdx.org/licenses/BSD-3-Clause.html#licenseText
+homepage :
+source   : [git] https://github.com/yiisoft/yii2-redis.git d5b89cb4977b73bc813d3b85a1017337ac64267c
+dist     : [zip] https://api.github.com/repos/yiisoft/yii2-redis/zipball/d5b89cb4977b73bc813d3b85a1017337ac64267c d5b89cb4977b73bc813d3b85a1017337ac64267c
+path     : E:\workspace\独立站\morrishk-site-r39-wt\vendor\yiisoft\yii2-redis
+names    : yiisoft/yii2-redis
+
+support
+forum : https://www.yiiframework.com/forum/
+irc : ircs://irc.libera.chat:6697/yii
+issues : https://github.com/yiisoft/yii2-redis/issues
+source : https://github.com/yiisoft/yii2-redis
+wiki : https://www.yiiframework.com/wiki/
+
+autoload
+psr-4
+yii\redis\ => src
+
+requires
+ext-openssl *
+yiisoft/yii2 ~2.0.39
+
+requires (dev)
+phpunit/phpunit <7
+yiisoft/yii2-dev ~2.0.39

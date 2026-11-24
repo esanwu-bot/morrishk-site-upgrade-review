@@ -1,0 +1,5 @@
+admin_login                              http=302
+admin_dashboard                          http=200 menu_products=yes menu_accounts=yes
+pdp                                      http=200 canonical=yes jsonld=yes
+upload_pdf                               http=200 success=yes
+pdp_inquiry                              http=302

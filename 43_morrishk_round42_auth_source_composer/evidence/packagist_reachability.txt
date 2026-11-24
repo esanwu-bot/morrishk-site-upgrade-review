@@ -1,0 +1,9 @@
+Round 42 F-19 network evidence (2026-11-24T17:15:56)
+Global composer config unchanged: repositories.packagist.org.url = https://mirrors.aliyun.com/composer/
+This round used temporary COMPOSER_HOME only.
+
+https://repo.packagist.org/p2/yiisoft/yii2.json -> HTTP 200, bytes=53405, contains_2.0.55=True contains_2.0.20=True
+https://repo.packagist.org/p2/yiisoft/yii2-redis.json -> HTTP 200, bytes=15989, contains_2.0.55=False contains_2.0.20=True
+
+TEMP COMPOSER_HOME: D:\dev\tmp\r42-ch
+TEMP COMPOSER_HOME exists: True

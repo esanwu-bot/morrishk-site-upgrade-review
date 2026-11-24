@@ -1,0 +1,87 @@
+ 123|     /**
+ 124|      * 持久登录票据的独立服务端密钥是否就绪。
+ 125|      */
+ 126|     public static function hasAuthKeySecret()
+ 127|     {
+ 128|         $secret = (string)(Yii::$app->params['AuthKeySecret'] ?? '');
+ 129|         if (strlen($secret) < 32) { return false; }
+ 130|         if (preg_match('/^(.)\1+$/', $secret)) { return false; }
+ 131|         $lower = strtolower($secret);
+ 132|         foreach (['changeme', 'change-me', 'secret', 'password', 'example', 'default'] as $w) {
+ 133|             if (strpos($lower, $w) !== false) { return false; }
+ 134|         }
+ 135|         return true;
+ 136|     }
+ 137|
+ 138|     private static function authKeySecret()
+ 139|     {
+ 140|         $secret = (string)(Yii::$app->params['AuthKeySecret'] ?? '');
+ 141|         if (!self::hasAuthKeySecret()) {
+ 142|             Yii::error('MORRISHK_AUTH_KEY_SECRET missing, too short or weak', __METHOD__);
+ 143|             throw new \yii\base\InvalidConfigException('Persistent login secret is not configured.');
+ 144|         }
+ 145|         return $secret;
+ 146|     }
+ 147|
+ 148|     /**
+ 149|      * 持久登录票据密钥：独立 Secret + 用户 ID / 用户名 / 账号状态 / 密码哈希摘要。
+ 150|      * HMAC 密钥只来自环境变量 Secret；密码哈希仅作为消息摘要的一部分，
+ 151|      * 数据库泄露不足以推导 AuthKey；Secret 或密码变更后旧 Cookie 失效。
+ 152|      */
+ 153|     /**
+ 154|      * AuthKeyVersion 列自检：缺失时 fail closed，禁止降级为无吊销验证。
+ 155|      */
+ 156|     public static function assertAuthKeyVersionColumn()
+ 157|     {
+ 158|         $schema = static::getDb()->getTableSchema(static::tableName(), true);
+ 159|         if ($schema === null || $schema->getColumn('AuthKeyVersion') === null) {
+ 160|             Yii::error('snsii_manage.AuthKeyVersion is missing', __METHOD__);
+ 161|             throw new \yii\base\InvalidConfigException('AuthKeyVersion column is required.');
+ 162|         }
+ 163|     }
+ 164|
+ 165|     /**
+ 166|      * 账号级吊销：版本 +1，使该账号全部已签发的持久 Cookie 失效。
+ 167|      */
+ 168|     public static function bumpAuthKeyVersion($id)
+ 169|     {
+ 170|         self::assertAuthKeyVersionColumn();
+ 171|         $affected = static::updateAll(
+ 172|             ['AuthKeyVersion' => new \yii\db\Expression('AuthKeyVersion + 1')],
+ 173|             ['id' => (int)$id]
+ 174|         );
+ 175|         if ($affected !== 1) {
+ 176|             Yii::error('AuthKeyVersion bump affected ' . $affected . ' rows for user ' . (int)$id, __METHOD__);
+ 177|             throw new \yii\base\InvalidConfigException('AuthKeyVersion update failed.');
+ 178|         }
+ 179|         return $affected;
+ 180|     }
+ 181|
+ 182|     public function getAuthKey()
+ 183|     {
+ 184|         self::assertAuthKeyVersionColumn();
+ 185|         $payload = json_encode([
+ 186|             'id' => (int)$this->getId(),
+ 187|             'u'  => (string)$this->UserName,
+ 188|             's'  => (int)$this->Status,
+ 189|             'p'  => hash('sha256', (string)$this->PassWord),
+ 190|             'v'  => (int)$this->AuthKeyVersion,
+ 191|         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+ 192|         return hash_hmac('sha256', $payload, self::authKeySecret());
+ 193|     }
+ 194|
+ 195|     /**
+ 196|      * {@inheritdoc}
+ 197|      */
+ 198|     public function validateAuthKey($authKey)
+ 199|     {
+ 200|         if (!self::hasAuthKeySecret()) {
+ 201|             return false;
+ 202|         }
+ 203|         try {
+ 204|             self::assertAuthKeyVersionColumn();
+ 205|         } catch (\Throwable $e) {
+ 206|             return false;
+ 207|         }
+ 208|         return hash_equals($this->getAuthKey(), (string)$authKey);
+ 209|     }

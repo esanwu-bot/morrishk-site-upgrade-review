@@ -1,0 +1,54 @@
+ 185|     //Login
+ 186|     public function actionLogin()
+ 187|     {
+ 188|         $res = [];
+ 189|         if (!Yii::$app->user->isGuest) {
+ 190|             return $this->goHome();
+ 191|         }
+ 192|
+ 193|         // 持久登录 Secret 未配置时 fail closed，不允许登录
+ 194|         if (!\app\modules\ejadmin\models\SnSiiManage::hasAuthKeySecret()) {
+ 195|             Yii::error('Login blocked: MORRISHK_AUTH_KEY_SECRET missing or shorter than 32 chars', __METHOD__);
+ 196|             Yii::$app->response->statusCode = 503;
+ 197|             Yii::$app->response->headers->set('Retry-After', '300');
+ 198|             return 'Authentication is temporarily unavailable.';
+ 199|         }
+ 200|
+ 201|         $PostData                = \Yii::$app->request->post();
+ 202|         $PostDataOK['LoginForm'] = $PostData;
+ 203|
+ 204|         $model = new LoginForm();
+ 205|         if ($PostData && $model->load($PostDataOK) && $model->login()) {
+ 206|             //return $this->goBack();
+ 207|             return $this->redirect(['/ejadmin-index']);
+ 208|         }else{
+ 209|             $res['Errors'] = $model->getErrors();
+ 210|             //print_r($res);
+ 211|         }
+ 212|         $res['model'] = $model;
+ 213|
+ 214|         $this->seo([
+ 215|             'title' => 'Login',
+ 216|         ]);
+ 217|
+ 218|         $model->password = '';
+ 219|         return $this->render('/user/login', $res);
+ 220|     }
+ 221|
+ 222|     //Logout
+ 223|     public function actionLogout()
+ 224|     {
+ 225|         $identity = Yii::$app->user->identity;
+ 226|         if ($identity !== null) {
+ 227|             try {
+ 228|                 \app\modules\ejadmin\models\SnSiiManage::bumpAuthKeyVersion((int)$identity->getId());
+ 229|             } catch (\Throwable $e) {
+ 230|                 Yii::error('Logout revocation failed: ' . $e->getMessage(), __METHOD__);
+ 231|                 Yii::$app->response->statusCode = 503;
+ 232|                 return 'Logout is temporarily unavailable. Please retry.';
+ 233|             }
+ 234|         }
+ 235|         Yii::$app->user->logout();
+ 236|
+ 237|         return $this->goHome();
+ 238|     }
