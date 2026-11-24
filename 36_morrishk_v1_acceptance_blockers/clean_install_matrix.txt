@@ -1,0 +1,8 @@
+﻿home|200|48135
+sub|200|41168
+pdp|200|59156
+search|200|33966
+inquiry|200|52987
+sitemap|200|886
+invalid|404|31998
+download_unauth|403|32798
