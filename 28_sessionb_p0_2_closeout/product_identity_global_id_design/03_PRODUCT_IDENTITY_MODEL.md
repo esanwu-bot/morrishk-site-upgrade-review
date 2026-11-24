@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-003 |
-| 版本 | v2.3-R2.2.1 |
+| 版本 | v2.4-R2.2.2 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | 当前 `product_id=prod-{document_id}`；`document_id=doc-{sha[:12]}`；`run_id` 执行级 |
 | 相关决策 | D-04、D-05、D-06、D-21、D-22、D-23、D-41、D-42（见 `08_DECISION_REGISTER.md`） |
@@ -171,14 +171,17 @@ identity_conflict
 - 审批链顺序：提交者 → Tenant 审批者 → Global 决策者 → Global 审批者；任一步未完成，不得更新 `global_product`。
 - 同一自然人不得同时承担相邻两个审批角色（提交/审批、决策/批准分离）；审计记录须记录四个角色。
 
-**可信身份与分离约束（R2.2.1）：**
+**可信身份与分离约束（R2.2.1 / R2.2.2）：**
 
-1. **身份来源**：`submitted_by` / `tenant_approved_by` / `decided_by` / `approved_by` 必须来自校验后的 token 上下文（`client_id` + `subject` + 服务端角色绑定），不采信请求体自报的 actor/tenant/site；每次写入记录 `auth_context_ref` 与角色快照。
-2. **数据库 CHECK**：`submitted_by <> tenant_approved_by`；`decided_by <> approved_by`；应用层额外禁止同一自然人跨相邻角色复用。
-3. **角色绑定互斥**：Morrishk 仅可持有 `tenant.editor`/`tenant.admin`；`identity.admin`/`identity.approver` 仅 Ds Bit 治理侧持有；绑定表需有互斥约束，禁止同一主体同时拥有租户审批与全局决策/批准角色。
-4. **原子事务**：`tenant_assertion.status→TENANT_APPROVED`、`global_adjudication.decision_status→APPROVED` 与 `approved_at`、`global_product` 创建/更新、alias/lineage、`audit_log` 必须在**同一事务**提交；任一步失败整体回滚，不得出现“已批准未写产品”或“已写产品未批准”。
-5. **幂等**：同一 `(subject_type, subject_ref, decision_version)` 只允许一次 APPROVED 生效；重复审批返回既有结果，不重复写 `global_product`。
-6. **越权路径隔离**：Tenant 侧接口不持有写 `global_product` 的权限；Global 侧接口不复用 Tenant 审批代码路径，避免“确认即全局生效”。
+1. **稳定主体标识**：`client_id + subject` 不足以唯一标识自然人（同一自然人可通过不同 Client 获得不同 subject）。必须使用服务端可信的稳定 `principal_id`（与自然人/服务账号一一对应），四个审批身份字段统一引用 `principal_id`；**不得使用请求体自报的 actor ID**。
+2. **身份来源**：四个审批身份必须来自校验后的 token 上下文（`client_id` + `subject` → `client_subject_binding` → `principal_id` + 服务端角色绑定）；每次写入记录 `auth_context_ref` 与角色快照。
+3. **数据库 CHECK**：`submitted_by_principal_id <> tenant_approved_by_principal_id`；`decided_by_principal_id <> approved_by_principal_id`；应用层额外禁止同一 principal 跨相邻角色复用。
+4. **角色授权来源与互斥**：角色来自服务端 `principal_role` 绑定表，角色目录标注 `role_domain`（TENANT/GLOBAL）。禁止组合：同一 `principal_id` 不得同时持有 `{tenant.editor, tenant.admin}` 与 `{identity.admin, identity.approver}`；以唯一/排斥约束或等效授权机制强制。
+5. **审批状态 CHECK（Global）**：`PROPOSED` → `approved_by_principal_id IS NULL AND approved_at IS NULL`；`APPROVED` → 两者均 NOT NULL；`REJECTED` → 两者均为 NULL；且 `decided_by_principal_id <> approved_by_principal_id`。
+6. **审批状态 CHECK（Tenant）**：`SUBMITTED`/`UNDER_REVIEW` → `tenant_approved_by_principal_id` 与 `tenant_approved_at` 均为 NULL；`TENANT_APPROVED`/`ACCEPTED_BY_GLOBAL`/`REJECTED_BY_GLOBAL` → 两者均 NOT NULL；`WITHDRAWN` 保留撤回前值。
+7. **两阶段事务边界**：Tenant 审批是前置阶段，完成后**独立提交** `TENANT_APPROVED`；Global 最终阶段在**新事务**内锁定并重新验证 Tenant Assertion 已为 `TENANT_APPROVED`，再在同一事务内完成 Global 裁决批准、`global_product` 创建/更新、alias/lineage 与 GLOBAL audit；任一步失败整体回滚。**不要求** Tenant 审批状态更新与 Global 最终审批在同一个跨阶段事务内完成。
+8. **幂等**：同一 `(subject_type, subject_ref, decision_version)` 只允许一次 APPROVED 生效；重复/并发审批返回既有结果，不重复写 `global_product`。
+9. **越权路径隔离**：Tenant 侧接口不持有写 `global_product` 的权限；Global 侧接口不复用 Tenant 审批代码路径，避免“确认即全局生效”。
 
 **Tenant Assertion 规则：**
 
@@ -187,9 +190,9 @@ tenant_assertion
   assertion_id
   tenant_id            NOT NULL
   site_id              NOT NULL
-  submitted_by         提交者
-  tenant_approved_by   Tenant 审批者（nullable，未审批时为空）
-  tenant_approved_at   nullable
+  submitted_by_principal_id         提交者 principal
+  tenant_approved_by_principal_id   Tenant 审批者 principal（nullable）
+  tenant_approved_at                nullable
   assertion_type       BRAND_CONFIRM / MPN_CONFIRM / PRODUCT_OWNERSHIP /
                        PRODUCT_CORRECTION / DOCUMENT_ATTRIBUTION
   target_ref           文档/待确认记录/产品候选
@@ -199,6 +202,9 @@ tenant_assertion
                        ACCEPTED_BY_GLOBAL / REJECTED_BY_GLOBAL / WITHDRAWN
   created_at / updated_at
   global_decision_ref  nullable
+  -- CHECK：status IN ('SUBMITTED','UNDER_REVIEW') -> tenant_approved_by_principal_id IS NULL AND tenant_approved_at IS NULL
+  -- CHECK：status IN ('TENANT_APPROVED','ACCEPTED_BY_GLOBAL','REJECTED_BY_GLOBAL') -> 两者均 NOT NULL
+  -- CHECK：submitted_by_principal_id <> tenant_approved_by_principal_id
 ```
 
 1. 仅在 `tenant_id` 范围内生效；不得改变其他租户的可见性/映射。
@@ -217,18 +223,24 @@ global_adjudication
   subject_ref
   decision             CONFIRM / REJECT / MERGE / SPLIT / REASSIGN
   rationale
-  decided_by           Global 决策者
-  approved_by          Global 审批者（必须与 decided_by 不同）
+  decided_by_principal_id    Global 决策者 principal
+  approved_by_principal_id   Global 审批者 principal（必须与决策者不同）
   decision_status      PROPOSED / APPROVED / REJECTED
   decided_at
   approved_at          nullable
   audit_ref
+  -- CHECK：decision_status='PROPOSED' -> approved_by_principal_id IS NULL AND approved_at IS NULL
+  -- CHECK：decision_status='APPROVED' -> 两者均 NOT NULL
+  -- CHECK：decision_status='REJECTED' -> 两者均为 NULL
+  -- CHECK：decided_by_principal_id <> approved_by_principal_id
 ```
 
-1. 只有全局治理角色可执行；决策与批准必须由不同人完成。
-2. **只有 `decision_status = APPROVED` 时才允许在事务内创建/更新 `global_product`**，并回写 pending/assertion 状态与引用；`PROPOSED` 阶段不得写 `global_product`。
-3. 拒绝时只更新裁决记录与状态，不删除客户 assertion / pending / 证据。
-4. 全局事件写 `audit_log(scope=GLOBAL)`；`tenant_id` 必须为 NULL（允许 NULL，不得伪造；详见 `06` §8.2/§8.12）。
+1. 只有全局治理角色可执行；决策与批准必须由不同 principal 完成。
+2. **只有 `decision_status = APPROVED` 时才允许创建/更新 `global_product`**；`PROPOSED`/`REJECTED` 不得写 `global_product`。
+3. Global 最终阶段必须在新事务内锁定并**重新验证**关联 Tenant Assertion 为 `TENANT_APPROVED`；未满足则拒绝，不得以历史状态或缓存放行。
+4. 通过后在同一事务内完成：裁决 `APPROVED`、回写 pending/assertion、`global_product` 创建/更新、alias/lineage、GLOBAL audit；任一步失败整体回滚。
+5. 拒绝时只更新裁决记录与状态，不删除客户 assertion / pending / 证据。
+6. 全局事件写 `audit_log(scope='GLOBAL')`；`tenant_id`/`site_id` 均必须为 NULL（不得伪造；详见 `06` §8.2/§8.12）。
 
 **首期 Morrishk 边界：**
 

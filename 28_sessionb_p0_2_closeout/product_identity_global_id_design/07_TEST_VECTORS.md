@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-007 |
-| 版本 | v2.3-R2.2.1 |
+| 版本 | v2.4-R2.2.2 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 性质 | 未来实现期测试设计；**本轮未执行**，不替代现有 83 项 Parser 测试 |
 | 关联 | `03_PRODUCT_IDENTITY_MODEL.md`、`04_GLOBAL_ID_REGISTRY.md`、`05_BACKWARD_COMPATIBILITY.md`、`06_API_AND_DATABASE_IMPACT.md`、`10_MORRISHK_FIRST_SCOPE_AND_DEFERRED.md` |
@@ -18,6 +18,7 @@
 - **R2.1 新增 V-51…V-70 亦未执行**；覆盖 Brand 上下文 MPN Alias、Alias 有效期、Global/Tenant 归属、Tenant Assertion、Global Adjudication、伪造 tenant_id、禁用 Client/Site。
 - **R2.2 新增 V-71…V-76 亦未执行**；覆盖当前/历史 Alias 唯一与并发、三类归属、四角色审批链、GLOBAL 审计 `tenant_id=NULL`、首期 Evidence 仅 PRIVATE。
 - **R2.2.1 新增 V-77…V-86 亦未执行**；覆盖 Alias 时间语义与区间互斥、站点复合外键、三类 CHECK、审计 scope、可信身份、角色分离、审批原子事务。
+- **R2.2.2 新增 V-87…V-94 亦未执行**；覆盖跨 Client 主体归一、审批状态字段一致性、Tenant 前置审批、空键并发首插、同目标重叠拒绝、冲突双作用域、审计三作用域。
 
 ## 2. 测试向量
 
@@ -81,6 +82,9 @@
 | Site 复合外键与三类 CHECK（R2.2.1） | V-80/V-81 |
 | 审计 scope 与复合外键（R2.2.1） | V-82 |
 | 可信身份/角色分离/原子事务（R2.2.1） | V-83/V-84/V-85/V-86 |
+| 跨 Client 主体与审批状态（R2.2.2） | V-87/V-88/V-89/V-90 |
+| 空键并发/同目标重叠（R2.2.2） | V-91/V-92 |
+| 冲突双作用域/审计三作用域（R2.2.2） | V-93/V-94 |
 
 ### 2.2 本轮 R2（Morrishk-first）新增向量 V-29…V-50
 
@@ -167,6 +171,21 @@
 | V-86 | 角色绑定互斥 | 给 Morrishk 主体授予 `identity.admin`/`identity.approver` | 拒绝绑定 | 授权/绑定断言 | 客户侧越权裁决 |
 
 > V-77…V-86 共 10 个 R2.2.1 向量，全部**未执行**，与 `01` §6.5.1、`02` §4.6、`03` §4.4、`04` §3.3.1/§3.3.2、`06` §8.12、`08` D-42/D-43/D-44、`10` §4（B-09/B-15/B-16/B-17）一致。
+
+### 2.6 R2.2.2 定点修订新增向量 V-87…V-94
+
+| # | 场景 | 输入 | 预期结果 | 校验方法 | 风险 |
+|---|---|---|---|---|---|
+| V-87 | 跨 Client 同一自然人主体归一 | 同一自然人经 Client A 得到 subject A、经 Client B 得到 subject B | 两者映射同一 `principal_id`；仍不能同时持有 TENANT 与 GLOBAL 域角色 | 绑定单测 + 授权断言 | 换 Client 绕过角色互斥 |
+| V-88 | PROPOSED 提前写批准字段 | `decision_status='PROPOSED'` 但 `approved_by_principal_id`/`approved_at` 非空 | 拒绝写入（CHECK 失败） | DB CHECK 断言 | 未批准即视为批准 |
+| V-89 | APPROVED 缺批准字段 | `decision_status='APPROVED'` 但批准字段为空 | 拒绝写入（CHECK 失败） | DB CHECK 断言 | 空批准被放行 |
+| V-90 | Tenant 未审批时全局写入 | Tenant Assertion 仍为 `SUBMITTED`/`UNDER_REVIEW`，Global 裁决尝试 APPROVED 并写 `global_product` | 拒绝；无 `global_product` 变更 | 事务单测 + DB 断言 | 绕过 Tenant 前置审批 |
+| V-91 | 空 Alias 键并发首次插入 | 唯一键无任何记录，两并发请求同时首次插入 | 唯一键级 advisory lock 串行化：一方成功、一方重试/冲突；仅一条当前映射 | 并发测试 + 锁断言 | 依赖空行锁导致双写 |
+| V-92 | 同目标区间重叠拒绝 | 同一唯一键、同一目标，两行区间重叠 | 拒绝写入；首尾相接才允许 | 排斥约束断言 | 同目标重叠被误放行 |
+| V-93 | identity_conflict 双作用域 | GLOBAL 冲突带 tenant/site/pending；TENANT 冲突缺 site 或 pending 指向他租户 | 全部拒绝 | DB CHECK + 复合外键断言 | 冲突归属混用 |
+| V-94 | 审计三作用域 | TENANT 审计带 site_id；SITE 审计缺 site_id；SITE 审计 site 不属于该 tenant | 全部拒绝 | DB CHECK + 复合外键断言 | 审计层级归属错误 |
+
+> V-87…V-94 共 8 个 R2.2.2 向量，全部**未执行**，与 `01` §6.5.1、`02` §4.6、`03` §4.4、`04` §3/§3.3.1/§3.3.2、`06` §8.12、`08` D-42/D-43/D-44、`10` §4（B-09/B-15…B-19）一致。
 
 ## 3. 测试分层（未来）
 

@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-002 |
-| 版本 | v2.3-R2.2.1 |
+| 版本 | v2.4-R2.2.2 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | 当前 `normalized_mpn` 恒等于 `requested_mpn`（`pipeline.py:154-155`）；`normalizer_version` 未实现 |
 | 相关决策 | D-03、D-04、D-19、D-20、D-44（见 `08_DECISION_REGISTER.md`） |
@@ -150,39 +150,48 @@ CHECK (scope = 'GLOBAL' AND tenant_id IS NULL)
    OR (scope = 'TENANT' AND tenant_id IS NOT NULL)
 ```
 
-**当前映射 vs 历史映射（R2.2-1）：**
+**当前映射 vs 历史映射（R2.2-1，R2.2.2 统一）：**
 
-1. 唯一约束只作用于 `is_current = true` 的行；同一唯一键同一时刻最多一条当前映射。
-2. 历史行（`is_current = false`）可多条保留，不参与唯一冲突，保留 `valid_from`/`valid_to` 与原因。
-3. 变更映射时在同一事务内“关闭旧行 + 插入新行”，不得先删后建，也不得原地改写。
+1. `is_current = true` ⟺ `valid_to IS NULL`；`is_current = false` ⟺ `valid_to IS NOT NULL`（当且仅当）。
+2. 唯一约束只作用于 `is_current = true` 的行；同一唯一键同一时刻最多一条当前映射。
+3. 历史行（`is_current = false`）可多条保留，不参与唯一冲突，保留 `valid_from`/`valid_to` 与原因。
+4. 变更映射时在同一事务内“关闭旧行 + 插入新行”，不得先删后建，也不得原地改写。
+5. **废止“同目标重叠可合并”**：不再提供以重叠为前提的合并路径；同目标区间重叠即拒绝，首尾相接保持多行。
 
-**有效期与冲突：**
+**有效期与冲突（统一）：**
 
-1. `valid_from` 必填；`valid_to` 可空；区间半开 `[valid_from, valid_to)`，`valid_to > valid_from`。
-2. 同一唯一键的有效期不得重叠（含指向相同 `canonical_mpn_norm`；仅允许首尾相接）；重叠一律拒绝。
+1. `valid_from` 必填；`valid_to` 可空；区间半开 `[valid_from, valid_to)`，`CHECK (valid_to IS NULL OR valid_to > valid_from)`。
+2. **同一唯一键的任意两个区间均不得重叠，包括指向相同 `canonical_mpn_norm` 的情况**；仅允许首尾相接，重叠一律拒绝。
 3. 同作用域、同 Brand、同 Alias 指向多个 canonical MPN → `PENDING_CONFLICT`，不得自动选一。
 4. 失效别名可重新分配，但必须新增一行、保留旧行并写审计；不得原地改写。
 5. `normalizer_version` 升级不得覆盖旧 alias 行：旧行保留原版本与 `valid_to`，新行记录新版本；历史解析可按旧版本回溯。
 
-**时间语义与区间互斥（R2.2.1）：**
+**时间语义与区间互斥（R2.2.1 / R2.2.2）：**
 
 1. 时间使用 UTC `timestamptz`；半开区间 `[valid_from, valid_to)`，`valid_to IS NULL` 表示开放至今。
-2. `CHECK (valid_to IS NULL OR valid_to > valid_from)`。
-3. `CHECK ((is_current AND valid_to IS NULL) OR (NOT is_current AND valid_to IS NOT NULL))`；首期不允许未来生效行。
-4. 同一唯一键的任意两行区间不得重叠（无论目标是否相同），仅允许首尾相接；重叠一律拒绝。
-5. 数据库实现（非 DDL）：
+2. `CHECK ((is_current AND valid_to IS NULL) OR (NOT is_current AND valid_to IS NOT NULL))`；首期**禁止未来生效行**（`valid_from <= now()`）。
+3. 数据库实现（非 DDL）：
    - 当前映射部分唯一：GLOBAL `UNIQUE (brand_id, alias_norm) WHERE scope='GLOBAL' AND is_current`；TENANT `UNIQUE (tenant_id, brand_id, alias_norm) WHERE scope='TENANT' AND is_current`。
    - 历史互斥：`EXCLUDE USING gist (brand_id WITH =, alias_norm WITH =, tstzrange(valid_from, valid_to, '[)') WITH &&) WHERE scope='GLOBAL'`；TENANT 版本再加 `tenant_id`。
+   - 职责分工：部分唯一索引负责当前映射唯一；数据库排斥约束负责历史不重叠；应用层校验仅补充，不得替代。
 
-**并发写入防护（R2.2.1）：**
+**MPN Alias 唯一键（与 Brand Alias 分开）：**
 
-- 对同唯一键加行锁或 `pg_advisory_xact_lock`，事务内校验区间不重叠；必要时 `SERIALIZABLE` + 重试。
-- 唯一部分索引防当前双写，排斥约束防历史重叠；约束冲突统一返回 `409 ALIAS_CONFLICT`/`PENDING_CONFLICT`。
-- 变更时同一事务内“关闭旧行 + 插入新行”；不得先删后建，不得原地改写。
+| 作用域 | 当前映射唯一键（`is_current = true`） |
+|---|---|
+| `GLOBAL` | `UNIQUE (brand_id, alias_norm) WHERE scope='GLOBAL' AND is_current` |
+| `TENANT` | `UNIQUE (tenant_id, brand_id, alias_norm) WHERE scope='TENANT' AND is_current` |
+
+**并发写入防护（R2.2.2）：**
+
+- **首次插入（空键）**：必须使用唯一键级 advisory transaction lock（`pg_advisory_xact_lock`）或等效机制；`SELECT ... FOR UPDATE` 空结果不等于获得锁，不得依赖。
+- **已存在记录**：唯一键级互斥后再锁定行；事务内完成区间校验、关闭旧行、插入新行与审计。
+- 隔离级别至少 `READ COMMITTED`；必要时 `SERIALIZABLE` + 重试。
+- 约束冲突统一返回 `409 ALIAS_CONFLICT`/`PENDING_CONFLICT`；不得先删后建或原地改写。
 - 同一 alias 变更请求带幂等键，重复提交返回同一结果。
 - `valid_from`/`valid_to` 由服务端时钟或经审批的生效时间生成，不接受客户端任意指定历史区间。
 
-**实现说明：** 部分唯一索引 + 区间排斥约束/事务校验；本轮不建索引、不迁移。
+**实现说明：** 部分唯一索引 + 数据库区间排斥约束 + 唯一键级事务锁；应用层为补充。本轮不建索引、不迁移。
 
 ## 5. 归一化与证据追溯
 

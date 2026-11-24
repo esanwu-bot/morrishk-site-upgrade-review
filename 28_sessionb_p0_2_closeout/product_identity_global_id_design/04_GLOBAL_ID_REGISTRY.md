@@ -3,10 +3,10 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-004 |
-| 版本 | v2.3-R2.2.1 |
+| 版本 | v2.4-R2.2.2 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | 无全局产品 ID/注册表；`product_id=prod-doc`；lake 仅 3 表 |
-| 相关决策 | D-05、D-06、D-10、D-21、D-22、D-23、D-31…D-34、D-41…D-46（见 `08_DECISION_REGISTER.md`） |
+| 相关决策 | D-05、D-06、D-10、D-21、D-22、D-23、D-31…D-34、D-41…D-48（见 `08_DECISION_REGISTER.md`） |
 | 收敛模型 | **仅 CONFIRMED 进入 `global_product`**；PENDING/CONFLICT 独立队列；Morrishk 首期单 Tenant；全局/租户数据归属分离 |
 
 ## 1. 目标
@@ -54,7 +54,7 @@ global_product
 --   WHERE lifecycle_state = 'ACTIVE'
 -- 四分量均 NOT NULL；PENDING_* 不在此表，故不占用该唯一键。
 
--- 待确认队列：TENANT-scoped；不是 product_uid / pbk1_ 命名空间
+-- 待确认队列：Site-level；不是 product_uid / pbk1_ 命名空间
 identity_pending
   pending_id           独立主键（ULID/UUIDv7）
   tenant_id            NOT NULL（首期为 Morrishk）
@@ -68,17 +68,27 @@ identity_pending
   idempotency_key      unique
   evidence_ref
   created_at / updated_at
+  -- CHECK：tenant_id IS NOT NULL AND site_id IS NOT NULL
+  -- FK (tenant_id, site_id) -> site(tenant_id, site_id)
+  -- UNIQUE (tenant_id, site_id, pending_id)（供 identity_conflict 复合外键）
 
+-- 冲突记录：双作用域，但各自约束完整
 identity_conflict
   conflict_id
-  pending_id           FK -> identity_pending（TENANT）或 NULL（GLOBAL 冲突）
   scope                GLOBAL / TENANT
   tenant_id            NULL when GLOBAL；NOT NULL when TENANT
+  site_id              NULL when GLOBAL；NOT NULL when TENANT
+  pending_id           NULL when GLOBAL；NOT NULL when TENANT（FK -> identity_pending）
   candidate_set        候选 natural key / brand_id / mpn_norm 列表
   conflict_type        MULTI_BRAND / MULTI_MPN / ALIAS_CONFLICT / VARIANT_CONFLICT / PROFILE_CONFLICT
   status               OPEN / RESOLVED / REJECTED
-  resolution_ref       FK -> global_adjudication（GLOBAL 裁决）
+  resolution_ref       FK -> global_adjudication
   created_at / updated_at
+  -- CHECK (scope='GLOBAL' AND tenant_id IS NULL AND site_id IS NULL AND pending_id IS NULL)
+  --    OR (scope='TENANT' AND tenant_id IS NOT NULL AND site_id IS NOT NULL AND pending_id IS NOT NULL)
+  -- TENANT: FK (tenant_id, site_id) -> site(tenant_id, site_id)
+  --         FK (tenant_id, site_id, pending_id) -> identity_pending(tenant_id, site_id, pending_id)
+  -- GLOBAL: 不引用 tenant/site/pending，仅由 GLOBAL 裁决处理
 
 brand_registry
   brand_id / brand_norm / status / created_at    -- GLOBAL-scoped；无 tenant_id
@@ -167,10 +177,13 @@ tenant_assertion       -- 客户确认；TENANT-scoped，不能写 global_produc
   assertion_id
   tenant_id            NOT NULL
   site_id              NOT NULL
-  submitted_by         提交者（建议 tenant.editor；来自 token subject）
-  tenant_approved_by   Tenant 审批者（建议 tenant.admin；审批前不得提交全局；必须 ≠ submitted_by）
-  tenant_approved_at   nullable
+  submitted_by_principal_id         提交者 principal（来自 token 绑定）
+  tenant_approved_by_principal_id   Tenant 审批者 principal（nullable；必须 ≠ 提交者）
+  tenant_approved_at                nullable
   auth_context_ref     提交/审批的认证上下文引用（token/client/role 快照）
+  -- CHECK：status IN ('SUBMITTED','UNDER_REVIEW') -> 审批字段均为 NULL
+  -- CHECK：status IN ('TENANT_APPROVED','ACCEPTED_BY_GLOBAL','REJECTED_BY_GLOBAL') -> 审批字段均 NOT NULL
+  -- CHECK：submitted_by_principal_id <> tenant_approved_by_principal_id
   assertion_type       BRAND_CONFIRM / MPN_CONFIRM / PRODUCT_OWNERSHIP /
                        PRODUCT_CORRECTION / DOCUMENT_ATTRIBUTION
   target_ref
@@ -187,12 +200,14 @@ global_adjudication    -- 全局身份裁决；GLOBAL-scoped，无 tenant_id
   subject_ref
   decision             CONFIRM / REJECT / MERGE / SPLIT / REASSIGN
   rationale
-  decided_by           Global 决策者（identity.admin；来自 token subject）
-  approved_by          Global 审批者（identity.approver，必须与 decided_by 不同）
+  decided_by_principal_id    Global 决策者 principal（identity.admin）
+  approved_by_principal_id   Global 审批者 principal（identity.approver；必须 ≠ 决策者）
   decision_status      PROPOSED / APPROVED / REJECTED
   decided_at
   approved_at          nullable（未审批前不得写 global_product）
   auth_context_ref     决策/批准的认证上下文引用（token/client/role 快照）
+  -- CHECK：PROPOSED -> 审批字段均 NULL；APPROVED -> 均 NOT NULL；REJECTED -> 均 NULL
+  -- CHECK：decided_by_principal_id <> approved_by_principal_id
   audit_ref
 
 product_lineage
@@ -214,13 +229,41 @@ product_import_event   -- TENANT-scoped 导入事件
   pending_id           nullable
   created_at
 
-audit_log              -- 混合审计：按 scope 归属，不得伪造 tenant_id
+audit_log              -- 三作用域审计：GLOBAL / TENANT / SITE
   audit_id
-  scope                GLOBAL / TENANT
-  tenant_id            NULL when scope=GLOBAL；NOT NULL when scope=TENANT
-  site_id              NULL when scope=GLOBAL
+  scope                GLOBAL / TENANT / SITE
+  tenant_id            NULL when scope=GLOBAL；NOT NULL when scope=TENANT/SITE
+  site_id              NULL when scope=GLOBAL/TENANT；NOT NULL when scope=SITE
   actor / action / target_ref / reason / at
-  -- CHECK：(scope='GLOBAL' AND tenant_id IS NULL) OR (scope='TENANT' AND tenant_id IS NOT NULL)
+  -- CHECK (scope='GLOBAL' AND tenant_id IS NULL AND site_id IS NULL)
+  --    OR (scope='TENANT' AND tenant_id IS NOT NULL AND site_id IS NULL)
+  --    OR (scope='SITE'   AND tenant_id IS NOT NULL AND site_id IS NOT NULL)
+  -- SITE: FK (tenant_id, site_id) -> site(tenant_id, site_id)
+
+principal              -- 服务端可信稳定主体标识；GLOBAL-scoped
+  principal_id         PK（不来自客户端自报）
+  principal_type       NATURAL_PERSON / SERVICE_ACCOUNT
+  status               ACTIVE / DISABLED
+  created_at / updated_at
+  -- 无 tenant_id；租户归属由 principal_role + tenant 关系表达
+
+client_subject_binding -- OAuth (client_id, subject) -> principal 映射
+  client_id            FK -> oauth_client
+  subject              来自 token 的 subject
+  principal_id         FK -> principal
+  valid_from / valid_to
+  is_current           boolean NOT NULL
+  -- UNIQUE (client_id, subject) WHERE is_current
+  -- 同一自然人可通过不同 client 得到不同 subject，但必须映射到同一 principal_id
+
+principal_role         -- 角色授权来源；含域标记
+  principal_id         FK -> principal
+  role                 tenant.editor / tenant.admin / identity.admin / identity.approver
+  role_domain          TENANT / GLOBAL（由角色目录决定）
+  tenant_id            TENANT 域必填；GLOBAL 域必须 NULL
+  granted_by / granted_at / revoked_at
+  -- 互斥：同一 principal_id 不得同时存在 TENANT 域与 GLOBAL 域的有效角色
+  -- 禁止组合：{tenant.editor, tenant.admin} × {identity.admin, identity.approver}
 ```
 
 > 表名与字段为候选；不是 DDL，不改数据库。
@@ -283,34 +326,35 @@ CHECK (scope = 'GLOBAL' AND tenant_id IS NULL)
    OR (scope = 'TENANT' AND tenant_id IS NOT NULL)
 ```
 
-1. **当前映射唯一**：同一唯一键同一时刻最多一条 `is_current = true`。
-2. **历史映射可保留**：`is_current = false` 的旧行可多条，不参与唯一冲突，保留 `valid_from`/`valid_to` 与原因。
-3. `valid_from` 必填、`valid_to` 可空；区间半开 `[valid_from, valid_to)`，`valid_to > valid_from`。
-4. **有效期不得重叠**：同一唯一键区间不得重叠（含指向相同目标；仅允许首尾相接）；重叠写入拒绝。
-5. 失效别名允许重新分配，但必须新增一行并保留旧行；变更时在同一事务内“关闭旧行 + 插入新行”。
-6. `normalizer_version` 升级只新增行、不改旧行；旧解析可按旧版本回溯。
-7. **并发写入防护**：对同唯一键加行锁/advisory lock/SERIALIZABLE，事务内校验区间不重叠并写入；唯一部分索引保证当前映射唯一，区间排斥约束或事务校验保证历史不重叠；冲突回滚并返回可重试/`PENDING_CONFLICT`。
-8. 实现形式：部分唯一索引 + 区间排斥约束或应用层事务校验；本轮不建索引、不迁移。
+1. **`is_current` 唯一语义**：`is_current = true` ⟺ `valid_to IS NULL`；`is_current = false` ⟺ `valid_to IS NOT NULL`。
+2. **当前映射唯一**：同一唯一键同一时刻最多一条 `is_current = true`；唯一键按注册表分别定义（见上表，不得混用 Brand Alias 与 MPN Alias）。
+3. **历史映射可保留**：`is_current = false` 的旧行可多条，不参与唯一冲突，保留 `valid_from`/`valid_to` 与原因。
+4. `valid_from` 必填、`valid_to` 可空；区间半开 `[valid_from, valid_to)`，`CHECK (valid_to IS NULL OR valid_to > valid_from)`。
+5. **有效期不得重叠**：同一唯一键的任意两个区间均不得重叠，**包括指向相同目标**；仅允许首尾相接（`old.valid_to = new.valid_from`）。**废止“同目标重叠可合并”**。
+6. 失效别名允许重新分配，但必须新增一行并保留旧行；变更时在同一事务内“关闭旧行 + 插入新行”。
+7. `normalizer_version` 升级只新增行、不改旧行；旧解析可按旧版本回溯。
+8. 实现形式：部分唯一索引（当前映射）+ 数据库排斥约束（历史区间）+ 唯一键级事务锁；应用层校验为补充。本轮不建索引、不迁移。
 9. Brand Alias 的完整规则见 `01` §6.5.1；MPN Alias 的完整规则见 `02` §4.6。
 
-**时间语义与并发闭环（R2.2.1）：**
+**时间语义与并发闭环（R2.2.1 / R2.2.2）：**
 
 ```text
 CHECK (valid_to IS NULL OR valid_to > valid_from)
 CHECK ((is_current AND valid_to IS NULL) OR (NOT is_current AND valid_to IS NOT NULL))
 ```
 
-- 时间统一 UTC `timestamptz`，半开区间 `[valid_from, valid_to)`；首期不允许未来生效行。
-- 同一唯一键任意两行区间不得重叠（含同目标），仅允许 `old.valid_to = new.valid_from` 的首尾相接。
+- 时间统一 UTC `timestamptz`，半开区间 `[valid_from, valid_to)`；首期**禁止未来生效行**（`valid_from <= now()`）。
+- 同一唯一键任意两行区间不得重叠（含同目标），仅允许首尾相接。
 - 部分唯一索引（当前映射）+ 排斥约束（历史区间）同时生效：
   - `brand_alias` GLOBAL：`EXCLUDE USING gist (alias_norm WITH =, tstzrange(valid_from, valid_to, '[)') WITH &&) WHERE scope='GLOBAL'`；TENANT 增加 `tenant_id`。
   - `mpn_alias` GLOBAL：`EXCLUDE USING gist (brand_id WITH =, alias_norm WITH =, tstzrange(...) WITH &&) WHERE scope='GLOBAL'`；TENANT 增加 `tenant_id`。
-- 并发切换：对唯一键加行锁/`pg_advisory_xact_lock`，事务内关闭旧行并插入新行；必要时 `SERIALIZABLE` + 重试；冲突返回 `409 ALIAS_CONFLICT`/`PENDING_CONFLICT`。
-- 幂等：alias 变更带幂等键；`valid_from`/`valid_to` 由服务端时钟或经审批生效时间生成，不接受客户端任意指定历史区间。
+- **并发首次插入（空键）**：必须使用唯一键级 `pg_advisory_xact_lock` 或等效机制锁定尚不存在的记录；`SELECT ... FOR UPDATE` 空结果不等于获得锁，不得依赖。
+- **并发切换（已存在）**：唯一键级互斥后再锁定记录行；同一事务内完成区间校验、关闭旧行、插入新行与审计；必要时 `SERIALIZABLE` + 重试。
+- 冲突统一返回 `409 ALIAS_CONFLICT`/`PENDING_CONFLICT`；幂等键防重复提交；时间由服务端时钟或审批生效时间生成。
 
-#### 3.3.2 三类资源的复合外键与 CHECK（R2.2.1）
+#### 3.3.2 三类资源的复合外键与 CHECK（R2.2.1 / R2.2.2）
 
-前置唯一键：`tenant(tenant_id)` 主键；`site` 增加 `UNIQUE (tenant_id, site_id)`，供 Site-level 复合外键使用。
+前置唯一键：`tenant(tenant_id)` 主键；`site` 增加 `UNIQUE (tenant_id, site_id)`，供 Site-level 复合外键使用；`identity_pending` 增加 `UNIQUE (tenant_id, site_id, pending_id)`，供 `identity_conflict` 复合外键使用。
 
 | 类别 | 强制约束 |
 |---|---|
@@ -318,11 +362,47 @@ CHECK ((is_current AND valid_to IS NULL) OR (NOT is_current AND valid_to IS NOT 
 | Tenant-level | `CHECK (tenant_id IS NOT NULL AND site_id IS NULL)`；`FK (tenant_id) REFERENCES tenant(tenant_id)` |
 | Site-level | `CHECK (tenant_id IS NOT NULL AND site_id IS NOT NULL)`；`FK (tenant_id, site_id) REFERENCES site(tenant_id, site_id)`（复合外键同时保证 Site 属于该 Tenant） |
 
-- Site-level 表：`tenant_document`、`tenant_evidence`、`tenant_assertion`、`identity_pending`、`oauth_client`。
-- Tenant-level 表：`tenant_product_access`、`tenant`、TENANT 作用域 `identity_conflict`。
-- Global-level 表：`global_product`、`brand_registry`、GLOBAL 作用域 `brand_alias`/`mpn_alias`、`mpn_profile`、`global_adjudication`、`product_lineage`。
-- `audit_log`：`CHECK (scope='GLOBAL' AND tenant_id IS NULL AND site_id IS NULL) OR (scope='TENANT' AND tenant_id IS NOT NULL)`；`site_id` 非空时追加 `FK (tenant_id, site_id) REFERENCES site(...)`。
+**逐表归属与约束：**
+
+| 表 | 类别 | `tenant_id` | `site_id` | 约束 |
+|---|---|---|---|---|
+| `oauth_client` | Site-level | NOT NULL | NOT NULL | CHECK + 复合外键 `(tenant_id, site_id) → site` |
+| `tenant_document` | Site-level | NOT NULL | NOT NULL | CHECK + 复合外键 |
+| `tenant_evidence` | Site-level | NOT NULL | NOT NULL | CHECK + 复合外键 |
+| `tenant_assertion` | Site-level | NOT NULL | NOT NULL | CHECK + 复合外键 |
+| `identity_pending` | Site-level | NOT NULL | NOT NULL | CHECK + 复合外键 + `UNIQUE (tenant_id, site_id, pending_id)` |
+| `tenant_product_access` | Tenant-level | NOT NULL | NULL | CHECK + `FK(tenant_id) → tenant` |
+| `tenant` | Tenant-level | 自身主键 | 无该列 | — |
+| `global_product` | Global-level | NULL | NULL | CHECK 两列均 NULL |
+| `brand_registry` | Global-level | NULL | NULL | 同上 |
+| GLOBAL 作用域 `brand_alias`/`mpn_alias` | Global-level | NULL | NULL | 同上 |
+| `mpn_profile` | Global-level | NULL | NULL | 同上 |
+| `global_adjudication` | Global-level | NULL | NULL | 同上 |
+| `product_lineage` | Global-level | NULL | NULL | 同上 |
+| `identity_conflict` | 双作用域 | GLOBAL=NULL；TENANT=NOT NULL | GLOBAL=NULL；TENANT=NOT NULL | 见下 |
+
+**`identity_conflict` 双作用域约束（统一口径）：**
+
+```text
+CHECK (scope='GLOBAL' AND tenant_id IS NULL AND site_id IS NULL AND pending_id IS NULL)
+   OR (scope='TENANT' AND tenant_id IS NOT NULL AND site_id IS NOT NULL AND pending_id IS NOT NULL)
+-- TENANT：FK (tenant_id, site_id) -> site(tenant_id, site_id)
+--         FK (tenant_id, site_id, pending_id) -> identity_pending(tenant_id, site_id, pending_id)
+-- GLOBAL：不引用 tenant/site/pending，由 GLOBAL 裁决处理
+```
+
+**`audit_log` 三作用域约束（统一口径）：**
+
+```text
+CHECK (scope='GLOBAL' AND tenant_id IS NULL AND site_id IS NULL)
+   OR (scope='TENANT' AND tenant_id IS NOT NULL AND site_id IS NULL)
+   OR (scope='SITE'   AND tenant_id IS NOT NULL AND site_id IS NOT NULL)
+-- SITE：FK (tenant_id, site_id) -> site(tenant_id, site_id)
+```
+
+- `scope='TENANT'` 用于 Tenant-level 事件（无 site）；`scope='SITE'` 用于 Site-level 事件（必须有 site）。
 - 复合外键要求 `site(tenant_id, site_id)` 唯一；仅用 `site_id` 单列外键不足以表达“Site 属于该 Tenant”，不采用。
+- 以上约束与 `06` §8.12、`10` §2/§4 必须保持一致，不得出现不同口径。
 
 ### 3.4 MPN Profile 选择（R2-4）
 

@@ -3,11 +3,11 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-006 |
-| 版本 | v2.3-R2.2.1 |
+| 版本 | v2.4-R2.2.2 |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 性质 | 影响分析；**不修改** OpenAPI、75 矩阵正式状态或数据库 |
 | 事实基线 | 契约候选 `CANDIDATE_NOT_FROZEN`；75 项 0/75 可执行；无 Business API 实现 |
-| 相关决策 | D-05、D-08、D-09、D-10、D-24…D-34、D-41…D-46 |
+| 相关决策 | D-05、D-08、D-09、D-10、D-24…D-34、D-41…D-48 |
 
 ## 1. 16 个 API operations 的影响
 
@@ -80,9 +80,9 @@ get_lineage(product_uid)
 | `tenant_product_access` | tenant_id, product_uid, access_level, valid_from/to, revoked_at | PK(tenant_id, product_uid); index(product_uid) | 首期必需 |
 | `tenant_document` | tenant_id, site_id, document_id, product_uid?, ownership | unique(tenant_id, site_id, document_id); 复合外键 `(tenant_id, site_id) → site(...)`; index(site_id) | 首期必需 |
 | `tenant_evidence` | tenant_id, site_id, evidence_id, document_id, run_id?, visibility, license_ref | unique(tenant_id, site_id, evidence_id); 复合外键 `(tenant_id, site_id) → site(...)`; index(document_id) | 首期必需 |
-| `audit_log` | audit_id, scope, tenant_id?, site_id?, actor, action, ref, at | `CHECK ((scope='GLOBAL' AND tenant_id IS NULL AND site_id IS NULL) OR (scope='TENANT' AND tenant_id IS NOT NULL))`；`site_id` 非空时复合外键；index(tenant_id, at); index(ref) | 首期必需 |
-| `identity_pending` | pending_id, tenant_id, site_id, reason, status, idempotency_key | unique(idempotency_key); index(status) | 支撑身份 |
-| `identity_conflict` | conflict_id, pending_id?, scope, tenant_id?, conflict_type, status | index(status) | 支撑身份 |
+| `audit_log` | audit_id, scope, tenant_id?, site_id?, actor, action, ref, at | `CHECK ((scope='GLOBAL' AND tenant_id IS NULL AND site_id IS NULL) OR (scope='TENANT' AND tenant_id IS NOT NULL AND site_id IS NULL) OR (scope='SITE' AND tenant_id IS NOT NULL AND site_id IS NOT NULL))`；SITE 复合外键；index(tenant_id, at); index(ref) | 首期必需 |
+| `identity_pending` | pending_id, tenant_id, site_id, reason, status, idempotency_key | unique(idempotency_key); unique(tenant_id, site_id, pending_id); 复合外键 `(tenant_id, site_id) → site`; index(status) | 支撑身份 |
+| `identity_conflict` | conflict_id, scope, tenant_id?, site_id?, pending_id?, conflict_type, status | `CHECK ((scope='GLOBAL' AND tenant_id IS NULL AND site_id IS NULL AND pending_id IS NULL) OR (scope='TENANT' AND tenant_id IS NOT NULL AND site_id IS NOT NULL AND pending_id IS NOT NULL))`；TENANT 复合外键 `(tenant_id, site_id)` 与 `(tenant_id, site_id, pending_id)` | 支撑身份 |
 | `brand_registry` / `brand_alias` | brand_id / alias_norm, brand_id, scope, tenant_id?, is_current | `brand_registry` GLOBAL 无 tenant_id；`brand_alias` 当前映射部分唯一：GLOBAL(`alias_norm WHERE is_current`)、TENANT(`tenant_id, alias_norm WHERE is_current`)，历史行可多行；CHECK scope/tenant_id 一致 | 支撑身份 |
 | `mpn_alias` / `mpn_profile` | alias_norm, brand_id, mpn_norm, scope, tenant_id?, is_current / profile_scope, status | `mpn_alias` 当前映射部分唯一：GLOBAL(`brand_id, alias_norm WHERE is_current`)、TENANT(`tenant_id, brand_id, alias_norm WHERE is_current`)；`brand_id NOT NULL`；历史行可多行；`mpn_profile` GLOBAL 无 tenant_id | 支撑身份 |
 | `tenant_assertion` / `global_adjudication` | submitted_by, tenant_approved_by, status / decided_by, approved_by, decision_status | `tenant_assertion` 仅 TENANT（Site-level）；`global_adjudication` 仅 GLOBAL 且无 tenant_id；决策与批准必须不同人 | 支撑治理 |
@@ -402,8 +402,8 @@ ALLOW = OAuth Scope
 | 类别 | `tenant_id` | `site_id` | 代表表 |
 |---|---|---|---|
 | **Global-level** | 必须为 NULL（禁止伪造） | 必须为 NULL | `global_product`、`brand_registry`、GLOBAL 作用域 `brand_alias`/`mpn_alias`、`mpn_profile`、`global_adjudication`、`product_lineage` |
-| **Tenant-level** | NOT NULL | 必须为 NULL | `tenant_product_access`、`tenant`、TENANT 作用域 `identity_conflict` |
-| **Site-level** | NOT NULL | NOT NULL，且 `site.tenant_id = tenant_id` | `tenant_document`、`tenant_evidence`、`tenant_assertion`、`identity_pending`、`oauth_client`、`tenant` 下的 `site` 本身 |
+| **Tenant-level** | NOT NULL | 必须为 NULL | `tenant_product_access`、`tenant` |
+| **Site-level** | NOT NULL | NOT NULL，且 `site.tenant_id = tenant_id` | `tenant_document`、`tenant_evidence`、`tenant_assertion`、`identity_pending`、`oauth_client`、`tenant` 下的 `site` 本身、TENANT 作用域 `identity_conflict` |
 
 | 数据 | 归属类别 | `tenant_id` | `site_id` | 审计 scope |
 |---|---|---|---|---|
@@ -413,37 +413,42 @@ ALLOW = OAuth Scope
 | `mpn_profile` | Global-level | 禁止出现 | 禁止出现 | GLOBAL |
 | `global_adjudication` / `product_lineage` | Global-level | 禁止出现 | 禁止出现 | GLOBAL |
 | `tenant_product_access` | Tenant-level | 必填 | 必须 NULL | TENANT |
-| `tenant_document` / `tenant_evidence` | Site-level | 必填 | 必填 | TENANT |
-| `tenant_assertion` | Site-level | 必填 | 必填 | TENANT |
-| `identity_pending` | Site-level | 必填 | 必填 | TENANT |
-| `oauth_client` | Site-level（绑定 site） | 必填 | 必填 | TENANT |
-| `identity_conflict` | 混合：GLOBAL 为 Global-level，TENANT 为 Tenant-level | `GLOBAL` 必须 NULL；`TENANT` 必填 | GLOBAL 必须 NULL；TENANT 必须 NULL | 按 scope |
-| `audit_log` | 混合 | **允许 `tenant_id = NULL`（仅 `scope='GLOBAL'`）**；`scope='TENANT'` 必填 | GLOBAL 允许 NULL；TENANT 必填 | 自身 |
+| `tenant_document` / `tenant_evidence` | Site-level | 必填 | 必填 | SITE |
+| `tenant_assertion` | Site-level | 必填 | 必填 | SITE |
+| `identity_pending` | Site-level | 必填 | 必填 | SITE |
+| `oauth_client` | Site-level（绑定 site） | 必填 | 必填 | SITE |
+| `identity_conflict` | 双作用域：GLOBAL 为 Global-level；TENANT 为 Site-level | `GLOBAL` 必须 NULL；`TENANT` 必填 | GLOBAL 必须 NULL；TENANT 必填 | 按 scope（GLOBAL/SITE） |
+| `audit_log` | 三作用域 | GLOBAL=NULL；TENANT/SITE=必填 | GLOBAL/TENANT=NULL；SITE=必填 | 自身 |
 
-- `audit_log` 的 GLOBAL 记录**允许且要求 `tenant_id = NULL`**，不得填入 Morrishk；TENANT 记录必须有 `tenant_id`（及 `site_id`）。
+- `audit_log`：`scope='GLOBAL'` 时 `tenant_id`/`site_id` 均必须为 NULL；`scope='TENANT'` 时 `tenant_id` 必填、`site_id` 必须为 NULL；`scope='SITE'` 时两者均必填并走复合外键。
 - “所有业务行必须带 `tenant_id`”是过度宽泛表述，已废止；改为按三类归属判定。
 - 全局身份治理事件不得强行归属 Morrishk；若事件由 Morrishk 的断言触发，则 TENANT 侧 assertion 与 GLOBAL 侧裁决分别留存、互不覆盖。
 
-**复合外键与 CHECK（R2.2.1，非 DDL）：**
+**复合外键与 CHECK（R2.2.1 / R2.2.2，非 DDL）：**
 
 | 类别 | 约束 |
 |---|---|
 | Global-level | `CHECK (tenant_id IS NULL AND site_id IS NULL)` |
 | Tenant-level | `CHECK (tenant_id IS NOT NULL AND site_id IS NULL)` + `FK(tenant_id) → tenant` |
 | Site-level | `CHECK (tenant_id IS NOT NULL AND site_id IS NOT NULL)` + 复合外键 `FK(tenant_id, site_id) → site(tenant_id, site_id)` |
-| `audit_log` | `CHECK (scope='GLOBAL' AND tenant_id IS NULL AND site_id IS NULL) OR (scope='TENANT' AND tenant_id IS NOT NULL)`；`site_id` 非空时按 `(tenant_id, site_id)` 复合外键校验 |
+| `identity_conflict` | `CHECK ((scope='GLOBAL' AND tenant_id IS NULL AND site_id IS NULL AND pending_id IS NULL) OR (scope='TENANT' AND tenant_id IS NOT NULL AND site_id IS NOT NULL AND pending_id IS NOT NULL))`；TENANT 复合外键 `(tenant_id, site_id)` 与 `(tenant_id, site_id, pending_id) → identity_pending` |
+| `audit_log` | `CHECK ((scope='GLOBAL' AND tenant_id IS NULL AND site_id IS NULL) OR (scope='TENANT' AND tenant_id IS NOT NULL AND site_id IS NULL) OR (scope='SITE' AND tenant_id IS NOT NULL AND site_id IS NOT NULL))`；SITE 复合外键 |
 
-- 前置：`site` 必须有 `UNIQUE (tenant_id, site_id)`；仅 `site_id` 单列外键不能保证 Site 属于该 Tenant，不采用。
+- 前置：`site` 必须有 `UNIQUE (tenant_id, site_id)`；`identity_pending` 必须有 `UNIQUE (tenant_id, site_id, pending_id)`。
+- Site-level 表（`oauth_client`、`tenant_document`、`tenant_evidence`、`tenant_assertion`、`identity_pending`、TENANT `identity_conflict`）必须全部具备复合外键，不得只写概述。
 - 复合外键使“归属混用”在数据库层直接失败，而不是仅靠应用层校验。
 
-**四角色可信身份与审批分离（R2.2.1）：**
+**四角色可信身份与审批分离（R2.2.1 / R2.2.2）：**
 
-- 提交/审批/决策身份一律来自**校验后的 token 上下文**（`client_id`、`subject`、服务端角色绑定），不采信请求体自报的 `actor`/`tenant_id`。
-- 持久化字段：`submitted_by`、`tenant_approved_by`、`decided_by`、`approved_by`，并记录 `auth_context_ref` 与角色快照。
-- 数据库 CHECK：`submitted_by <> tenant_approved_by`；`decided_by <> approved_by`；应用层额外禁止同一自然人跨相邻角色。
-- 角色绑定互斥：Morrishk 侧仅可持有 `tenant.editor`/`tenant.admin`；`identity.admin`/`identity.approver` 仅 Ds Bit 治理侧持有，绑定表需有互斥约束。
-- 审批原子性：`decision_status → APPROVED`、写 `approved_at`、创建/更新 `global_product`、写 alias/lineage、写 `audit_log` 必须在同一事务内；任一失败整体回滚，不得出现“已批准但未写产品”或“写了产品但未批准”。
-- 幂等：同一 `(subject_type, subject_ref, decision_version)` 只允许一次 APPROVED 生效；重复提交返回既有结果。
+- **稳定主体标识**：`client_id + subject` 不足以唯一标识自然人（同一自然人可通过不同 client 获得不同 subject）。新增服务端可信 `principal_id`（与自然人/服务账号一一对应），四个审批身份字段统一引用 `principal_id`；不得使用请求体自报的 actor ID。
+- `principal` 由服务端身份域维护；`oauth_client` 的 `subject` 通过 `client_subject_binding` 映射到 `principal_id`；绑定变更需审计。
+- 持久化字段：`submitted_by_principal_id`、`tenant_approved_by_principal_id`、`decided_by_principal_id`、`approved_by_principal_id`，并记录 `auth_context_ref` 与角色快照。
+- 数据库 CHECK：`submitted_by_principal_id <> tenant_approved_by_principal_id`；`decided_by_principal_id <> approved_by_principal_id`；应用层额外禁止同一 principal 跨相邻角色。
+- 角色绑定互斥：角色目录标注 `role_domain`（TENANT/GLOBAL）；同一 `principal_id` 不得同时持有 TENANT 域角色（`tenant.editor`/`tenant.admin`）与 GLOBAL 域角色（`identity.admin`/`identity.approver`）。以 `principal_role` 唯一约束或排斥约束强制，禁止组合为 `{tenant.editor, tenant.admin} × {identity.admin, identity.approver}`。
+- 审批状态 CHECK（`global_adjudication`）：`PROPOSED` → `approved_by_principal_id IS NULL AND approved_at IS NULL`；`APPROVED` → 两者均 NOT NULL；`REJECTED` → 两者均为 NULL。`decided_by_principal_id <> approved_by_principal_id`。
+- 审批状态 CHECK（`tenant_assertion`）：`SUBMITTED`/`UNDER_REVIEW` → `tenant_approved_by_principal_id` 与 `tenant_approved_at` 均为 NULL；`TENANT_APPROVED`/`ACCEPTED_BY_GLOBAL`/`REJECTED_BY_GLOBAL` → 两者均 NOT NULL；`WITHDRAWN` 保留撤回前值。
+- **两阶段事务边界**：Tenant 审批是前置阶段，独立提交为 `TENANT_APPROVED`；Global 最终阶段在新事务内锁定并**重新验证** Tenant Assertion 已为 `TENANT_APPROVED`，再同一事务内完成 Global 裁决批准、`global_product` 创建/更新、alias/lineage 与 GLOBAL audit；任一步失败整体回滚。不得要求 Tenant 审批状态更新与 Global 最终审批在同一跨阶段事务内完成。
+- 幂等：同一 `(subject_type, subject_ref, decision_version)` 只允许一次 APPROVED 生效；重复/并发审批返回既有结果，不得重复创建产品或产生半成品。
 
 ## 9. 对契约冻结的影响
 
