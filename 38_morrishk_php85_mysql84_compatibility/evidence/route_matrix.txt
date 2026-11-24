@@ -1,5 +1,5 @@
-﻿# Round 38 route matrix (PHP 8.5.13 + MySQL 8.4.13, built-in server 8098)
-# captured 
+# Round 38 route matrix (PHP 8.5.13 + MySQL 8.4.13, built-in server 8098)
+# captured
 2026-11-24 14:40:33
 /                                                    200 38022
 /products.html                                       200 30567

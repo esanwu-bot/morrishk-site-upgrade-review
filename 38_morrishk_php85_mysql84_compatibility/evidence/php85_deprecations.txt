@@ -1,4 +1,4 @@
-﻿# PHP 8.5.13 runtime deprecation/warning inventory (test harness, E_ALL)
+# PHP 8.5.13 runtime deprecation/warning inventory (test harness, E_ALL)
 total_entries=2023
   215  Deprecated|Function utf8_encode() is deprecated since 8.2, visit the php.net documentation for various alternatives|vendor\egulias\email-validator\src\EmailLexer.php
   172  Deprecated|htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated|vendor\yiisoft\yii2\helpers\BaseHtml.php

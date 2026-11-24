@@ -1,10 +1,10 @@
-﻿php.exe : Installing dependencies from lock file
+php.exe : Installing dependencies from lock file
 所在位置 行:17 字符: 1
 + & $php 'D:\dev\tools\composer.phar' install --no-dev --no-interaction ...
 + ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     + CategoryInfo          : NotSpecified: (Installing dependencies from lock file:String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
- 
+
 Verifying lock file contents can be installed on current platform.
 Package operations: 71 installs, 0 updates, 0 removals
   - Installing yiisoft/yii2-composer (2.0.10): Extracting archive

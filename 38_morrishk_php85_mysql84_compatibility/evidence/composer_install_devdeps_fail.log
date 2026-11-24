@@ -1,10 +1,10 @@
-﻿php.exe : Installing dependencies from lock file (including require-dev)
+php.exe : Installing dependencies from lock file (including require-dev)
 所在位置 行:17 字符: 1
 + & $php 'D:\dev\tools\composer.phar' install --no-interaction --prefer ...
 + ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     + CategoryInfo          : NotSpecified: (Installing depe...ng require-dev):String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
- 
+
 Verifying lock file contents can be installed on current platform.
 Your lock file does not contain a compatible set of packages. Please run composer update.
 
