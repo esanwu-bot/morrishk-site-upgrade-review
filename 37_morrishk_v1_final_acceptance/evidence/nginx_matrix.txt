@@ -1,0 +1,42 @@
+﻿== versions ==
+nginx version: nginx/1.15.11
+PHP 7.4.3 (cgi-fcgi) (built: Feb 18 2020 17:29:51)
+Copyright (c) The PHP Group
+Zend Engine v3.4.0, Copyright (c) Zend Technologies
+
+== routing matrix ==
+/                                              => 200|48133|
+/products.html                                 => 200|33337|
+/about.html                                    => 200|32477|
+/sitemap.xml                                   => 200|886|
+/robots.txt                                    => 200|596|
+/products.html/                                => 301|170|http://127.0.0.1:8096/products.html
+/download/24ggpujdNQulsi0_rNo5A4XM.txt         => 403|32796|
+/download/does-not-exist.txt                   => 404|31996|
+/uploads/images/logo.png                       => 403|154|
+/runtime/logs/app.log                          => 403|154|
+/config/db.php                                 => 403|154|
+/db/2026-11-24_cart_owner.sql                  => 403|154|
+/vendor/autoload.php                           => 403|154|
+/tests/probe.txt                               => 403|154|
+/no-such-page.html                             => 404|31198|
+
+== response headers (homepage) ==
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=UTF-8
+X-Content-Type-Options: nosniff
+
+== response headers (301 trailing slash) ==
+HTTP/1.1 301 Moved Permanently
+Location: http://127.0.0.1:8096/products.html
+
+== response headers (sitemap.xml) ==
+HTTP/1.1 200 OK
+Content-Type: application/xml; charset=UTF-8
+
+== response headers (guest download, expect 403) ==
+HTTP/1.1 403 Forbidden
+Content-Type: text/html; charset=UTF-8
+X-Content-Type-Options: nosniff
+
+DONE

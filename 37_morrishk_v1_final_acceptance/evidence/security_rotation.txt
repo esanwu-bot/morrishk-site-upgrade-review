@@ -1,0 +1,6 @@
+﻿old_password[qa_tester] => 200|
+old_password[qa_other] => 200|
+old_password[qa_admin] => 200|
+
+Interpretation: HTTP 200 means the login form was re-rendered (invalid credentials);
+a successful login returns HTTP 302 -> /ejadmin-index.html (see download_auth_matrix.txt).

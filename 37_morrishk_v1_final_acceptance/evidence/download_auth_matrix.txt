@@ -1,0 +1,71 @@
+﻿
+### fixture setup
+fixture inquiry id=2416 files=uploads/r37authprobe0123456789.txt owner=198 (qa_other)
+db: 2416	198	uploads/r37authprobe0123456789.txt	0
+login[qa_other] => 302|http://127.0.0.1:8096/ejadmin-index.html
+login[qa_tester] => 302|http://127.0.0.1:8096/ejadmin-index.html
+login[qa_admin] => 302|http://127.0.0.1:8096/ejadmin-index.html
+
+### T1 uploader (qa_other, role=0, OwnerUserId=198) downloads own attachment
+status=200
+HTTP/1.1 200 OK
+Content-Type: application/octet-stream
+Content-Length: 30
+X-Content-Type-Options: nosniff
+Content-Disposition: attachment; filename="r37authprobe0123456789.txt"
+X-Content-Type-Options: nosniff
+
+### T2 other staff (qa_tester, role=0) downloads attachment of qa_other
+status=403
+status_again=403
+
+### T3 guest (no session) downloads attachment
+status=403
+
+### T4 admin (qa_admin, role=1) downloads attachment owned by qa_other
+status=200
+
+### T5 unknown attachment name
+status=404
+
+### T6 path traversal attempts
+/download/..%2Fconfig%2Fdb.php => 403
+/download/%2e%2e%2fdb%2f2026-11-24_cart_owner.sql => 403
+/download/..%5C..%5Cweb%2Findex.php => 400
+
+### T7 tampered query ids / alternate file id by other staff
+owner?Id=2416 => 200
+other?Id=2416 => 403
+other?Oid=2416 => 403
+other file swap => 403
+
+### T8 database row exists but physical file missing (renamed)
+status=404
+status_after_restore=200
+
+### T9 inquiry record deleted (attachment orphaned)
+status=404
+status_admin=404
+status_guest=404
+
+### audit log (runtime/audit/download-YYYYMMDD.log, current run tail)
+{"time":"2026-11-24T11:26:28+08:00","action":"allow","file":"r37authprobe0123456789.txt","inquiry_id":2416,"user_id":198,"role":0,"ip":"127.0.0.1"}
+{"time":"2026-11-24T11:26:29+08:00","action":"allow","file":"r37authprobe0123456789.txt","inquiry_id":2416,"user_id":198,"role":0,"ip":"127.0.0.1"}
+{"time":"2026-11-24T11:26:29+08:00","action":"deny_forbidden","file":"r37authprobe0123456789.txt","inquiry_id":2416,"user_id":197,"role":0,"ip":"127.0.0.1"}
+{"time":"2026-11-24T11:26:29+08:00","action":"deny_forbidden","file":"r37authprobe0123456789.txt","inquiry_id":2416,"user_id":197,"role":0,"ip":"127.0.0.1"}
+{"time":"2026-11-24T11:26:29+08:00","action":"deny_guest","file":"r37authprobe0123456789.txt","inquiry_id":2416,"user_id":0,"role":-1,"ip":"127.0.0.1"}
+{"time":"2026-11-24T11:26:29+08:00","action":"allow","file":"r37authprobe0123456789.txt","inquiry_id":2416,"user_id":199,"role":1,"ip":"127.0.0.1"}
+{"time":"2026-11-24T11:26:29+08:00","action":"not_found","file":"r37_no_such_file.txt","inquiry_id":null,"user_id":198,"role":0,"ip":"127.0.0.1"}
+{"time":"2026-11-24T11:26:30+08:00","action":"allow","file":"r37authprobe0123456789.txt","inquiry_id":2416,"user_id":198,"role":0,"ip":"127.0.0.1"}
+{"time":"2026-11-24T11:26:30+08:00","action":"deny_forbidden","file":"r37authprobe0123456789.txt","inquiry_id":2416,"user_id":197,"role":0,"ip":"127.0.0.1"}
+{"time":"2026-11-24T11:26:30+08:00","action":"deny_forbidden","file":"r37authprobe0123456789.txt","inquiry_id":2416,"user_id":197,"role":0,"ip":"127.0.0.1"}
+{"time":"2026-11-24T11:26:30+08:00","action":"deny_forbidden","file":"37SOI8wNcK3ap19_T8Ili4Gr.txt","inquiry_id":2401,"user_id":197,"role":0,"ip":"127.0.0.1"}
+{"time":"2026-11-24T11:26:30+08:00","action":"deny_missing_file","file":"r37authprobe0123456789.txt","inquiry_id":2416,"user_id":198,"role":0,"ip":"127.0.0.1"}
+{"time":"2026-11-24T11:26:30+08:00","action":"allow","file":"r37authprobe0123456789.txt","inquiry_id":2416,"user_id":198,"role":0,"ip":"127.0.0.1"}
+{"time":"2026-11-24T11:26:31+08:00","action":"not_found","file":"r37authprobe0123456789.txt","inquiry_id":null,"user_id":198,"role":0,"ip":"127.0.0.1"}
+{"time":"2026-11-24T11:26:31+08:00","action":"not_found","file":"r37authprobe0123456789.txt","inquiry_id":null,"user_id":199,"role":1,"ip":"127.0.0.1"}
+{"time":"2026-11-24T11:26:31+08:00","action":"not_found","file":"r37authprobe0123456789.txt","inquiry_id":null,"user_id":0,"role":-1,"ip":"127.0.0.1"}
+
+### cleanup
+fixture row removed, probe file removed
+DONE

@@ -1,0 +1,15 @@
+﻿== PHP (phpstudy 7.4.3 nts) ==
+PHP 7.4.3 (cli) (built: Feb 18 2020 17:29:57) ( NTS Visual C++ 2017 x64 )
+Copyright (c) The PHP Group
+Zend Engine v3.4.0, Copyright (c) Zend Technologies
+
+== MySQL server ==
+version	sql_mode
+8.0.12	ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION
+
+== docker ==
+docker: NOT FOUND (command not available)
+
+== target version probe (php 7.4.33 / mysql 5.6.50) ==
+php 7.4.33 binaries under phpstudy: 0
+mysql 5.6.50 binaries under phpstudy: 0

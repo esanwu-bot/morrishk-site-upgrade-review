@@ -1,0 +1,28 @@
+﻿== snsii_manage test identities (no credential material) ==
+id	UserName	Role	Status
+197	qa_tester	0	1
+198	qa_other	0	1
+199	qa_admin	1	1
+
+== snsii_cart owner column ==
+Field	Type	Null	Key	Default	Extra
+OwnerUserId	int(8)	NO	MUL	0	
+Table	Non_unique	Key_name	Seq_in_index	Column_name	Collation	Cardinality	Sub_part	Packed	Null	Index_type	Comment	Index_comment	Visible
+snsii_cart	1	idx_owner	1	OwnerUserId	A	NULL	NULL	NULL		BTREE			YES
+
+== attachment ownership (id / OwnerUserId / Files / Status only) ==
+id	OwnerUserId	Files	Status
+2412	198	uploads/24ggpujdNQulsi0_rNo5A4XM.txt	0
+2409	0	uploads/X7jz0z0wDhd4i-5y2OjZvIiH.txt	0
+2408	0	uploads/VmWbrrWZ3L0js6Ogv48Wyx-l.pdf	0
+2406	0	uploads/lL_MeKpsEs5wWnYqffAGuSaV.txt	0
+2404	0	uploads/8kxnU9FAOlH5fBsq9hbuTIGK.txt	0
+2403	0	uploads/K-zQNuyFYUxb39FKzh_BTo-I.txt	0
+2402	0	uploads/5oUB7zCx2oBnNYeHluvgyUac.pdf	0
+2401	0	uploads/37SOI8wNcK3ap19_T8Ili4Gr.txt	0
+2398	0	/uploads/t_20261124102944.txt	0
+2397	0	/uploads/test_20261123173729.txt	0
+
+== fixture row 2416 lifecycle ==
+created: id=2416 OwnerUserId=198 Files=uploads/r37authprobe0123456789.txt Status=0 (see download_auth_matrix.txt)
+deleted at T9; post-delete downloads: owner=404 admin=404 guest=404

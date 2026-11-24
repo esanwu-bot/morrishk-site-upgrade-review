@@ -1,0 +1,57 @@
+== Composer ==
+Composer version 2.5.8 2023-06-09 17:13:21
+PHP interpreter used: D:\phpstudy_pro\Extensions\php\php7.4.3nts\php.exe (PHP 7.4.3)
+
+== composer check-platform-reqs (cwd=C:\r37app, lock file) ==
+See composer_platform_check.txt: all requirements success, php 7.4.3 success, exit_code=0.
+No --ignore-platform-reqs flag was used at any point.
+
+== Install command actually executed (clean copy, production-style) ==
+php composer.phar install --no-dev --no-scripts --no-interaction
+Result: 71 packages installed from composer.lock, vendor/autoload.php generated.
+Post-install verification: vendor/autoload.php present, Yii2 2.0.44 present.
+
+== `composer install --dry-run` follow-up (same tree) ==
+Installing dependencies from lock file (including require-dev)
+Verifying lock file contents can be installed on current platform.
+Package operations: 60 installs, 0 updates, 0 removals
+exit_code=0
+Interpretation: runtime (no-dev) dependency set is complete; the 60 pending
+packages are require-dev only (codeception/phpunit/gii/debug etc.) and are not
+needed to run the application. They were intentionally not installed in the
+verification environment.
+
+== composer.json scripts (declared) ==
+"scripts": {
+    "post-install-cmd": [
+        "yii\\composer\\Installer::postInstall"
+    ],
+    "post-create-project-cmd": [
+        "yii\\composer\\Installer::postCreateProject",
+        "yii\\composer\\Installer::postInstall"
+    ]
+}
+"extra"."yii\\composer\\Installer::postInstall":
+    generateCookieValidationKey -> config/web.php
+"extra"."yii\\composer\\Installer::postCreateProject".setPermission:
+    runtime 0777, web/assets 0777, yii 0755
+
+== Were scripts executed? ==
+NO. Installation was run with --no-scripts.
+Reason: post-install vendor scripts mutate application source files
+(config/web.php) and filesystem permissions; in a review environment we do not
+let third-party install hooks modify the checked-out tree.
+
+== Impact of skipping scripts (explicit) ==
+1. `yii\composer\Installer::postInstall` -> generateCookieValidationKey was
+   NOT executed, so config/web.php keeps an empty cookieValidationKey.
+   Mitigation used in all verification runs:
+   MORRISHK_COOKIE_VALIDATION_KEY environment variable (non-empty 32+ chars).
+   Production must either run the script once or provide the key via the same
+   environment variable / local config — a deployment step, not a code change.
+2. Directory permission setup (runtime, web/assets) was NOT executed.
+   Mitigation: runtime/, runtime/logs, runtime/cache, runtime/uploads,
+   runtime/audit and web/assets were created and made writable explicitly
+   before the runtime tests.
+3. postCreateProject (project scaffolding) is irrelevant for an existing
+   application and was not needed.

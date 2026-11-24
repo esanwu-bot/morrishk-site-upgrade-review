@@ -62,8 +62,11 @@ composer.json  SHA256 = D0BDB9B7869FBE8FA004B5A123BA9A0E419B915AA48C5CCE772A6813
 
 | 用户名 | 密码 | 用途 |
 |---|---|---|
-| `qa_tester` | `QaTest#2026` | 已登录下载/后台 CSRF 测试 |
-| `qa_other` | `QaOther#2026` | 跨用户下载策略测试 |
+| `qa_tester` | 不在文档中记录（见安全材料说明） | 已登录下载/后台 CSRF 测试 |
+| `qa_other` | 不在文档中记录（见安全材料说明） | 跨用户下载策略测试 |
+
+凭据以一次性随机口令生成，仅在被测运行环境内通过受控渠道（本机临时文件，测试结束即删除）传递，不写入仓库。
+Round 37 已轮换：旧口令失效，新口令同样不入库；轮换与失效验证见 `37_morrishk_v1_final_acceptance/05_SECURITY_MATERIALS.md`。
 
 插入方式：`password_hash(..., PASSWORD_BCRYPT, ['cost' => 13])`，与 `Yii::$app->security->validatePassword` 兼容。
 
