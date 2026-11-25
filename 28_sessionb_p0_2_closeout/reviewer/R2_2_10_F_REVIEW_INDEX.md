@@ -6,7 +6,7 @@
 | 父提交 | `d9354a00074b0655b4e6738b9f8b79f70d4bddab` |
 | 分支 | `docs/sessionb-product-identity-global-id-design` |
 | 性质 | 审核材料归档；不是架构批准、不是 Owner Signoff、不是 Contract Freeze |
-| 推送状态 | **未 push**；仅提交到本地审核仓库 |
+| 推送状态 | **已 push**；`origin/docs/sessionb-product-identity-global-id-design` 包含 `051cafe` 与本索引提交 |
 | 签署基线 | 仍为 `051cafe`（本审核包提交不改变签署基线） |
 
 > 本索引由实现方按 Reviewer 要求整理，用于提供实际 Git diff 与原文路径；不代表 Reviewer 已完成复核，也不构成任何结论。
@@ -58,6 +58,7 @@
 ## 5. 说明
 
 - 本审核包未修改任何设计、决策、测试向量或 83 项证据内容。
-- 本审核包未 push、未 merge、未 deploy。
+- 本审核包已 push 至 `origin/docs/sessionb-product-identity-global-id-design`；未 merge、未 deploy。
+- `25` §6 的“未推送”记录的是 `051cafe` 提交时的状态；实际推送由后续审核索引提交完成，`051cafe` 仍在远端历史中。
 - 本审核包提交本身不属于签署基线；签署基线仍为 `051cafe`。
 - Reviewer 完成正式复核前，不得将本包视为 PASS 或 Owner Signoff。
