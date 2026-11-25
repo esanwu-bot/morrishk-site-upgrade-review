@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-003 |
-| 版本 | v2.6-R2.2.7 |
+| 版本 | v2.7-R2.2.10-F |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | 当前 `product_id=prod-{document_id}`；`document_id=doc-{sha[:12]}`；`run_id` 执行级 |
 | 相关决策 | D-04、D-05、D-06、D-21、D-22、D-23、D-41、D-42（见 `08_DECISION_REGISTER.md`） |
@@ -178,10 +178,11 @@ identity_conflict
 1. **稳定主体标识**：`client_id + subject` 不足以唯一标识自然人（同一自然人可通过不同 Client 获得不同 subject）。必须使用服务端可信的稳定 `principal_id`（与自然人/服务账号一一对应），四个审批身份字段统一引用 `principal_id`；**不得使用请求体自报的 actor ID**。
 2. **身份来源**：四个审批身份必须来自校验后的 token 上下文（`client_id` + `subject` → `client_subject_binding` → `principal_id` + 服务端角色绑定）；每次写入记录 `auth_context_ref` 与角色快照。
 3. **数据库 CHECK**：`submitted_by_principal_id <> tenant_approved_by_principal_id`；`decided_by_principal_id <> approved_by_principal_id`；应用层额外禁止同一 principal 跨相邻角色复用。
+   - **DB 强制范围**：上述 CHECK 只证明 principal 不同；数据库未对四个 principal 字段建立到 `principal_role` 的外键，不能证明其实际持有 `tenant.editor`/`tenant.admin`/`identity.admin`/`identity.approver`。角色资格由应用层在写入前校验并记录 `auth_context_ref`，不得表述为数据库已强制。
 4. **角色授权来源与互斥**：角色来自 `principal_domain_binding`（单有效域）+ `principal_role` + `role_catalog`（固定角色域）。数据库强制：`UNIQUE (principal_id) WHERE status='ACTIVE'` 保证同一 principal 只有一个有效域；`principal_role.role_domain` 通过复合外键与 binding 域一致。禁止组合：同一 principal 不得同时持有 `{tenant.editor, tenant.admin}` 与 `{identity.admin, identity.approver}`；撤销/换域保留历史（详见 `04` §3.3.3）。
 5. **审批状态 CHECK（Global）**：`PROPOSED` → `approved_by_principal_id IS NULL AND approved_at IS NULL`；`APPROVED` → 两者均 NOT NULL；`REJECTED` → 两者均为 NULL；且 `decided_by_principal_id <> approved_by_principal_id`。
 6. **审批状态 CHECK（Tenant）**：`SUBMITTED`/`UNDER_REVIEW` → `tenant_approved_by_principal_id` 与 `tenant_approved_at` 均为 NULL；`TENANT_APPROVED`/`ACCEPTED_BY_GLOBAL`/`REJECTED_BY_GLOBAL` → 两者均 NOT NULL；`WITHDRAWN` 保留撤回前值。
-7. **两阶段事务边界**：Tenant 审批是前置阶段，完成后**独立提交** `TENANT_APPROVED`；Global 最终阶段在**新事务**内锁定并重新验证 Tenant Assertion 已为 `TENANT_APPROVED`，再在同一事务内完成 Global 裁决批准、`global_product` 创建/更新、alias/lineage 与 GLOBAL audit；任一步失败整体回滚。**不要求** Tenant 审批状态更新与 Global 最终审批在同一个跨阶段事务内完成。
+7. **两阶段事务边界**：Tenant 审批是前置阶段，完成后**独立提交** `TENANT_APPROVED`；Global 最终阶段在**新事务**内锁定并重新验证 Tenant Assertion 已为 `TENANT_APPROVED`，再在同一事务内完成 Global 裁决批准、回写 `tenant_assertion.status=ACCEPTED_BY_GLOBAL` 与 `global_decision_ref`、pending 状态、`global_product` 创建/更新、alias/lineage 与 GLOBAL audit；任一步失败整体回滚。**不要求** Tenant 审批状态更新与 Global 最终审批在同一个跨阶段事务内完成。
 8. **幂等**：同一 `(subject_type, subject_ref, decision_version)` 只允许一次 APPROVED 生效；重复/并发审批返回既有结果，不重复写 `global_product`。
 9. **越权路径隔离**：Tenant 侧接口不持有写 `global_product` 的权限；Global 侧接口不复用 Tenant 审批代码路径，避免“确认即全局生效”。
 
@@ -240,7 +241,7 @@ global_adjudication
 1. 只有全局治理角色可执行；决策与批准必须由不同 principal 完成。
 2. **只有 `decision_status = APPROVED` 时才允许创建/更新 `global_product`**；`PROPOSED`/`REJECTED` 不得写 `global_product`。
 3. Global 最终阶段必须在新事务内锁定并**重新验证**关联 Tenant Assertion 为 `TENANT_APPROVED`；未满足则拒绝，不得以历史状态或缓存放行。
-4. 通过后在同一事务内完成：裁决 `APPROVED`、回写 pending/assertion、`global_product` 创建/更新、alias/lineage、GLOBAL audit；任一步失败整体回滚。
+4. 通过后在同一事务内完成：裁决 `APPROVED`、回写 pending 状态、`tenant_assertion.status=ACCEPTED_BY_GLOBAL` 与 `global_decision_ref`、`global_product` 创建/更新、alias/lineage、GLOBAL audit；任一步失败整体回滚。
 5. 拒绝时只更新裁决记录与状态，不删除客户 assertion / pending / 证据。
 6. 全局事件写 `audit_log(scope='GLOBAL')`；`tenant_id`/`site_id` 均必须为 NULL（不得伪造；详见 `06` §8.2/§8.12）。
 7. **普通导入/重解析/批量/后台/管理员路径**遇到无匹配产品时只能创建 `identity_pending`；不得直接创建 `global_product`。

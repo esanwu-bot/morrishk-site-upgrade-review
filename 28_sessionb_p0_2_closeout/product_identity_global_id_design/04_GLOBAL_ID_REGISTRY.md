@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 文档编号 | MRH-DSBIT-SESSIONB-PID-004 |
-| 版本 | v2.11-R2.2.10 |
+| 版本 | v2.12-R2.2.10-F |
 | 状态 | **PROPOSED_NOT_APPROVED** |
 | 事实基线 | 无全局产品 ID/注册表；`product_id=prod-doc`；lake 仅 3 表 |
 | 相关决策 | D-05、D-06、D-10、D-21、D-22、D-23、D-31…D-34、D-41…D-49（见 `08_DECISION_REGISTER.md`） |
@@ -483,7 +483,8 @@ CHECK (scope='GLOBAL' AND tenant_id IS NULL AND site_id IS NULL)
 6. **撤销与重新授权**：撤销 = `binding.status='REVOKED'` + `effective_to` + 同事务撤销该 binding 下所有 `principal_role`（写 `revoked_at`）；旧 binding/角色行保留。重新授权（同域或换域）生成新的 `binding_id`，旧行不删除；同一 principal 仍只能有一个 ACTIVE binding；审计保留完整历史。
 7. **同域多角色**：同一 ACTIVE binding 下允许 `tenant.editor` + `tenant.admin`（或 `identity.admin` + `identity.approver`）并存，但具体授予仍受业务策略限制。
 8. **职责分工**：数据库负责“单有效域、域与角色匹配、无重复有效授予”；应用层负责“谁有权授予、审批流程、撤销原因与审计”。应用层校验不得替代上述数据库约束。
-9. **审计**：binding 授予/撤销、角色授予/撤销均写 `audit_log`（TENANT 或 GLOBAL scope），记录 actor principal、目标 principal、域、角色、原因。
+9. **审批资格边界**：`tenant_assertion`/`global_adjudication` 的四个 principal 字段目前**不**对 `principal_role` 建外键；数据库只强制不同 principal、状态/批准字段一致、单有效域与域/角色匹配，**不强制**该 principal 在写入时实际持有 `tenant.editor`/`tenant.admin`/`identity.admin`/`identity.approver`。角色资格由应用层在写入前校验并记录 `auth_context_ref`；不得把应用层资格检查描述为数据库已强制。
+10. **审计**：binding 授予/撤销、角色授予/撤销均写 `audit_log`（TENANT 或 GLOBAL scope），记录 actor principal、目标 principal、域、角色、原因。
 
 ### 3.4 MPN Profile 选择（R2-4）
 
@@ -523,7 +524,7 @@ raw MPN/Brand (tenant_id, site_id)
 3. Global 决策者只能创建 `decision_status='PROPOSED'` 的裁决。
 4. 只有 Global Approver 批准且 `decision_status='APPROVED'` 后，才允许创建/更新 `global_product`。
 5. Global 最终事务必须重新锁定并验证关联 Tenant Assertion 的状态为 `TENANT_APPROVED`。
-6. `global_product`、alias、lineage、pending 状态、`global_adjudication`、GLOBAL `audit_log` 必须在同一最终事务中提交或回滚。
+6. `tenant_assertion` 状态/`global_decision_ref`、`global_product`、alias、lineage、pending 状态、`global_adjudication`、GLOBAL `audit_log` 必须在同一最终事务中提交或回滚。
 7. 不存在绕过路径：直接导入、重解析、批量导入、后台任务、管理员操作一律走同一门槛；管理员不得以“修复数据”为由直接写 `global_product`。
 8. 三类动作必须分开：
    - **匹配与关联**：已存在 CONFIRMED 产品 → 复用 `product_uid`，只建立 `tenant_document` 关联；
@@ -579,6 +580,7 @@ BEGIN
   SELECT ... FROM tenant_assertion WHERE ... FOR UPDATE;
   -- 重新验证 status = 'TENANT_APPROVED'
   UPDATE global_adjudication SET decision_status='APPROVED', approved_at=...;
+  UPDATE tenant_assertion SET status='ACCEPTED_BY_GLOBAL', global_decision_ref=...;
   INSERT/UPDATE global_product;
   INSERT product_lineage / alias;
   UPDATE identity_pending SET status='ADJUDICATED';
