@@ -173,3 +173,58 @@ P0-2 四项 FAIL 中，**全部四项（产品身份、全局 ID、静态 B2B �
 ### 11.4 未执行事项
 
 本节只读；未执行 Git 命令（无法在当前环境运行）；未在 `5dcecd2` 独立工作树核验（受环境限制，已如实标注为未核验而非假定一致）；未修改任何文件；未新建治理层级；未 commit/push；未关闭任何 finding；未授予任何实施或生产授权。
+
+---
+
+## 12. Owner 裁定：O-1 D-09 `RETENTION_PERIOD`（2026-11-28 20:38）
+
+| 项 | 值 |
+|---|---|
+| 状态 | **OWNER_DECIDED — RECORDED_FROM_CONVERSATION — NOT_REGISTERED** |
+| `DECISION_ID` | `NOT_GENERATED` |
+| 裁定时间 | 2026-11-28 20:38 Asia/Shanghai（对话记录） |
+| 起草方 | 执行代理（转录）；非 Owner 原文 |
+
+### 12.1 裁定内容
+
+| 字段 | 决定类型 | 值 | 适用范围 |
+|---|---|---|---|
+| `RETENTION_PERIOD` | `ACCEPT` | **3 年** | 全部审计记录类型（ballot §3.1 定义的 K1/K2/K4 全部审计记录） |
+| `INTERIM_RETENTION_POLICY` | `N/A` | — | 按 ballot §3.3 第 1 条：仅当 `RETENTION_PERIOD = DEFER` 时适用；本次 `RETENTION_PERIOD = ACCEPT`，该字段不适用，填 `N/A`，**不构成未完成项** |
+
+### 12.2 自检（对照 ballot 原文，不改写 ballot 或正式 OD）
+
+- ballot §3.1 第 3 行要求 `ACCEPT` 须给"具体期限 + 适用范围"：本次给出"3 年"+"全部审计记录类型"，满足格式要求。
+- ballot §3.3 第 1 条：`INTERIM_RETENTION_POLICY` 仅在 `RETENTION_PERIOD = DEFER` 时填写，其余情形填 `N/A`：本次 `RETENTION_PERIOD = ACCEPT`，故 `INTERIM_RETENTION_POLICY = N/A` 符合规则，**O-2 不再是待决事项**。
+
+### 12.3 D-09 卡级状态推导（按 ballot §3.6，执行方推导，交 Reviewer 核对）
+
+| 字段 | 决定 |
+|---|---|
+| `AUDIT_FIELD_SET` | `ACCEPT / A`（79_ 已确认） |
+| `AUDIT_ROLE_MATRIX` | `ACCEPT / ADOPT_AS_PROPOSED`（79_ 已确认） |
+| `RETENTION_PERIOD` | `ACCEPT / 3 年，全部审计记录类型`（本次确认） |
+| `INTERIM_RETENTION_POLICY` | `N/A`（本次确认，因 `RETENTION_PERIOD≠DEFER`） |
+| `PENDING_FIELDS` | `NONE` |
+| `BLOCKING_DEPENDENCY` | `NONE` |
+| `CARD_OVERALL` | **`COMPLETE`**（四项必填字段均已 `ACCEPT`，`PENDING_FIELDS`/`BLOCKING_DEPENDENCY` 均为 `NONE`） |
+
+> 69_ §3.6 第 3 条曾指出"D-09 先于 D-01 裁定时，结果只能是 `PARTIALLY_DECIDED` 或 `DEFERRED`，不可能 `COMPLETE`"。该条针对的是 D-09 **先于** D-01 裁定的情形；D-01 已有正式 OD（`OWNER_CONFIRMED`，79_ 重新确认），`STATUS_FIELD_NAMESPACE = PENDING_D01_OUTCOME` 仅约束命名空间占位，不因此降级本次推导的 `COMPLETE`。**此推导为执行方按规则文本所做，非 Owner 原文，需 Reviewer 核对后方可采信为正式状态。**
+
+### 12.4 效力边界
+
+1. 本裁定**不**修改原 ballot（仍 `NOT_SIGNED / NOT_FILLED`）、不修改正式 D-01 OD、不创建 D-09 历史 OD；
+2. 本裁定**不**构成存储授权、数据迁移授权、实施授权或生产授权（`STORAGE_AUTHORIZATION` 仍 `NOT_GRANTED`）；
+3. §12.3 的 `CARD_OVERALL = COMPLETE` 推导**待 Reviewer 核对**，在核对前不应视为已生效的正式状态；
+4. F-02 是否因此关闭仍需 Reviewer 判断（此前 Reviewer 意见：若 F-02 关闭范围包含 D-09 完整性，本次裁定可能满足该条件，但仍需独立核对）。
+
+### 12.5 更新后的待决清单
+
+| 事项 | 状态 |
+|---|---|
+| O-1 D-09 `RETENTION_PERIOD` | **已裁定**（本节） |
+| O-2 D-09 `INTERIM_RETENTION_POLICY` | **已解决**（`N/A`，因 O-1 非 DEFER） |
+| N-3 第 4 项（B2B 能力缺失） | 维持依赖实施授权（§11.3） |
+| P0-2 分阶段验收规则 | 待 Owner 裁定 |
+
+**现在真正需要 Owner 决定的事项收窄为：P0-2 是否采用分阶段验收规则。** 其余 O/N 系列事项均已裁定、解决或移出 Owner 裁定范围。
