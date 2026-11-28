@@ -228,3 +228,36 @@ P0-2 四项 FAIL 中，**全部四项（产品身份、全局 ID、静态 B2B �
 | P0-2 分阶段验收规则 | 待 Owner 裁定 |
 
 **现在真正需要 Owner 决定的事项收窄为：P0-2 是否采用分阶段验收规则。** 其余 O/N 系列事项均已裁定、解决或移出 Owner 裁定范围。
+
+---
+
+## 13. B2B 静态桩基线核验补强（2026-11-28 20:39，Owner 本机 Git 命令）
+
+| 项 | 值 |
+|---|---|
+| 触发 | 第 11.1 节标注“基线 `5dcecd2` 上是否同样不存在：未核验”；Owner 在本机补跑标准 Git 命令，解除该限制 |
+| 执行方 | Owner 本机（`E:\workspace\icpdf-extractor`）；本节为执行代理转录，未重新运行 |
+| 效力 | 补强第 11 节证据，不改变第 11.3 节结论（四项 FAIL 均依赖实施授权） |
+
+### 13.1 Owner 本机命令与结果
+
+| 命令 | 结果 |
+|---|---|
+| `git ls-tree -r HEAD -- workbench/b2b` | 空（无跟踪文件） |
+| `git ls-tree -r 5dcecd2 -- workbench/b2b` | 空（CAND-09 基线同样无跟踪文件） |
+| `git log --all -- workbench/b2b/serve_b2b.py` | 无任何历史记录（该文件从未进入过 Git 版本历史） |
+| `git grep x_local_static_stub HEAD` | 0 命中 |
+| 工作区实测 | `serve_b2b.py` 源文件不存在；仅 `workbench/b2b/__pycache__/serve_b2b.cpython-313.pyc` |
+| 旁证 | 复核仓库 `12_dsbit_business_api_integration_design/Ds Bit ↔ Morrishk Business API Integration Design v1.md:178` 明确标注 `workbench/b2b/serve_b2b.py（未跟踪）` |
+
+### 13.2 结论更新
+
+第 11.2 节第 4 条原列两个分支（"确认不存在冒充真实能力的静态桩" vs "存在真实可用能力"），因基线未核验而未能完全排除第一分支。**本次 `git log --all` 证明该文件自始未进入 Git 历史，`HEAD` 与 `5dcecd2` 两个基线均无跟踪文件**，第一分支（"静态桩文件去留"）在两个基线上均不构成差异来源，排除。
+
+**第 11.3 节结论维持不变并获得更强支持**：`28_/06` 对该项 FAIL 的判定依据是"B2B 能力"缺失，不是文件版本状态；该文件从未被跟踪这一事实进一步证明"退役声明"无对象可退（无跟踪文件可退役），该 FAIL 项**只能**通过提供真实 B2B Runtime 能力来关闭，与产品身份、全局 ID、后端实现三项性质相同，**均依赖实施授权**。
+
+P0-2 四项 FAIL 全部依赖实施授权的结论，现由本机标准 Git 命令（`ls-tree`、`log --all`、`grep`）支持，不再仅依赖文本搜索推断。
+
+### 13.3 未执行事项
+
+本节为转录；执行方未重新运行上述命令；未修改任何文件；未新建治理层级；未 commit/push；未关闭任何 finding；未授予任何实施或生产授权。
